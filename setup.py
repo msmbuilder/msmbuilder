@@ -15,8 +15,10 @@ except ImportError:
 
 try:
     from Cython.Distutils import build_ext
+    setup_kwargs = {'cmdclass': {'build_ext': build_ext}}
     cython_extension = 'pyx'
 except ImportError:
+    setup_kwargs = {}
     cython_extension = 'c'
 
 ##########################
@@ -57,6 +59,5 @@ setup(name='vmhmm',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),      
       py_modules=['vmhmm'],
-      cmdclass={'build_ext': build_ext},
       zip_safe=False,
-      ext_modules=[_vmhmm])
+      ext_modules=[_vmhmm], **setup_kwargs)
