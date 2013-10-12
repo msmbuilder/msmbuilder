@@ -20,3 +20,6 @@ are supported.
 
 The packages uses distutils, which is the default way of installing python
 modules. The install command is `python setup.py install`.
+
+### Example
+[todo]
