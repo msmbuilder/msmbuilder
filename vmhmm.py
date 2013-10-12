@@ -1,26 +1,8 @@
-# Copyright (C) 2013  Stanford University
-#
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division
-import sys
-import time
 
 import numpy as np
 from sklearn.hmm import _BaseHMM
@@ -28,17 +10,13 @@ import scipy.special
 from scipy.interpolate import interp1d
 from scipy.interpolate._fitpack import _bspleval
 from scipy.stats.distributions import vonmises
+import _vmhmm
 
-try:
-    import cffi
-    from mdtraj.utils.ffi import cpointer
-except ImportError:
-    # We'll just use the python version
-    pass
-
+#-----------------------------------------------------------------------------
+# Globals
+#-----------------------------------------------------------------------------
 
 M_2PI = 2 * np.pi
-DEBUG = False
 __all__ = ['VonMisesHMM']
 
 #-----------------------------------------------------------------------------
@@ -46,24 +24,70 @@ __all__ = ['VonMisesHMM']
 #-----------------------------------------------------------------------------
 
 
-def timeit(method):
-
-    def timed(*args, **kw):
-        ts = time.time()
-        result = method(*args, **kw)
-        te = time.time()
-        print('%10s %2.5f sec' %
-              (method.__name__, te - ts))
-        return result
-    return timed
-
-if not DEBUG:
-    timeit = lambda x: x
-
-
 class VonMisesHMM(_BaseHMM):
+    """
+    Hidden Markov Model with von Mises emissions
+
+    The von Mises distribution, (also known as the circular normal
+    distribution or Tikhonov distribution) is a continuous probability
+    distribution on the circle. For multivariate signals, the emmissions
+    distribution implemented by this model is a product of univariate
+    von Mises distributuons -- analogous to the multivariate Gaussian
+    distribution with a diagonal covariance matrix.
+
+    This class allows for easy evaluation of, sampling from, and
+    maximum-likelihood estimation of the parameters of a HMM.
+
+    Parameters
+    ----------
+    n_components : int
+        Number of states in the model.
+    random_state: RandomState or an int seed (0 by default)
+        A random number generator instance
+    n_iter : int, optional
+        Number of iterations to perform.
+    thresh : float, optional
+        Convergence threshold.
+    params : string, optional
+        Controls which parameters are updated in the training
+        process.  Can contain any combination of 's' for startprob,
+        't' for transmat, 'm' for means, and 'k' for kappas. Defaults to all
+        parameters.
+    init_params : string, optional
+        Controls which parameters are initialized prior to
+        training.  Can contain any combination of 's' for
+        startprob, 't' for transmat, 'm' for means, and 'k' for
+        covars. Defaults to all parameters.
+
+    Attributes
+    ----------
+    n_features : int
+        Dimensionality of the emissions.
+    transmat_ : array, shape (`n_components`, `n_components`)
+        Matrix of transition probabilities between states.
+    startprob_ : array, shape ('n_components`,)
+        Initial state occupation distribution.
+    means_ : array, shape (`n_components`, `n_features`)
+        Mean parameters for each state.
+    kappas_ : array, shape (n_components`, `n_features`)
+        Concentration parameter for each state. If `kappa` is zero, the
+        distriution is uniform. If large, the distribution is very
+        concentrated around the mean.
+    """
     _clib = None  # Handle for the shared library that this class (optionally)
                   # uses for some compute-intensive parts
+
+    def __init__(self, n_components=1, startprob=None, transmat=None,
+                 startprob_prior=None, transmat_prior=None, algorithm="viterbi",
+                 random_state=None, n_iter=10, thresh=1e-2,
+                 params='stmk', init_params='stmk'):
+        _BaseHMM.__init__(self, n_components, startprob, transmat,
+                          startprob_prior=startprob_prior,
+                          transmat_prior=transmat_prior, algorithm=algorithm,
+                          random_state=random_state, n_iter=n_iter,
+                          thresh=thresh, params=params,
+                          init_params=init_params)
+        self._fitinvkappa = self._c_fitinvkappa
 
     def _init(self, obs, params='stmk'):
         super(VonMisesHMM, self)._init(obs, params)
@@ -78,22 +102,6 @@ class VonMisesHMM(_BaseHMM):
             self._means_ = np.random.randn(self.n_components, self.n_features)
         if 'k' in params:
             self._kappas_ = np.ones((self.n_components, self.n_features))
-
-    @classmethod
-    def _init_optimized_backed(cls):
-        libs = ['cffi', 'mdtraj']
-        if cls._clib is None and all(e in sys.modules for e in libs):
-            ffi = cffi.FFI()
-            ffi.cdef('''int fitinvkappa(long n_samples, long n_features,
-                     long n_components, double* posteriors, double* obs,
-                     double* means, double* out);''')
-            try:
-                cls._clib = ffi.dlopen('_vmhmm.so')
-                cls._fitinvkappa = cls._c_fitinvkappa
-            except OSError:
-                cls._fitinvkappa = cls._py_fitinvkappa
-        else:
-            cls._fitinvkappa = cls._py_fitinvkappa
 
     def _get_means(self):
         """Mean parameters for each state."""
@@ -132,7 +140,7 @@ class VonMisesHMM(_BaseHMM):
 
         Returns
         -------
-        sample : mp.array, shape=[n_features]
+        sample : mp.array, shape (`n_features`,)
         """
         x = vonmises.rvs(self._kappas_[state], self._means_[state])
         return circwrap(x)
@@ -142,11 +150,11 @@ class VonMisesHMM(_BaseHMM):
 
         Parameters
         ----------
-        obs : np.array, shape=[n_samples, n_features]
+        obs : np.array, shape (`n_samples`, `n_features`)
 
         Returns
         -------
-        logl : np.array, shape=[n_samples, n_states]
+        logl : np.array, shape (`n_samples`, `n_states`)
         """
         value = np.array([np.sum(vonmises.logpdf(obs, self._kappas_[i],
             self._means_[i]), axis=1) for i in range(self.n_components)]).T
@@ -172,7 +180,6 @@ class VonMisesHMM(_BaseHMM):
         stats['posteriors'].append(posteriors)
         stats['obs'].append(obs)
 
-    @timeit
     def _py_fitinvkappa(self, posteriors, obs, means):
         inv_kappas = np.zeros_like(self._kappas_)
         for i in range(self.n_features):
@@ -182,16 +189,11 @@ class VonMisesHMM(_BaseHMM):
                 inv_kappas[j, i] = n / d
         return inv_kappas
 
-    @timeit
     def _c_fitinvkappa(self, posteriors, obs, means):
-        inv_kappas = np.zeros_like(self._kappas_)
+        out = np.empty_like(self._kappas_)
+        _vmhmm._fitinvkappa(posteriors, obs, means, out)
+        return out
 
-        self._clib.fitinvkappa(posteriors.shape[0], self.n_features,
-            self.n_components, cpointer(posteriors), cpointer(obs),
-            cpointer(means), cpointer(inv_kappas))
-        return inv_kappas
-
-    @timeit
     def _fitmeans(self, posteriors, obs, out):
         # It should be possible to speed this up a little bit using
         # fast SSE trig, but it's probably about ~2x max.
@@ -199,7 +201,6 @@ class VonMisesHMM(_BaseHMM):
                    np.dot(posteriors.T, np.cos(obs)),
                    out=out)
 
-    @timeit
     def _do_mstep(self, stats, params):
         super(VonMisesHMM, self)._do_mstep(stats, params)
 
@@ -256,7 +257,6 @@ class inverse_mbessel_ratio(object):
         self._k = k
         self._is_fit = True
 
-    @timeit
     def __call__(self, y):
         if not self._is_fit:
             self._fit()
@@ -288,5 +288,3 @@ class inverse_mbessel_ratio(object):
 
 # Shadown the inverse_mbessel_ratio with an instance.
 inverse_mbessel_ratio = inverse_mbessel_ratio()
-# Load the cffi backend
-VonMisesHMM._init_optimized_backed()
