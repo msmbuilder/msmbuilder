@@ -13,15 +13,15 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
    *      numerator = np.sum(posteriors[:, j] * np.cos(obs[:, i] - means_[j, i]))
    *      denominator = np.sum(posteriors[:, j])
    *      inv_kappas[j, i] = numerator / denominator
-   * 
-   */ 
-  long i, j, k;
+   *
+   */
   int err;
+  long i, j, k;
   double meanshifted, posterior_kj;
   double *num, *denom;
 
-  err = posix_memalign((void**) &num, 16, n_components*n_features*sizeof(double));
-  err = posix_memalign((void**) &denom, 16, n_components*n_features*sizeof(double));
+  err = posix_memalign((void**) &num, 16, n_components * n_features * sizeof(double));
+  err = posix_memalign((void**) &denom, 16, n_components * n_features * sizeof(double));
   if (NULL == num || NULL == denom) {
     fprintf(stderr, "Memory allocation failure");
     exit(EXIT_FAILURE);

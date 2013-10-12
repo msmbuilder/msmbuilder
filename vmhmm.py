@@ -9,8 +9,8 @@ import time
 import numpy as np
 from sklearn.hmm import _BaseHMM
 import scipy.special
-import scipy.optimize
-import scipy.interpolate
+from scipy.interpolate import interp1d
+from scipy.interpolate._fitpack import _bspleval
 from scipy.stats.distributions import vonmises
 
 try:
@@ -21,8 +21,9 @@ except ImportError:
     pass
 
 
-M_2PI = 2*np.pi
+M_2PI = 2 * np.pi
 DEBUG = False
+__all__ = ['VonMisesHMM']
 
 #-----------------------------------------------------------------------------
 # Code
@@ -30,17 +31,24 @@ DEBUG = False
 
 
 def timeit(method):
+
     def timed(*args, **kw):
         ts = time.time()
         result = method(*args, **kw)
         te = time.time()
-        print('%10s %2.5f sec' % \
-              (method.__name__, te-ts))
+        print('%10s %2.5f sec' %
+              (method.__name__, te - ts))
         return result
     return timed
 
+if not DEBUG:
+    timeit = lambda x: x
+
 
 class VonMisesHMM(_BaseHMM):
+    _clib = None  # Handle for the shared library that this class (optionally)
+                  # uses for some compute-intensive parts
+
     def _init(self, obs, params='stmk'):
         super(VonMisesHMM, self)._init(obs, params)
         if (hasattr(self, 'n_features')
@@ -55,15 +63,22 @@ class VonMisesHMM(_BaseHMM):
         if 'k' in params:
             self._kappas_ = np.ones((self.n_components, self.n_features))
 
-        if 'cffi' in sys.modules and 'mdtraj' in sys.modules:
+    @classmethod
+    def _init_optimized_backed(cls):
+        libs = ['cffi', 'mdtraj']
+        if cls._clib is None and all(e in sys.modules for e in libs):
             ffi = cffi.FFI()
-            ffi.cdef('''int fitinvkappa(long n_samples, long n_features, long n_components,
-                        double* posteriors, double* obs, double* means, double* out);''')
-            self._clib = ffi.dlopen('_vmhmm.so')
-            self._fitinvkappa = self._c_fitinvkappa
+            ffi.cdef('''int fitinvkappa(long n_samples, long n_features,
+                     long n_components, double* posteriors, double* obs,
+                     double* means, double* out);''')
+            try:
+                cls._clib = ffi.dlopen('_vmhmm.so')
+                cls._fitinvkappa = cls._c_fitinvkappa
+            except OSError:
+                cls._fitinvkappa = cls._py_fitinvkappa
         else:
-            self._fitinvkappa = self._py_fitinvkappa
-        
+            cls._fitinvkappa = cls._py_fitinvkappa
+
     def _get_means(self):
         """Mean parameters for each state."""
         return self._means_
@@ -97,15 +112,14 @@ class VonMisesHMM(_BaseHMM):
     kappas_ = property(_get_kappas, _set_kappas)
 
     def _generate_sample_from_state(self, state, random_state=None):
-        """Generate random samples from the output distribution of a given state.
+        """Generate random samples from the output distribution of a state.
 
         Returns
         -------
         sample : mp.array, shape=[n_features]
         """
         x = vonmises.rvs(self._kappas_[state], self._means_[state])
-        wrapped = x - M_2PI * np.floor(x / M_2PI + 0.5)
-        return wrapped
+        return circwrap(x)
 
     def _compute_log_likelihood(self, obs):
         """Compute the log likelihood of each observation in each state
@@ -118,7 +132,8 @@ class VonMisesHMM(_BaseHMM):
         -------
         logl : np.array, shape=[n_samples, n_states]
         """
-        value = np.array([np.sum(vonmises.logpdf(obs, self._kappas_[i], self._means_[i]), axis=1) for i in range(self.n_components)]).T
+        value = np.array([np.sum(vonmises.logpdf(obs, self._kappas_[i],
+            self._means_[i]), axis=1) for i in range(self.n_components)]).T
         return value
 
     def _initialize_sufficient_statistics(self):
@@ -136,8 +151,8 @@ class VonMisesHMM(_BaseHMM):
         # Unfortunately, I'm not quite sure how to accumulate sufficient
         # statistics here, because we need to know the mean shifted cosine of
         # the data, which requires knowing the mean. You could do two passes,
-        # but that is MUCH more work, since you have to redo the forwardbackward
-        # So we'll just accumulate the data.
+        # but that is MUCH more work, since you have to redo the
+        # forwardbackward, so we'll just accumulate the data.
         stats['posteriors'].append(posteriors)
         stats['obs'].append(obs)
 
@@ -146,11 +161,11 @@ class VonMisesHMM(_BaseHMM):
         inv_kappas = np.zeros_like(self._kappas_)
         for i in range(self.n_features):
             for j in range(self.n_components):
-                numerator = np.sum(posteriors[:, j] * np.cos(obs[:, i] - means[j, i]))
-                denominator = np.sum(posteriors[:, j])
-                inv_kappas[j, i] = numerator / denominator
+                n = np.sum(posteriors[:, j] * np.cos(obs[:, i] - means[j, i]))
+                d = np.sum(posteriors[:, j])
+                inv_kappas[j, i] = n / d
         return inv_kappas
-    
+
     @timeit
     def _c_fitinvkappa(self, posteriors, obs, means):
         inv_kappas = np.zeros_like(self._kappas_)
@@ -158,14 +173,16 @@ class VonMisesHMM(_BaseHMM):
         self._clib.fitinvkappa(posteriors.shape[0], self.n_features,
             self.n_components, cpointer(posteriors), cpointer(obs),
             cpointer(means), cpointer(inv_kappas))
-        
-        if DEBUG:
-            print('Testing C fitinvkappa')
-            np.testing.assert_array_equal(inv_kappas,
-                self._py_fitinvkappa(posteriors, obs, means))
-
         return inv_kappas
-    
+
+    @timeit
+    def _fitmeans(self, posteriors, obs, out):
+        # It should be possible to speed this up a little bit using
+        # fast SSE trig, but it's probably about ~2x max.
+        np.arctan2(np.dot(posteriors.T, np.sin(obs)),
+                   np.dot(posteriors.T, np.cos(obs)),
+                   out=out)
+
     @timeit
     def _do_mstep(self, stats, params):
         super(VonMisesHMM, self)._do_mstep(stats, params)
@@ -173,11 +190,16 @@ class VonMisesHMM(_BaseHMM):
         posteriors = np.vstack(stats['posteriors'])
         obs = np.vstack(stats['obs'])
 
-        means = np.arctan2(np.dot(posteriors.T, np.sin(obs)),
-                            np.dot(posteriors.T, np.cos(obs)))
-        invkappa = self._fitinvkappa(posteriors, obs, means)
-        self._kappas_ = inverse_mbessel_ratio(invkappa)
-        self._means_ = means
+        if 'm' in params:
+            self._fitmeans(posteriors, obs, out=self._means_)
+        if 'k' in params:
+            invkappa = self._fitinvkappa(posteriors, obs, self._means_)
+            self._kappas_ = inverse_mbessel_ratio(invkappa)
+
+
+def circwrap(x):
+    "Wrap an array on (-pi, pi)"
+    return x - M_2PI * np.floor(x / M_2PI + 0.5)
 
 
 class inverse_mbessel_ratio(object):
@@ -191,6 +213,7 @@ class inverse_mbessel_ratio(object):
     This function computes A^(-1)(y) by way of a precomputed spline
     interpolation
     """
+
     def __init__(self, n_points=512):
         self._n_points = n_points
         self._is_fit = False
@@ -202,18 +225,19 @@ class inverse_mbessel_ratio(object):
         slows down the loading of the interpreter"""
         # Fitting takes about 0.5s on a laptop, and wth 512 points and cubic
         # interpolation, gives typical errors around 1e-9
-        x = np.logspace(np.log10(self._min_x), np.log10(self._max_x), self._n_points)
+        x = np.logspace(np.log10(self._min_x), np.log10(self._max_x),
+                        self._n_points)
         y = self.bessel_ratio(x)
         self._min = np.min(y)
         self._max = np.max(y)
 
         # Spline fit the log of the inverse function
-        self._spline = scipy.interpolate.interp1d(y, np.log(x), kind='cubic')
+        self._spline = interp1d(y, np.log(x), kind='cubic')
         (xj, cvals, k) = self._spline._spline
 
         self._xj = xj
         self._cvals = cvals[:, 0]
-        self._k = k        
+        self._k = k
         self._is_fit = True
 
     @timeit
@@ -224,19 +248,19 @@ class inverse_mbessel_ratio(object):
         y = np.asarray(y)
         y = np.clip(y, a_min=self._min, a_max=self._max)
 
-        if not np.all(np.logical_and(0 < y, y < 1)):
+        if np.any(np.logical_or(0 > y, y > 1)):
             raise ValueError('Domain error. y must be in (0, 1)')
-        
+
         # Faster version. Trying to find the real c code so that we can call
         # this in our hot-loop without the overhead.
-        x = np.exp(scipy.interpolate._fitpack._bspleval(y, self._xj, self._cvals, self._k, 0))
+        x = np.exp(_bspleval(y, self._xj, self._cvals, self._k, 0))
 
-        if DEBUG:
-           x_slow = np.exp(self._spline(y))
-           assert np.all(x_slow == x)
-           # for debugging, the line below prints the error in the inverse
-           # by printing y - A(A^(-1)(y
-           print('spline inverse error', y - self.bessel_ratio(x))
+        ## DEBUGGING CODE
+        # x_slow = np.exp(self._spline(y))
+        # assert np.all(x_slow == x)
+        # # for debugging, the line below prints the error in the inverse
+        # # by printing y - A(A^(-1)(y
+        # print('spline inverse error', y - self.bessel_ratio(x))
 
         return x
 
@@ -246,7 +270,7 @@ class inverse_mbessel_ratio(object):
         denominator = scipy.special.iv(0, x)
         return numerator / denominator
 
-# Shadown the class with an instance.
+# Shadown the inverse_mbessel_ratio with an instance.
 inverse_mbessel_ratio = inverse_mbessel_ratio()
-
-#print('0.5', inverse_mbessel_ratio(0.5))
+# Load the cffi backend
+VonMisesHMM._init_optimized_backed()
