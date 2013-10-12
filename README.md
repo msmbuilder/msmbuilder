@@ -22,4 +22,12 @@ The packages uses distutils, which is the default way of installing python
 modules. The install command is `python setup.py install`.
 
 ### Example
-[todo]
+
+```
+from vmhmm import VonMisesHMM
+
+model = VonMisesHMM(n_components=3, n_iter=1000)
+model.fit([X])
+hidden_states = model.predict(X)
+```
+![](https://raw.github.com/rmcgibbo/vmhmm/master/example/winddirection.py.png)
