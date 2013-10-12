@@ -1,7 +1,16 @@
 """vmhmm: scikit-learn compatible von Mises hidden Markov model
 
-
+This package implements a hidden Markov model with von Mises emissions.
+See http://scikit-learn.org/stable/modules/hmm.html for a 
+practical description of hidden Markov models. The von Mises
+distribution, (also known as the circular normal distribution or
+Tikhonov distribution) is a continuous probability distribution on
+the circle. For multivariate signals, the emmissions distribution
+implemented by this model is a product of univariate von Mises
+distributuons -- analogous to the multivariate Gaussian distribution
+with a diagonal covariance matrix.
 """
+
 from __future__ import print_function
 DOCLINES = __doc__.split("\n")
 
@@ -55,7 +64,7 @@ setup(name='vmhmm',
       description=DOCLINES[0],
       long_description="\n".join(DOCLINES[2:]),
       version=__version__,
-      url='http://rmcgibbo.github.io/mdtraj',
+      url='https://github.com/rmcgibbo/vmhmm',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),      
       py_modules=['vmhmm'],
