@@ -38,6 +38,11 @@ class VonMisesHMM(_BaseHMM):
     This class allows for easy evaluation of, sampling from, and
     maximum-likelihood estimation of the parameters of a HMM.
 
+    Notes
+    -----
+    The formulas for the maximization step of the E-M algorithim are
+    adapted from [1]_, especially equations (11) and (13).
+
     Parameters
     ----------
     n_components : int
@@ -73,6 +78,14 @@ class VonMisesHMM(_BaseHMM):
         Concentration parameter for each state. If `kappa` is zero, the
         distriution is uniform. If large, the distribution is very
         concentrated around the mean.
+
+    References
+    ----------
+    .. [1] Prati, Andrea, Simone Calderara, and Rita Cucchiara. "Using circular
+    statistics for trajectory shape analysis." Computer Vision and Pattern
+    Recognition, 2008. CVPR 2008. IEEE Conference on. IEEE, 2008.
+
+
     """
     _clib = None  # Handle for the shared library that this class (optionally)
                   # uses for some compute-intensive parts
