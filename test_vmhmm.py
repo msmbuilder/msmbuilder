@@ -8,9 +8,9 @@ from vmhmm import VonMisesHMM
 from sklearn.hmm import GaussianHMM
 
 def test_1():
-    vm = VonMisesHMM(n_components=3)
-    gm = GaussianHMM(n_components=3)
-    X1 = np.random.randn(10,2)
+    vm = VonMisesHMM(n_components=5)
+    gm = GaussianHMM(n_components=5)
+    X1 = np.random.randn(100,2)
     yield lambda: vm.fit([X1])
     yield lambda: gm.fit([X1])
     
