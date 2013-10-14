@@ -5,6 +5,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+from sklearn import cluster
 from sklearn.hmm import _BaseHMM
 import scipy.special
 from scipy.interpolate import interp1d
@@ -112,7 +113,12 @@ class VonMisesHMM(_BaseHMM):
         self.n_features = obs[0].shape[1]
 
         if 'm' in params:
-            self._means_ = np.random.randn(self.n_components, self.n_features)
+            # Cluster the sine and cosine of the input data with kmeans to
+            # get initial centers
+            cluster_centers = cluster.KMeans(n_clusters=self.n_components).fit(
+                np.hstack((np.sin(obs[0]), np.cos(obs[0])))).cluster_centers_
+            self._means_ = np.arctan2(cluster_centers[:, :self.n_features],
+                                      cluster_centers[:, self.n_features:])
         if 'k' in params:
             self._kappas_ = np.ones((self.n_components, self.n_features))
 
