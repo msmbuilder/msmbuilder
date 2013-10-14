@@ -1,3 +1,31 @@
+"""
+`vmhmm` implements a hidden Markov model with von Mises emissions
+"""
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Copyright (c) 2013, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
@@ -27,7 +55,7 @@ __all__ = ['VonMisesHMM']
 
 class VonMisesHMM(_BaseHMM):
     """
-    Hidden Markov Model with von Mises emissions
+    Hidden Markov Model with von Mises Emissions
 
     The von Mises distribution, (also known as the circular normal
     distribution or Tikhonov distribution) is a continuous probability
@@ -88,13 +116,10 @@ class VonMisesHMM(_BaseHMM):
 
 
     """
-    _clib = None  # Handle for the shared library that this class (optionally)
-                  # uses for some compute-intensive parts
-
     def __init__(self, n_components=1, startprob=None, transmat=None,
-                 startprob_prior=None, transmat_prior=None, algorithm="viterbi",
-                 random_state=None, n_iter=10, thresh=1e-2,
-                 params='stmk', init_params='stmk'):
+                 startprob_prior=None, transmat_prior=None,
+                 algorithm="viterbi", random_state=None, n_iter=10,
+                 thresh=1e-2, params='stmk', init_params='stmk'):
         _BaseHMM.__init__(self, n_components, startprob, transmat,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
