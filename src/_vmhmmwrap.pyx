@@ -28,14 +28,32 @@ def _compute_log_likelihood_1(obs, means, kappas):
     return value
 
 def _compute_log_likelihood_2(obs, means, kappas):
-    return obs
+    import scipy.special
+    n_samples = obs.shape[0]
+    n_components = means.shape[0]
+    n_features = means.shape[1]
 
+    result = np.zeros((n_samples, n_components))
+
+    for i in range(n_components):
+        for j in range(n_features):
+            log_denom = 2*np.pi*scipy.special.iv(0, kappas[i,j])
+            
+            for k in range(n_samples):
+                log_num = np.log(kappas[i, j]*np.cos(obs[k, j] - means[i,j]))
+                
+                results[i, k] += (log_num - log_denom)
+
+    return result
+                       
 
 obs = np.random.rand(10,3)
 means = np.random.rand(2,3)
 kappas = np.random.rand(2,3)
 A = _compute_log_likelihood_1(obs, means, kappas)
 B = _compute_log_likelihood_2(obs, means, kappas)
+print 'A\n', A, A.shape
+print 'B\n', B, B.shape
 
 np.testing.assert_array_almost_equal(A, B)
 exit(1)
