@@ -91,7 +91,7 @@ class VonMisesHMM(_BaseHMM):
         Controls which parameters are initialized prior to
         training.  Can contain any combination of 's' for
         startprob, 't' for transmat, 'm' for means, and 'k' for
-        covars. Defaults to all parameters.
+        kappas, the concentration parameters. Defaults to all parameters.
 
     Attributes
     ----------
