@@ -6,10 +6,9 @@ np.import_array()
 cdef extern int fitinvkappa(long n_samples, long n_features, long n_components,
                  double* posteriors, double* obs, double* means, double* out) nogil
 
-cdef extern int  compute_log_likelihood(double* obs, double* means, double* kappas,
+cdef extern int compute_log_likelihood(double* obs, double* means, double* kappas,
                                         long n_samples, long n_components, long n_features,
                                         double* out) nogil
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
