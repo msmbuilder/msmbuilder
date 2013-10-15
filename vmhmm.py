@@ -237,8 +237,10 @@ class VonMisesHMM(_BaseHMM):
         return out
 
     def _fitmeans(self, posteriors, obs, out):
-        # It should be possible to speed this up a little bit using
-        # fast SSE trig, but it's probably about ~2x max.
+        # this is no possible to speed up in C. the rate limiting step
+        # are the matrix multiplys, which are already in MKL with fast
+        # numpy. I tried it in C, and I'm 2x as slow for large matrix
+        # sizes.
         np.arctan2(np.dot(posteriors.T, np.sin(obs)),
                    np.dot(posteriors.T, np.cos(obs)),
                    out=out)
