@@ -198,11 +198,9 @@ class VonMisesHMM(_BaseHMM):
 
         Returns
         -------
-        logl : np.array, shape (`n_samples`, `n_states`)
+        logl : np.array, shape (`n_samples`, `n_components`)
         """
-        value = np.array([np.sum(vonmises.logpdf(obs, self._kappas_[i],
-            self._means_[i]), axis=1) for i in range(self.n_components)]).T
-        return value
+        return _vmhmm._compute_log_likelihood(obs, self._means_, self._kappas_)
 
     def _initialize_sufficient_statistics(self):
         stats = super(VonMisesHMM, self)._initialize_sufficient_statistics()

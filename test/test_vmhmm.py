@@ -1,9 +1,12 @@
 from __future__ import print_function, division
 import sys
+import time
 
 import numpy as np
 from vmhmm import VonMisesHMM, inverse_mbessel_ratio, circwrap
+import _vmhmm
 from sklearn.hmm import GaussianHMM
+
 try:
     from munkres import Munkres
 except ImportError:
@@ -48,7 +51,7 @@ def test_5():
 
 
 def test_7():
-    "Sample from a VMHMM and then fit to it"
+    #"Sample from a VMHMM and then fit to it"
     n_components = 2
     vm = VonMisesHMM(n_components=n_components)
     means = np.array([[0, 0, 0], [np.pi, np.pi, np.pi]])
@@ -75,13 +78,27 @@ def test_7():
     print('means\n', means, '\nmeans_\n', means_)
     print('kappas\n', kappas, '\nkappas_\n', kappas_)
     print('transmat\n', transmat, '\ntransmat_\n', transmat_)
+ 
+    #vm.score(x)
     
     assert np.all(np.abs(kappas - kappas_) < 0.5)
     assert np.all(circwrap(means - means_) < 0.25)
-    
 
+
+def test_log_likelihood():
+    n_samples, n_components, n_features = 1000, 27, 16
+    obs = np.random.rand(n_samples, n_features)
+    vm = VonMisesHMM(n_components=n_components)
+    vm.fit([obs])
     
-    
-    
-    
-    
+    t0 = time.time()
+    from scipy.stats.distributions import vonmises
+    reference = np.array([np.sum(vonmises.logpdf(obs, vm.kappas_[i], vm.means_[i]), axis=1) for i in range(n_components)]).T
+    t1 = time.time()
+    value = _vmhmm._compute_log_likelihood(obs, vm.means_, vm.kappas_)
+    t2 = time.time()
+
+    print("Log likeihood timings")
+    print('reference time ', t1-t0)
+    print('c time         ', t2-t1)
+    np.testing.assert_array_almost_equal(reference, value)
