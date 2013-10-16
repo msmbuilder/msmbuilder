@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------
 # Imports
 #------------------------------------------------------------------------
+from __future__ import print_function
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ def load_weather(icao, yr=2013, mon=10, day=10):
 # Load data from a few days
 dfs = []
 for day in range(1, 12):
-    print 'Reading day=%d' % day
+    print('Reading from web: day=%d/12' % day)
     # KDSM is the airport code in Des Moines, IA
     df = load_weather('KDSM', day=day)
     df = df[['DateUTC', 'WindDirDegrees']]
@@ -62,4 +63,11 @@ pp.ylabel('Wind Direction [deg]')
 pp.gcf().autofmt_xdate()
 pp.gca().fmt_xdata = DateFormatter('%m-%d')
 pp.legend(prop={'size':12})
+print('saving winddirection.py.png')
 pp.savefig('winddirection.py.png')
+
+pp.ion()
+pp.matshow(model.overlap_())
+pp.colorbar()
+import IPython as ip
+ip.embed()

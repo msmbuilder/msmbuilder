@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.hmm import _BaseHMM
 import scipy.special
 from scipy.interpolate import interp1d
+import scipy.version
 from scipy.interpolate._fitpack import _bspleval
 from scipy.stats.distributions import vonmises
 import _vmhmm
@@ -15,6 +16,10 @@ import _vmhmm
 #-----------------------------------------------------------------------------
 # Globals
 #-----------------------------------------------------------------------------
+
+if scipy.version.full_version < '0.12.0':
+    import warnings
+    warnings.warn('Your version of scipy might be too old.')
 
 M_2PI = 2 * np.pi
 __all__ = ['VonMisesHMM']
@@ -84,8 +89,8 @@ class VonMisesHMM(_BaseHMM):
     .. [1] Prati, Andrea, Simone Calderara, and Rita Cucchiara. "Using circular
     statistics for trajectory shape analysis." Computer Vision and Pattern
     Recognition, 2008. CVPR 2008. IEEE Conference on. IEEE, 2008.
-
-
+    .. [2] Murray, Richard F., and Yaniv Morgenstern. "Cue combination on the
+    circle and the sphere." Journal of vision 10.11 (2010).
     """
     _clib = None  # Handle for the shared library that this class (optionally)
                   # uses for some compute-intensive parts
@@ -225,6 +230,41 @@ class VonMisesHMM(_BaseHMM):
         if 'k' in params:
             invkappa = self._fitinvkappa(posteriors, obs, self._means_)
             self._kappas_ = inverse_mbessel_ratio(invkappa)
+
+    def overlap_(self):
+        """
+        Compute the matrix of normalized log overlap integrals between the hidden state distributions
+
+        Notes
+        -----
+        The analytic formula used here follows from equation (A4) in :ref:`2`
+
+        Returns
+        -------
+        noverlap : array, shape=(n_components, n_components)
+            `noverlap[i,j]` gives the log of normalized overlap integral between
+            states i and j. The normalized overlap integral is `integral(f(i)*f(j))
+            / sqrt[integral(f(i)*f(i)) * integral(f(j)*f(j))]
+        """
+        logi0 = lambda x: np.log(scipy.special.i0(x))
+        log2pi = np.log(2*np.pi)
+
+        log_overlap = np.zeros((self.n_components, self.n_components))
+        for i in range(self.n_components):
+            for j in range(self.n_components):
+                for s in range(self.n_features):
+                    kij = np.sqrt(self._kappas_[i,s]**2+self._kappas_[j,s]**2 +
+                                  2*self._kappas_[i,s]*self._kappas_[j,s] *
+                                  np.cos(self._means_[i,s]-self._means_[j,s]))
+                    val = logi0(kij) - (log2pi + logi0(self._kappas_[i,s]) +
+                                                 logi0(self._kappas_[j,s]))
+                    log_overlap[i,j] += val
+
+        for i in range(self.n_components):
+            for j in range(self.n_components):
+                log_overlap[i,j] -= 0.5*(log_overlap[i, i] + log_overlap[j, j])
+
+        return log_overlap
 
 
 def circwrap(x):
