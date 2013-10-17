@@ -35,10 +35,6 @@ from __future__ import print_function, division
 import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
-import scipy.special
-from scipy.interpolate import interp1d
-import scipy.version
-from scipy.interpolate._fitpack import _bspleval
 from scipy.stats.distributions import vonmises
 import _vmhmm
 
@@ -325,6 +321,7 @@ class inverse_mbessel_ratio(object):
         self._max = np.max(y)
 
         # Spline fit the log of the inverse function
+        from scipy.interpolate import interp1d
         self._spline = interp1d(y, np.log(x), kind='cubic')
         self._is_fit = True
 
@@ -348,6 +345,7 @@ class inverse_mbessel_ratio(object):
 
     @staticmethod
     def bessel_ratio(x):
+        import scipy.special
         numerator = scipy.special.iv(1, x)
         denominator = scipy.special.iv(0, x)
         return numerator / denominator
