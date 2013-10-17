@@ -16,7 +16,7 @@ DOCLINES = __doc__.split("\n")
 
 import os
 import sys
-import numpy
+import numpy as np
 try:
     from setuptools import setup, Extension
 except ImportError:
@@ -53,12 +53,35 @@ Programming Language :: Python :: 3
 Programming Language :: Python :: 3.3
 """
 
+def write_spline_data():
+    """Precompute spline coefficients and save them to data files that
+    are #included in the remaining c source code. This is a little devious.
+    """
+    import scipy.special
+    import pyximport; pyximport.install(setup_args={'include_dirs':[np.get_include()]})
+    sys.path.insert(0, 'src')
+    import buildspline
+    del sys.path[0]
+    n_points = 1024
+    miny, maxy = 1e-5, 700
+    y = np.logspace(np.log10(miny), np.log10(maxy), n_points)
+    x = scipy.special.iv(1, y) / scipy.special.iv(0, y)
+
+    # fit the inverse function
+    derivs = buildspline.createNaturalSpline(x, np.log(y))
+    np.savetxt('src/data/inv_mbessel_x.dat', x, newline=',\n')
+    np.savetxt('src/data/inv_mbessel_y.dat', np.log(y), newline=',\n')
+    np.savetxt('src/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
+
+
 _vmhmm = Extension('_vmhmm',
                    sources=['src/_vmhmm.c', 'src/_vmhmmwrap.' + cython_extension,
+                            'src/spleval.c',
                             'src/cephes/i0.c', 'src/cephes/chbevl.c'],
                    libraries=['m'],
-                   include_dirs=[numpy.get_include(), 'src/cephes'])
+                   include_dirs=[np.get_include(), 'src/cephes'])
 
+write_spline_data()
 setup(name='vmhmm',
       author='Robert McGibbon',
       author_email='rmcgibbo@gmail.com',

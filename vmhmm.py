@@ -126,7 +126,7 @@ class VonMisesHMM(_BaseHMM):
                           random_state=random_state, n_iter=n_iter,
                           thresh=thresh, params=params,
                           init_params=init_params)
-        self._fitinvkappa = self._c_fitinvkappa
+        self._fitkappas = self._c_fitkappas
 
     def _init(self, obs, params='stmk'):
         super(VonMisesHMM, self)._init(obs, params)
@@ -222,19 +222,17 @@ class VonMisesHMM(_BaseHMM):
         stats['posteriors'].append(posteriors)
         stats['obs'].append(obs)
 
-    def _py_fitinvkappa(self, posteriors, obs, means):
+    def _py_fitkappas(self, posteriors, obs, means):
         inv_kappas = np.zeros_like(self._kappas_)
         for i in range(self.n_features):
             for j in range(self.n_components):
                 n = np.sum(posteriors[:, j] * np.cos(obs[:, i] - means[j, i]))
                 d = np.sum(posteriors[:, j])
                 inv_kappas[j, i] = n / d
-        return inv_kappas
+        self._kappas_ = inverse_mbessel_ratio(inv_kappas)
 
-    def _c_fitinvkappa(self, posteriors, obs, means):
-        out = np.empty_like(self._kappas_)
-        _vmhmm._fitinvkappa(posteriors, obs, means, out)
-        return out
+    def _c_fitkappas(self, posteriors, obs, means):
+        _vmhmm._fitkappa(posteriors, obs, means, self._kappas_)
 
     def _fitmeans(self, posteriors, obs, out):
         # this is no possible to speed up in C. the rate limiting step
@@ -254,8 +252,7 @@ class VonMisesHMM(_BaseHMM):
         if 'm' in params:
             self._fitmeans(posteriors, obs, out=self._means_)
         if 'k' in params:
-            invkappa = self._fitinvkappa(posteriors, obs, self._means_)
-            self._kappas_ = inverse_mbessel_ratio(invkappa)
+            self._fitkappas(posteriors, obs, self._means_)
 
     def overlap_(self):
         """

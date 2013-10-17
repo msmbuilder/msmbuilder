@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 #include <stdio.h>
-#include "i0.h"
+#include "cephes_bessel.h"
+#include "spleval.h"
 
 //#define DEBUG
 #ifdef DEBUG
@@ -11,7 +13,8 @@
 
 
 int fitinvkappa(long n_samples, long n_features, long n_components,
-                 double* posteriors, double* obs, double* means, double* out) {
+                const double* posteriors, const double* obs, const double* means,
+                double* out) {
   /*  Implements the following python code in C. There are a few loop
    *  reorderings to try to speed up the cache locality.
    *
@@ -30,8 +33,9 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
   err = posix_memalign((void**) &num, 16, n_components * n_features * sizeof(double));
   err = posix_memalign((void**) &denom, 16, n_components * n_features * sizeof(double));
   if (NULL == num || NULL == denom) {
-    fprintf(stderr, "Memory allocation failure");
+    fprintf(stderr, "fitinvkappa: Memory allocation failure");
     exit(EXIT_FAILURE);
+
   }
   memset(num, 0, n_components*n_features*sizeof(double));
   memset(denom, 0, n_components*n_features*sizeof(double));
@@ -57,9 +61,9 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
 }
 
 int compute_log_likelihood(const double* obs, const double* means,
-			   const double* kappas, long n_samples,
-			   long n_components, long n_features,
-			   double* out) {
+                           const double* kappas, long n_samples,
+                           long n_components, long n_features,
+                           double* out) {
   /* Log likelihood of each observation in each state (von Mises distribution)
 
      Parameters
@@ -90,7 +94,7 @@ int compute_log_likelihood(const double* obs, const double* means,
   err = posix_memalign((void**) &kappa_cos_means, 16, n_components * n_features * sizeof(double));
   err = posix_memalign((void**) &kappa_sin_means, 16, n_components * n_features * sizeof(double));
   if (NULL == kappa_cos_means || NULL == kappa_sin_means) {
-    fprintf(stderr, "Memory allocation failure");
+    fprintf(stderr, "compute_log_likelihood: Memory allocation failure");
     exit(EXIT_FAILURE);
   }
 
@@ -99,7 +103,7 @@ int compute_log_likelihood(const double* obs, const double* means,
     for (j = 0; j < n_features; j++) {
       val = LOG_2PI + log(i0(kappas[i*n_features + j]));
       for (k = 0; k < n_samples; k++)
-	out[k*n_components+i] -= val;
+        out[k*n_components+i] -= val;
     }
   }
 
@@ -119,14 +123,14 @@ int compute_log_likelihood(const double* obs, const double* means,
       cos_obs_kj = cos(obs[k*n_features + j]);
       sin_obs_kj = sin(obs[k*n_features + j]);
       for (i = 0; i < n_components; i++) {
-	log_numerator = (cos_obs_kj*kappa_cos_means[j*n_components + i] + 
-			 sin_obs_kj*kappa_sin_means[j*n_components + i]);
-	out[k*n_components + i] += log_numerator;
+        log_numerator = (cos_obs_kj*kappa_cos_means[j*n_components + i] + 
+        sin_obs_kj*kappa_sin_means[j*n_components + i]);
+        out[k*n_components + i] += log_numerator;
 
-       	#ifdef DEBUG 
+        #ifdef DEBUG
           double log_numerator2 = kappas[i*n_features+j]*cos(obs[k*n_features + j] - means[i*n_features + j]);
-	  ASSERT_CLOSE(log_numerator, log_numerator2);
-	#endif
+          ASSERT_CLOSE(log_numerator, log_numerator2);
+        #endif
       }
     }
   }
@@ -135,3 +139,45 @@ int compute_log_likelihood(const double* obs, const double* means,
   free(kappa_sin_means);
   return 1;
 }
+
+
+void inv_mbessel_ratio(double* x, size_t n) {
+  // Inverse the function given by the ratio modified Bessel function of the
+  // first kind of order 1 to the modified Bessel function of the first kind
+  // of order 0.
+  //
+  // y = A(x) = I_1(x) / I_0(x)
+  //
+  // This function computes A^(-1)(y) by way of a precomputed spline
+  // interpolation. The spline coefficients are calculated at build time
+  // by setup.py and saved in .dat files, which are #included here.
+
+  static const double SPLINE_x[] = {
+    #include "data/inv_mbessel_x.dat"
+  };
+  static const double SPLINE_y[] = {
+    #include "data/inv_mbessel_y.dat"
+  };
+  static const double SPLINE_deriv[] = {
+    #include "data/inv_mbessel_deriv.dat"
+  };
+
+  const size_t n_splinepoints = sizeof(SPLINE_x) / sizeof(SPLINE_x[0]);
+  size_t i;
+  double t;
+  double a;
+  for (i = 0; i < n; i++) {
+    t = x[i];
+
+    if (t < SPLINE_x[0])
+      t = SPLINE_x[0];
+    else if (t > SPLINE_x[n_splinepoints-1])
+      t = SPLINE_x[n_splinepoints-1];
+
+    x[i] = exp(evaluateSpline(SPLINE_x, SPLINE_y, SPLINE_deriv, n_splinepoints, t));
+
+  }
+}
+
+
+

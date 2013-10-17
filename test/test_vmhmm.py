@@ -28,29 +28,28 @@ def test_3():
     x = inverse_mbessel_ratio(y)
     y2 = inverse_mbessel_ratio.bessel_ratio(x)
     np.testing.assert_array_almost_equal(y, y2, decimal=4)
-    
-def test_4():
-    "The accelerated spline call is correct"
-    np.random.seed(42)
-    y = np.random.random(size=100)
-    x1 = inverse_mbessel_ratio(y)
-    x2 = np.exp(inverse_mbessel_ratio._spline(y))
-    np.testing.assert_array_equal(x1, x2)
 
-def test_5():
-    "The C and python implementations of fitinvkappa are equivalent"
+
+def test_6():
+    """"Test that _c_fitkappa is consistent with the two-step python
+    implementation"""
+    np.random.seed(42)
     vm = VonMisesHMM(n_components=13)
-    vm.kappas_ = np.random.randn(13, 7)
+    kappas = np.random.randn(13, 7)
     posteriors = np.random.randn(100, 13)
     obs = np.random.randn(100, 7)
     means = np.random.randn(13, 7)
+    
+    vm.kappas_ = kappas
+    vm._c_fitkappas(posteriors, obs, means)
+    c_kappas = np.copy(vm._kappas_)
+    
+    vm._py_fitkappas(posteriors, obs, means)
+    py_kappas = np.copy(vm._kappas_)
+    np.testing.assert_array_almost_equal(py_kappas, c_kappas)
 
-    invkappa1 = vm._py_fitinvkappa(posteriors, obs, means)
-    invkappa2 = vm._c_fitinvkappa(posteriors, obs, means)
-    np.testing.assert_array_equal(invkappa1, invkappa2)
 
-
-def test_7():
+def test_8():
     #"Sample from a VMHMM and then fit to it"
     n_components = 2
     vm = VonMisesHMM(n_components=n_components)
