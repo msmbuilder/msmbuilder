@@ -1,3 +1,31 @@
+"""
+`vmhmm` implements a hidden Markov model with von Mises emissions
+"""
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Copyright (c) 2013, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
@@ -5,6 +33,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+from sklearn import cluster
 from sklearn.hmm import _BaseHMM
 import scipy.special
 from scipy.interpolate import interp1d
@@ -31,7 +60,7 @@ __all__ = ['VonMisesHMM']
 
 class VonMisesHMM(_BaseHMM):
     """
-    Hidden Markov Model with von Mises emissions
+    Hidden Markov Model with von Mises Emissions
 
     The von Mises distribution, (also known as the circular normal
     distribution or Tikhonov distribution) is a continuous probability
@@ -67,7 +96,7 @@ class VonMisesHMM(_BaseHMM):
         Controls which parameters are initialized prior to
         training.  Can contain any combination of 's' for
         startprob, 't' for transmat, 'm' for means, and 'k' for
-        covars. Defaults to all parameters.
+        kappas, the concentration parameters. Defaults to all parameters.
 
     Attributes
     ----------
@@ -92,13 +121,10 @@ class VonMisesHMM(_BaseHMM):
     .. [2] Murray, Richard F., and Yaniv Morgenstern. "Cue combination on the
     circle and the sphere." Journal of vision 10.11 (2010).
     """
-    _clib = None  # Handle for the shared library that this class (optionally)
-                  # uses for some compute-intensive parts
-
     def __init__(self, n_components=1, startprob=None, transmat=None,
-                 startprob_prior=None, transmat_prior=None, algorithm="viterbi",
-                 random_state=None, n_iter=10, thresh=1e-2,
-                 params='stmk', init_params='stmk'):
+                 startprob_prior=None, transmat_prior=None,
+                 algorithm="viterbi", random_state=None, n_iter=10,
+                 thresh=1e-2, params='stmk', init_params='stmk'):
         _BaseHMM.__init__(self, n_components, startprob, transmat,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
@@ -117,7 +143,12 @@ class VonMisesHMM(_BaseHMM):
         self.n_features = obs[0].shape[1]
 
         if 'm' in params:
-            self._means_ = np.random.randn(self.n_components, self.n_features)
+            # Cluster the sine and cosine of the input data with kmeans to
+            # get initial centers
+            cluster_centers = cluster.KMeans(n_clusters=self.n_components).fit(
+                np.hstack((np.sin(obs[0]), np.cos(obs[0])))).cluster_centers_
+            self._means_ = np.arctan2(cluster_centers[:, :self.n_features],
+                                      cluster_centers[:, self.n_features:])
         if 'k' in params:
             self._kappas_ = np.ones((self.n_components, self.n_features))
 
@@ -172,11 +203,9 @@ class VonMisesHMM(_BaseHMM):
 
         Returns
         -------
-        logl : np.array, shape (`n_samples`, `n_states`)
+        logl : np.array, shape (`n_samples`, `n_components`)
         """
-        value = np.array([np.sum(vonmises.logpdf(obs, self._kappas_[i],
-            self._means_[i]), axis=1) for i in range(self.n_components)]).T
-        return value
+        return _vmhmm._compute_log_likelihood(obs, self._means_, self._kappas_)
 
     def _initialize_sufficient_statistics(self):
         stats = super(VonMisesHMM, self)._initialize_sufficient_statistics()
@@ -213,8 +242,10 @@ class VonMisesHMM(_BaseHMM):
         return out
 
     def _fitmeans(self, posteriors, obs, out):
-        # It should be possible to speed this up a little bit using
-        # fast SSE trig, but it's probably about ~2x max.
+        # this is no possible to speed up in C. the rate limiting step
+        # are the matrix multiplys, which are already in MKL with fast
+        # numpy. I tried it in C, and I'm 2x as slow for large matrix
+        # sizes.
         np.arctan2(np.dot(posteriors.T, np.sin(obs)),
                    np.dot(posteriors.T, np.cos(obs)),
                    out=out)

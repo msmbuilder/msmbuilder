@@ -54,9 +54,10 @@ Programming Language :: Python :: 3.3
 """
 
 _vmhmm = Extension('_vmhmm',
-    sources=['src/_vmhmm.c', 'src/_vmhmmwrap.' + cython_extension],
-    libraries=['m'],
-    include_dirs=[numpy.get_include()])
+                   sources=['src/_vmhmm.c', 'src/_vmhmmwrap.' + cython_extension,
+                            'src/cephes/i0.c', 'src/cephes/chbevl.c'],
+                   libraries=['m'],
+                   include_dirs=[numpy.get_include(), 'src/cephes'])
 
 setup(name='vmhmm',
       author='Robert McGibbon',
