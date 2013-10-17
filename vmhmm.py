@@ -45,11 +45,6 @@ import _vmhmm
 #-----------------------------------------------------------------------------
 # Globals
 #-----------------------------------------------------------------------------
-
-if scipy.version.full_version < '0.12.0':
-    import warnings
-    warnings.warn('Your version of scipy might be too old.')
-
 M_2PI = 2 * np.pi
 __all__ = ['VonMisesHMM']
 
@@ -334,11 +329,6 @@ class inverse_mbessel_ratio(object):
 
         # Spline fit the log of the inverse function
         self._spline = interp1d(y, np.log(x), kind='cubic')
-        (xj, cvals, k) = self._spline._spline
-
-        self._xj = xj
-        self._cvals = cvals[:, 0]
-        self._k = k
         self._is_fit = True
 
     def __call__(self, y):
@@ -350,14 +340,9 @@ class inverse_mbessel_ratio(object):
 
         if np.any(np.logical_or(0 > y, y > 1)):
             raise ValueError('Domain error. y must be in (0, 1)')
-
-        # Faster version. Trying to find the real c code so that we can call
-        # this in our hot-loop without the overhead.
-        x = np.exp(_bspleval(y, self._xj, self._cvals, self._k, 0))
+        x = np.exp(self._spline(y))
 
         ## DEBUGGING CODE
-        # x_slow = np.exp(self._spline(y))
-        # assert np.all(x_slow == x)
         # # for debugging, the line below prints the error in the inverse
         # # by printing y - A(A^(-1)(y
         # print('spline inverse error', y - self.bessel_ratio(x))
