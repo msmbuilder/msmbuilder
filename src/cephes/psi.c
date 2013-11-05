@@ -56,6 +56,7 @@ Cephes Math Library Release 2.8:  June, 2000
 Copyright 1984, 1987, 1992, 2000 by Stephen L. Moshier
 */
 
+#include "math.h"
 #include "mconf.h"
 
 #ifdef UNK
@@ -116,7 +117,9 @@ extern double polevl ( double, void *, int );
 #else
 double floor(), log(), tan(), polevl();
 #endif
-extern double PI, MAXNUM;
+//extern double PI;
+static const double MAXNUM = 1.7976931348623158E+308;
+
 
 
 double psi(x)
@@ -135,7 +138,7 @@ if( x <= 0.0 )
 	p = floor(q);
 	if( p == q )
 		{
-		mtherr( "psi", SING );
+		//mtherr( "psi", SING );
 		return( MAXNUM );
 		}
 /* Remove the zeros of tan(PI x)
@@ -149,7 +152,7 @@ if( x <= 0.0 )
 			p += 1.0;
 			nz = q - p;
 			}
-		nz = PI/tan(PI*nz);
+		nz = M_PI/tan(M_PI*nz);
 		}
 	else
 		{

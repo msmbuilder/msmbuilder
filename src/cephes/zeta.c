@@ -65,7 +65,8 @@ Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 #ifndef ANSIPROT
 double fabs(), pow(), floor();
 #endif
-extern double MAXNUM, MACHEP;
+static const double MACHEP = 2.22045e-16;
+static const double MAXNUM = 1.7976931348623158E+308;
 
 /* Expansion coefficients
  * for Euler-Maclaurin summation formula
@@ -101,15 +102,15 @@ if( x == 1.0 )
 if( x < 1.0 )
 	{
 domerr:
-	mtherr( "zeta", DOMAIN );
-	return(0.0 / 0.0);
+	//mtherr( "zeta", DOMAIN );
+	return(INFINITY);
 	}
 
 if( q <= 0.0 )
 	{
 	if(q == floor(q))
 		{
-		mtherr( "zeta", SING );
+		//mtherr( "zeta", SING );
 retinf:
 		return( MAXNUM );
 		}

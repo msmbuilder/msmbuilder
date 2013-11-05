@@ -75,11 +75,16 @@ def write_spline_data():
 
 
 _vmhmm = Extension('_vmhmm',
-                   sources=['src/_vmhmm.c', 'src/_vmhmmwrap.' + cython_extension,
+                   sources=['src/vmhmm.c', 'src/vmhmmwrap.'+cython_extension,
                             'src/spleval.c',
                             'src/cephes/i0.c', 'src/cephes/chbevl.c'],
                    libraries=['m'],
                    include_dirs=[np.get_include(), 'src/cephes'])
+_gammahmm = Extension('_gammahmm',
+                      sources=['src/gammahmm.c', 'src/gammahmmwrap.'+cython_extension,
+                               'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c'],
+                      libraries=['m'],
+                      include_dirs=[np.get_include(), 'src/cephes'])
 
 write_spline_data()
 setup(name='vmhmm',
@@ -93,4 +98,4 @@ setup(name='vmhmm',
       classifiers=CLASSIFIERS.splitlines(),      
       py_modules=['vmhmm'],
       zip_safe=False,
-      ext_modules=[_vmhmm], **setup_kwargs)
+      ext_modules=[_vmhmm, _gammahmm], **setup_kwargs)
