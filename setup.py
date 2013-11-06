@@ -89,6 +89,7 @@ _gammahmm = Extension('_gammahmm',
                                'src/cephes/mtherr.c', 'src/cephes/gamma.c',
                                'src/gammamixture.c', 'src/gammautils.c'],
                       libraries=['m'],
+                      extra_compile_args=['--std=c99', '-Wall'],
                       include_dirs=[np.get_include(), 'src/cephes'])
 
 write_spline_data()

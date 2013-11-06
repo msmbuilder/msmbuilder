@@ -165,7 +165,6 @@ void inv_mbessel_ratio(double* x, size_t n) {
   const size_t n_splinepoints = sizeof(SPLINE_x) / sizeof(SPLINE_x[0]);
   size_t i;
   double t;
-  double a;
   for (i = 0; i < n; i++) {
     t = x[i];
 

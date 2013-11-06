@@ -74,6 +74,7 @@ Cephes Math Library Release 2.8:  June, 2000
 Copyright 1984, 1987, 2000 by Stephen L. Moshier
 */
 
+#include "cephes.h"
 #include "mconf.h"
 #include "math.h"
 
@@ -350,16 +351,8 @@ static unsigned short B[] = {
 };
 #endif
 
-#ifdef ANSIPROT
-extern double chbevl ( double, void *, int );
-extern double exp ( double );
-extern double sqrt ( double );
-#else
-double chbevl(), exp(), sqrt();
-#endif
 
-double i0(x)
-double x;
+double i0(double x)
 {
     double y;
 
@@ -377,8 +370,7 @@ double x;
 
 
 
-double i0e( x )
-double x;
+double i0e(double x)
 {
     double y;
 

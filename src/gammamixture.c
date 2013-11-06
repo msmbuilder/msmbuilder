@@ -1,10 +1,10 @@
-#include "math.h"
-#include "string.h"
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
 #include "cephes.h"
-#include "stdio.h"
-#include "stdlib.h"
 #include "gammautils.h"
-#define DEBUG
+//#define DEBUG
 
 #if defined(_MSC_VER)
   #define _ALIGNED(x) __declspec(align(x))

@@ -108,16 +108,9 @@ static unsigned short A[] = {
 #endif
 
 #define EUL 0.57721566490153286061
-
-#ifdef ANSIPROT
-extern double floor ( double );
-extern double log ( double );
-extern double tan ( double );
-extern double polevl ( double, void *, int );
-#else
-double floor(), log(), tan(), polevl();
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
 #endif
-//extern double PI;
 static const double MAXNUM = 1.7976931348623158E+308;
 
 
