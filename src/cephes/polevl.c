@@ -55,19 +55,19 @@ double x;
 double coef[];
 int N;
 {
-double ans;
-int i;
-double *p;
+    double ans;
+    int i;
+    double *p;
 
-p = coef;
-ans = *p++;
-i = N;
+    p = coef;
+    ans = *p++;
+    i = N;
 
-do
-	ans = ans * x  +  *p++;
-while( --i );
+    do
+        ans = ans * x  +  *p++;
+    while( --i );
 
-return( ans );
+    return( ans );
 }
 
 /*							p1evl()	*/
@@ -81,17 +81,17 @@ double x;
 double coef[];
 int N;
 {
-double ans;
-double *p;
-int i;
+    double ans;
+    double *p;
+    int i;
 
-p = coef;
-ans = x + *p++;
-i = N-1;
+    p = coef;
+    ans = x + *p++;
+    i = N-1;
 
-do
-	ans = ans * x  + *p++;
-while( --i );
+    do
+        ans = ans * x  + *p++;
+    while( --i );
 
-return( ans );
+    return( ans );
 }

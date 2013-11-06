@@ -7,11 +7,13 @@
 #define DEBUG
 
 #if defined(_MSC_VER)
-#define _ALIGNED(x) __declspec(align(x))
+  #define _ALIGNED(x) __declspec(align(x))
 #else
-#if defined(__GNUC__)
-#define _ALIGNED(x) __attribute__ ((aligned(x)))
-#endif
+  #if defined(__GNUC__)
+     #define _ALIGNED(x) __attribute__ ((aligned(x)))
+  #else
+    #define _ALIGNED(x)  // no-op
+  #endif
 #endif
 typedef _ALIGNED(16) float aligned_float;
 
@@ -42,8 +44,8 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
     */
     int i, j, jj, k, n;
     int err_1, err_2, err_3, err_4, err_5, err_6, err_7;
-    double sum_logg_components, logsumexp_logg, p;
-    double alpha_argument, new_alpha, new_pi;
+    double logsumexp_logg, p;
+    double alpha_argument, new_alpha;
 
     aligned_float * restrict log_X;
     double* restrict logg;
@@ -89,7 +91,7 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
         // it doesn't depend on i
         for (j = 0; j < n_components; j++)
             for (k = 0; k < n_features; k++)
-                normalization[JK__(j, k)] = alpha[JK__(j, k)]*log(rate[JK__(j, k)]) - log(gamma(alpha[JK__(j, k)]));
+                normalization[JK__(j, k)] = alpha[JK__(j, k)]*log(rate[JK__(j, k)]) - lgam(alpha[JK__(j, k)]);
 
         // clear the accumulators that sum over the samples
         memset(Sum_p, 0, n_components*sizeof(double));

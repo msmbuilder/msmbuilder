@@ -86,6 +86,7 @@ _vmhmm = Extension('_vmhmm',
 _gammahmm = Extension('_gammahmm',
                       sources=['src/gammahmmwrap.'+cython_extension,
                                'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
+                               'src/cephes/mtherr.c', 'src/cephes/gamma.c',
                                'src/gammamixture.c', 'src/gammautils.c'],
                       libraries=['m'],
                       include_dirs=[np.get_include(), 'src/cephes'])
