@@ -84,8 +84,7 @@ Copyright 1984, 1987, 2000 by Stephen L. Moshier
  */
 
 #ifdef UNK
-static double A[] =
-{
+static double A[] = {
     -4.41534164647933937950E-18,
     3.33079451882223809783E-17,
     -2.43127984654795469359E-16,
@@ -232,8 +231,7 @@ static unsigned short A[] = {
  */
 
 #ifdef UNK
-static double B[] =
-{
+static double B[] = {
     -7.23318048787475395456E-18,
     -4.83050448594418207126E-18,
     4.46562142029675999901E-17,
@@ -367,8 +365,7 @@ double x;
 
     if( x < 0 )
         x = -x;
-    if( x <= 8.0 )
-    {
+    if( x <= 8.0 ) {
         y = (x/2.0) - 2.0;
         return( exp(x) * chbevl( y, A, 30 ) );
     }
@@ -387,8 +384,7 @@ double x;
 
     if( x < 0 )
         x = -x;
-    if( x <= 8.0 )
-    {
+    if( x <= 8.0 ) {
         y = (x/2.0) - 2.0;
         return( chbevl( y, A, 30 ) );
     }

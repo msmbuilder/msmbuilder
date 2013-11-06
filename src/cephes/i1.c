@@ -84,8 +84,7 @@ Copyright 1985, 1987, 2000 by Stephen L. Moshier
  */
 
 #ifdef UNK
-static double A[] =
-{
+static double A[] = {
     2.77791411276104639959E-18,
     -2.11142121435816608115E-17,
     1.55363195773620046921E-16,
@@ -229,8 +228,7 @@ static unsigned short A[] = {
  */
 
 #ifdef UNK
-static double B[] =
-{
+static double B[] = {
     7.51729631084210481353E-18,
     4.41434832307170791151E-18,
     -4.65030536848935832153E-17,
@@ -365,13 +363,10 @@ double x;
     double y, z;
 
     z = fabs(x);
-    if( z <= 8.0 )
-    {
+    if( z <= 8.0 ) {
         y = (z/2.0) - 2.0;
         z = chbevl( y, A, 29 ) * z * exp(z);
-    }
-    else
-    {
+    } else {
         z = exp(z) * chbevl( 32.0/z - 2.0, B, 25 ) / sqrt(z);
     }
     if( x < 0.0 )
@@ -387,13 +382,10 @@ double x;
     double y, z;
 
     z = fabs(x);
-    if( z <= 8.0 )
-    {
+    if( z <= 8.0 ) {
         y = (z/2.0) - 2.0;
         z = chbevl( y, A, 29 ) * z;
-    }
-    else
-    {
+    } else {
         z = chbevl( 32.0/z - 2.0, B, 25 ) / sqrt(z);
     }
     if( x < 0.0 )

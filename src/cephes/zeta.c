@@ -99,18 +99,15 @@ double x,q;
     if( x == 1.0 )
         goto retinf;
 
-    if( x < 1.0 )
-    {
+    if( x < 1.0 ) {
 domerr:
-        //mtherr( "zeta", DOMAIN );
+        mtherr( "zeta", DOMAIN );
         return(INFINITY);
     }
 
-    if( q <= 0.0 )
-    {
-        if(q == floor(q))
-        {
-            //mtherr( "zeta", SING );
+    if( q <= 0.0 ) {
+        if(q == floor(q)) {
+            mtherr( "zeta", SING );
 retinf:
             return( MAXNUM );
         }
@@ -132,8 +129,7 @@ retinf:
         a = q;
         i = 0;
         b = 0.0;
-        while( (i < 9) || (a <= 9.0) )
-        {
+        while( (i < 9) || (a <= 9.0) ) {
             i += 1;
             a += 1.0;
             b = pow( a, -x );
@@ -147,8 +143,7 @@ retinf:
         s -= 0.5 * b;
         a = 1.0;
         k = 0.0;
-        for( i=0; i<12; i++ )
-        {
+        for( i=0; i<12; i++ ) {
             a *= x + k;
             b /= w;
             t = a*b/A[i];

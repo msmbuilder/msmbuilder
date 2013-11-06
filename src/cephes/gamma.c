@@ -293,8 +293,7 @@ static double stirf(double);
 /* Gamma function computed by Stirling's formula.
  * The polynomial STIR is valid for 33 <= x <= 172.
  */
-static double stirf(double x)
-{
+static double stirf(double x) {
     double y, w, v;
 
     if (x >= MAXGAM) {
@@ -306,8 +305,7 @@ static double stirf(double x)
     if (x > MAXSTIR) {		/* Avoid overflow in pow() */
         v = pow(x, 0.5 * x - 0.25);
         y = v * (v / y);
-    }
-    else {
+    } else {
         y = pow(x, x - 0.5) / y;
     }
     y = SQTPI * y * w;
@@ -316,8 +314,7 @@ static double stirf(double x)
 
 
 
-double Gamma(double x)
-{
+double Gamma(double x) {
     double p, q, z;
     int i;
 
@@ -349,8 +346,7 @@ gamnan:
             }
             z = fabs(z);
             z = NPY_PI / (z * stirf(q));
-        }
-        else {
+        } else {
             z = stirf(x);
         }
         return (sgngam * z);
@@ -387,8 +383,7 @@ gamnan:
 small:
     if (x == 0.0) {
         goto gamnan;
-    }
-    else
+    } else
         return (z / ((1.0 + 0.5772156649015329 * x) * x));
 }
 
@@ -543,8 +538,7 @@ static unsigned short LS2P[] = {
 /* Logarithm of Gamma function */
 
 
-double lgam(double x)
-{
+double lgam(double x) {
     double p, q, u, w, z;
     int i;
 
@@ -599,8 +593,7 @@ lgsing:
         if (z < 0.0) {
             sgngam = -1;
             z = -z;
-        }
-        else
+        } else
             sgngam = 1;
         if (u == 2.0)
             return (log(z));
