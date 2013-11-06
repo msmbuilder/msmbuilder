@@ -69,9 +69,12 @@ def write_spline_data():
 
     # fit the inverse function
     derivs = buildspline.createNaturalSpline(x, np.log(y))
-    np.savetxt('src/data/inv_mbessel_x.dat', x, newline=',\n')
-    np.savetxt('src/data/inv_mbessel_y.dat', np.log(y), newline=',\n')
-    np.savetxt('src/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
+    if not os.path.exists('src/data/inv_mbessel_x.dat'):
+        np.savetxt('src/data/inv_mbessel_x.dat', x, newline=',\n')
+    if not os.path.exists('src/data/inv_mbessel_y.dat'):
+        np.savetxt('src/data/inv_mbessel_y.dat', np.log(y), newline=',\n')
+    if not os.path.exists('src/data/inv_mbessel_deriv.dat'):
+        np.savetxt('src/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
 
 
 _vmhmm = Extension('_vmhmm',
@@ -81,8 +84,9 @@ _vmhmm = Extension('_vmhmm',
                    libraries=['m'],
                    include_dirs=[np.get_include(), 'src/cephes'])
 _gammahmm = Extension('_gammahmm',
-                      sources=['src/gammahmm.c', 'src/gammahmmwrap.'+cython_extension,
-                               'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c'],
+                      sources=['src/gammahmmwrap.'+cython_extension,
+                               'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
+                               'src/gammamixture.c', 'src/gammautils.c'],
                       libraries=['m'],
                       include_dirs=[np.get_include(), 'src/cephes'])
 

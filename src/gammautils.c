@@ -1,6 +1,7 @@
 #include "math.h"
 #include "cephes.h"
 #include "stdio.h"
+#include "gammautils.h"
 
 double invpsi(double y) {
     /*
@@ -35,4 +36,16 @@ double invpsi(double y) {
 }
 
 
+double weightlogsumexp(double nums[], double weight[], size_t ct) {
+  double max_exp = nums[0], sum = 0.0;
+  size_t i;
 
+  for (i = 1 ; i < ct ; i++)
+    if (nums[i] > max_exp)
+      max_exp = nums[i];
+
+  for (i = 0; i < ct ; i++)
+    sum += weight[i] * exp(nums[i] - max_exp);
+
+  return log(sum) + max_exp;
+}
