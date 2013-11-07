@@ -35,6 +35,7 @@ from __future__ import print_function, division
 import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
+import scipy.special
 from scipy.stats.distributions import vonmises
 import _vmhmm
 

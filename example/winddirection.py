@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib
 from matplotlib.dates import DateFormatter, date2num
 import matplotlib.pyplot as pp
-from vmhmm import VonMisesHMM
+from mixtape.vmhmm import VonMisesHMM
 
 import urllib2
 import itertools

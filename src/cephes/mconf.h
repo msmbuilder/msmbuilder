@@ -1,6 +1,6 @@
-/*							mconf.h
+/*                                                     mconf.h
  *
- *	Common include file for math routines
+ *     Common include file for math routines
  *
  *
  *
@@ -19,7 +19,7 @@
  * The file also includes a conditional assembly definition
  * for the type of computer arithmetic (IEEE, DEC, Motorola
  * IEEE, or UNKnown).
- * 
+ *
  * For Digital Equipment PDP-11 and VAX computers, certain
  * IBM systems, and others that use numbers with a 56-bit
  * significand, the symbol DEC should be defined.  In this
@@ -56,39 +56,20 @@
  * may fail on many systems.  Verify that they are supposed
  * to work on your computer.
  */
-/*
-Cephes Math Library Release 2.3:  June, 1995
-Copyright 1984, 1987, 1989, 1995 by Stephen L. Moshier
-*/
 
+/*
+ * Cephes Math Library Release 2.3:  June, 1995
+ * Copyright 1984, 1987, 1989, 1995 by Stephen L. Moshier
+ */
 
-/* Define if the `long double' type works.  */
-#define HAVE_LONG_DOUBLE 1
+#ifndef CEPHES_MCONF_H
+#define CEPHES_MCONF_H
 
-/* Define as the return type of signal handlers (int or void).  */
-#define RETSIGTYPE void
+#include <Python.h>
+#include <numpy/npy_math.h>
 
-/* Define if you have the ANSI C header files.  */
-#define STDC_HEADERS 1
-
-/* Define if your processor stores words with the most significant
-   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-/* #undef WORDS_BIGENDIAN */
-
-/* Define if floating point words are bigendian.  */
-/* #undef FLOAT_WORDS_BIGENDIAN */
-
-/* The number of bytes in a int.  */
-#define SIZEOF_INT 4
-
-/* Define if you have the <string.h> header file.  */
-#define HAVE_STRING_H 1
-
-/* Name of package */
-#define PACKAGE "cephes"
-
-/* Version number of package */
-#define VERSION "2.7"
+#include "cephes_names.h"
+#include "cephes.h"
 
 /* Constant definitions for math error conditions
  */
@@ -99,40 +80,22 @@ Copyright 1984, 1987, 1989, 1995 by Stephen L. Moshier
 #define UNDERFLOW	4	/* underflow range error */
 #define TLOSS		5	/* total loss of precision */
 #define PLOSS		6	/* partial loss of precision */
+#define TOOMANY         7	/* too many iterations */
+#define MAXITER        500
 
 #define EDOM		33
 #define ERANGE		34
-/* Complex numeral.  */
-typedef struct
-	{
-	double r;
-	double i;
-	} cmplx;
 
-#ifdef HAVE_LONG_DOUBLE
 /* Long double complex numeral.  */
-typedef struct
-	{
-	long double r;
-	long double i;
-	} cmplxl;
-#endif
-
+/*
+ * typedef struct
+ * {
+ * long double r;
+ * long double i;
+ * } cmplxl;
+ */
 
 /* Type of computer arithmetic */
-
-/* PDP-11, Pro350, VAX:
- */
-/* #define DEC 1 */
-
-/* Intel IEEE, low order words come first:
- */
-/* #define IBMPC 1 */
-
-/* Motorola IEEE, high order words come first
- * (Sun 680x0 workstation):
- */
-/* #define MIEEE 1 */
 
 /* UNKnown arithmetic, invokes coefficients given in
  * normal decimal format.  Beware of range boundary
@@ -140,14 +103,13 @@ typedef struct
  * roundoff problems in pow.c:
  * (Sun SPARCstation)
  */
+
+/* SciPy note: by defining UNK, we prevent the compiler from
+ * casting integers to floating point numbers.  If the Endianness
+ * is detected incorrectly, this causes problems on some platforms.
+ */
 #define UNK 1
 
-/* If you define UNK, then be sure to set BIGENDIAN properly. */
-#ifdef FLOAT_WORDS_BIGENDIAN
-#define BIGENDIAN 1
-#else
-#define BIGENDIAN 0
-#endif
 /* Define this `volatile' if your compiler thinks
  * that floating point arithmetic obeys the associative
  * and distributive laws.  It will defeat some optimizations
@@ -172,28 +134,16 @@ typedef struct
 /* Define to support tiny denormal numbers, else undefine. */
 #define DENORMAL 1
 
-/* Define to ask for infinity support, else undefine. */
-#define INFINITIES 1
-
-/* Define to ask for support of numbers that are Not-a-Number,
-   else undefine.  This may automatically define INFINITIES in some files. */
-#define NANS 1
-
 /* Define to distinguish between -0.0 and +0.0.  */
 #define MINUSZERO 1
 
 /* Define 1 for ANSI C atan2() function
-   See atan.c and clog.c. */
+ * See atan.c and clog.c. */
 #define ANSIC 1
-
-/* Get ANSI function prototypes, if you want them. */
-#if 1
-/* #ifdef __STDC__ */
-#define ANSIPROT 1
-int mtherr ( char *, int );
-#else
-int mtherr();
-#endif
 
 /* Variable for error reporting.  See mtherr.c.  */
 extern int merror;
+
+#define gamma Gamma
+
+#endif				/* CEPHES_MCONF_H */
