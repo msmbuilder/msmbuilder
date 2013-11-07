@@ -44,6 +44,7 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
     */
     int i, j, jj, k, n;
     int err_1, err_2, err_3, err_4, err_5, err_6, err_7;
+    float temp_logg_j;
     double logsumexp_logg, p;
     double alpha_argument, new_alpha, logl;
     double old_logl = 0;
@@ -107,12 +108,12 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
             // calculate logg[j], the log likelihood that sample i is
             // in component j
             for (j = 0; j < n_components; j++) {
-                logg[j] = 0.0;
-                for (k = 0; k < n_features; k++) {
-                    logg[j] += normalization[JK__(j, k)] \
-                               + log_X[i*n_features + k]*(alpha[JK__(j, k)]-1.0f) \
-                               - X[i*n_features + k]*rate[JK__(j, k)];
-                }
+                temp_logg_j = 0;
+                for (k = 0; k < n_features; k++)
+                    temp_logg_j += (normalization[JK__(j, k)]
+                                    + log_X[i*n_features + k]*(alpha[JK__(j, k)] - 1.0f)
+                                    - X[i*n_features + k]*rate[JK__(j, k)]);
+                logg[j] = temp_logg_j;
             }
 
             logsumexp_logg = weightlogsumexp(logg, pi, n_components);
