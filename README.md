@@ -16,7 +16,7 @@ distribution with a diagonal covariance matrix.
 
 
 ### Installation
-vmhmm requires [scikit-learn](http://scikit-learn.org/stable/). It also
+mixtape requires [scikit-learn](http://scikit-learn.org/stable/). It also
 requires numpy and scipy, but these are already depdendencies of sklearn
 itself. You'll need a C compiler as well. Python 2.6, 2.7, 3.2, and 3.3
 are supported.
