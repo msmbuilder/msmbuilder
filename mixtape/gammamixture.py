@@ -31,7 +31,7 @@ import numpy as np
 from scipy.special import gammaln
 from sklearn import cluster
 from sklearn.utils.extmath import logsumexp
-import _gamma
+from mixtape import _gamma
 
 
 class GammaMixtureModel(object):
