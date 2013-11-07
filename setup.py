@@ -1,6 +1,8 @@
-"""vmhmm: scikit-learn compatible von Mises hidden Markov model
+"""mixtape: scikit-learn compatible mixture models and hidden Markov models
 
-This package implements a hidden Markov model with von Mises emissions.
+Currently, this package implements a mixture model of gamma distributions
+and a hidden Markov model with von Mises emissions.
+
 See http://scikit-learn.org/stable/modules/hmm.html for a 
 practical description of hidden Markov models. The von Mises
 distribution, (also known as the circular normal distribution or
@@ -59,7 +61,7 @@ def write_spline_data():
     """
     import scipy.special
     import pyximport; pyximport.install(setup_args={'include_dirs':[np.get_include()]})
-    sys.path.insert(0, 'src')
+    sys.path.insert(0, 'src/vonmises')
     import buildspline
     del sys.path[0]
     n_points = 1024
@@ -69,31 +71,31 @@ def write_spline_data():
 
     # fit the inverse function
     derivs = buildspline.createNaturalSpline(x, np.log(y))
-    if not os.path.exists('src/data/inv_mbessel_x.dat'):
-        np.savetxt('src/data/inv_mbessel_x.dat', x, newline=',\n')
-    if not os.path.exists('src/data/inv_mbessel_y.dat'):
-        np.savetxt('src/data/inv_mbessel_y.dat', np.log(y), newline=',\n')
-    if not os.path.exists('src/data/inv_mbessel_deriv.dat'):
-        np.savetxt('src/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
+    if not os.path.exists('src/vonmises/data/inv_mbessel_x.dat'):
+        np.savetxt('src/vonmises/data/inv_mbessel_x.dat', x, newline=',\n')
+    if not os.path.exists('src/vonmises/data/inv_mbessel_y.dat'):
+        np.savetxt('src/vonmises/data/inv_mbessel_y.dat', np.log(y), newline=',\n')
+    if not os.path.exists('src/vonmises/data/inv_mbessel_deriv.dat'):
+        np.savetxt('src/vonmises/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
 
 
-_vmhmm = Extension('_vmhmm',
-                   sources=['src/vmhmm.c', 'src/vmhmmwrap.'+cython_extension,
-                            'src/spleval.c',
+_vmhmm = Extension('mixtape._vmhmm',
+                   sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+cython_extension,
+                            'src/vonmises/spleval.c',
                             'src/cephes/i0.c', 'src/cephes/chbevl.c'],
                    libraries=['m'],
                    include_dirs=[np.get_include(), 'src/cephes'])
-_gammahmm = Extension('_gammahmm',
-                      sources=['src/gammahmmwrap.'+cython_extension,
+_gamma = Extension('mixtape._gamma',
+                      sources=['src/gamma/gammawrap.'+cython_extension,
+                               'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
                                'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
-                               'src/cephes/mtherr.c', 'src/cephes/gamma.c',
-                               'src/gammamixture.c', 'src/gammautils.c'],
+                               'src/cephes/mtherr.c', 'src/cephes/gamma.c'],
                       libraries=['m'],
                       extra_compile_args=['--std=c99', '-Wall'],
                       include_dirs=[np.get_include(), 'src/cephes'])
 
 write_spline_data()
-setup(name='vmhmm',
+setup(name='mixtape',
       author='Robert McGibbon',
       author_email='rmcgibbo@gmail.com',
       description=DOCLINES[0],
@@ -102,6 +104,7 @@ setup(name='vmhmm',
       url='https://github.com/rmcgibbo/vmhmm',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),      
-      py_modules=['vmhmm'],
+      packages=['mixtape'],
       zip_safe=False,
-      ext_modules=[_vmhmm, _gammahmm], **setup_kwargs)
+      ext_modules=[_vmhmm, _gamma],
+      **setup_kwargs)

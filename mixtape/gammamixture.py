@@ -1,13 +1,37 @@
 """
 Gamma distribution mixture model
 """
-# Author: Robert McGibbon
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
+# Copyright (c) 2013, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from scipy.special import gammaln
 from sklearn import cluster
 from sklearn.utils.extmath import logsumexp
-import _gammahmm
+import _gamma
 
 
 class GammaMixtureModel(object):
@@ -83,8 +107,10 @@ class GammaMixtureModel(object):
         lpr = np.zeros((len(X), self.n_components))
         for f in range(X.shape[1]):
             # log probability of each data point in each component
-            lpr += self.alphas_[:, f]*np.log(self.betas_[:, f]) - scipy.special.gammaln(self.alphas_[:, f]) + \
-                   np.multiply.outer(log_X[:, f], self.alphas_[:, f]-1) - np.multiply.outer(X[:, f], self.betas_[:, f])
+            lpr += (self.alphas_[:, f]*np.log(self.betas_[:, f])
+                    - gammaln(self.alphas_[:, f])
+                    + np.multiply.outer(log_X[:, f], self.alphas_[:, f]-1)
+                    - np.multiply.outer(X[:, f], self.betas_[:, f]))
 
         lpr += np.log(self.weights_)
         logprob = logsumexp(lpr, axis=1)
@@ -153,7 +179,7 @@ class GammaMixtureModel(object):
         X : array_like, shape (n_samples, n_features)
             List of samples
         """
-        pass
+        raise NotImplementedError()
 
     def fit(self, X):
         """Estimate model parameters with the expectation-maximization
@@ -194,8 +220,8 @@ class GammaMixtureModel(object):
         self.betas_ = np.asarray(self.betas_, order='c', dtype=np.double)
         self.weights_ = np.asarray(self.weights_, order='c', dtype=np.double)
 
-        _gammahmm.gamma_mixture_fit(X, self.alphas_, self.betas_, self.weights_,
-                                    self.n_iter)
+        _gamma.gamma_mixture_fit(X, self.alphas_, self.betas_, self.weights_,
+                                 self.n_iter)
 
     def bic(self, X):
         """Bayesian information criterion for the current model fit
@@ -213,7 +239,6 @@ class GammaMixtureModel(object):
         """
         return (-2 * self.score(X).sum() +
                 self._n_parameters() * np.log(X.shape[0]))
-
 
     def aic(self, X):
         """Akaike information criterion for the current model fit
@@ -234,45 +259,3 @@ class GammaMixtureModel(object):
     def _n_parameters(self):
         """Return the number of free parameters in the model."""
         return self.alphas_.size + self.betas_.size + self.weights_.size
-
-if __name__ == '__main__':
-    import scipy.stats
-    import itertools
-
-    data = []
-    n_features = 3
-    for i in range(n_features):
-        data.append(np.concatenate((scipy.stats.distributions.gamma(1, (i+1)*20).rvs(1000),
-                                    scipy.stats.distributions.gamma(10, (i+1)*20).rvs(3000))))
-    data = np.vstack(data).T
-    print data.shape
-    data = data[np.random.permutation(len(data))]
-    test = data[0:len(data)/5]
-    train = data[len(data)/5:]
-
-    n_components = range(1,10)
-    bics = []
-    test_ll = []
-    for i in n_components:
-        gmm = GammaMixtureModel(n_components=i, n_iter=1000)
-        gmm.fit(train)
-        bics.append(gmm.bic(train))
-        test_ll.append(gmm.score(test).sum())
-        print bics
-        print test_ll
-
-    import matplotlib.pyplot as pp
-    pp.subplot(211)
-    pp.plot(n_components, bics, 'x-', c='g', label='bics')
-    pp.legend(loc=4)
-    pp.gca().twinx().plot(n_components, test_ll, 'x-', c='k', label='testll')
-    pp.legend(loc=1)
-    pp.xlabel('n states')
-
-
-    pp.subplot(212)
-    colors = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'k'])
-    for i in range(n_features):
-        pp.hist(data[:, i], bins=15, color=next(colors), alpha=0.3, label='feature %d' % i)
-    pp.legend()
-    pp.show()
