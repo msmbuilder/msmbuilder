@@ -1,7 +1,10 @@
-# vmhmm : `sklearn`-compatible  von Mises hidden Markov model
+# "mixtape: scikit-learn compatible mixture models and hidden Markov models
+
 ### Overview
-This package implements a hidden Markov model with von Mises emissions.
-See [this page](http://scikit-learn.org/stable/modules/hmm.html) for a 
+
+Currently, this package implements a mixture model of gamma distributions
+and a hidden Markov model with von Mises emissions. See
+[this page](http://scikit-learn.org/stable/modules/hmm.html) for a 
 practical description of hidden Markov models.
 
 The von Mises distribution, (also known as the circular normal
@@ -24,7 +27,7 @@ modules. The install command is `python setup.py install`.
 ### Example
 
 ```
-from vmhmm import VonMisesHMM
+from mixtape.vmhmm import VonMisesHMM
 
 model = VonMisesHMM(n_components=3, n_iter=1000)
 model.fit([X])
