@@ -45,7 +45,8 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
     int i, j, jj, k, n;
     int err_1, err_2, err_3, err_4, err_5, err_6, err_7;
     double logsumexp_logg, p;
-    double alpha_argument, new_alpha;
+    double alpha_argument, new_alpha, logl;
+    double old_logl = 0;
 
     aligned_float * restrict log_X;
     double* restrict logg;
@@ -99,6 +100,9 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
         memset(Sum_logx_p, 0, n_components*n_features*sizeof(double));
         memset(Sum_lograte_p, 0, n_components*n_features*sizeof(double));
 
+        old_logl = logl;
+        logl = 0.0;
+
         for (i = 0; i < n_samples; i++) {
             // calculate logg[j], the log likelihood that sample i is
             // in component j
@@ -112,6 +116,7 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
             }
 
             logsumexp_logg = weightlogsumexp(logg, pi, n_components);
+            logl += logsumexp_logg;
             for (j = 0; j < n_components; j++) {
                 // this is the probability that data point i is in component j
                 p = exp(log(pi[j]) + logg[j] - logsumexp_logg);
@@ -170,6 +175,8 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
             pi[j] = pi[j] / pi_renormalizer;
 
 #ifdef DEBUG
+        printf("Log Likelihood = %f\n", logl);
+
         printf("Alpha\n");
         for (j = 0; j < n_components; j++) {
             for (k = 0; k < n_features; k++)
