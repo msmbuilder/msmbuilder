@@ -1,4 +1,4 @@
-# "mixtape: scikit-learn compatible mixture models and hidden Markov models
+# mixtape: scikit-learn compatible mixture models and hidden Markov models
 
 ### Overview
 
