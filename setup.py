@@ -79,12 +79,18 @@ def write_spline_data():
         np.savetxt('src/vonmises/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
 
 
+_hmm = Extension('mixtape._hmm',
+                 sources=['mixtape/_hmm.'+cython_extension],
+                 libraries=['m'],
+                 include_dirs=[np.get_include()])
+
 _vmhmm = Extension('mixtape._vmhmm',
                    sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+cython_extension,
                             'src/vonmises/spleval.c',
                             'src/cephes/i0.c', 'src/cephes/chbevl.c'],
                    libraries=['m'],
                    include_dirs=[np.get_include(), 'src/cephes'])
+
 _gamma = Extension('mixtape._gamma',
                       sources=['src/gamma/gammawrap.'+cython_extension,
                                'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
@@ -103,8 +109,8 @@ setup(name='mixtape',
       version=__version__,
       url='https://github.com/rmcgibbo/vmhmm',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
-      classifiers=CLASSIFIERS.splitlines(),      
+      classifiers=CLASSIFIERS.splitlines(),
       packages=['mixtape'],
       zip_safe=False,
-      ext_modules=[_vmhmm, _gamma],
+      ext_modules=[_hmm, _vmhmm, _gamma],
       **setup_kwargs)
