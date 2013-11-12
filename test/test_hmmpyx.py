@@ -31,3 +31,19 @@ def test_gradients():
                     _hmm.reversible_transmat_grad,
                     u0, symcounts, rowsums, logrowsums)
     assert error < 1e-5
+
+
+def test_reversible_mle():
+    import scipy.sparse.linalg
+
+    C = 1.0*np.array([[6, 3, 7], [4, 6, 9], [2, 6, 7]])
+    # generated with msmbuilder
+    result = np.array([[ 0.37499995,  0.2370208,  0.38797925],
+                       [ 0.16882446,  0.31578918,  0.51538636],
+                       [ 0.18615565,  0.34717763,  0.46666672]])
+
+    T, pi = _hmm.reversible_transmat(C)
+
+    np.testing.assert_array_almost_equal(T, result)
+    u, v = scipy.sparse.linalg.eigs(T.T, k=1)
+    np.testing.assert_array_almost_equal(np.real(v / v.sum()).flatten(), pi)

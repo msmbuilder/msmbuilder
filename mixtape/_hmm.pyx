@@ -79,28 +79,37 @@ def reversible_transmat(np.ndarray[ndim=2, dtype=DTYPE_T] counts):
     counts = np.asarray(counts, dtype=DTYPE)
     cdef int n_states = counts.shape[1]
     triu_indices = np.triu_indices(n_states)
-    tril_indices = np.tril_indices(n_states)
     if counts.shape[0] != counts.shape[1]:
         raise TypeError('Counts must be a symmetric two-dimensional array')
 
     symcounts = (counts + counts.T - np.diag(np.diag(counts)))[triu_indices]
     rowsums = np.sum(counts, axis=1)
     logrowsums = np.log(rowsums)
-    u0 = np.ones_like(symcounts)
+    u0 = np.log(symcounts)
 
-    r = scipy.optimize.minimize(reversible_transmat_likelihood, u0, jac=reversible_transmat_grad,
-                                args=(symcounts, rowsums, logrowsums),
-                                method='l-bfgs-b')
-    if not r['success']:
+    uf, f, d = scipy.optimize.fmin_l_bfgs_b(
+        reversible_transmat_likelihood, u0,
+        reversible_transmat_grad, args=(symcounts, rowsums, logrowsums),
+        disp=0, factr=0.001, m=26)
+    if  d['warnflag'] != 0:
+        if d['warnflag'] == 1:
+            message = 'too many function evaluations or too many iterations'
+        else:
+            message = d['task']
         warnings.warn('Maximum likelihood reversible transition matrix'
-                      'optimization failed: %s' % r['message'])
-    reversible_counts = np.zeros((n_states, n_states))
-    reversible_counts[triu_indices] = r['x']
-    reversible_counts[tril_indices] = r['x']
+                      'optimization failed: %s' % message)
 
-    equilibrium = reversible_counts.sum(axis=0) / reversible_counts.sum()
+    exp_rx = np.exp(uf)
+    # reconstruct the final counts from the upper triangular entries. need to avoid
+    # double-counting the diagonal
+    reversible_counts = np.zeros((n_states, n_states))
+    reversible_counts[triu_indices] = exp_rx
+    reversible_counts[np.diag_indices_from(reversible_counts)] -= 0.5*np.diag(reversible_counts)
+    reversible_counts = reversible_counts + reversible_counts.T
+
+    populations = reversible_counts.sum(axis=0) / reversible_counts.sum()
     transmat = reversible_counts / np.sum(reversible_counts, axis=1)[:, np.newaxis]
-    return transmat, equilibrium
+    return transmat, populations
 
 
 @cython.wraparound(False)
