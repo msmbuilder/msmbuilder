@@ -33,6 +33,7 @@ from __future__ import print_function, division
 import numpy as np
 import warnings
 import scipy.optimize
+cimport cython
 cimport numpy as np
 cdef extern from "math.h":
     double HUGE_VAL
@@ -48,6 +49,7 @@ ctypedef np.float64_t DTYPE_T
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
+
 
 def reversible_transmat(np.ndarray[ndim=2, dtype=DTYPE_T] counts):
     """Calculate the maximum likelihood transition probability matrix given
@@ -74,7 +76,6 @@ def reversible_transmat(np.ndarray[ndim=2, dtype=DTYPE_T] counts):
     transition matix likelihood function included with the MSMBuilder
     distribution (docs/notes/mle_notes.pdf).
     """
-    cdef int i, j
     counts = np.asarray(counts, dtype=DTYPE)
     cdef int n_states = counts.shape[1]
     triu_indices = np.triu_indices(n_states)
@@ -102,6 +103,8 @@ def reversible_transmat(np.ndarray[ndim=2, dtype=DTYPE_T] counts):
     return transmat, equilibrium
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def reversible_transmat_grad(
         np.ndarray[ndim=1, dtype=DTYPE_T] u not None,
         np.ndarray[ndim=1, dtype=DTYPE_T] symcounts not None,
@@ -145,6 +148,8 @@ def reversible_transmat_grad(
     return -grad
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def reversible_transmat_likelihood(
         np.ndarray[ndim=1, dtype=DTYPE_T] u not None,
         np.ndarray[ndim=1, dtype=DTYPE_T] symcounts not None,
@@ -177,6 +182,8 @@ cdef inline DTYPE_T max(DTYPE_T a, DTYPE_T b):
     return a if a > b else b
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def logsymsumexp(np.ndarray[ndim=1, dtype=DTYPE_T] x not None,
                  int n):
     """Calculate the log-sum-exp of the rows (or columns) of a symmetric
@@ -194,7 +201,7 @@ def logsymsumexp(np.ndarray[ndim=1, dtype=DTYPE_T] x not None,
     [-  -  -  -  14]
     """
     cdef int i, j, k
-    if n*(n+1)/2 != len(x):
+    if n*(n+1)//2 != len(x):
         raise ValueError('Incompatible vector size. It must be a binomial '
                          'coefficient n choose 2 for some integer n >= 2.')
     log_sums = np.zeros(n, dtype=DTYPE)
