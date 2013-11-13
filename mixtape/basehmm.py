@@ -85,6 +85,12 @@ class _ReversibleHMM(_BaseHMM):
         solved by numerical optimization (BFGS), and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
+    transmat_prior : float, optiibal
+        A prior on the transition matrix entries. If supplied, a
+        psuedocount of transmat_prior - 1 is added to each entry
+        in the expected number of observed transitions from each state
+        to each other state, so this is like a uniform dirichlet alpha
+        in a sense.
     params : str
         A string with the parameters to optimizing during the fitting.
         If 't' is in params, the transition matrix will be optimized.
@@ -112,14 +118,16 @@ class _ReversibleHMM(_BaseHMM):
     """
 
     def __init__(self, n_components=1, n_iter=100, thresh=1e-2,
-                 reversible_type='mle', transmat_prior=None,
-                 params=string.ascii_letters,
+                 reversible_type='mle', transmat=None, transmat_prior=None,
+                 params=string.ascii_letters, random_state=None,
                  init_params=string.ascii_letters):
         self.n_components = n_components
         self.n_iter = n_iter
         self.thresh = thresh
+        self.transmat_ = transmat
         self.transmat_prior = transmat_prior
         self.params = params
+        self.random_state = random_state
         self.init_params = init_params
         self.reversible_type = reversible_type
 
@@ -142,7 +150,7 @@ class _ReversibleHMM(_BaseHMM):
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
-        self._init()
+        self._init(obs, self.init_params)
 
         self.fit_logprob_ = []
         for i in range(self.n_iter):
@@ -169,11 +177,12 @@ class _ReversibleHMM(_BaseHMM):
             self._do_mstep(stats, self.params)
         return self
 
-    def _init(self):
-        if 't' in self.init_params:
+    def _init(self, obs, params):
+        if 't' in params:
             transmat_ = np.empty((self.n_components, self.n_components))
             transmat_.fill(1.0 / self.n_components)
             self.transmat_ = transmat_
+            self._log_startprob = -np.log(self.n_components)*np.ones(self.n_components)
 
     def _do_mstep(self, stats, params):
         if self.transmat_prior is None:
@@ -239,7 +248,7 @@ class _ReversibleHMM(_BaseHMM):
             has not been fit or does not have a transition matrix, the return
             value will be None.
         """
-        if not hasattr(self, 'transmat_'):
+        if self.transmat_ is None:
             return None
         eigvals = np.linalg.eigvals(self.transmat_)
         np.sort(eigvals)
