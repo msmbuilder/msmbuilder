@@ -48,14 +48,61 @@ class GaussianFusionHMM(_ReversibleHMM):
     """
     Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
 
+    Parameters
+    ----------
+    n_components : int
+        The number of components (states) in the model
+    n_em_iter : int
+        The number of iterations of expectation-maximization to run
+    n_lqa_iter : int
+        The number of iterations of the local quadratic approximation fixed
+        point equations to solve when computing the new means with a nonzero
+        L1 fusion penalty.
+    thresh : float
+        Convergence threshold for the log-likelihood during expectation
+        maximization. When the increase in the log-likelihood is less
+        than thresh between subsequent rounds of E-M, fitting will finish.
+    fusion_prior : float
+        The strength of the L1 fusion prior.
+    reversible_type : str
+        Method by which the reversibility of the transition matrix
+        is enforced. 'mle' uses a maximum likelihood method that is
+        solved by numerical optimization (BFGS), and 'transpose'
+        uses a more restrictive (but less computationally complex)
+        direct symmetrization of the expected number of counts.
+    transmat_prior : float, optiibal
+        A prior on the transition matrix entries. If supplied, a
+        psuedocount of transmat_prior - 1 is added to each entry
+        in the expected number of observed transitions from each state
+        to each other state, so this is like a uniform dirichlet alpha
+        in a sense.
+    vars_prior : float, optional
+        A prior used on the variance. This can be useful in the undersampled
+        regime where states may be collapsing onto a single point, but
+        is generally not needed.
+    vars_weight : float, optional
+        Weight of the vars prior
+    random_states : int, optional
+        Random state, used during sampling.
+    params : str
+        A string with the parameters to optimizing during the fitting.
+        If 't' is in params, the transition matrix will be optimized. If
+        'm' is in params, the statemeans will be optimized. If 'v' is in
+        params, the state variances will be optimized.
+    init_params : str
+        A string with the parameters to initialize prior to fitting.
+        If 't' is in params, the transition matrix will be set. If
+        'm' is in params, the statemeans will be set. If 'v' is in
+        params, the state variances will be set.
+
     Notes
     -----
     """
     def __init__(self, n_components=1, n_em_iter=100, n_lqa_iter=10,
                  fusion_prior=1e-2, thresh=1e-2, reversible_type='mle',
-                 transmat=None, transmat_prior=None, vars_prior=None,
-                 vars_weight=1, params=string.ascii_letters,
-                 random_state=None, init_params=string.ascii_letters):
+                 transmat=None, transmat_prior=None, vars_prior=1e-3,
+                 vars_weight=1, random_state=None, params=string.ascii_letters,
+                 init_params=string.ascii_letters):
         self.fusion_prior = fusion_prior
         self.vars_prior = vars_prior
         self.vars_weight = vars_weight
