@@ -27,6 +27,9 @@ penality on the means of the output distributions.
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
 
 from __future__ import print_function, division
 
@@ -35,6 +38,11 @@ import numpy as np
 from sklearn import cluster
 from sklearn.mixture import sample_gaussian, log_multivariate_normal_density
 from mixtape.basehmm import _ReversibleHMM
+
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
+
 
 class GaussianFusionHMM(_ReversibleHMM):
     """
