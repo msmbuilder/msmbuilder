@@ -30,17 +30,16 @@ void gaussian_loglikelihood_diag(const float* __restrict__ sequences, const floa
         log_vars[i] = log(variances[i]);
     }
 
-
     for (s = 0; s < n_trajs; s++) {
         for (t = 0; t < n_observations[s]; t++) {
             for (j = 0; j < n_states; j++) {
                 temp = 0.0f;
-                for (i = 0; i < n_features; i++)
+                for (i = 0; i < n_features; i++) {
                     temp += means2_over_vars[j*n_features + i]          \
                             - 2.0 * _sequences[t*n_features + i]*means_over_vars[j*n_features + i] \
                             + _sequences[t*n_features + i]*_sequences[t*n_features + i] / variances[j*n_features + i] \
                             + log_vars[j*n_features + i];
-                
+                }
                 _loglikelihoods[t*n_states + j] = -0.5 * (n_features * log_M_2_PI + temp);
             }
         }

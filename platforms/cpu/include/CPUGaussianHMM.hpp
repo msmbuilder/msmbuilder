@@ -19,16 +19,13 @@ public:
         n_total_observations_ = 0;
         n_observations_.resize(n_trajectories);
         for (int s = 0; s < n_trajectories_; s++) {
-            n_total_observations_ += n_observations_[s];
+            n_total_observations_ += n_observations[s];
             n_observations_[s] = n_observations[s];
         }
-
         fwdlattice_.resize(n_total_observations_ * n_states_);
         bwdlattice_.resize(n_total_observations_ * n_states_);
         posteriors_.resize(n_total_observations_ * n_states_);
         framelogprob_.resize(n_total_observations_ * n_states_);
-
-
     }
 
     void setMeans(const float* means) {

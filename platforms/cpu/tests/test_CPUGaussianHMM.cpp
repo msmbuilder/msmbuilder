@@ -1,5 +1,6 @@
 #include <vector>
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include "CPUGaussianHMM.hpp"
 using namespace Mixtape;
 
@@ -36,10 +37,10 @@ int main() {
         _sequences += n_observations[s]*n_features;
     }
 
-    CPUGaussianHMM hmm(sequences, n_trajs, n_observations, n_states, n_features);
+    CPUGaussianHMM hmm(sequences, n_trajs, &n_observations[0], n_states, n_features);
     hmm.setMeans(means);
     hmm.setVariances(variances);
     hmm.setTransmat(transmat);
     hmm.setStartProb(startProb);
-    hmm.doMStep();
+    printf("Log Likelihood = %f\n", hmm.doMStep());
 }

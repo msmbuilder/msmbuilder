@@ -42,7 +42,7 @@ float CPUGaussianHMM::doMStep() {
     }
 
     return logprob;
-        
+
 }
 
 }  // namespace Mixtape
