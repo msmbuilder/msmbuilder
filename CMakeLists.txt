@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 2.6)
-# SET(CMAKE_C_COMPILER "clang")
-# SET(CMAKE_CXX_COMPILER "clang++")
-# link_libraries(m)
+cmake_minimum_required(VERSION 2.8)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/include")
@@ -22,3 +20,9 @@ foreach(TEST_PROG ${CPU_TEST_SOURCES})
   target_link_libraries(${TEST_ROOT} MixtapeCPU)
   list(APPEND LINK_TARGETS ${TEST_ROOT})
 endforeach(TEST_PROG ${CPU_TEST_SOURCES})
+
+# CUDA PLATFORM
+find_package(CUDA)
+CUDA_INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/include")
+file(GLOB_RECURSE CUDA_KERNEL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/*.cu")
+CUDA_ADD_LIBRARY(test_lib "${CUDA_KERNEL_SOURCES}")
