@@ -6,13 +6,24 @@ extern "C" {
 #include <stdlib.h>
 #include "math.h"
 #include <vector>
-
 namespace Mixtape {
-
-
 
 class CPUGaussianHMM {
 public:
+    /**
+     * Create a new CPUGaussianHMM object. The CPUGaussianHMM implemenets the compute
+     * intensive portion of the EM algorithm for HMMs, which is the E step and
+     * computing sufficient statistics for the M step.
+     * 
+     * Trajectory data -- a concatenation of 2D trajectories of shape
+     * [n_observations, n_features] where each trajectory may be of different length --
+     * is passed in by reference and is NOT owned or necessarily copied by this class.
+     * The caller must ensure that the trajectory data isn't garbage collected while this
+     * class is using it.
+     *
+     * All other data (means, variances, etc) is much smaller, and is copied into internal
+     * data structures whose memory is owned and manager by this class
+     */
     CPUGaussianHMM(const float* trajectories,
                    const size_t n_trajectories,
                    const size_t* n_observations,
@@ -64,7 +75,7 @@ public:
             log_startprob_[i] = log(startProb[i]);
     }
 
-    float doMStep(void);
+    float doEStep(void);
 
     void printFwdLattice() {
     printf("fwdlattice\n"); pprintarray(&fwdlattice_[0], n_observations_[0], n_states_);

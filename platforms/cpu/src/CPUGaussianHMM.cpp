@@ -10,7 +10,7 @@ extern "C" {
 }
 namespace Mixtape {
 
-float CPUGaussianHMM::doMStep() {
+float CPUGaussianHMM::doEStep() {
     if ((means_.size() != (n_states_ * n_features_)) ||
         (variances_.size() != (n_states_ * n_features_)) ||
         (log_transmat_.size() != (n_states_ * n_states_)) ||

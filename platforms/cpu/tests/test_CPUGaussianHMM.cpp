@@ -44,7 +44,7 @@ int main() {
     //printf("startprob\n"); pprintarray(startProb, 1, n_states);
     //printf("transmat\n"); pprintarray(transmat, n_states, n_states);
 
-    printf("Log Likelihood = %f\n", hmm.doMStep());
+    printf("Log Likelihood = %f\n", hmm.doEStep());
     hmm.printFwdLattice();
     hmm.printFrameLogprob();
     hmm.printBwdLattice();
