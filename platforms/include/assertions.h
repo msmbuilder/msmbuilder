@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+
 #define ASSERT_TOL(EXPR,VAL,TOL) {                                      \
         double cval; cval = (EXPR);                                     \
         double err; err = cval - (double)(VAL);                         \
@@ -16,6 +17,5 @@
             fprintf(stderr,"    OK, %s = %8.2e with %.2f%% err.\n",#EXPR,VAL,relerrpc); \
         }                                                               \
     }
-
 
 #endif

@@ -12,7 +12,7 @@ file(GLOB_RECURSE HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/platforms/include/*.h"
 			  "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/kernels/include/*.h")
 
 file(GLOB_RECURSE CPU_KERNEL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/kernels/*.c")
-file(GLOB_RECURSE CPU_PLATFORM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/src/*.cpp")
+file(GLOB_RECURSE CPU_PLATFORM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/src/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/src/*.cpp")
 add_library(MixtapeCPU ${CPU_PLATFORM_SOURCES} ${CPU_KERNEL_SOURCES})
 
 file(GLOB CPU_TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/tests/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cpu/tests/*.cpp")

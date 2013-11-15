@@ -37,7 +37,7 @@ float CPUGaussianHMM::doMStep() {
     int ptr = 0;
     float logprob = 0;
     for (int s = 0; s < n_trajectories_; s++) {
-        logprob += logsumexp(&fwdlattice_[ptr + (n_observations_[s]-2)*n_states_], n_states_);
+        logprob += logsumexp(&fwdlattice_[ptr + (n_observations_[s]-1)*n_states_], n_states_);
         ptr += n_observations_[s]*n_states_;
     }
 

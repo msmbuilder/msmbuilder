@@ -1,8 +1,15 @@
+#ifndef MIXTAPE_CPUGAUSSIANHMM_H
+#define MIXTAPE_CPUGAUSSIANHMM_H
+extern "C" {
+#include "utils.h"
+}
 #include <stdlib.h>
 #include "math.h"
 #include <vector>
 
 namespace Mixtape {
+
+
 
 class CPUGaussianHMM {
 public:
@@ -58,6 +65,22 @@ public:
     }
 
     float doMStep(void);
+
+    void printFwdLattice() {
+    printf("fwdlattice\n"); pprintarray(&fwdlattice_[0], n_observations_[0], n_states_);
+    }
+
+    void printFrameLogprob() {
+    printf("framelogprob\n"); pprintarray(&framelogprob_[0], n_observations_[0], n_states_);
+    }
+
+    void printBwdLattice() {
+        printf("bwdlattice\n"); pprintarray(&bwdlattice_[0], n_observations_[0], n_states_);
+    }
+
+    void printPosteriors() {
+    printf("posteriors\n"); pprintarray(&posteriors_[0], n_observations_[0], n_states_);
+    }
     
     ~CPUGaussianHMM() { }
 
@@ -82,3 +105,5 @@ private:
 };
 
 }  //namespace
+
+#endif

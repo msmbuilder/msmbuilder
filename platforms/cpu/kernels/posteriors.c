@@ -19,7 +19,7 @@ void do_posteriors(const float* __restrict__ fwdlattice, const float* __restrict
                 gamma[i] = _fwdlattice[t*n_states + i] + _bwdlattice[t*n_states + i];
             normalizer = logsumexp(gamma, n_states);
             for (i = 0; i < n_states; i++)
-                _posteriors[t*n_states+i] = gamma[i] - normalizer;
+                _posteriors[t*n_states+i] = exp(gamma[i] - normalizer);
         }
         _fwdlattice += n_observations[s] * n_states;
         _bwdlattice += n_observations[s] * n_states;

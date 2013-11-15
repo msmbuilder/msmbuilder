@@ -1,6 +1,7 @@
 #include "logsumexp.h"
 #include "backward.h"
 #include "stdlib.h"
+#include "stdio.h"
 
 /**
  * Run the "backward" step of the forward-backward algorithm
@@ -16,7 +17,7 @@
  *     The indexing is slightly complex. It's a 3D array with these probabilities
  *     for each trajectory up to `n_trajs`. If all of the trajectories are equal length,
  *     then its a simple rectangular array of shape [n_trajs, n_observations, n_states],
- *     But if they're not the same length, then its basically a concatenation of the 
+ *     But if they're not the same length, then its basically a concatenation of the
  *     2D [n_observations, n_states] arrays. The total length of the array is
  *     sum(n_observations)*n_states
  * n_trajs, int
@@ -39,16 +40,18 @@ void do_backward(const float* __restrict__ log_transmat, const float* __restrict
     float* __restrict__ _bwdlattice = bwdlattice;
     const float* __restrict__ _frame_logprob = frame_logprob;
 
+    // the cache locality might be better if we iterate through n_trajs
+    // backwards
     for (s = 0; s < n_trajs; s++) {
         for (j = 0; j < n_states; j++)
             _bwdlattice[(n_observations[s]-1)*n_states + j] = 0.0f;
-        
+
         for (t = n_observations[s]-2; t >= 0; t--) {
-            for (j = 0; j < n_states; j++) {
-                w = _frame_logprob[(t+1)*n_states + j] + _bwdlattice[(t+1)*n_states + j];
-                for (i = 0; i < n_states; i++)
-                    work_buffer[j] = w + log_transmat[i*n_states + j];
-                _bwdlattice[t*n_states + j] = logsumexp(work_buffer, n_states);
+            for (i = 0; i < n_states; i++)
+                for (j = 0; j < n_states; j++) {
+                    work_buffer[j] = _frame_logprob[(t+1)*n_states + j] + _bwdlattice[(t+1)*n_states + j] + log_transmat[i*n_states + j];
+
+                    _bwdlattice[t*n_states + i] = logsumexp(work_buffer, n_states);
             }
         }
         _bwdlattice += n_observations[s]*n_states;
