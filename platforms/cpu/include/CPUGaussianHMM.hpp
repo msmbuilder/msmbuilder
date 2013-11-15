@@ -15,8 +15,6 @@ public:
     , n_trajectories_(n_trajectories)
     , n_states_(n_states)
     , n_features_(n_features)
-    , means_(NULL)
-    , variances_(NULL)
     {
         n_total_observations_ = 0;
         n_observations_.resize(n_trajectories);
@@ -33,20 +31,20 @@ public:
 
     }
 
-    void setMeans(float* means) {
+    void setMeans(const float* means) {
         means_.resize(n_states_ * n_features_);
         for (int i = 0; i < n_states_; i++)
             for (int j = 0; j < n_features_; j++)
                 means_[i*n_features_ + j] = means[i*n_features_ + j];
     }
 
-    void setVariances(float* variances) {
+    void setVariances(const float* variances) {
         variances_.resize(n_states_ * n_features_);
         for (int i = 0; i < n_states_; i++)
             for (int j = 0; j < n_features_; j++)
                 variances_[i*n_features_ + j] = variances[i*n_features_ + j];
     }
-    void setTransmat(float* transmat) {
+    void setTransmat(const float* transmat) {
         log_transmat_.resize(n_states_ * n_states_);
         log_transmat_T_.resize(n_states_ * n_states_);
         for (int i = 0; i < n_states_; i++)
@@ -56,7 +54,7 @@ public:
             }
     }
 
-    void setStartProb(float* startProb) {
+    void setStartProb(const float* startProb) {
         log_startprob_.resize(n_states_);
         for (int i = 0; i < n_states_; i++)
             log_startprob_[i] = log(startProb[i]);

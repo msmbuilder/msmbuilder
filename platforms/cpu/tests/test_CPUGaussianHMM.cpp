@@ -6,6 +6,7 @@ using namespace Mixtape;
 int main() {
     int s, t, i, j;
     const size_t n_states = 4;
+    const float startProb[] = {0.25, 0.25, 0.25, 0.25};
     const size_t n_observations[] = {2, 3, 4};
     const int n_trajs = sizeof(n_observations) / sizeof(n_observations[0]);
     const int n_features = 2;
@@ -39,5 +40,6 @@ int main() {
     hmm.setMeans(means);
     hmm.setVariances(variances);
     hmm.setTransmat(transmat);
+    hmm.setStartProb(startProb);
     hmm.doMStep();
 }
