@@ -3,8 +3,8 @@ import sys
 import time
 
 import numpy as np
-from vmhmm import VonMisesHMM, inverse_mbessel_ratio, circwrap
-import _vmhmm
+from mixtape.vmhmm import VonMisesHMM, inverse_mbessel_ratio, circwrap
+from mixtape import _vmhmm
 from sklearn.hmm import GaussianHMM
 
 try:
