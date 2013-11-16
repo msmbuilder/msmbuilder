@@ -23,6 +23,9 @@ endforeach(TEST_PROG ${CPU_TEST_SOURCES})
 
 # CUDA PLATFORM
 find_package(CUDA)
-CUDA_INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/include")
-file(GLOB_RECURSE CUDA_KERNEL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/*.cu")
-CUDA_ADD_LIBRARY(test_lib "${CUDA_KERNEL_SOURCES}")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/include")
+cuda_include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/include")
+file(GLOB_RECURSE CUDA_KERNEL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/*.cu"
+                                      "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/src/*.cu")
+cuda_add_library(MixtapeCUDA "${CUDA_KERNEL_SOURCES}")

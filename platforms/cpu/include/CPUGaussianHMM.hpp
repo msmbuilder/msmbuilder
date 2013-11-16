@@ -1,8 +1,6 @@
 #ifndef MIXTAPE_CPUGAUSSIANHMM_H
 #define MIXTAPE_CPUGAUSSIANHMM_H
-extern "C" {
 #include "utils.h"
-}
 #include <stdlib.h>
 #include "math.h"
 #include <vector>

@@ -9,7 +9,7 @@
  *
  * Note that the summation will only occur across a single warp.
  */
-__device__ void warplogsumexp(float value, float* result)
+__device__ void logsumexp32(float value, float* result)
 {
     const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
     const unsigned int lid = gid % 32;

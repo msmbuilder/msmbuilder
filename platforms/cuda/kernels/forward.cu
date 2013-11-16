@@ -1,4 +1,5 @@
 #include "logsumexp.cu"
+#include <stdlib.h>
 /*
  * Run the forward portion of the forward backward algorithm.
  * This kernel assumes that the number of states is equal to 32,
@@ -32,7 +33,7 @@ float* __restrict__ fwdlattice)
         for(t = 1; t < n_observations[s]; t++) {
             for(j = 0; j < n_states; j++) {
                 work_buffer = fwdlattice[trj_offset[s] + (t-1)*n_states + lid] + log_transmat_T[j*n_states+lid];
-                warplogsumexp(work_buffer, &work_buffer);
+                logsumexp32(work_buffer, &work_buffer);
                 if (lid == 0) {
                     fwdlattice[trj_offset[s] + t*n_states+j] = work_buffer + frame_logprob[trj_offset[s]+ t*n_states + j];
                 }

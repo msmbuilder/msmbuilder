@@ -1,13 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "CPUGaussianHMM.hpp"
-extern "C" {
 #include "logsumexp.h"
 #include "gaussian_likelihood.h"
 #include "forward.h"
 #include "backward.h"
 #include "posteriors.h"
-}
+
 namespace Mixtape {
 
 float CPUGaussianHMM::doEStep() {
