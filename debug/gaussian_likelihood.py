@@ -13,8 +13,8 @@ def ref_forward(log_transmat_T, log_startprob, frame_logprob, n_states):
         for j in range(n_states):
             for i in range(n_states):
                 work_buffer[i] = fwdlattice[t - 1, i] + log_transmat_T[j, i]
-            #fwdlattice[t, j] = logsumexp(work_buffer) + frame_logprob[t, j]
-            fwdlattice[t, j] = np.sum(work_buffer) + frame_logprob[t, j]
+            fwdlattice[t, j] = logsumexp(work_buffer) + frame_logprob[t, j]
+            #fwdlattice[t, j] = np.sum(work_buffer) + frame_logprob[t, j]
     return fwdlattice
 
 
@@ -38,9 +38,8 @@ __device__ inline int pow2roundup(int x)
 
 template <int N>
 __device__ float logsumexp(float value) {
-    const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
-    const unsigned int lid = gid % 32;
     float max = value;
+
     for(int offset = 1; offset < N; offset <<= 1)
         max = fmaxf(max, __shfl_down(max, offset));
 
@@ -190,7 +189,8 @@ float* __restrict__ fwdlattice)
 #define MINUS_INF_F __int_as_float(0xff800000)
 
 /**********************************************************************/
-// Forward algorithm when n_states >= 32, with a warp size of 32
+/* Forward algorithm when 32 <= n_states <= 1024, with a warp size of */
+/* 32.                                                                */
 /**********************************************************************/
 extern "C" {
 __global__ void forward32(
@@ -204,33 +204,34 @@ const size_t n_states,
 float* __restrict__ fwdlattice)
 {
     unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
-    float work_buffer1 = -10;
-    float work_buffer2 = -10;
+    float work_buffer1;
+    __shared__ float work_buffer2[32];
+    work_buffer2[gid % 32] = MINUS_INF_F;
     unsigned int t, i, j;
+
+/*
+Currently this only uses 32 threads per trajectory. But it could be trivially
+changed to use more threads per trajectory having j skip indices.
+*/
 
     while (gid/32 < n_trajs) {
         const unsigned int lid = gid % 32;
         const unsigned int s = gid / 32;
-
         for (i = lid; i < n_states; i += 32)
             fwdlattice[trj_offsets[s] + i] = log_startprob[i] + frame_logprob[trj_offsets[s] + i];
 
         for (t = 1; t < n_observations[s]; t++) {
               for (j = 0; j < n_states; j++) {
-                  work_buffer2 = -10;
                   for (i = lid; i < pow2roundup((int) n_states); i += 32) {
-                      if (i < n_states) {
-                         work_buffer1 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j*n_states + i];
-                      } else {
-                          work_buffer1 = -10;
-                     }
-
-                      work_buffer2 = logsumexp<32>(work_buffer1);
+                      if (i < n_states)
+                          work_buffer1 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j*n_states + i];
+                      else
+                          work_buffer1 = MINUS_INF_F;
+                      work_buffer2[lid] = logsumexp<32>(work_buffer1);
                   }
-                  if (lid % 32 == 0) {
-                      printf("Storing %f\\n", work_buffer2);
-                      fwdlattice[trj_offsets[s] + t*n_states + j] = 0; //work_buffer2 + frame_logprob[trj_offsets[s] + t*n_states + j];
-                  }
+                  work_buffer1 = logsumexp<32>(work_buffer2[lid]);
+                  if (lid % 32 == 0)
+                      fwdlattice[trj_offsets[s] + t*n_states + j] = work_buffer1 + frame_logprob[trj_offsets[s] + t*n_states + j];
              }
         }
         gid += gridDim.x*blockDim.x;
