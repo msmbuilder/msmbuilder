@@ -13,22 +13,31 @@ def ref_forward(log_transmat_T, log_startprob, frame_logprob, n_states):
         for j in range(n_states):
             for i in range(n_states):
                 work_buffer[i] = fwdlattice[t - 1, i] + log_transmat_T[j, i]
-            fwdlattice[t, j] = logsumexp(work_buffer) + frame_logprob[t, j]
+            #fwdlattice[t, j] = logsumexp(work_buffer) + frame_logprob[t, j]
+            fwdlattice[t, j] = np.sum(work_buffer) + frame_logprob[t, j]
     return fwdlattice
 
 
 from pycuda.compiler import SourceModule
 mod = SourceModule("""
-/*
-template <int N>
-__device__ void logsumexp(float v, float* r) {
-    for (int i = 1; i < N; i*=2)
-        v += __shfl_down(v, i);
-    *r = v;
-}*/
+
+/// Round up to next higher power of 2 (return x if it's already a power
+/// of 2).
+__device__ inline int pow2roundup(int x)
+{
+    if (x < 0)
+        return 0;
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x+1;
+}
 
 template <int N>
-__device__ void logsumexp(float value, float* result) {
+__device__ float logsumexp(float value) {
     const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
     const unsigned int lid = gid % 32;
     float max = value;
@@ -41,8 +50,14 @@ __device__ void logsumexp(float value, float* result) {
     for(int offset = 1; offset < N; offset <<= 1)
         value += __shfl_down(value, offset);
 
-    if (lid % N == 0)
-        *result = logf(value) + max;
+    return logf(value) + max;
+}
+
+template <int N>
+__device__ float sum(float value) {
+    for(int offset = 1; offset < N; offset <<= 1)
+        value += __shfl_down(value, offset);
+    return value;
 }
 
 /**********************************************************************/
@@ -56,9 +71,9 @@ const float* __restrict__ frame_logprob,
 const int n_trajs,
 const size_t* __restrict__ n_observations,
 const size_t* __restrict__ trj_offsets,
-const int n_states,
 float* __restrict__ fwdlattice)
 {
+    const int n_states = 4;
     unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
     float work_buffer;
     unsigned int t;
@@ -72,7 +87,7 @@ float* __restrict__ fwdlattice)
 
         for (t = 1; t < n_observations[s]; t++) {
             work_buffer = fwdlattice[trj_offsets[s] + (t-1)*n_states + hid%4] + log_transmat_T[hid];
-            logsumexp<4>(work_buffer, &work_buffer);
+            work_buffer = logsumexp<4>(work_buffer);
             if (hid % 4 == 0)
                 fwdlattice[trj_offsets[s] + t*n_states + hid/4] = work_buffer + frame_logprob[trj_offsets[s] + t*n_states + hid/4];
         }
@@ -113,8 +128,8 @@ float* __restrict__ fwdlattice)
         for (t = 1; t < n_observations[s]; t++) {
             work_buffer1 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j1*n_states + i];
             work_buffer2 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j2*n_states + i];
-            logsumexp<8>(work_buffer1, &work_buffer1);
-            logsumexp<8>(work_buffer2, &work_buffer2);
+            work_buffer1 = logsumexp<8>(work_buffer1);
+            work_buffer1 = logsumexp<8>(work_buffer2);
             if (lid % 8 == 0) {
                 fwdlattice[trj_offsets[s] + t*n_states + j1] = work_buffer1 + frame_logprob[trj_offsets[s] + t*n_states + j1];
                 fwdlattice[trj_offsets[s] + t*n_states + j2] = work_buffer2 + frame_logprob[trj_offsets[s] + t*n_states + j2];
@@ -157,8 +172,8 @@ float* __restrict__ fwdlattice)
                   const int j2 = j + 8;
                   work_buffer1 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j1*n_states + i];
                   work_buffer2 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j2*n_states + i];
-                  logsumexp<16>(work_buffer1, &work_buffer1); 
-                  logsumexp<16>(work_buffer2, &work_buffer2); 
+                  work_buffer1 = logsumexp<16>(work_buffer1);
+                  work_buffer2 = logsumexp<16>(work_buffer2);
 
                   if (i % 16 == 0) {
                       fwdlattice[trj_offsets[s] + t*n_states + j1] = work_buffer1 + frame_logprob[trj_offsets[s] + t*n_states + j1];
@@ -170,7 +185,82 @@ float* __restrict__ fwdlattice)
     }
 }
 } // extern "C"
+
+#include <stdio.h>
+#define MINUS_INF_F __int_as_float(0xff800000)
+
+/**********************************************************************/
+// Forward algorithm when n_states >= 32, with a warp size of 32
+/**********************************************************************/
+extern "C" {
+__global__ void forward32(
+const float* __restrict__ log_transmat_T,
+const float* __restrict__ log_startprob,
+const float* __restrict__ frame_logprob,
+const size_t n_trajs,
+const size_t* __restrict__ n_observations,
+const size_t* __restrict__ trj_offsets,
+const size_t n_states,
+float* __restrict__ fwdlattice)
+{
+    unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
+    float work_buffer1 = -10;
+    float work_buffer2 = -10;
+    unsigned int t, i, j;
+
+    while (gid/32 < n_trajs) {
+        const unsigned int lid = gid % 32;
+        const unsigned int s = gid / 32;
+
+        for (i = lid; i < n_states; i += 32)
+            fwdlattice[trj_offsets[s] + i] = log_startprob[i] + frame_logprob[trj_offsets[s] + i];
+
+        for (t = 1; t < n_observations[s]; t++) {
+              for (j = 0; j < n_states; j++) {
+                  work_buffer2 = -10;
+                  for (i = lid; i < pow2roundup((int) n_states); i += 32) {
+                      if (i < n_states) {
+                         work_buffer1 = fwdlattice[trj_offsets[s] + (t-1)*n_states + i] + log_transmat_T[j*n_states + i];
+                      } else {
+                          work_buffer1 = -10;
+                     }
+
+                      work_buffer2 = logsumexp<32>(work_buffer1);
+                  }
+                  if (lid % 32 == 0) {
+                      printf("Storing %f\\n", work_buffer2);
+                      fwdlattice[trj_offsets[s] + t*n_states + j] = 0; //work_buffer2 + frame_logprob[trj_offsets[s] + t*n_states + j];
+                  }
+             }
+        }
+        gid += gridDim.x*blockDim.x;
+    }
+}
+} // extern C
 """, no_extern_c=1)
+
+
+def test_forward32():
+    n_states = 33
+    length = 3
+    log_transmat_T = np.arange(n_states**2).reshape(n_states, n_states).astype(np.float32)
+    log_startprob = np.arange(n_states).astype(np.float32)
+    frame_logprob = np.arange(length*n_states).reshape(length, n_states).astype(np.float32)
+    fwdlattice = np.zeros_like(frame_logprob)
+
+    n_trajs = 1
+    lengths = np.array([length]).astype(np.int64)
+    trj_offsets = np.array([0]).astype(np.int64)
+    
+    mod.get_function('forward32')(drv.In(log_transmat_T), drv.In(log_startprob), drv.In(frame_logprob),
+                                  np.int64(n_trajs), drv.In(lengths), drv.In(trj_offsets), np.int64(n_states),
+                                  drv.Out(fwdlattice),
+                                  block=(32, 1, 1), grid=(1,1))
+    print 'cuda'
+    print fwdlattice.astype(np.int)
+    print 'ref'
+    print ref_forward(log_transmat_T, log_startprob, frame_logprob, n_states).astype(np.int)
+    
 
 def test_forward16():
     n_states = 16
@@ -232,7 +322,7 @@ def test_forward4():
     fwdlattice = np.zeros_like(frame_logprob)
     
     forward(drv.In(log_transmat_T), drv.In(log_startprob), drv.In(frame_logprob),
-            np.int32(n_trajs), drv.In(n_observations), drv.In(trj_offsets), np.int32(n_states),
+            np.int32(n_trajs), drv.In(n_observations), drv.In(trj_offsets),
             drv.Out(fwdlattice),
             block=(32, 1, 1), grid=(1,1))
     
@@ -250,6 +340,7 @@ def test_forward4():
 
 
 if __name__ == '__main__':
-    test_forward4()
-    test_forward8()
-    test_forward16()
+    test_forward32()
+    #test_forward4()
+    #test_forward8()
+    #test_forward16()
