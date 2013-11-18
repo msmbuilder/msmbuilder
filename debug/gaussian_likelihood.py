@@ -58,14 +58,19 @@ __device__ float logsumexp(float value) {
 
     for(int offset = 1; offset < N; offset <<= 1)
         max = fmaxf(max, __shfl_down(max, offset));
+    for(int offset = 1; offset < N; offset <<= 1)
+        max = __shfl_up(max, offset);
 
-    max = __shfl(max, 0);
-    value = __expf(value - max);
+    value = expf(value - max);
 
     for(int offset = 1; offset < N; offset <<= 1)
         value += __shfl_down(value, offset);
 
-    return logf(value) + max;
+    value = logf(value) + max;
+    for(int offset = 1; offset < N; offset <<= 1)
+        value = __shfl_up(value, offset);
+
+    return value;
 }
 
 template <int N>
@@ -174,18 +179,30 @@ __global__ void posteriors4(
 const float* __restrict__ fwdlattice,
 const float* __restrict__ bwdlattice,
 const int n_trajs,
-const int* n_observations,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
 float* __restrict__ posteriors)
 {
     const int n_states = 4;
     unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
-    float work_buffer;
+    float work_buffer, normalizer;
     int t;
 
-    while (gid/16 < n_trajs) {
-        const unsigned int hid = gid % 16;
-        const unsigned int s = gid / 16;
-        const int n_obs = n_observations[s];
+    // we only need to do 4-wide reductions, so we group the threads
+    // as only 4 per trajectory. Instead, we should forget the fact
+    // that they are separate trajectories, since that doesn't matter
+    // since there's no forward or backward propagation and then we
+    // could work on the whole trajectory in parallel, with one
+    // width-4 thread team per observation
+
+    while (gid/4 < n_trajs) {
+        const unsigned int hid = gid % 4;
+        const unsigned int s = gid / 4;
+        for (int t = 0; t < n_observations[s]; t++) {
+            work_buffer = fwdlattice[trj_offsets[s] + t*n_states + hid] + bwdlattice[trj_offsets[s] + t*n_states + hid];
+            normalizer = logsumexp<4>(work_buffer);
+            posteriors[trj_offsets[s] + t*n_states + hid] = expf(work_buffer - normalizer);
+        }
 
 
         gid += gridDim.x*blockDim.x;
@@ -515,16 +532,23 @@ def test_backward4():
     print 'ref'
     print ref_results
 
+
 def test_posteriors4():
     n_trajs = 1
     n_observations = 10
     fwdlattice = np.random.rand(n_observations, 4).astype(np.float32)
     bwdlattice = np.random.rand(n_observations, 4).astype(np.float32)
-    posteriors = np.zeros_like(fwdlattice)        
+    posteriors = np.zeros_like(fwdlattice)
     mod.get_function('posteriors4')(drv.In(fwdlattice), drv.In(bwdlattice), np.int32(n_trajs),
                                     drv.In(np.array([n_observations], dtype=np.int32)),
-                                    drv.Out(posteriors))
+                                    drv.In(np.array([0], dtype=np.int32)),
+                                    drv.Out(posteriors), block=(32,1,1), grid=(1,1))
+    print 'cuda'
     print posteriors
+
+    print 'reference'
+    gamma = fwdlattice + bwdlattice
+    print np.exp(gamma.T - logsumexp(gamma, axis=1)).T
 
 if __name__ == '__main__':
     #test_forward32()
@@ -533,4 +557,4 @@ if __name__ == '__main__':
     #Test_forward16()
     #test_gaussian_likelihood()
     #test_backward4()
-    test_posteriors4():
+    test_posteriors4()
