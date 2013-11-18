@@ -5,15 +5,45 @@
 extern "C" {
 #endif
 
-__global__ void do_forward(
+__global__ void forward4(
 const float* __restrict__ log_transmat_T,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
-const size_t n_trajs,
-const size_t* __restrict__ trj_offset,
 const size_t* __restrict__ n_observations,
-const size_t n_states,
+const size_t* __restrict__ trj_offsets,
+const size_t n_trajs,
 float* __restrict__ fwdlattice);
+
+
+__global__ void forward8(
+const float* __restrict__ log_transmat_T,
+const float* __restrict__ log_startprob,
+const float* __restrict__ frame_logprob,
+const size_t* __restrict__ n_observations,
+const size_t* __restrict__ trj_offsets,
+const size_t n_trajs,
+float* __restrict__ fwdlattice);
+
+
+__global__ void forward16(
+const float* __restrict__ log_transmat_T,
+const float* __restrict__ log_startprob,
+const float* __restrict__ frame_logprob,
+const size_t* __restrict__ n_observations,
+const size_t* __restrict__ trj_offsets,
+const size_t n_trajs,
+float* __restrict__ fwdlattice);
+
+
+__global__ void forward32(
+const float* __restrict__ log_transmat_T,
+const float* __restrict__ log_startprob,
+const float* __restrict__ frame_logprob,
+const size_t* __restrict__ n_observations,
+const size_t* __restrict__ trj_offsets,
+const size_t n_trajs,
+float* __restrict__ fwdlattice);
+
 
 #ifdef __cplusplus
 }
