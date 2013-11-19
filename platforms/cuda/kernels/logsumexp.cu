@@ -1,5 +1,15 @@
 #ifndef MIXTAPE_LOGSUMEXP_H
 #define MIXTAPE_LOGSUMEXP_H
+
+/**
+ * Compute log(exp(v1) + exp(v2)) on a single thread
+ */
+__device__ float logsumexp2(float v1, float v2) {
+    float max = fmax(v1, v2);
+    return log(expf(v1-max) + expf(v2-max)) + max;
+}
+
+
 /**
  * Compute the log of the sum of the exponential of `value` across a width-32 warp.
  * This function must be called by each thread in the warp, which each contains a

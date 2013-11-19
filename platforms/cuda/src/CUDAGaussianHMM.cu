@@ -4,13 +4,14 @@
 #include <string>
 #include "CUDAGaussianHMM.hpp"
 
+#include <cublas_v2.h>
 #include "forward.cu"
 #include "backward.cu"
 #include "gaussian_likelihood.cu"
 #include "posteriors.cu"
+#include "expectedtransitions.cu"
 
 
-#include <cublas_v2.h>
 
 #define CudaSafeCall(err) __cudaSafeCall(err, __FILE__, __LINE__)
 #define CudaCheckError()  __cudaCheckError( __FILE__, __LINE__ )
@@ -103,7 +104,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float* trajectories,
     CudaSafeCall(cudaMalloc((void **) &d_post_, n_states_*sizeof(float)));
     CudaSafeCall(cudaMalloc((void **) &d_obs_, n_states_*n_features_*sizeof(float)));
     CudaSafeCall(cudaMalloc((void **) &d_obs_squared_, n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_counts_, n_states_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_transcounts_, n_states_*n_states_*sizeof(float)));
     
     CudaSafeCall(cudaMemcpy(d_trajectories_, trajectories_, n_total_observations_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
     CudaSafeCall(cudaMemcpy(d_n_observations_, &n_observations_[0], n_trajectories_*sizeof(float), cudaMemcpyHostToDevice));
@@ -196,11 +197,15 @@ void CUDAGaussianHMM::getStatsPost(float* out) {
     CudaSafeCall(cudaMemcpy(out, d_post_, n_states_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
+void CUDAGaussianHMM::getStatsTransCounts(float* out) {
+    CudaSafeCall(cudaMemcpy(out, d_transcounts_, n_states_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+}
+
 void CUDAGaussianHMM::initializeSufficientStatistics(void) {
-    std::vector<float> zeros(n_states_*n_features_, 0.0);
-    CudaSafeCall(cudaMemcpy(d_obs_,         &zeros[0], n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(d_obs_squared_, &zeros[0], n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(d_post_,        &zeros[0], n_states_*sizeof(float), cudaMemcpyHostToDevice));
+    cudaMemset(d_obs_, 0, n_states_*n_features_*sizeof(float));
+    cudaMemset(d_obs_squared_, 0, n_states_*n_features_*sizeof(float));
+    cudaMemset(d_post_, 0, n_states_*sizeof(float));
+    cudaMemset(d_transcounts_, 0, n_states_*n_states_*sizeof(float));
 }
 
 void CUDAGaussianHMM::computeSufficientStatistics() {
@@ -237,6 +242,10 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
         &beta, d_post_, 1);
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
 
+    transitioncounts<<<1, 32>>>(
+        d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
+        n_total_observations_, n_states_, d_transcounts_);
+
 }
 
 CUDAGaussianHMM::~CUDAGaussianHMM() {
@@ -255,11 +264,10 @@ CUDAGaussianHMM::~CUDAGaussianHMM() {
     CudaSafeCall(cudaFree(d_trj_offset_));
     CudaSafeCall(cudaFree(d_ones_));
 
-
     CudaSafeCall(cudaFree(d_post_));
     CudaSafeCall(cudaFree(d_obs_));
     CudaSafeCall(cudaFree(d_obs_squared_));
-    CudaSafeCall(cudaFree(d_counts_));
+    CudaSafeCall(cudaFree(d_transcounts_));
     cublasDestroy((cublasHandle_t) cublas_handle_);
 }
 

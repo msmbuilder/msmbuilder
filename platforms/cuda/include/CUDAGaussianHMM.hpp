@@ -26,7 +26,7 @@ public:
     void getStatsObs(float* out);
     void getStatsObsSquared(float* out);
     void getStatsPost(float* out);
-
+    void getStatsTransCounts(float* out);
     ~CUDAGaussianHMM();
 
 
@@ -48,7 +48,7 @@ private:
     float* d_post_;
     float* d_obs_;
     float* d_obs_squared_;
-    float* d_counts_;
+    float* d_transcounts_;
     void* cublas_handle_;
 
 
