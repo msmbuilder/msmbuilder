@@ -151,26 +151,33 @@ cdef class CUDAGaussianHMM:
 def main():
     np.random.seed(42)
     from pprint import pprint
-    t = [np.random.randn(64,2), 1+np.random.randn(63,2)]
-    t = [np.concatenate(t)]
-    q = CUDAGaussianHMM(t, 4)
-    q.setMeans(np.random.rand(4, 2))
-    q.setVariances(np.ones((4, 2)))
-    q.setStartprob([0.25, 0.25, 0.25, 0.25])
-    q.setTransmat(np.random.rand(4,4))
+    means = np.random.rand(4, 2)
+    variances = np.ones((4, 2))
+    startprob = [0.25, 0.25, 0.25, 0.25]
+    transmat = np.random.rand(4,4)
+    t1 = [np.random.randn(12,2), 1+np.random.randn(8,2)]
+    t2 = [np.concatenate(t1)]
 
-    q.computeEStep()
-    print q.getFrameLogProb()
+    q1 = CUDAGaussianHMM(t1, 4)
+    q2 = CUDAGaussianHMM(t2, 4)
+    for q in [q1, q2]:
+        q.setMeans(means)
+        q.setVariances(variances)
+        q.setStartprob(startprob)
+        q.setTransmat(transmat)
+        q.computeEStep()
+        print 'framelogprob'
+        print q.getFrameLogProb()
 
 
-    obs = q.getSufficientStatistics()
-    print 'cuda'
-    pprint(obs)
-    print 'ref'
-    print 'obs\n', np.dot(q.getPosteriors().T, t[0])
-    print 'obs**2\n', np.dot(q.getPosteriors().T, t[0]**2)
-    print 'post\n', q.getPosteriors().sum(axis=0)
-    print 'trans\n', q._naiveCounts()
+    # obs = q.getSufficientStatistics()
+    # print 'cuda'
+    # pprint(obs)
+    # print 'ref'
+    # print 'obs\n', np.dot(q.getPosteriors().T, t[0])
+    # print 'obs**2\n', np.dot(q.getPosteriors().T, t[0]**2)
+    # print 'post\n', q.getPosteriors().sum(axis=0)
+    # print 'trans\n', q._naiveCounts()
 
 
 main()
