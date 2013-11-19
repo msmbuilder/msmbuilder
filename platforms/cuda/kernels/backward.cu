@@ -1,14 +1,13 @@
-#include "logsumexp.cuh"
-#include "backward.cuh"
+#include "logsumexp.cu"
 #include <stdlib.h>
 
 __global__ void backward4(
 const float* __restrict__ log_transmat,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
-const size_t* __restrict__ n_observations,
-const size_t* __restrict__ trj_offsets,
-const size_t n_trajs,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
+const int n_trajs,
 float* __restrict__ bwdlattice)
 {
     const int n_states = 4;

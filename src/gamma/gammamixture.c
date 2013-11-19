@@ -18,9 +18,9 @@
 typedef _ALIGNED(16) float aligned_float;
 
 
-int gamma_mixture(const float* restrict X, const int n_samples, const int n_features,
-                  const int n_components, int n_iters, double* restrict alpha,
-                  double* restrict rate, double* restrict pi)
+int gamma_mixture(const float* __restrict__ X, const int n_samples, const int n_features,
+                  const int n_components, int n_iters, double* __restrict__ alpha,
+                  double* __restrict__ rate, double* __restrict__ pi)
 {
     /* Fit a mixture model of gamma distributions
 
@@ -49,13 +49,13 @@ int gamma_mixture(const float* restrict X, const int n_samples, const int n_feat
     double alpha_argument, new_alpha, logl;
     double old_logl = 0;
 
-    aligned_float * restrict log_X;
-    double* restrict logg;
-    double* restrict normalization;
-    double* restrict Sum_x_p;
-    double* restrict Sum_p;
-    double* restrict Sum_logx_p;
-    double* restrict Sum_lograte_p;
+    aligned_float * __restrict__ log_X;
+    double* __restrict__ logg;
+    double* __restrict__ normalization;
+    double* __restrict__ Sum_x_p;
+    double* __restrict__ Sum_p;
+    double* __restrict__ Sum_logx_p;
+    double* __restrict__ Sum_lograte_p;
     
     // little macro for accessing the j,k-th element of an arryay that's laid
     // out with n_components x n_features, where j is the index for the

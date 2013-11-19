@@ -1,14 +1,13 @@
-#include "logsumexp.cuh"
-#include "forward.cuh"
+#include "logsumexp.cu"
 #include <stdlib.h>
 
 __global__ void forward4(
 const float* __restrict__ log_transmat_T,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
-const size_t* __restrict__ n_observations,
-const size_t* __restrict__ trj_offsets,
-const size_t n_trajs,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
+const int n_trajs,
 float* __restrict__ fwdlattice)
 {
     const int n_states = 4;
@@ -38,9 +37,9 @@ __global__ void forward8(
 const float* __restrict__ log_transmat_T,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
-const size_t* __restrict__ n_observations,
-const size_t* __restrict__ trj_offsets,
-const size_t n_trajs,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
+const int n_trajs,
 float* __restrict__ fwdlattice)
 {
     const int n_states = 8;
@@ -77,9 +76,9 @@ __global__ void forward16(
 const float* __restrict__ log_transmat_T,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
-const size_t* __restrict__ n_observations,
-const size_t* __restrict__ trj_offsets,
-const size_t n_trajs,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
+const int n_trajs,
 float* __restrict__ fwdlattice)
 {
     const int n_states = 16;
@@ -118,9 +117,9 @@ __global__ void forward32(
 const float* __restrict__ log_transmat_T,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
-const size_t* __restrict__ n_observations,
-const size_t* __restrict__ trj_offsets,
-const size_t n_trajs,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
+const int n_trajs,
 float* __restrict__ fwdlattice)
 {
     // WARPS_PER_TRAJ is the number of warps to allocate per trajectory.

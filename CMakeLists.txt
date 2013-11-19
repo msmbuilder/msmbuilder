@@ -24,8 +24,13 @@ endforeach(TEST_PROG ${CPU_TEST_SOURCES})
 # CUDA PLATFORM
 find_package(CUDA)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/include")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/")
 cuda_include_directories("${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/include")
 file(GLOB_RECURSE CUDA_KERNEL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/kernels/*.cu"
                                       "${CMAKE_CURRENT_SOURCE_DIR}/platforms/cuda/src/*.cu")
 cuda_add_library(MixtapeCUDA "${CUDA_KERNEL_SOURCES}")
+
+IF("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC"  )
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -fPIC"  )
+ENDIF("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")

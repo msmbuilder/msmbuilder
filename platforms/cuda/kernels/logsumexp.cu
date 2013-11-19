@@ -34,7 +34,7 @@ __device__ float logsumexp(float value)
 #else
     const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
     const unsigned int lid = gid % 32;
-    __shared__ float s[32];
+    __shared__ volatile float s[32];
 
     s[lid] = value;
     for(int offset = 1; offset < N; offset <<= 1)
@@ -61,7 +61,7 @@ __device__ float sum(float value) {
 #else
     const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
     const unsigned int lid = gid % 32;
-    __shared__ float s[32];
+    __shared__ volatile float s[32];
     s[lid] = value;
 
     for(int offset = 1; offset < N; offset <<= 1)
@@ -87,54 +87,5 @@ __device__ inline int pow2roundup(int x)
     x |= x >> 16;
     return x+1;
 }
-
-
-
-
-/*
-__device__ void logsumexp32(float value, float* result)
-{
-    const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
-    const unsigned int lid = gid % 32;
-    float max;
-
-#if __CUDA_ARCH__ >= 300
-    max = value;
-    #pragma unroll
-    for(int offset = 1; offset < 32; offset <<= 1)
-        max = fmaxf(max, __shfl_down(max, offset));
-
-    max = __shfl(max, 0);
-    value = __expf(value - max);
-
-    #pragma unroll
-    for(int offset = 1; offset < 32; offset <<= 1)
-        value += __shfl_down(value, offset);
-
-    if (lid == 0)
-        *result = logf(value) + max;
-#else
-    __shared__ float s[32];
-    s[lid] = value;
-    s[lid] = fmaxf(s[lid], s[(lid - 1) % 32]);
-    s[lid] = fmaxf(s[lid], s[(lid - 2) % 32]);
-    s[lid] = fmaxf(s[lid], s[(lid - 4) % 32]);
-    s[lid] = fmaxf(s[lid], s[(lid - 8) % 32]);
-    s[lid] = fmaxf(s[lid], s[(lid - 16) % 32]);
-
-    max = s[0];
-    s[lid] = __expf(value - max);
-
-    s[lid] += s[(lid - 1) % 32];
-    s[lid] += s[(lid - 2) % 32];
-    s[lid] += s[(lid - 4) % 32];
-    s[lid] += s[(lid - 8) % 32];
-    s[lid] += s[(lid - 16) % 32];
-
-    if (lid == 0)
-        *result = logf(s[0]) + max;
-#endif
-}
-*/
 
 #endif

@@ -1,16 +1,32 @@
-#include "logsumexp.cuh"
-#include "gaussian_likelihood.cuh"
+#include "logsumexp.cu"
+#include "stdio.h"
 #include <stdlib.h>
+
+__global__ void square(const float* __restrict__ in, int n, float* __restrict__ out) {
+    int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    while (gid < n) {
+        out[gid] = in[gid] * in[gid];
+        gid += blockDim.x*gridDim.x;
+    }
+}
+
+__global__ void fill(float* __restrict__ devPtr, float value, int n) {
+    int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    while (gid < n) {
+        devPtr[gid] = value;
+        gid += blockDim.x*gridDim.x;
+    }
+}
 
 __global__ void gaussian_likelihood(
 const float* __restrict__ sequences,
 const float* __restrict__ means,
 const float* __restrict__ variances,
-const size_t n_trajs,
-const size_t* __restrict__ n_observations,
-const size_t* __restrict__ trj_offsets,
-const size_t n_states,
-const size_t n_features,
+const int n_trajs,
+const int* __restrict__ n_observations,
+const int* __restrict__ trj_offsets,
+const int n_states,
+const int n_features,
 float* __restrict__ loglikelihoods)
 {
    const unsigned int WARPS_PER_TRAJ = 4;

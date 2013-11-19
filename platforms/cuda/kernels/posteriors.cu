@@ -1,5 +1,4 @@
-#include "logsumexp.cuh"
-#include "posteriors.cuh"
+#include "logsumexp.cu"
 #include <stdlib.h>
 
 __global__ void posteriors4(
