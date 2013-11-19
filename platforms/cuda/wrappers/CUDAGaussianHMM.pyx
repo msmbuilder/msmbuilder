@@ -160,6 +160,9 @@ def main():
     q.setTransmat(np.random.rand(4,4))
 
     q.computeEStep()
+    print q.getFrameLogProb()
+
+
     obs = q.getSufficientStatistics()
     print 'cuda'
     pprint(obs)
