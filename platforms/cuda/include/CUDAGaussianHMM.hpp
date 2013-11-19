@@ -6,11 +6,12 @@ namespace Mixtape {
 
 class CUDAGaussianHMM {
 public:
-    CUDAGaussianHMM(const float* trajectories,
-                    const int n_trajectories,
-                    const int* n_observations,
-                    const int n_states,
-                    const int n_features);
+    CUDAGaussianHMM(
+        const float** sequences,
+        const int n_sequences,
+        const int* sequence_lengths,
+        const int n_states,
+        const int n_features);
     void setMeans(const float* means);
     void setVariances(const float* variances);
     void setTransmat(const float* transmat);
@@ -40,10 +41,10 @@ private:
     float* d_means_;
     float* d_variances_;
     float* d_log_startprob_;
-    int* d_n_observations_;
-    int* d_trj_offset_;
-    float* d_trajectories_;
-    float* d_trajectories2_;
+    int*   d_sequence_lengths_;
+    int*   d_cum_sequence_lengths_;
+    float* d_sequences_;
+    float* d_sequences2_;
     float* d_ones_;
     float* d_post_;
     float* d_obs_;
@@ -52,11 +53,13 @@ private:
     void* cublas_handle_;
 
 
-    std::vector<int> n_observations_;
+    const float** sequences_;
+    std::vector<int> sequence_lengths_;
+    std::vector<int> cum_sequence_lengths_;
     std::vector<int> trj_offset_;
     const float* trajectories_;
-    int n_total_observations_;
-    const int n_trajectories_;
+    int n_observations_;
+    const int n_sequences_;
     const int n_states_;
     const int n_features_;
 };

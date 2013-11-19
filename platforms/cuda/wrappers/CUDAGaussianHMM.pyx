@@ -1,9 +1,12 @@
-cimport numpy as np
+from libc.stdlib cimport malloc, free
 import numpy as np
+cimport numpy as np
 
 cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
     cdef cppclass CPPCUDAGaussianHMM "Mixtape::CUDAGaussianHMM":
-        CPPCUDAGaussianHMM(float*, np.int32_t, np.int32_t*, np.int32_t, np.int32_t)
+        CPPCUDAGaussianHMM(const float**, const np.int32_t,
+                           const np.int32_t*, const np.int32_t,
+                           const np.int32_t)
         void setMeans(float* means)
         void setVariances(float* variances)
         void setTransmat(float* transmat)
@@ -19,28 +22,44 @@ cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
         void getStatsObsSquared(float* out)
         void getStatsPost(float* out)
         void getStatsTransCounts(float* out)
-    
+
 cdef class CUDAGaussianHMM:
     cdef CPPCUDAGaussianHMM *thisptr
-    cdef np.ndarray trajs
-    cdef np.ndarray n_obs
+    cdef list sequences
+    cdef int n_sequences
     cdef np.ndarray transmat
-    cdef int n_states, n_features
-    
-    def __cinit__(self, trajectories, int n_states):
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] trajs
-        cdef np.ndarray[ndim=1, dtype=np.int32_t] n_obs
-        trajs = np.concatenate(trajectories).astype(np.float32)
-        n_obs = np.array([len(s) for s in trajectories], dtype=np.int32)
+    cdef int n_observations, n_states, n_features
 
-        self.trajs = trajs
+    def __cinit__(self, sequences, int n_states):
+        self.n_sequences = len(sequences)
+        if self.n_sequences <= 0:
+            raise ValueError('More than 0 sequences must be provided')
+        cdef float** seq_pointers = \
+             <float**>malloc(self.n_sequences * sizeof(float*))
+        cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
+
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] S
+        for i in range(self.n_sequences):
+            sequences[i] = np.asarray(sequences[i], order='c',
+                                      dtype=np.float32)
+            S = sequences[i]
+            seq_pointers[i] = &S[0,0]
+            seq_lengths[i] = len(sequences[i])
+            if i == 0:
+                self.n_features = sequences[i].shape[1]
+            else:
+                if self.n_features != sequences[i].shape[1]:
+                    raise ValueError('All sequences must have the same '
+                                     'number of features')
+        self.sequences = sequences
         self.n_states = n_states
-        self.n_features = trajs.shape[1]
-        self.n_obs = n_obs
+        self.n_observations = seq_lengths.sum()
 
+        self.thisptr = new CPPCUDAGaussianHMM(
+            <const float**>seq_pointers, self.n_sequences, &seq_lengths[0],
+            n_states, self.n_features)
 
-        self.thisptr = new CPPCUDAGaussianHMM(&trajs[0,0], len(trajectories),
-                           &n_obs[0], n_states, self.n_features)
+        free(seq_pointers)
 
 
     def setMeans(self, means):
@@ -72,25 +91,25 @@ cdef class CUDAGaussianHMM:
         self.thisptr.computeEStep()
 
     def getFrameLogProb(self):
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_obs.sum(), self.n_states), dtype=np.float32)
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getFrameLogProb(&X[0,0])
         return X
 
     def getFwdLattice(self):
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_obs.sum(), self.n_states), dtype=np.float32)
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getFwdLattice(&X[0,0])
         return X
 
     def getBwdLattice(self):
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_obs.sum(), self.n_states), dtype=np.float32)
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getBwdLattice(&X[0,0])
         return X
 
     def getPosteriors(self):
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_obs.sum(), self.n_states), dtype=np.float32)
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getPosteriors(&X[0,0])
         return X
-    
+
     def getSufficientStatistics(self):
         self.thisptr.initializeSufficientStatistics()
         self.thisptr.computeSufficientStatistics()
@@ -104,7 +123,7 @@ cdef class CUDAGaussianHMM:
         self.thisptr.getStatsObsSquared(&obs2[0,0])
         self.thisptr.getStatsPost(&post[0])
         self.thisptr.getStatsTransCounts(&trans[0,0])
-        
+
         stats = {'post': post, 'obs': obs, 'obs**2': obs2, 'trans': trans}
         return stats
 
@@ -115,16 +134,13 @@ cdef class CUDAGaussianHMM:
         framelogprob = self.getFrameLogProb()
         log_transmat = np.log(self.transmat)
         lnP = logsumexp(fwdlattice[-1])
-        print 'max of last row of fwdlattice', fwdlattice[-1].max()
-
-        lneta = np.zeros((self.n_obs.sum() - 1, self.n_states, self.n_states))
+        lneta = np.zeros((self.n_observations - 1, self.n_states, self.n_states))
         for i in range(self.n_states):
             for j in range(self.n_states):
-                for t in range(self.n_obs.sum() - 1):
+                for t in range(self.n_observations - 1):
                     lneta[t, i, j] = fwdlattice[t, i] + log_transmat[i, j] \
                                      + framelogprob[t + 1, j] + bwdlattice[t + 1, j] - lnP
 
-        print 'naive lnP', lnP
         return np.exp(logsumexp(lneta, axis=0))
 
     def __dealloc__(self):
@@ -135,7 +151,8 @@ cdef class CUDAGaussianHMM:
 def main():
     np.random.seed(42)
     from pprint import pprint
-    t = [np.concatenate((np.random.randn(64,2), 1+np.random.randn(63,2))).astype(np.float32)]
+    t = [np.random.randn(64,2), 1+np.random.randn(63,2)]
+    t = [np.concatenate(t)]
     q = CUDAGaussianHMM(t, 4)
     q.setMeans(np.random.rand(4, 2))
     q.setVariances(np.ones((4, 2)))
@@ -151,6 +168,6 @@ def main():
     print 'obs**2\n', np.dot(q.getPosteriors().T, t[0]**2)
     print 'post\n', q.getPosteriors().sum(axis=0)
     print 'trans\n', q._naiveCounts()
-    
+
 
 main()

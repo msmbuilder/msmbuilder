@@ -5,8 +5,8 @@ __global__ void posteriors4(
 const float* __restrict__ fwdlattice,
 const float* __restrict__ bwdlattice,
 const int n_trajs,
-const int* __restrict__ n_observations,
-const int* __restrict__ trj_offsets,
+const int* __restrict__ sequence_lengths,
+const int* __restrict__ cum_sequence_lengths,
 float* __restrict__ posteriors)
 {
     const int n_states = 4;
@@ -23,10 +23,14 @@ float* __restrict__ posteriors)
     while (gid/4 < n_trajs) {
         const unsigned int hid = gid % 4;
         const unsigned int s = gid / 4;
-        for (int t = 0; t < n_observations[s]; t++) {
-            work_buffer = fwdlattice[trj_offsets[s] + t*n_states + hid] + bwdlattice[trj_offsets[s] + t*n_states + hid];
+        const float* _fwdlattice = fwdlattice + cum_sequence_lengths[s]*n_states;
+        const float* _bwdlattice = bwdlattice + cum_sequence_lengths[s]*n_states;
+        float* _posteriors = posteriors + cum_sequence_lengths[s]*n_states;
+
+        for (int t = 0; t < sequence_lengths[s]; t++) {
+            work_buffer = _fwdlattice[t*n_states + hid] + _bwdlattice[t*n_states + hid];
             normalizer = logsumexp<4>(work_buffer);
-            posteriors[trj_offsets[s] + t*n_states + hid] = expf(work_buffer - normalizer);
+            _posteriors[t*n_states + hid] = expf(work_buffer - normalizer);
         }
 
 

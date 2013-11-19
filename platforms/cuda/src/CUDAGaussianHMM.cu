@@ -5,7 +5,6 @@
 #include "CUDAGaussianHMM.hpp"
 
 #include <cublas_v2.h>
-#include <cub/cub.cuh>
 #include "forward.cu"
 #include "backward.cu"
 #include "gaussian_likelihood.cu"
@@ -48,14 +47,15 @@ inline void __cudaCheckError( const char *file, const int line ) {
 
 
 namespace Mixtape {
-CUDAGaussianHMM::CUDAGaussianHMM(const float* trajectories,
-                                 const int n_trajectories,
-                                 const int* n_observations,
-                                 const int n_states,
-                                 const int n_features)
-    : trajectories_(trajectories)
-    , n_trajectories_(n_trajectories)
-    , n_total_observations_(0)
+CUDAGaussianHMM::CUDAGaussianHMM(
+    const float** sequences,
+    const int n_sequences,
+    const int* sequence_lengths,
+    const int n_states,
+    const int n_features)
+    : sequences_(sequences)
+    , n_sequences_(n_sequences)
+    , n_observations_(0)
     , n_states_(n_states)
     , n_features_(n_features)
     , d_fwdlattice_(NULL)
@@ -67,80 +67,108 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float* trajectories,
     , d_means_(NULL)
     , d_variances_(NULL)
     , d_log_startprob_(NULL)
-    , d_n_observations_(NULL)
-    , d_trj_offset_(NULL)
-    , d_trajectories_(NULL)
+    , d_sequence_lengths_(NULL)
+    , d_cum_sequence_lengths_(NULL)
 {
-    n_total_observations_ = 0;
-    n_observations_.resize(n_trajectories);
-    trj_offset_.resize(n_trajectories);
-    for (int s = 0; s < n_trajectories_; s++) {
-        n_total_observations_ += n_observations[s];
-        n_observations_[s] = n_observations[s];
+    sequence_lengths_.resize(n_sequences);
+    cum_sequence_lengths_.resize(n_sequences);
+    for (int i = 0; i < n_sequences_; i++) {
+        sequence_lengths_[i] = sequence_lengths[i];
+        n_observations_ += sequence_lengths[i];
+        if (i == 0)
+            cum_sequence_lengths_[i] = 0;
+        else
+            cum_sequence_lengths_[i] = cum_sequence_lengths_[i-1] + sequence_lengths[i];
+    }
+    
+    // Arrays of size proportional to the number of observations
+    CudaSafeCall(cudaMalloc((void **) &d_sequences_,
+                 n_observations_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_sequences2_,
+                 n_observations_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_fwdlattice_,
+                            n_observations_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_bwdlattice_,
+                            n_observations_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_posteriors_,
+                            n_observations_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_framelogprob_,
+                            n_observations_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_ones_, 
+                            n_observations_*sizeof(float)));
+
+    // Small data arrays
+    CudaSafeCall(cudaMalloc((void **) &d_log_transmat_,
+                            n_states_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_log_transmat_T_,
+                            n_states_*n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_means_,
+                            n_states_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_variances_,
+                            n_states_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_log_startprob_,
+                            n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_sequence_lengths_,
+                            n_sequences_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_cum_sequence_lengths_,
+                            n_sequences_*sizeof(float)));
+
+    // Sufficient statistics
+    CudaSafeCall(cudaMalloc((void **) &d_post_,
+                            n_states_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_obs_,
+                            n_states_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_obs_squared_,
+                            n_states_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMalloc((void **) &d_transcounts_,
+                            n_states_*n_states_*sizeof(float)));
+
+    // Sequence data
+    for (int i = 0; i < n_sequences_; i++) {
+        int n = sequence_lengths_[i]*n_features_;
+        int offset = cum_sequence_lengths_[i]*n_features_;
+        CudaSafeCall(cudaMemcpy(d_sequences_ + offset, sequences_[i],
+                     n*sizeof(float), cudaMemcpyHostToDevice));
     }
 
-    // trj_offset_[s] is the index in the trajectories_ memory
-    // blob where the s-th trajectory starts
-    trj_offset_[0] = 0;
-    trj_offset_.resize(n_trajectories);
-    for (int s = 1; s < n_trajectories_; s++)
-        trj_offset_[s] = trj_offset_[s-1] + n_observations_[s-1]*n_features;
-    
-    CudaSafeCall(cudaMalloc((void **) &d_trajectories_, n_total_observations_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_trajectories2_, n_total_observations_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_fwdlattice_, n_total_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_bwdlattice_, n_total_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_posteriors_, n_total_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_framelogprob_, n_total_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_log_transmat_, n_states_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_log_transmat_T_, n_states_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_means_, n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_variances_, n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_log_startprob_, n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_n_observations_, n_trajectories_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_trj_offset_, n_trajectories_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_ones_,  n_total_observations_*sizeof(float)));
-    
-    CudaSafeCall(cudaMalloc((void **) &d_post_, n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_obs_, n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_obs_squared_, n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_transcounts_, n_states_*n_states_*sizeof(float)));
-    
-    CudaSafeCall(cudaMemcpy(d_trajectories_, trajectories_, n_total_observations_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(d_n_observations_, &n_observations_[0], n_trajectories_*sizeof(float), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(d_trj_offset_, &trj_offset_[0], n_trajectories_*sizeof(float), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_sequence_lengths_, &sequence_lengths_[0],
+                 n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_cum_sequence_lengths_, &cum_sequence_lengths_[0],
+                 n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
+
 
     cublasStatus_t status = cublasCreate((cublasHandle_t*) &cublas_handle_);
-    if (status != CUBLAS_STATUS_SUCCESS) {
-        fprintf(stderr, "!!!! CUBLAS initialization error\n");
-    }
+    if (status != CUBLAS_STATUS_SUCCESS) { exit(EXIT_FAILURE); }
     
-    // square the observed trajectories.
-    square<<<1, 256>>>(d_trajectories_, n_total_observations_*n_features, d_trajectories2_);
-    fill<<<1, 256>>>(d_ones_, 1.0, n_total_observations_);
+    fill<<<1, 256>>>(d_ones_, 1.0, n_observations_);
+    square<<<1, 256>>>(d_sequences_, n_observations_*n_features_,
+                       d_sequences2_);
     cudaDeviceSynchronize();
+    CudaCheckError();
 }
 
 
 float CUDAGaussianHMM::computeEStep() {
     gaussian_likelihood<<<1, 32>>>(
-        d_trajectories_, d_means_, d_variances_, n_trajectories_,
-        d_n_observations_, d_trj_offset_, n_states_, n_features_,
-        d_framelogprob_);
+        d_sequences_, d_means_, d_variances_, n_sequences_,
+        d_sequence_lengths_, d_cum_sequence_lengths_, n_states_,
+        n_features_, d_framelogprob_);
+
     forward4<<<1, 32>>>(
         d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
-        d_n_observations_, d_trj_offset_, n_trajectories_,
+        d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
         d_fwdlattice_);
     backward4<<<1, 32>>>(
         d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
-        d_n_observations_, d_trj_offset_, n_trajectories_,
+        d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
         d_bwdlattice_);
     cudaDeviceSynchronize();
     posteriors4<<<1, 32>>>(
-        d_fwdlattice_, d_bwdlattice_, n_trajectories_,
-        d_n_observations_, d_trj_offset_, d_posteriors_);
+        d_fwdlattice_, d_bwdlattice_, n_sequences_,
+        d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
 
     cudaDeviceSynchronize();
+    CudaCheckError();
     return 1.0;
 }
 
@@ -171,19 +199,19 @@ void CUDAGaussianHMM::setStartProb(const float* startProb) {
 }
 
 void CUDAGaussianHMM::getFrameLogProb(float* out) {
-    CudaSafeCall(cudaMemcpy(out, d_framelogprob_, n_total_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(out, d_framelogprob_, n_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 void CUDAGaussianHMM::getFwdLattice(float* out) {
-    CudaSafeCall(cudaMemcpy(out, d_fwdlattice_, n_total_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(out, d_fwdlattice_, n_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 void CUDAGaussianHMM::getBwdLattice(float* out) {
-    CudaSafeCall(cudaMemcpy(out, d_bwdlattice_, n_total_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(out, d_bwdlattice_, n_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 void CUDAGaussianHMM::getPosteriors(float* out) {
-    CudaSafeCall(cudaMemcpy(out, d_posteriors_, n_total_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(out, d_posteriors_, n_observations_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 void CUDAGaussianHMM::getStatsObs(float* out) {
@@ -213,31 +241,35 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
     float alpha = 1.0f;
     float beta = 1.0f;
     cublasStatus_t status;
-
-    // Compute the sufficient statistics for the mean, \Sum_i p(X_i in state_k) * X_i 
+    
+    // Compute the sufficient statistics for the mean,
+    // \Sum_i p(X_i in state_k) * X_i 
     // MATRIX_MULTIPLY(posteriors.T, obs)
     status = cublasSgemm(
         (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
-        n_features_, n_states_, n_total_observations_, &alpha,
-        d_trajectories_, n_features_,
+        n_features_, n_states_, n_observations_, &alpha,
+        d_sequences_, n_features_,
         d_posteriors_, n_states_,
         &beta, d_obs_, n_features_);
+
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
 
-    // Compute the sufficient statistics for the variance, \Sum_i p(X_i in state_k) * X_i**2 
+    // Compute the sufficient statistics for the variance,
+    // \Sum_i p(X_i in state_k) * X_i**2 
     // MATRIX_MULTIPLY(posteriors.T, obs**2)
     status = cublasSgemm(
         (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
-        n_features_, n_states_, n_total_observations_, &alpha,
-        d_trajectories2_, n_features_,
+        n_features_, n_states_, n_observations_, &alpha,
+        d_sequences2_, n_features_,
         d_posteriors_, n_states_,
         &beta, d_obs_squared_, n_features_);
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
 
-    // Compute the normalization constant for the posterior weighted averages, \Sum_i (P_X_i in state_k)
+    // Compute the normalization constant for the posterior weighted 
+    // averages, \Sum_i (P_X_i in state_k)
     status = cublasSgemm(
         (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
-        1, n_states_, n_total_observations_, &alpha,
+        1, n_states_, n_observations_, &alpha,
         d_ones_, 1,
         d_posteriors_, n_states_,
         &beta, d_post_, 1);
@@ -245,12 +277,13 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
 
     transitioncounts<<<1, 32>>>(
         d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
-        n_total_observations_, n_states_, d_transcounts_);
+        n_observations_, n_states_, d_transcounts_);
+    
+    cudaDeviceSynchronize();
+    CudaCheckError();
 }
 
 CUDAGaussianHMM::~CUDAGaussianHMM() {
-    CudaSafeCall(cudaFree(d_trajectories_));
-    CudaSafeCall(cudaFree(d_trajectories2_));
     CudaSafeCall(cudaFree(d_fwdlattice_));
     CudaSafeCall(cudaFree(d_bwdlattice_));
     CudaSafeCall(cudaFree(d_posteriors_));
@@ -260,14 +293,16 @@ CUDAGaussianHMM::~CUDAGaussianHMM() {
     CudaSafeCall(cudaFree(d_means_));
     CudaSafeCall(cudaFree(d_variances_));
     CudaSafeCall(cudaFree(d_log_startprob_));
-    CudaSafeCall(cudaFree(d_n_observations_));
-    CudaSafeCall(cudaFree(d_trj_offset_));
+    CudaSafeCall(cudaFree(d_sequence_lengths_));
+    CudaSafeCall(cudaFree(d_cum_sequence_lengths_));
     CudaSafeCall(cudaFree(d_ones_));
-
     CudaSafeCall(cudaFree(d_post_));
     CudaSafeCall(cudaFree(d_obs_));
     CudaSafeCall(cudaFree(d_obs_squared_));
     CudaSafeCall(cudaFree(d_transcounts_));
+    CudaSafeCall(cudaFree(d_sequences_));
+    CudaSafeCall(cudaFree(d_sequences2_));
+
     cublasDestroy((cublasHandle_t) cublas_handle_);
 }
 
