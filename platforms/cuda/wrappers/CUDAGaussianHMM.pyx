@@ -115,6 +115,7 @@ cdef class CUDAGaussianHMM:
         framelogprob = self.getFrameLogProb()
         log_transmat = np.log(self.transmat)
         lnP = logsumexp(fwdlattice[-1])
+        print 'max of last row of fwdlattice', fwdlattice[-1].max()
 
         lneta = np.zeros((self.n_obs.sum() - 1, self.n_states, self.n_states))
         for i in range(self.n_states):

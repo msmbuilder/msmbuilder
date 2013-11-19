@@ -5,12 +5,12 @@
 #include "CUDAGaussianHMM.hpp"
 
 #include <cublas_v2.h>
+#include <cub/cub.cuh>
 #include "forward.cu"
 #include "backward.cu"
 #include "gaussian_likelihood.cu"
 #include "posteriors.cu"
 #include "expectedtransitions.cu"
-
 
 
 #define CudaSafeCall(err) __cudaSafeCall(err, __FILE__, __LINE__)
@@ -114,11 +114,11 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float* trajectories,
     if (status != CUBLAS_STATUS_SUCCESS) {
         fprintf(stderr, "!!!! CUBLAS initialization error\n");
     }
-
+    
     // square the observed trajectories.
     square<<<1, 256>>>(d_trajectories_, n_total_observations_*n_features, d_trajectories2_);
     fill<<<1, 256>>>(d_ones_, 1.0, n_total_observations_);
-
+    cudaDeviceSynchronize();
 }
 
 
@@ -135,11 +135,12 @@ float CUDAGaussianHMM::computeEStep() {
         d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
         d_n_observations_, d_trj_offset_, n_trajectories_,
         d_bwdlattice_);
+    cudaDeviceSynchronize();
     posteriors4<<<1, 32>>>(
         d_fwdlattice_, d_bwdlattice_, n_trajectories_,
         d_n_observations_, d_trj_offset_, d_posteriors_);
 
-    CudaCheckError();
+    cudaDeviceSynchronize();
     return 1.0;
 }
 
@@ -202,10 +203,10 @@ void CUDAGaussianHMM::getStatsTransCounts(float* out) {
 }
 
 void CUDAGaussianHMM::initializeSufficientStatistics(void) {
-    cudaMemset(d_obs_, 0, n_states_*n_features_*sizeof(float));
-    cudaMemset(d_obs_squared_, 0, n_states_*n_features_*sizeof(float));
-    cudaMemset(d_post_, 0, n_states_*sizeof(float));
-    cudaMemset(d_transcounts_, 0, n_states_*n_states_*sizeof(float));
+    CudaSafeCall(cudaMemset(d_obs_, 0, n_states_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMemset(d_obs_squared_, 0, n_states_*n_features_*sizeof(float)));
+    CudaSafeCall(cudaMemset(d_post_, 0, n_states_*sizeof(float)));
+    CudaSafeCall(cudaMemset(d_transcounts_, 0, n_states_*n_states_*sizeof(float)));
 }
 
 void CUDAGaussianHMM::computeSufficientStatistics() {
@@ -245,7 +246,6 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
     transitioncounts<<<1, 32>>>(
         d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
         n_total_observations_, n_states_, d_transcounts_);
-
 }
 
 CUDAGaussianHMM::~CUDAGaussianHMM() {

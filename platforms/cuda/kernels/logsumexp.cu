@@ -5,7 +5,7 @@
  * Compute log(exp(v1) + exp(v2)) on a single thread
  */
 __device__ float logsumexp2(float v1, float v2) {
-    float max = fmax(v1, v2);
+    float max = (((v1) > (v2)) ? (v1) : (v2));
     return log(expf(v1-max) + expf(v2-max)) + max;
 }
 

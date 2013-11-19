@@ -194,8 +194,9 @@ _cudahmm = Extension('mixtape._cudahmm',
                                          'nvcc': ['-arch=sm_30', '-G', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
                      sources=['platforms/cuda/wrappers/CUDAGaussianHMM.pyx',
                               'platforms/cuda/src/CUDAGaussianHMM.cu'],
-                     include_dirs=[np.get_include(), 'platforms/cuda/include',
-                                   'platforms/cuda/kernels'])
+                     include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels'])
+                                   
+
 
 
 write_spline_data()
