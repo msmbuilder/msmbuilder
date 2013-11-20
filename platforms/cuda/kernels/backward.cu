@@ -118,3 +118,36 @@ float* __restrict__ bwdlattice)
         gid += gridDim.x*blockDim.x;
     }
 }
+
+
+__global__ void backward32(
+const float* __restrict__ log_transmat,
+const float* __restrict__ log_startprob,
+const float* __restrict__ frame_logprob,
+const int* __restrict__ sequence_lengths,
+const int* __restrict__ cum_sequence_lengths,
+const int n_trajs,
+float* __restrict__ bwdlattice)
+{
+    const int n_states = 32;
+    unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
+    float work_buffer;
+
+    while (gid/32 < n_trajs) {
+        const unsigned int lid = gid % 32;
+        const unsigned int s = gid / 32;
+        const float* _frame_logprob = frame_logprob + cum_sequence_lengths[s]*n_states;
+        float* _bwdlattice = bwdlattice + cum_sequence_lengths[s]*n_states;
+
+        _bwdlattice[(sequence_lengths[s]-1)*n_states + lid] = 0;
+        for (int t = sequence_lengths[s]-2; t >= 0; --t) {
+            for (int i=0; i < n_states; i++) {
+                work_buffer = _bwdlattice[(t+1)*n_states + lid] + log_transmat[i*n_states + lid] + _frame_logprob[(t+1)*n_states + lid];
+                work_buffer = logsumexp<32>(work_buffer);
+                if (lid == 0)
+                    _bwdlattice[t*n_states + i] = work_buffer;
+            }
+        }
+    gid += gridDim.x*blockDim.x;
+    }
+}

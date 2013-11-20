@@ -133,27 +133,31 @@ float* __restrict__ fwdlattice)
     // WARPS_PER_TRAJ needs to be small enough for all of the threads to fit
     // in a single block.
     const int n_states = 32;
-    const unsigned int WARPS_PER_TRAJ = 4;
+    const int WARP_WIDTH = 32;
+    const unsigned int WARPS_PER_TRAJ = 1;
     unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
-    float work_buffer1;
-    unsigned int t, j;
+    float work_buffer;
 
-    while (gid/(32*WARPS_PER_TRAJ) < n_trajs) {
-        const unsigned int lid = gid % 32;
-        const unsigned int s = gid / (32*WARPS_PER_TRAJ);
+    while (gid / (WARP_WIDTH*WARPS_PER_TRAJ) < n_trajs) {
+        const unsigned int lid = gid % WARP_WIDTH;
+        const unsigned int s = gid / (WARP_WIDTH);
+        //const unsigned int jteam = (gid % (WARP_WIDTH*WARPS_PER_TRAJ)) / WARP_WIDTH;
         const float* _frame_logprob = frame_logprob + cum_sequence_lengths[s]*n_states;
         float* _fwdlattice = fwdlattice + cum_sequence_lengths[s]*n_states;
 
-        _fwdlattice[ lid] = log_startprob[lid] + _frame_logprob[lid];
-
-        for (t = 1; t < sequence_lengths[s]; t++) {
-            for (j = gid/32; j < n_states; j += WARPS_PER_TRAJ) {
-                work_buffer1 = _fwdlattice[ (t-1)*n_states + lid] + log_transmat_T[j*n_states + lid];
-                work_buffer1 = logsumexp<32>(work_buffer1);
-                if (lid == 0)
-                    _fwdlattice[ t*n_states + j] = work_buffer1 + _frame_logprob[t*n_states + j];
+        //if (jteam == 0)
+        _fwdlattice[lid] = log_startprob[lid] + _frame_logprob[lid];
+        
+        for (int t = 1; t < sequence_lengths[s]; t++) {
+            //for (int j = jteam; j < n_states; j += WARPS_PER_TRAJ) {
+            for (int j = 0; j < n_states; j += WARPS_PER_TRAJ) {
+                work_buffer = _fwdlattice[(t-1)*n_states + lid] + log_transmat_T[j*n_states + lid];
+                work_buffer = logsumexp<32>(work_buffer);
+                if (lid == 0) {
+                    _fwdlattice[t*n_states + j] =  work_buffer + _frame_logprob[t*n_states + j];
+                }
             }
-            __syncthreads();
+            //__syncthreads();
         }
         gid += gridDim.x*blockDim.x;
     }

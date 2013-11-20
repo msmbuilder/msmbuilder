@@ -27,9 +27,9 @@ def test_1():
 
 def test_2():
     n_features = 2
-    length = 3
+    length = 4
 
-    for n_states in [3, 4, 5, 7, 8, 9, 15, 16]:
+    for n_states in [3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32]:
         t1 = np.random.randn(length, n_features)
         means = np.random.randn(n_states, n_features)
         variances = np.random.rand(n_states, n_features)
