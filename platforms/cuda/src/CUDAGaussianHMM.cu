@@ -145,7 +145,7 @@ float CUDAGaussianHMM::computeEStep() {
         d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
         d_fwdlattice_);
     backward4<<<1, 32>>>(
-        d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
+        d_log_transmat_, d_log_startprob_, d_framelogprob_,
         d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
         d_bwdlattice_);
     cudaDeviceSynchronize();
@@ -162,8 +162,16 @@ void CUDAGaussianHMM::setMeans(const float* means) {
     CudaSafeCall(cudaMemcpy(d_means_, means, n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
 }
 
+void CUDAGaussianHMM::getMeans(float* out) {
+    CudaSafeCall(cudaMemcpy(out, d_means_, n_states_*n_features_*sizeof(float), cudaMemcpyDeviceToHost));
+}
+
 void CUDAGaussianHMM::setVariances(const float* variances) {
     CudaSafeCall(cudaMemcpy(d_variances_, variances, n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void CUDAGaussianHMM::getVariances(float* out) {
+    CudaSafeCall(cudaMemcpy(out, d_variances_, n_states_*n_features_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 void CUDAGaussianHMM::setTransmat(const float* transmat) {
@@ -178,12 +186,26 @@ void CUDAGaussianHMM::setTransmat(const float* transmat) {
     CudaSafeCall(cudaMemcpy(d_log_transmat_T_, &log_transmat_T[0], n_states_*n_states_*sizeof(float), cudaMemcpyHostToDevice));
 }
 
+void CUDAGaussianHMM::getTransmat(float* out) {
+    std::vector<float> log_transmat(n_states_*n_states_);
+    CudaSafeCall(cudaMemcpy(&log_transmat[0], d_log_transmat_, n_states_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    for (int i = 0; i < n_states_*n_states_; i++)
+        out[i] = exp(log_transmat[i]);
+}
+
 void CUDAGaussianHMM::setStartProb(const float* startProb) {
     std::vector<float> log_startprob(n_states_);
     for (int i = 0; i < n_states_; i++)
         log_startprob[i] = log(startProb[i]);
     CudaSafeCall(cudaMemcpy(d_log_startprob_, &log_startprob[0],
                  n_states_*sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void CUDAGaussianHMM::getStartProb(float* out) {
+    std::vector<float> log_startprob(n_states_);
+    CudaSafeCall(cudaMemcpy(&log_startprob[0], d_log_startprob_, n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    for (int i = 0; i < n_states_; i++)
+        out[i] = exp(log_startprob[i]);
 }
 
 void CUDAGaussianHMM::getFrameLogProb(float* out) {

@@ -2,15 +2,21 @@ from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as np
 
+
 cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
     cdef cppclass CPPCUDAGaussianHMM "Mixtape::CUDAGaussianHMM":
         CPPCUDAGaussianHMM(const float**, const np.int32_t,
                            const np.int32_t*, const np.int32_t,
-                           const np.int32_t)
-        void setMeans(float* means)
-        void setVariances(float* variances)
-        void setTransmat(float* transmat)
-        void setStartProb(float* startProb)
+                           const np.int32_t) except +
+        void setMeans(const float* means)
+        void getMeans(float* means)
+        void setVariances(const float* variances)
+        void getVariances(float* variances)
+        void setTransmat(const float* transmat)
+        void getTransmat(float* transmat)
+        void setStartProb(const float* startProb)
+        void getStartProb(float* startProb)
+        
         float computeEStep()
         void initializeSufficientStatistics()
         void computeSufficientStatistics()
@@ -23,14 +29,14 @@ cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
         void getStatsPost(float* out)
         void getStatsTransCounts(float* out)
 
+
 cdef class CUDAGaussianHMM:
     cdef CPPCUDAGaussianHMM *thisptr
     cdef list sequences
-    cdef int n_sequences
-    cdef np.ndarray transmat
-    cdef int n_observations, n_states, n_features
+    cdef int n_sequences, n_observations, n_states, n_features
 
     def __cinit__(self, sequences, int n_states):
+        self.sequences = sequences
         self.n_sequences = len(sequences)
         if self.n_sequences <= 0:
             raise ValueError('More than 0 sequences must be provided')
@@ -51,7 +57,7 @@ cdef class CUDAGaussianHMM:
                 if self.n_features != sequences[i].shape[1]:
                     raise ValueError('All sequences must have the same '
                                      'number of features')
-        self.sequences = sequences
+
         self.n_states = n_states
         self.n_observations = seq_lengths.sum()
 
@@ -61,56 +67,83 @@ cdef class CUDAGaussianHMM:
 
         free(seq_pointers)
 
+    property means_:
+        def __get__(self):
+            cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] x = np.zeros((self.n_states, self.n_features), dtype=np.float32)
+            self.thisptr.getMeans(&x[0,0])
+            return x
+    
+        def __set__(self, value):
+            cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] m = np.asarray(value, order='c', dtype=np.float32)
+            if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_features):
+                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)',
+                                (self.n_states, self.n_features, m.shape[0], m.shape[1]))
+            self.thisptr.setMeans(&m[0,0])
 
-    def setMeans(self, means):
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] m = np.asarray(means, order='c', dtype=np.float32)
-        if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_features):
-            raise TypeError('Shape')
-        self.thisptr.setMeans(&m[0,0])
+    property variances_:
+        def __get__(self):
+            cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] v = np.zeros((self.n_states, self.n_features), dtype=np.float32)
+            self.thisptr.getVariances(&v[0,0])
+            return v
 
-    def setVariances(self, variances):
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] m = np.asarray(variances, order='c', dtype=np.float32)
-        if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_features):
-            raise TypeError('Shape')
-        self.thisptr.setVariances(&m[0,0])
+        def __set__(self, value):
+            cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] v = np.asarray(value, order='c', dtype=np.float32)
+            if (v.shape[0] != self.n_states) or (v.shape[1] != self.n_features):
+                raise TypeError('Variances must have shape (%d, %d), You supplied (%d, %d)',
+                                (self.n_states, self.n_features, v.shape[0], v.shape[1]))
+            self.thisptr.setVariances(&v[0,0])
 
-    def setTransmat(self, transmat):
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] m = np.asarray(transmat, order='c', dtype=np.float32)
-        if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_states):
-            raise TypeError('Shape')
-        self.transmat = m
-        self.thisptr.setTransmat(&m[0,0])
+    property transmat_:
+        def __get__(self):
+            cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] t = np.zeros((self.n_states, self.n_states), dtype=np.float32)
+            self.thisptr.getTransmat(&t[0,0])
+            return t
 
-    def setStartprob(self, startprob):
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] m = np.asarray(startprob, order='c', dtype=np.float32)
-        if (m.shape[0] != self.n_states):
-            raise TypeError('Shape')
-        self.thisptr.setStartProb(&m[0])
+        def __set__(self, value):
+            cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] t = np.asarray(value, order='c', dtype=np.float32)
+            if (t.shape[0] != self.n_states) or (t.shape[1] != self.n_states):
+                raise TypeError('transmat must have shape (%d, %d), You supplied (%d, %d)',
+                                (self.n_states, self.n_states, t.shape[0], t.shape[1]))
+            self.thisptr.setTransmat(&t[0,0])
 
-    def computeEStep(self):
+    property startprob_:
+        def __get__(self):
+            cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] s = np.zeros(self.n_states, dtype=np.float32)
+            s.fill(-123)
+            self.thisptr.getStartProb(&s[0])
+            return s
+    
+        def __set__(self, value):
+            cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] s = np.asarray(value, order='c', dtype=np.float32)
+            if (s.shape[0] != self.n_states):
+                raise TypeError('startprob must have shape (%d,), You supplied (%d,)',
+                                (self.n_states, s.shape[0]))
+            self.thisptr.setStartProb(&s[0])
+
+    def _do_estep(self):
         self.thisptr.computeEStep()
 
-    def getFrameLogProb(self):
+    def _get_framelogprob(self):
         cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getFrameLogProb(&X[0,0])
         return X
 
-    def getFwdLattice(self):
+    def _get_fwdlattice(self):
         cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getFwdLattice(&X[0,0])
         return X
 
-    def getBwdLattice(self):
+    def _get_bwdlattice(self):
         cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getBwdLattice(&X[0,0])
         return X
 
-    def getPosteriors(self):
+    def _get_posteriors(self):
         cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getPosteriors(&X[0,0])
         return X
 
-    def getSufficientStatistics(self):
+    def _get_sufficient_statistics(self):
         self.thisptr.initializeSufficientStatistics()
         self.thisptr.computeSufficientStatistics()
 
@@ -144,43 +177,6 @@ cdef class CUDAGaussianHMM:
         return np.exp(logsumexp(lneta, axis=0))
 
     def __dealloc__(self):
-        print 'Deallocating'
         if self.thisptr is not NULL:
             del self.thisptr
 
-def main():
-    np.random.seed(42)
-    from pprint import pprint
-    means = np.random.rand(4, 2)
-    variances = np.ones((4, 2))
-    startprob = [0.25, 0.25, 0.25, 0.25]
-    transmat = np.random.rand(4,4)
-    t1 = [np.random.randn(5,2), 1+np.random.randn(4,2)]
-    t2 = [np.concatenate(t1)]
-
-    q1 = CUDAGaussianHMM(t1, 4)
-    q2 = CUDAGaussianHMM(t2, 4)
-    for q in [q1, q2]:
-        q.setMeans(means)
-        q.setVariances(variances)
-        q.setStartprob(startprob)
-        q.setTransmat(transmat)
-        q.computeEStep()
-        print q.getFrameLogProb()
-        print q.getFwdLattice()
-        print
-
-
-
-    #print 'framelogprob'
-    #obs = q.getSufficientStatistics()
-    #pprint(obs)
-    # print 'cuda'
-    # print 'ref'
-    # print 'obs\n', np.dot(q.getPosteriors().T, t[0])
-    # print 'obs**2\n', np.dot(q.getPosteriors().T, t[0]**2)
-    # print 'post\n', q.getPosteriors().sum(axis=0)
-    # print 'trans\n', q._naiveCounts()
-
-
-main()

@@ -13,9 +13,13 @@ public:
         const int n_states,
         const int n_features);
     void setMeans(const float* means);
+    void getMeans(float* out);
     void setVariances(const float* variances);
+    void getVariances(float* out);
     void setTransmat(const float* transmat);
+    void getTransmat(float* out);
     void setStartProb(const float* startProb);
+    void getStartProb(float* out);
     float computeEStep(void);
     void initializeSufficientStatistics(void);
     void computeSufficientStatistics(void);
