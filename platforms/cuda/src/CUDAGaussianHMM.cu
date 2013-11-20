@@ -131,16 +131,14 @@ float CUDAGaussianHMM::computeEStep() {
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_fwdlattice_);
-        printf("Calling backward8\n");
         backward8<<<1, 32>>>(
             d_log_transmat_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_bwdlattice_);
-        printf("Finished calling backward8\n");
         cudaDeviceSynchronize();
-        // posteriors8<<<1, 32>>>(
-        // d_fwdlattice_, d_bwdlattice_, n_sequences_,
-        // d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
+        posteriors<8><<<1, 32>>>(
+            d_fwdlattice_, d_bwdlattice_, n_sequences_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
     }
     cudaDeviceSynchronize();
     CudaCheckError();
