@@ -25,8 +25,7 @@ float* __restrict__ bwdlattice)
             _bwdlattice[(sequence_lengths[s]-1)*n_states + hid] = 0;
         
         for (t = sequence_lengths[s]-2; t >= 0; t--) {
-            work_buffer = _bwdlattice[(t+1)*n_states + hid%4] + log_transmat[hid] \
-                          + _frame_logprob[(t+1)*n_states + hid%4];
+            work_buffer = _bwdlattice[(t+1)*n_states + hid%4] + log_transmat[hid] + _frame_logprob[(t+1)*n_states + hid%4];
             work_buffer = logsumexp<4>(work_buffer);
             if (hid % 4 == 0)
                 _bwdlattice[t*n_states + hid/4] = work_buffer;

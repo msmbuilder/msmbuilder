@@ -53,12 +53,11 @@ void cudaMalloc2(void** devicePtr, size_t nbytes) {
     CudaSafeCall(cudaMemset(*devicePtr, 0x55, nbytes));
 }
 
-CUDAGaussianHMM::CUDAGaussianHMM(
-    const float** sequences,
-    const int n_sequences,
-    const int* sequence_lengths,
-    const int n_states,
-    const int n_features)
+CUDAGaussianHMM::CUDAGaussianHMM(const float** sequences,
+                                 const int n_sequences,
+                                 const int* sequence_lengths,
+                                 const int n_states,
+                                 const int n_features)
     : sequences_(sequences)
     , n_sequences_(n_sequences)
     , n_observations_(0)
@@ -75,6 +74,13 @@ CUDAGaussianHMM::CUDAGaussianHMM(
     , d_log_startprob_(NULL)
     , d_sequence_lengths_(NULL)
     , d_cum_sequence_lengths_(NULL)
+    , d_ones_(NULL)
+    , d_post_(NULL)
+    , d_obs_(NULL)
+    , d_obs_squared_(NULL)
+    , d_transcounts_(NULL)
+    , d_sequences_(NULL)
+    , d_sequences2_(NULL)
 {
     sequence_lengths_.resize(n_sequences);
     cum_sequence_lengths_.resize(n_sequences);
@@ -86,7 +92,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(
         else
             cum_sequence_lengths_[i] = cum_sequence_lengths_[i-1] + sequence_lengths[i-1];
     }
-    
+
     // Arrays of size proportional to the number of observations
     cudaMalloc2((void **) &d_sequences_, n_observations_*n_features_*sizeof(float));
     cudaMalloc2((void **) &d_sequences2_, n_observations_*n_features_*sizeof(float));
@@ -111,7 +117,10 @@ CUDAGaussianHMM::CUDAGaussianHMM(
     cudaMalloc2((void **) &d_obs_squared_, n_states_*n_features_*sizeof(float));
     cudaMalloc2((void **) &d_transcounts_, n_states_*n_states_*sizeof(float));
 
-    // Sequence data
+    cublasStatus_t status = cublasCreate((cublasHandle_t*) &cublas_handle_);
+    if (status != CUBLAS_STATUS_SUCCESS) { exit(EXIT_FAILURE); }
+
+    // Copy over sequence data
     for (int i = 0; i < n_sequences_; i++) {
         int n = sequence_lengths_[i]*n_features_;
         int offset = cum_sequence_lengths_[i]*n_features_;
@@ -123,16 +132,10 @@ CUDAGaussianHMM::CUDAGaussianHMM(
     CudaSafeCall(cudaMemcpy(d_cum_sequence_lengths_, &cum_sequence_lengths_[0],
                             n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
 
-    cublasStatus_t status = cublasCreate((cublasHandle_t*) &cublas_handle_);
-    if (status != CUBLAS_STATUS_SUCCESS) { exit(EXIT_FAILURE); }
-    
     fill<<<1, 256>>>(d_ones_, 1.0, n_observations_);
-    square<<<1, 256>>>(d_sequences_, n_observations_*n_features_,
-                       d_sequences2_);
+    square<<<1, 256>>>(d_sequences_, n_observations_*n_features_, d_sequences2_);
     cudaDeviceSynchronize();
-    CudaCheckError();
 }
-
 
 float CUDAGaussianHMM::computeEStep() {
     gaussian_likelihood<<<1, 32>>>(
@@ -145,7 +148,7 @@ float CUDAGaussianHMM::computeEStep() {
         d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
         d_fwdlattice_);
     backward4<<<1, 32>>>(
-        d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
+        d_log_transmat_, d_log_startprob_, d_framelogprob_,
         d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
         d_bwdlattice_);
     cudaDeviceSynchronize();
@@ -162,8 +165,16 @@ void CUDAGaussianHMM::setMeans(const float* means) {
     CudaSafeCall(cudaMemcpy(d_means_, means, n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
 }
 
+void CUDAGaussianHMM::getMeans(float* out) {
+    CudaSafeCall(cudaMemcpy(out, d_means_, n_states_*n_features_*sizeof(float), cudaMemcpyDeviceToHost));
+}
+
 void CUDAGaussianHMM::setVariances(const float* variances) {
     CudaSafeCall(cudaMemcpy(d_variances_, variances, n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void CUDAGaussianHMM::getVariances(float* out) {
+    CudaSafeCall(cudaMemcpy(out, d_variances_, n_states_*n_features_*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 void CUDAGaussianHMM::setTransmat(const float* transmat) {
@@ -178,12 +189,26 @@ void CUDAGaussianHMM::setTransmat(const float* transmat) {
     CudaSafeCall(cudaMemcpy(d_log_transmat_T_, &log_transmat_T[0], n_states_*n_states_*sizeof(float), cudaMemcpyHostToDevice));
 }
 
+void CUDAGaussianHMM::getTransmat(float* out) {
+    std::vector<float> log_transmat(n_states_*n_states_);
+    CudaSafeCall(cudaMemcpy(&log_transmat[0], d_log_transmat_, n_states_*n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    for (int i = 0; i < n_states_*n_states_; i++)
+        out[i] = exp(log_transmat[i]);
+}
+
 void CUDAGaussianHMM::setStartProb(const float* startProb) {
     std::vector<float> log_startprob(n_states_);
     for (int i = 0; i < n_states_; i++)
         log_startprob[i] = log(startProb[i]);
     CudaSafeCall(cudaMemcpy(d_log_startprob_, &log_startprob[0],
                  n_states_*sizeof(float), cudaMemcpyHostToDevice));
+}
+
+void CUDAGaussianHMM::getStartProb(float* out) {
+    std::vector<float> log_startprob(n_states_);
+    CudaSafeCall(cudaMemcpy(&log_startprob[0], d_log_startprob_, n_states_*sizeof(float), cudaMemcpyDeviceToHost));
+    for (int i = 0; i < n_states_; i++)
+        out[i] = exp(log_startprob[i]);
 }
 
 void CUDAGaussianHMM::getFrameLogProb(float* out) {

@@ -27,39 +27,40 @@ __device__ float logsumexp(float value)
     float max = value;
 #if __CUDA_ARCH__ >= 300
     for(int offset = 1; offset < N; offset <<= 1)
-        max = fmaxf(max, __shfl_down(max, offset));
+        max = fmaxf(max, __shfl_down(max, offset, N));
     for(int offset = 1; offset < N; offset <<= 1)
-        max = __shfl_up(max, offset);
+        max = __shfl_up(max, offset, N);
 
     value = expf(value - max);
 
     for(int offset = 1; offset < N; offset <<= 1)
-        value += __shfl_down(value, offset);
+        value += __shfl_down(value, offset, N);
 
     value = logf(value) + max;
     for(int offset = 1; offset < N; offset <<= 1)
-        value = __shfl_up(value, offset);
+        value = __shfl_up(value, offset, N);
 
     return value;
 #else
-    const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
-    const unsigned int lid = gid % 32;
-    __shared__ volatile float s[32];
-
-    s[lid] = value;
-    for(int offset = 1; offset < N; offset <<= 1)
-        s[lid] = fmaxf(s[lid], s[(lid - offset) % 32]);
-    max = s[lid / N];
-    s[lid] = __expf(value - max);
-
-    for(int offset = 1; offset < N; offset <<= 1)
-        s[lid] += s[(lid - offset) % 32];
-
-    s[lid] = logf(value) + max;
-    for(int offset = 1; offset < N; offset <<= 1)
-        s[lid] = s[(lid + offset) % 32];
-    
-    return s[lid];
+    return 0;
+    // const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
+    // const unsigned int lid = gid % 32;
+    // __shared__ volatile float s[32];
+    // 
+    // s[lid] = value;
+    // for(int offset = 1; offset < N; offset <<= 1)
+    //     s[lid] = fmaxf(s[lid], s[(lid - offset) % 32]);
+    // max = s[lid / N];
+    // s[lid] = __expf(value - max);
+    // 
+    // for(int offset = 1; offset < N; offset <<= 1)
+    //     s[lid] += s[(lid - offset) % 32];
+    // 
+    // s[lid] = logf(value) + max;
+    // for(int offset = 1; offset < N; offset <<= 1)
+    //     s[lid] = s[(lid + offset) % 32];
+    // 
+    // return s[lid];
 #endif
 }
 
@@ -75,7 +76,7 @@ __device__ float sum(float value) {
     s[lid] = value;
 
     for(int offset = 1; offset < N; offset <<= 1)
-        s[lid] += s[(lid + offset) % 32];
+        s[lid] += s[(lid + offset) % N];
     value = s[lid];
 #endif
     return value;
