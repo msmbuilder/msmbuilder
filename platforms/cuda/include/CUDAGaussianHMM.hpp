@@ -6,12 +6,12 @@ namespace Mixtape {
 
 class CUDAGaussianHMM {
 public:
-    CUDAGaussianHMM(
-        const float** sequences,
-        const int n_sequences,
-        const int* sequence_lengths,
-        const int n_states,
-        const int n_features);
+    CUDAGaussianHMM(const int n_states,
+                    const int n_features);
+    void setSequences(const float** sequences,
+                      const int n_sequences,
+                      const int* sequence_lengths);
+    void delSequences();
     void setMeans(const float* means);
     void getMeans(float* out);
     void setVariances(const float* variances);
@@ -56,14 +56,11 @@ private:
     float* d_transcounts_;
     void* cublas_handle_;
 
-
-    const float** sequences_;
+    int n_observations_;
+    int n_sequences_;
     std::vector<int> sequence_lengths_;
     std::vector<int> cum_sequence_lengths_;
     std::vector<int> trj_offset_;
-    const float* trajectories_;
-    int n_observations_;
-    const int n_sequences_;
     const int n_states_;    // true number of states
     const int n_pstates_;   // number of "padded" states
     const int n_features_;

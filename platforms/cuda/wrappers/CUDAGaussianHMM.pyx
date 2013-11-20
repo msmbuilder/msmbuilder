@@ -5,9 +5,10 @@ cimport numpy as np
 
 cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
     cdef cppclass CPPCUDAGaussianHMM "Mixtape::CUDAGaussianHMM":
-        CPPCUDAGaussianHMM(const float**, const np.int32_t,
-                           const np.int32_t*, const np.int32_t,
-                           const np.int32_t) except +
+        CPPCUDAGaussianHMM(const np.int32_t, const np.int32_t) except +
+        void setSequences(const float**, const np.int32_t,
+                          const np.int32_t*) except +
+        void delSequences()
         void setMeans(const float* means)
         void getMeans(float* means)
         void setVariances(const float* variances)
@@ -17,7 +18,7 @@ cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
         void setStartProb(const float* startProb)
         void getStartProb(float* startProb)
         
-        float computeEStep()
+        float computeEStep() except +
         void initializeSufficientStatistics()
         void computeSufficientStatistics()
         void getFrameLogProb(float* out)
@@ -35,37 +36,38 @@ cdef class CUDAGaussianHMM:
     cdef list sequences
     cdef int n_sequences, n_observations, n_states, n_features
 
-    def __cinit__(self, sequences, int n_states):
-        self.sequences = sequences
-        self.n_sequences = len(sequences)
-        if self.n_sequences <= 0:
-            raise ValueError('More than 0 sequences must be provided')
-        cdef float** seq_pointers = \
-             <float**>malloc(self.n_sequences * sizeof(float*))
-        cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
+    def __cinit__(self, n_states, n_features):
+        self.n_states = int(n_states)
+        self.n_features = int(n_features)
+        self.thisptr = new CPPCUDAGaussianHMM(n_states, n_features)
 
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] S
-        for i in range(self.n_sequences):
-            sequences[i] = np.asarray(sequences[i], order='c',
-                                      dtype=np.float32)
-            S = sequences[i]
-            seq_pointers[i] = &S[0,0]
-            seq_lengths[i] = len(sequences[i])
-            if i == 0:
-                self.n_features = sequences[i].shape[1]
-            else:
-                if self.n_features != sequences[i].shape[1]:
-                    raise ValueError('All sequences must have the same '
-                                     'number of features')
+    property _sequences:
+        def __set__(self, value):
+            self.sequences = value
+            self.n_sequences = len(value)
+            if self.n_sequences <= 0:
+                raise ValueError('More than 0 sequences must be provided')
+            cdef float** seq_pointers = \
+                                        <float**>malloc(self.n_sequences * sizeof(float*))
+            cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
 
-        self.n_states = n_states
-        self.n_observations = seq_lengths.sum()
+            cdef np.ndarray[ndim=2, dtype=np.float32_t] S
+            for i in range(self.n_sequences):
+                self.sequences[i] = np.asarray(self.sequences[i], order='c',
+                                          dtype=np.float32)
+                S = value[i]
+                seq_pointers[i] = &S[0,0]
+                seq_lengths[i] = len(S)
+                if self.n_features != S.shape[1]:
+                    raise ValueError('All sequences must be arrays of shape N by %d' %
+                                     self.n_features)
 
-        self.thisptr = new CPPCUDAGaussianHMM(
-            <const float**>seq_pointers, self.n_sequences, &seq_lengths[0],
-            n_states, self.n_features)
+            self.n_observations = seq_lengths.sum()
+            self.thisptr.setSequences(<const float**>seq_pointers, self.n_sequences, &seq_lengths[0])
+            free(seq_pointers)
 
-        free(seq_pointers)
+        def __del__(self):
+            self.thisptr.delSequences()
 
     property means_:
         def __get__(self):

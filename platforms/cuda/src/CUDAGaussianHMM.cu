@@ -5,6 +5,7 @@
 #include <limits>
 #include <string>
 #include "safecuda.hpp"
+#include "MixtapeException.hpp"
 #include "CUDAGaussianHMM.hpp"
 
 #include <cublas_v2.h>
@@ -16,13 +17,9 @@
 
 
 namespace Mixtape {
-CUDAGaussianHMM::CUDAGaussianHMM(const float** sequences,
-                                 const int n_sequences,
-                                 const int* sequence_lengths,
-                                 const int n_states,
+CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
                                  const int n_features)
-    : sequences_(sequences)
-    , n_sequences_(n_sequences)
+    : n_sequences_(0)
     , n_states_(n_states)
     // we have special kernels for n_states in [4, 8, 16, 32], and then a
     // generic one for more than 32 states, so if the number of states is less,
@@ -49,6 +46,29 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float** sequences,
     , d_sequences_(NULL)
     , d_sequences2_(NULL)
 {
+    // Small data arrays
+    cudaMalloc2((void **) &d_log_transmat_, n_pstates_*n_pstates_*sizeof(float));
+    cudaMalloc2((void **) &d_log_transmat_T_, n_pstates_*n_pstates_*sizeof(float));
+    cudaMalloc2((void **) &d_means_, n_pstates_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_variances_, n_pstates_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_log_startprob_, n_pstates_*sizeof(float));
+
+    // Sufficient statistics
+    cudaMalloc2((void **) &d_post_, n_pstates_*sizeof(float));
+    cudaMalloc2((void **) &d_obs_, n_pstates_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_obs_squared_, n_pstates_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_transcounts_, n_pstates_*n_pstates_*sizeof(float));
+
+    cublasStatus_t status = cublasCreate((cublasHandle_t*) &cublas_handle_);
+    if (status != CUBLAS_STATUS_SUCCESS) { throw MixtapeException("cuBLAS initialization error."); }
+    cudaDeviceSynchronize();
+}
+
+void CUDAGaussianHMM::setSequences(const float** sequences,
+                                   const int n_sequences,
+                                   const int* sequence_lengths)
+{
+    n_sequences_ = n_sequences;
     sequence_lengths_.resize(n_sequences);
     cum_sequence_lengths_.resize(n_sequences);
     for (int i = 0; i < n_sequences_; i++) {
@@ -59,6 +79,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float** sequences,
         else
             cum_sequence_lengths_[i] = cum_sequence_lengths_[i-1] + sequence_lengths[i-1];
     }
+    delSequences();
 
     // Arrays of size proportional to the number of observations
     cudaMalloc2((void **) &d_sequences_, n_observations_*n_features_*sizeof(float));
@@ -69,42 +90,50 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float** sequences,
     cudaMalloc2((void **) &d_framelogprob_, n_observations_*n_pstates_*sizeof(float));
     cudaMalloc2((void **) &d_ones_, n_observations_*sizeof(float));
 
-    // Small data arrays
-    cudaMalloc2((void **) &d_log_transmat_, n_pstates_*n_pstates_*sizeof(float));
-    cudaMalloc2((void **) &d_log_transmat_T_, n_pstates_*n_pstates_*sizeof(float));
-    cudaMalloc2((void **) &d_means_, n_pstates_*n_features_*sizeof(float));
-    cudaMalloc2((void **) &d_variances_, n_pstates_*n_features_*sizeof(float));
-    cudaMalloc2((void **) &d_log_startprob_, n_pstates_*sizeof(float));
     cudaMalloc2((void **) &d_sequence_lengths_, n_sequences_*sizeof(float));
     cudaMalloc2((void **) &d_cum_sequence_lengths_, n_sequences_*sizeof(float));
-
-    // Sufficient statistics
-    cudaMalloc2((void **) &d_post_, n_pstates_*sizeof(float));
-    cudaMalloc2((void **) &d_obs_, n_pstates_*n_features_*sizeof(float));
-    cudaMalloc2((void **) &d_obs_squared_, n_pstates_*n_features_*sizeof(float));
-    cudaMalloc2((void **) &d_transcounts_, n_pstates_*n_pstates_*sizeof(float));
-
-    cublasStatus_t status = cublasCreate((cublasHandle_t*) &cublas_handle_);
-    if (status != CUBLAS_STATUS_SUCCESS) { exit(EXIT_FAILURE); }
 
     // Copy over sequence data
     for (int i = 0; i < n_sequences_; i++) {
         int n = sequence_lengths_[i]*n_features_;
         int offset = cum_sequence_lengths_[i]*n_features_;
-        CudaSafeCall(cudaMemcpy(d_sequences_ + offset, sequences_[i], n*sizeof(float), cudaMemcpyHostToDevice));
+        CudaSafeCall(cudaMemcpy(d_sequences_ + offset, sequences[i], n*sizeof(float), cudaMemcpyHostToDevice));
     }
 
     CudaSafeCall(cudaMemcpy(d_sequence_lengths_, &sequence_lengths_[0],
                             n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
     CudaSafeCall(cudaMemcpy(d_cum_sequence_lengths_, &cum_sequence_lengths_[0],
                             n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
-
     fill<<<1, 256>>>(d_ones_, 1.0, n_observations_);
     square<<<1, 256>>>(d_sequences_, n_observations_*n_features_, d_sequences2_);
     cudaDeviceSynchronize();
 }
 
+void CUDAGaussianHMM::delSequences() {
+    if (d_sequences_ != NULL)
+        cudaFree(d_sequences_);
+    if (d_sequences2_ != NULL)
+        cudaFree(d_sequences2_);
+    if (d_fwdlattice_ != NULL)
+        cudaFree(d_fwdlattice_);
+    if (d_bwdlattice_ != NULL)
+        cudaFree(d_bwdlattice_);
+    if (d_posteriors_ != NULL)
+        cudaFree(d_posteriors_);
+    if (d_framelogprob_ != NULL)
+        cudaFree(d_framelogprob_);
+    if (d_ones_ != NULL)
+        cudaFree(d_ones_);
+    if (d_sequence_lengths_ != NULL)
+        cudaFree(d_sequence_lengths_);
+    if (d_cum_sequence_lengths_ != NULL)
+        cudaFree(d_cum_sequence_lengths_);
+}
+
 float CUDAGaussianHMM::computeEStep() {
+    if (d_sequences_ == NULL)
+        throw MixtapeException("Sequence data not initialized");
+
     gaussian_likelihood<<<1, 32>>>(
         d_sequences_, d_means_, d_variances_, n_sequences_,
         d_sequence_lengths_, d_cum_sequence_lengths_, n_pstates_,
@@ -168,7 +197,7 @@ float CUDAGaussianHMM::computeEStep() {
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         break;
     default:
-        printf("NotImplementedError"); exit(EXIT_FAILURE);
+        throw MixtapeException("n_states > 32 is not implemented yet");
     }
 
     cudaDeviceSynchronize();
@@ -319,9 +348,9 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
     float alpha = 1.0f;
     float beta = 1.0f;
     cublasStatus_t status;
-    
+
     // Compute the sufficient statistics for the mean,
-    // \Sum_i p(X_i in state_k) * X_i 
+    // \Sum_i p(X_i in state_k) * X_i
     // MATRIX_MULTIPLY(posteriors.T, obs)
     status = cublasSgemm(
         (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
@@ -333,7 +362,7 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
 
     // Compute the sufficient statistics for the variance,
-    // \Sum_i p(X_i in state_k) * X_i**2 
+    // \Sum_i p(X_i in state_k) * X_i**2
     // MATRIX_MULTIPLY(posteriors.T, obs**2)
     status = cublasSgemm(
         (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
@@ -343,7 +372,7 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
         &beta, d_obs_squared_, n_features_);
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
 
-    // Compute the normalization constant for the posterior weighted 
+    // Compute the normalization constant for the posterior weighted
     // averages, \Sum_i (P_X_i in state_k)
     status = cublasSgemm(
         (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
@@ -356,7 +385,7 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
     transitioncounts<<<1, 32>>>(
         d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
         n_observations_, n_pstates_, d_transcounts_);
-    
+
     cudaDeviceSynchronize();
     CudaCheckError();
 }

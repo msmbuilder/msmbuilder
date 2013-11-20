@@ -6,13 +6,16 @@ from mixtape._cudahmm import CUDAGaussianHMM
 def test_1():
     "Test the getters and setters, which transfer data to/from the GPU"
     t1 = np.random.randn(10, 2)
+    n_features = 2
     for n_states in [3, 4]:
-        hmm = CUDAGaussianHMM([t1], n_states)
-        means = np.random.randn(n_states, 2)
+        hmm = CUDAGaussianHMM(n_states, n_features)
+        hmm._sequences = [t1]
+        
+        means = np.random.randn(n_states, n_features)
         hmm.means_ = means
         yield lambda: np.testing.assert_array_almost_equal(hmm.means_, means)
 
-        variances = np.random.rand(n_states, 2)
+        variances = np.random.rand(n_states, n_features)
         hmm.variances_ = variances
         yield lambda: np.testing.assert_array_almost_equal(hmm.variances_, variances)
 
@@ -38,7 +41,9 @@ def test_2():
         startprob = np.random.rand(n_states)
         startprob = startprob / np.sum(startprob)
 
-        cuhmm = CUDAGaussianHMM([t1], n_states)
+        cuhmm = CUDAGaussianHMM(n_states, n_features)
+        cuhmm._sequences = [t1]
+
         pyhmm = GaussianHMM(n_components=n_states, init_params='', params='', covariance_type='diag')
         cuhmm.means_ = means
         cuhmm.variances_ = variances
