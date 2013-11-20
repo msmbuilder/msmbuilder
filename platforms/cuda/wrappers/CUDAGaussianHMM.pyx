@@ -155,7 +155,7 @@ def main():
     variances = np.ones((4, 2))
     startprob = [0.25, 0.25, 0.25, 0.25]
     transmat = np.random.rand(4,4)
-    t1 = [np.random.randn(12,2), 1+np.random.randn(8,2)]
+    t1 = [np.random.randn(5,2), 1+np.random.randn(4,2)]
     t2 = [np.concatenate(t1)]
 
     q1 = CUDAGaussianHMM(t1, 4)
@@ -166,13 +166,16 @@ def main():
         q.setStartprob(startprob)
         q.setTransmat(transmat)
         q.computeEStep()
-        print 'framelogprob'
         print q.getFrameLogProb()
+        #print q.getFwdLattice()
+        print
 
 
-    # obs = q.getSufficientStatistics()
+
+    #print 'framelogprob'
+    #obs = q.getSufficientStatistics()
+    #pprint(obs)
     # print 'cuda'
-    # pprint(obs)
     # print 'ref'
     # print 'obs\n', np.dot(q.getPosteriors().T, t[0])
     # print 'obs**2\n', np.dot(q.getPosteriors().T, t[0]**2)

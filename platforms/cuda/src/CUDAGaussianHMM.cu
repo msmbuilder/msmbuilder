@@ -78,7 +78,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(
         if (i == 0)
             cum_sequence_lengths_[i] = 0;
         else
-            cum_sequence_lengths_[i] = cum_sequence_lengths_[i-1] + sequence_lengths[i];
+            cum_sequence_lengths_[i] = cum_sequence_lengths_[i-1] + sequence_lengths[i-1];
     }
     
     // Arrays of size proportional to the number of observations
