@@ -47,6 +47,12 @@ inline void __cudaCheckError( const char *file, const int line ) {
 
 
 namespace Mixtape {
+
+void cudaMalloc2(void** devicePtr, size_t nbytes) {
+    CudaSafeCall(cudaMalloc(devicePtr, nbytes));
+    CudaSafeCall(cudaMemset(*devicePtr, 0x55, nbytes));
+}
+
 CUDAGaussianHMM::CUDAGaussianHMM(
     const float** sequences,
     const int n_sequences,
@@ -82,60 +88,40 @@ CUDAGaussianHMM::CUDAGaussianHMM(
     }
     
     // Arrays of size proportional to the number of observations
-    CudaSafeCall(cudaMalloc((void **) &d_sequences_,
-                 n_observations_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_sequences2_,
-                 n_observations_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_fwdlattice_,
-                            n_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_bwdlattice_,
-                            n_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_posteriors_,
-                            n_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_framelogprob_,
-                            n_observations_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_ones_, 
-                            n_observations_*sizeof(float)));
+    cudaMalloc2((void **) &d_sequences_, n_observations_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_sequences2_, n_observations_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_fwdlattice_, n_observations_*n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_bwdlattice_, n_observations_*n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_posteriors_, n_observations_*n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_framelogprob_, n_observations_*n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_ones_, n_observations_*sizeof(float));
 
     // Small data arrays
-    CudaSafeCall(cudaMalloc((void **) &d_log_transmat_,
-                            n_states_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_log_transmat_T_,
-                            n_states_*n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_means_,
-                            n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_variances_,
-                            n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_log_startprob_,
-                            n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_sequence_lengths_,
-                            n_sequences_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_cum_sequence_lengths_,
-                            n_sequences_*sizeof(float)));
+    cudaMalloc2((void **) &d_log_transmat_, n_states_*n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_log_transmat_T_, n_states_*n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_means_, n_states_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_variances_, n_states_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_log_startprob_, n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_sequence_lengths_, n_sequences_*sizeof(float));
+    cudaMalloc2((void **) &d_cum_sequence_lengths_, n_sequences_*sizeof(float));
 
     // Sufficient statistics
-    CudaSafeCall(cudaMalloc((void **) &d_post_,
-                            n_states_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_obs_,
-                            n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_obs_squared_,
-                            n_states_*n_features_*sizeof(float)));
-    CudaSafeCall(cudaMalloc((void **) &d_transcounts_,
-                            n_states_*n_states_*sizeof(float)));
+    cudaMalloc2((void **) &d_post_, n_states_*sizeof(float));
+    cudaMalloc2((void **) &d_obs_, n_states_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_obs_squared_, n_states_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_transcounts_, n_states_*n_states_*sizeof(float));
 
     // Sequence data
     for (int i = 0; i < n_sequences_; i++) {
         int n = sequence_lengths_[i]*n_features_;
         int offset = cum_sequence_lengths_[i]*n_features_;
-        CudaSafeCall(cudaMemcpy(d_sequences_ + offset, sequences_[i],
-                     n*sizeof(float), cudaMemcpyHostToDevice));
+        CudaSafeCall(cudaMemcpy(d_sequences_ + offset, sequences_[i], n*sizeof(float), cudaMemcpyHostToDevice));
     }
 
     CudaSafeCall(cudaMemcpy(d_sequence_lengths_, &sequence_lengths_[0],
-                 n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
+                            n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
     CudaSafeCall(cudaMemcpy(d_cum_sequence_lengths_, &cum_sequence_lengths_[0],
-                 n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
-
+                            n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
 
     cublasStatus_t status = cublasCreate((cublasHandle_t*) &cublas_handle_);
     if (status != CUBLAS_STATUS_SUCCESS) { exit(EXIT_FAILURE); }
@@ -196,6 +182,8 @@ void CUDAGaussianHMM::setStartProb(const float* startProb) {
     std::vector<float> log_startprob(n_states_);
     for (int i = 0; i < n_states_; i++)
         log_startprob[i] = log(startProb[i]);
+    CudaSafeCall(cudaMemcpy(d_log_startprob_, &log_startprob[0],
+                 n_states_*sizeof(float), cudaMemcpyHostToDevice));
 }
 
 void CUDAGaussianHMM::getFrameLogProb(float* out) {

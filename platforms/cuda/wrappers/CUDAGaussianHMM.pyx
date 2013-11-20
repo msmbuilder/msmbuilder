@@ -167,7 +167,7 @@ def main():
         q.setTransmat(transmat)
         q.computeEStep()
         print q.getFrameLogProb()
-        #print q.getFwdLattice()
+        print q.getFwdLattice()
         print
 
 
