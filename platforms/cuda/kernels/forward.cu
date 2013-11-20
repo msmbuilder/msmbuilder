@@ -65,7 +65,7 @@ float* __restrict__ fwdlattice)
             work_buffer1 = _fwdlattice[(t-1)*n_states + i] + log_transmat_T[j1*n_states + i];
             work_buffer2 = _fwdlattice[(t-1)*n_states + i] + log_transmat_T[j2*n_states + i];
             work_buffer1 = logsumexp<8>(work_buffer1);
-            work_buffer1 = logsumexp<8>(work_buffer2);
+            work_buffer2 = logsumexp<8>(work_buffer2);
             if (lid % 8 == 0) {
                 _fwdlattice[t*n_states + j1] = work_buffer1 + _frame_logprob[t*n_states + j1];
                 _fwdlattice[t*n_states + j2] = work_buffer2 + _frame_logprob[t*n_states + j2];

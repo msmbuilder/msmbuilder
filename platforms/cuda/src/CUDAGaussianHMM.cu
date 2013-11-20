@@ -59,6 +59,8 @@ CUDAGaussianHMM::CUDAGaussianHMM(const float** sequences,
         else
             cum_sequence_lengths_[i] = cum_sequence_lengths_[i-1] + sequence_lengths[i-1];
     }
+    
+    printf("n_pstates=%d\n", n_pstates_);
 
     // Arrays of size proportional to the number of observations
     cudaMalloc2((void **) &d_sequences_, n_observations_*n_features_*sizeof(float));
@@ -110,19 +112,36 @@ float CUDAGaussianHMM::computeEStep() {
         d_sequence_lengths_, d_cum_sequence_lengths_, n_pstates_,
         n_features_, d_framelogprob_);
 
-    forward4<<<1, 32>>>(
-        d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
-        d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
-        d_fwdlattice_);
-    backward4<<<1, 32>>>(
-        d_log_transmat_, d_log_startprob_, d_framelogprob_,
-        d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
-        d_bwdlattice_);
-    cudaDeviceSynchronize();
-    posteriors4<<<1, 32>>>(
-        d_fwdlattice_, d_bwdlattice_, n_sequences_,
-        d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
-
+    switch (n_pstates_) {
+    case 4:
+        forward4<<<1, 32>>>(
+            d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
+            d_fwdlattice_);
+        backward4<<<1, 32>>>(
+            d_log_transmat_, d_log_startprob_, d_framelogprob_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
+            d_bwdlattice_);
+        cudaDeviceSynchronize();
+        posteriors4<<<1, 32>>>(
+            d_fwdlattice_, d_bwdlattice_, n_sequences_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
+    case 8:
+        forward8<<<1, 32>>>(
+            d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
+            d_fwdlattice_);
+        printf("Calling backward8\n");
+        backward8<<<1, 32>>>(
+            d_log_transmat_, d_log_startprob_, d_framelogprob_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
+            d_bwdlattice_);
+        printf("Finished calling backward8\n");
+        cudaDeviceSynchronize();
+        // posteriors8<<<1, 32>>>(
+        // d_fwdlattice_, d_bwdlattice_, n_sequences_,
+        // d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
+    }
     cudaDeviceSynchronize();
     CudaCheckError();
     return 1.0;
