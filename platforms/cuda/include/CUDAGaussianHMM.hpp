@@ -64,7 +64,8 @@ private:
     const float* trajectories_;
     int n_observations_;
     const int n_sequences_;
-    const int n_states_;
+    const int n_states_;    // true number of states
+    const int n_pstates_;   // number of "padded" states
     const int n_features_;
 };
 

@@ -43,7 +43,6 @@ float* __restrict__ loglikelihoods)
         const unsigned int lid = gid % WARP_WIDTH;
         const unsigned int jteam = (gid % (WARP_WIDTH*WARPS_PER_TRAJ)) / WARP_WIDTH;
 
-        
         for (int t = 0; t < sequence_lengths[s]; t++) {
             for (int j = jteam; j < n_states; j += WARPS_PER_TRAJ) {
                 float accumulator = 0;

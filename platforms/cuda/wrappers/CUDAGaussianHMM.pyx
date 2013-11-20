@@ -76,7 +76,7 @@ cdef class CUDAGaussianHMM:
         def __set__(self, value):
             cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] m = np.asarray(value, order='c', dtype=np.float32)
             if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_features):
-                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)',
+                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)' %
                                 (self.n_states, self.n_features, m.shape[0], m.shape[1]))
             self.thisptr.setMeans(&m[0,0])
 
@@ -89,7 +89,7 @@ cdef class CUDAGaussianHMM:
         def __set__(self, value):
             cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] v = np.asarray(value, order='c', dtype=np.float32)
             if (v.shape[0] != self.n_states) or (v.shape[1] != self.n_features):
-                raise TypeError('Variances must have shape (%d, %d), You supplied (%d, %d)',
+                raise TypeError('Variances must have shape (%d, %d), You supplied (%d, %d)' %
                                 (self.n_states, self.n_features, v.shape[0], v.shape[1]))
             self.thisptr.setVariances(&v[0,0])
 
@@ -102,7 +102,7 @@ cdef class CUDAGaussianHMM:
         def __set__(self, value):
             cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] t = np.asarray(value, order='c', dtype=np.float32)
             if (t.shape[0] != self.n_states) or (t.shape[1] != self.n_states):
-                raise TypeError('transmat must have shape (%d, %d), You supplied (%d, %d)',
+                raise TypeError('transmat must have shape (%d, %d), You supplied (%d, %d)' %
                                 (self.n_states, self.n_states, t.shape[0], t.shape[1]))
             self.thisptr.setTransmat(&t[0,0])
 
@@ -116,7 +116,7 @@ cdef class CUDAGaussianHMM:
         def __set__(self, value):
             cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] s = np.asarray(value, order='c', dtype=np.float32)
             if (s.shape[0] != self.n_states):
-                raise TypeError('startprob must have shape (%d,), You supplied (%d,)',
+                raise TypeError('startprob must have shape (%d,), You supplied (%d,)' %
                                 (self.n_states, s.shape[0]))
             self.thisptr.setStartProb(&s[0])
 
