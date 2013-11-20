@@ -27,9 +27,9 @@ def test_1():
 
 def test_2():
     n_features = 2
-    length = 10
+    length = 3
 
-    for n_states in [3, 4, 5, 7, 8]:
+    for n_states in [3, 4, 5, 7, 8, 9, 15, 16]:
         t1 = np.random.randn(length, n_features)
         means = np.random.randn(n_states, n_features)
         variances = np.random.rand(n_states, n_features)
@@ -37,7 +37,7 @@ def test_2():
         transmat = transmat / np.sum(transmat, axis=1)[:, None]
         startprob = np.random.rand(n_states)
         startprob = startprob / np.sum(startprob)
-    
+
         cuhmm = CUDAGaussianHMM([t1], n_states)
         pyhmm = GaussianHMM(n_components=n_states, init_params='', params='', covariance_type='diag')
         cuhmm.means_ = means
@@ -74,12 +74,12 @@ def test_2():
             stats, t1, framelogprob, posteriors, fwdlattice,
             bwdlattice, 'stmc')
         custats = cuhmm._get_sufficient_statistics()
-        
+
         yield lambda: np.testing.assert_array_almost_equal(stats['trans'], custats['trans'], decimal=4)
         yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=4)
         yield lambda: np.testing.assert_array_almost_equal(stats['obs'], custats['obs'], decimal=4)
         yield lambda: np.testing.assert_array_almost_equal(stats['obs**2'], custats['obs**2'], decimal=4)
-        
+
 
 
 def reference_forward(framelogprob, startprob, transmat):
@@ -117,7 +117,7 @@ def reference_backward(framelogprob, startprob, transmat):
         for i in range(n_components):
             for j in range(n_components):
                 work_buffer[j] = log_transmat[i, j] + framelogprob[t + 1, j] + bwdlattice[t + 1, j]
-                
+
                 if (i == 0):
                     print 'log_transmat[i, %d]    '%j, log_transmat[i, j]
                     print 'framelogprob[t + 1, %d]'%j,  framelogprob[t + 1, j]

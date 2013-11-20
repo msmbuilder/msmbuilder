@@ -139,7 +139,22 @@ float CUDAGaussianHMM::computeEStep() {
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         break;
+    case 16:
+        forward16<<<1, 32>>>(
+            d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
+            d_fwdlattice_);
+        backward16<<<1, 32>>>(
+            d_log_transmat_, d_log_startprob_, d_framelogprob_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
+            d_bwdlattice_);
+        cudaDeviceSynchronize();
+        posteriors<16><<<1, 32>>>(
+            d_fwdlattice_, d_bwdlattice_, n_sequences_,
+            d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
+        break;
     }
+
     cudaDeviceSynchronize();
     CudaCheckError();
     return 1.0;
