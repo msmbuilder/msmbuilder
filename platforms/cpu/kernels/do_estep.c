@@ -59,7 +59,7 @@ void do_estep(const float* __restrict__ log_transmat,
         fwdlattice = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         bwdlattice = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         posteriors = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
-        seq_transcounts = (float*) malloc(n_states*n_states*sizeof(float));
+        seq_transcounts = (float*) calloc(n_states*n_states, sizeof(float));
         seq_obs = (float*) calloc(n_states*n_features, sizeof(float));
         seq_obs2 = (float*) calloc(n_states*n_features, sizeof(float));
         seq_post = (float*) calloc(n_states, sizeof(float));

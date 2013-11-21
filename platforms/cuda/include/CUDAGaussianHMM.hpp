@@ -22,7 +22,7 @@ public:
     void getStartProb(float* out);
     float computeEStep(void);
     void initializeSufficientStatistics(void);
-    void computeSufficientStatistics(void);
+    float computeSufficientStatistics(void);
     void getFrameLogProb(float* out);
     void getFwdLattice(float* out);
     void getBwdLattice(float* out);
@@ -45,6 +45,7 @@ private:
     float* d_means_;
     float* d_variances_;
     float* d_log_startprob_;
+    float* d_logprob_;
     int*   d_sequence_lengths_;
     int*   d_cum_sequence_lengths_;
     float* d_sequences_;

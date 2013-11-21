@@ -1,23 +1,23 @@
 import numpy  as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
-from mixtape._cudahmm import CUDAGaussianHMM
+from mixtape._cudahmm import GaussianHMMCUDAImpl
 
 def test_1():
     "Test the getters and setters, which transfer data to/from the GPU"
     t1 = np.random.randn(10, 2)
     n_features = 2
     for n_states in [3, 4]:
-        hmm = CUDAGaussianHMM(n_states, n_features)
+        hmm = GaussianHMMCUDAImpl(n_states, n_features)
         hmm._sequences = [t1]
         
         means = np.random.randn(n_states, n_features)
         hmm.means_ = means
         yield lambda: np.testing.assert_array_almost_equal(hmm.means_, means)
 
-        variances = np.random.rand(n_states, n_features)
-        hmm.variances_ = variances
-        yield lambda: np.testing.assert_array_almost_equal(hmm.variances_, variances)
+        vars = np.random.rand(n_states, n_features)
+        hmm.vars_ = vars
+        yield lambda: np.testing.assert_array_almost_equal(hmm.vars_, vars)
 
         transmat = np.random.rand(n_states, n_states)
         hmm.transmat_ = transmat
@@ -35,24 +35,24 @@ def test_2():
     for n_states in [3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32]:
         t1 = np.random.randn(length, n_features)
         means = np.random.randn(n_states, n_features)
-        variances = np.random.rand(n_states, n_features)
+        vars = np.random.rand(n_states, n_features)
         transmat = np.random.rand(n_states, n_states)
         transmat = transmat / np.sum(transmat, axis=1)[:, None]
         startprob = np.random.rand(n_states)
         startprob = startprob / np.sum(startprob)
 
-        cuhmm = CUDAGaussianHMM(n_states, n_features)
+        cuhmm = GaussianHMMCUDAImpl(n_states, n_features)
         cuhmm._sequences = [t1]
 
         pyhmm = GaussianHMM(n_components=n_states, init_params='', params='', covariance_type='diag')
         cuhmm.means_ = means
-        cuhmm.variances_ = variances
+        cuhmm.vars_ = vars
         cuhmm.transmat_ = transmat
         cuhmm.startprob_ = startprob
-        custats = cuhmm._do_estep()
+        logprob, custats = cuhmm.do_estep()
 
         pyhmm.means_ = means
-        pyhmm.covars_ = variances
+        pyhmm.covars_ = vars
         pyhmm.transmat_ = transmat
         pyhmm.startprob_ = startprob
         pyhmm._initialize_sufficient_statistics()

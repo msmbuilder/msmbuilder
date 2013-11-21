@@ -1,7 +1,7 @@
 import scipy.optimize
 import scipy.misc
 import numpy as np
-from mixtape import _hmm
+from mixtape import _reversibility
 
 def test_logsymsumexp():  
     x = (1+np.ones(9)).reshape(3,3)
@@ -13,7 +13,7 @@ def test_logsymsumexp():
             xx[k] = x[i,j]
             k += 1
 
-    r1 = _hmm.logsymsumexp(xx, 3)
+    r1 = _reversibility.logsymsumexp(xx, 3)
     r2 = scipy.misc.logsumexp(x, axis=0)
     r3 = scipy.misc.logsumexp(x, axis=1)
     np.testing.assert_array_almost_equal(r1, r2)
@@ -27,8 +27,8 @@ def test_gradients():
     rowsums = np.random.rand(n_states)
     logrowsums = np.log(rowsums)
     
-    error = scipy.optimize.check_grad(_hmm.reversible_transmat_likelihood,
-                    _hmm.reversible_transmat_grad,
+    error = scipy.optimize.check_grad(_reversibility.reversible_transmat_likelihood,
+                    _reversibility.reversible_transmat_grad,
                     u0, symcounts, rowsums, logrowsums)
     assert error < 1e-5
 
@@ -42,7 +42,7 @@ def test_reversible_mle():
                        [ 0.16882446,  0.31578918,  0.51538636],
                        [ 0.18615565,  0.34717763,  0.46666672]])
 
-    T, pi = _hmm.reversible_transmat(C)
+    T, pi = _reversibility.reversible_transmat(C)
 
     np.testing.assert_array_almost_equal(T, result)
     u, v = scipy.sparse.linalg.eigs(T.T, k=1)

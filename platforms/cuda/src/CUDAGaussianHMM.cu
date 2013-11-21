@@ -36,6 +36,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
     , d_means_(NULL)
     , d_variances_(NULL)
     , d_log_startprob_(NULL)
+    , d_logprob_(NULL)
     , d_sequence_lengths_(NULL)
     , d_cum_sequence_lengths_(NULL)
     , d_ones_(NULL)
@@ -52,6 +53,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
     cudaMalloc2((void **) &d_means_, n_pstates_*n_features_*sizeof(float));
     cudaMalloc2((void **) &d_variances_, n_pstates_*n_features_*sizeof(float));
     cudaMalloc2((void **) &d_log_startprob_, n_pstates_*sizeof(float));
+    cudaMalloc2((void **) &d_logprob_, sizeof(float));
 
     // Sufficient statistics
     cudaMalloc2((void **) &d_post_, n_pstates_*sizeof(float));
@@ -344,7 +346,7 @@ void CUDAGaussianHMM::initializeSufficientStatistics(void) {
     CudaSafeCall(cudaMemset(d_transcounts_, 0, n_pstates_*n_pstates_*sizeof(float)));
 }
 
-void CUDAGaussianHMM::computeSufficientStatistics() {
+float CUDAGaussianHMM::computeSufficientStatistics() {
     float alpha = 1.0f;
     float beta = 1.0f;
     cublasStatus_t status;
@@ -384,10 +386,13 @@ void CUDAGaussianHMM::computeSufficientStatistics() {
 
     transitioncounts<<<1, 32>>>(
         d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
-        n_observations_, n_pstates_, d_transcounts_);
-
+        n_observations_, n_pstates_, d_transcounts_, d_logprob_);
+    
+    float logprob = 0;
+    CudaSafeCall(cudaMemcpy(&logprob, d_logprob_, sizeof(float), cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
     CudaCheckError();
+    return logprob;
 }
 
 CUDAGaussianHMM::~CUDAGaussianHMM() {
@@ -400,6 +405,7 @@ CUDAGaussianHMM::~CUDAGaussianHMM() {
     CudaSafeCall(cudaFree(d_means_));
     CudaSafeCall(cudaFree(d_variances_));
     CudaSafeCall(cudaFree(d_log_startprob_));
+    CudaSafeCall(cudaFree(d_logprob_));
     CudaSafeCall(cudaFree(d_sequence_lengths_));
     CudaSafeCall(cudaFree(d_cum_sequence_lengths_));
     CudaSafeCall(cudaFree(d_ones_));

@@ -20,7 +20,7 @@ cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
         
         float computeEStep() except +
         void initializeSufficientStatistics()
-        void computeSufficientStatistics()
+        float computeSufficientStatistics()
         void getFrameLogProb(float* out)
         void getFwdLattice(float* out)
         void getBwdLattice(float* out)
@@ -125,7 +125,7 @@ cdef class GaussianHMMCUDAImpl:
     def do_estep(self):
         self.thisptr.computeEStep()
         self.thisptr.initializeSufficientStatistics()
-        self.thisptr.computeSufficientStatistics()
+        logprob = self.thisptr.computeSufficientStatistics()
 
         cdef np.ndarray[ndim=2, dtype=np.float32_t] obs = np.zeros((self.n_states, self.n_features), dtype=np.float32)
         cdef np.ndarray[ndim=2, dtype=np.float32_t] obs2 = np.zeros((self.n_states, self.n_features), dtype=np.float32)
@@ -138,7 +138,7 @@ cdef class GaussianHMMCUDAImpl:
         self.thisptr.getStatsTransCounts(&trans[0,0])
 
         stats = {'post': post, 'obs': obs, 'obs**2': obs2, 'trans': trans}
-        return stats
+        return logprob, stats
 
 
     def _get_framelogprob(self):
