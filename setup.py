@@ -3,7 +3,7 @@
 Currently, this package implements a mixture model of gamma distributions
 and a hidden Markov model with von Mises emissions.
 
-See http://scikit-learn.org/stable/modules/hmm.html for a 
+See http://scikit-learn.org/stable/modules/hmm.html for a
 practical description of hidden Markov models. The von Mises
 distribution, (also known as the circular normal distribution or
 Tikhonov distribution) is a continuous probability distribution on
@@ -19,8 +19,12 @@ DOCLINES = __doc__.split("\n")
 import os
 import sys
 import glob
+import shutil
+import tempfile
+import subprocess
+from distutils.ccompiler import new_compiler
+from distutils.spawn import find_executable
 import numpy as np
-from distutils.spawn import find_executable                     
 try:
     from setuptools import setup, Extension
 except ImportError:
@@ -62,13 +66,13 @@ Programming Language :: Python :: 3.3
 def customize_compiler_for_nvcc(self):
     """inject deep into distutils to customize how the dispatch
     to gcc/nvcc works.
-    
+
     If you subclass UnixCCompiler, it's not trivial to get your subclass
     injected in, and still have the right customizations (i.e.
     distutils.sysconfig.customize_compiler) run on it. So instead of going
     the OO route, I have this. Note, it's kindof like a wierd functional
     subclassing going on."""
-    
+
     # tell the compiler it can processes .cu
     self.src_extensions.append('.cu')
 
@@ -163,6 +167,54 @@ def write_spline_data():
     if not os.path.exists('src/vonmises/data/inv_mbessel_deriv.dat'):
         np.savetxt('src/vonmises/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
 
+def hasfunction(cc, funcname, include=None, extra_postargs=None):
+    # From http://stackoverflow.com/questions/
+    #            7018879/disabling-output-when-compiling-with-distutils
+    tmpdir = tempfile.mkdtemp(prefix='hasfunction-')
+    devnull = oldstderr = None
+    try:
+        try:
+            fname = os.path.join(tmpdir, 'funcname.c')
+            f = open(fname, 'w')
+            if include is not None:
+                f.write('#include %s\n' % include)
+            f.write('int main(void) {\n')
+            f.write('    %s;\n' % funcname)
+            f.write('}\n')
+            f.close()
+            devnull = open(os.devnull, 'w')
+            oldstderr = os.dup(sys.stderr.fileno())
+            os.dup2(devnull.fileno(), sys.stderr.fileno())
+            objects = cc.compile([fname], output_dir=tmpdir,
+                                 extra_postargs=extra_postargs)
+            cc.link_executable(objects, os.path.join(tmpdir, 'a.out'))
+        except Exception as e:
+            return False
+        return True
+    finally:
+        if oldstderr is not None:
+            os.dup2(oldstderr, sys.stderr.fileno())
+        if devnull is not None:
+            devnull.close()
+        shutil.rmtree(tmpdir)
+
+
+def detect_openmp():
+    "Does this compiler support OpenMP parallelization?"
+    compiler = new_compiler()
+    print('Attempting to autodetect OpenMP support...', end=' ')
+    hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
+    needs_gomp = hasopenmp
+    if not hasopenmp:
+        compiler.add_library('gomp')
+        hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
+        needs_gomp = hasopenmp
+    print
+    if hasopenmp:
+        print('Compiler supports OpenMP')
+    else:
+        print('Did not detect OpenMP support; parallel RMSD disabled')
+    return hasopenmp, needs_gomp
 
 
 _hmm = Extension('mixtape._hmm',
@@ -197,10 +249,18 @@ _cudahmm = Extension('mixtape._cudahmm',
                               'platforms/cuda/src/CUDAGaussianHMM.cu'],
                      include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels'])
 
+openmp_enabled, needs_gomp = detect_openmp()
+extra_compile_args = []
+if openmp_enabled:
+    extra_compile_args.append('-fopenmp')
+libraries = ['gomp'] if needs_gomp else []
+
 _cpuhmm = Extension('mixtape._cpuhmm',
                     language='c++',
                     sources=['platforms/cpu/wrappers/CPUGaussianHMM.pyx'] +
                               glob.glob('platforms/cpu/kernels/*.c'),
+                    extra_compile_args=extra_compile_args,
+                    libraries=libraries,
                     include_dirs=[np.get_include(),
                                   'platforms/cpu/kernels',
                                   'platforms/cpu/kernels/include/'])

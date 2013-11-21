@@ -14,10 +14,10 @@ float logsumexp2(float v1, float v2) {
 float logsumexp(const float* __restrict__ buf, int N) {
     int i;
     int nu = (( N >> 2 ) << 2 );
-    float* StX = buf + nu;
+    const float* StX = buf + nu;
     float sum = 0;
     float mymax = 0;
-    float* X;
+    const float* X;
     float max4[4] __attribute__((aligned(16))) = {0};
     __m128 _v;
     __m128 _m;

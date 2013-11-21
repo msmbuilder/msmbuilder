@@ -8,7 +8,7 @@ void compute_posteriors(const float* __restrict__ fwdlattice,
                         const int n_states,
                         float* __restrict__ posteriors)
 {
-    int t, i, j;
+    int t, i;
     float gamma[n_states];
     float normalizer;
 
