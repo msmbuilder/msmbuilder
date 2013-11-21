@@ -88,7 +88,7 @@ void do_estep(const float* __restrict__ log_transmat,
             #ifdef _OPENMP
             #pragma omp atomic
             #endif
-            post[j] += seq_post[k];
+            post[j] += seq_post[j];
             for (k = 0; k < n_features; k++) {
                 #ifdef _OPENMP
                 #pragma omp atomic

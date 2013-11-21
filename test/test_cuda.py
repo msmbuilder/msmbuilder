@@ -49,7 +49,7 @@ def test_2():
         cuhmm.variances_ = variances
         cuhmm.transmat_ = transmat
         cuhmm.startprob_ = startprob
-        cuhmm._do_estep()
+        custats = cuhmm._do_estep()
 
         pyhmm.means_ = means
         pyhmm.covars_ = variances
@@ -78,7 +78,6 @@ def test_2():
         pyhmm._accumulate_sufficient_statistics(
             stats, t1, framelogprob, posteriors, fwdlattice,
             bwdlattice, 'stmc')
-        custats = cuhmm._get_sufficient_statistics()
 
         yield lambda: np.testing.assert_array_almost_equal(stats['trans'], custats['trans'], decimal=4)
         yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=4)

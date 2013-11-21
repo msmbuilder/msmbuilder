@@ -3,7 +3,6 @@ cimport numpy as np
 from cython.parallel cimport prange
 from libc.stdlib cimport malloc, free
 
-
 cdef extern from "do_estep.c":
     void do_estep(
         const float* log_transmat,
@@ -88,15 +87,15 @@ cdef class CPUGaussianHMM:
             if (t.shape[0] != self.n_states) or (t.shape[1] != self.n_states):
                 raise TypeError('transmat must have shape (%d, %d), You supplied (%d, %d)' %
                                 (self.n_states, self.n_states, t.shape[0], t.shape[1]))
-            self.log_transmat = t
-            self.log_transmat_T = np.asarray(t.T, order='C')
+            self.log_transmat = np.log(t)
+            self.log_transmat_T = np.asarray(self.log_transmat.T, order='C')
         
         def __get__(self):
             return np.exp(self.log_transmat)
     
     property startprob_:
         def __get__(self):
-            return np.exp(self.startprob)
+            return np.exp(self.log_startprob)
     
         def __set__(self, value):
             cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] s = np.asarray(value, order='c', dtype=np.float32)
@@ -123,14 +122,10 @@ cdef class CPUGaussianHMM:
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs2 = np.zeros((self.n_states, self.n_features), dtype=np.float32)
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post = np.zeros(self.n_states, dtype=np.float32)
 
-        cdef float** seq_pointers = self.seq_pointers
-        
-        print "Calling do_estep"
         do_estep(&log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0], &variances[0,0],
-                 <const float**> seq_pointers, self.n_sequences, &seq_lengths[0], self.n_features, self.n_states,
+                 <const float**> self.seq_pointers, self.n_sequences, &seq_lengths[0], self.n_features, self.n_states,
                  &transcounts[0,0], &obs[0,0], &obs2[0,0], &post[0])
-        print "Returned from do_estep"
-
+        return {'trans': transcounts, 'obs': obs, 'obs**2': obs2, 'post': post}
         
 
 

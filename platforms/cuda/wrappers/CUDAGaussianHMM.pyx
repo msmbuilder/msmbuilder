@@ -124,6 +124,22 @@ cdef class CUDAGaussianHMM:
 
     def _do_estep(self):
         self.thisptr.computeEStep()
+        self.thisptr.initializeSufficientStatistics()
+        self.thisptr.computeSufficientStatistics()
+
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] obs = np.zeros((self.n_states, self.n_features), dtype=np.float32)
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] obs2 = np.zeros((self.n_states, self.n_features), dtype=np.float32)
+        cdef np.ndarray[ndim=1, dtype=np.float32_t] post = np.zeros((self.n_states), dtype=np.float32)
+        cdef np.ndarray[ndim=2, dtype=np.float32_t] trans = np.zeros((self.n_states, self.n_states), dtype=np.float32)
+
+        self.thisptr.getStatsObs(&obs[0,0])
+        self.thisptr.getStatsObsSquared(&obs2[0,0])
+        self.thisptr.getStatsPost(&post[0])
+        self.thisptr.getStatsTransCounts(&trans[0,0])
+
+        stats = {'post': post, 'obs': obs, 'obs**2': obs2, 'trans': trans}
+        return stats
+
 
     def _get_framelogprob(self):
         cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
@@ -144,39 +160,6 @@ cdef class CUDAGaussianHMM:
         cdef np.ndarray[ndim=2, dtype=np.float32_t] X = np.zeros((self.n_observations, self.n_states), dtype=np.float32)
         self.thisptr.getPosteriors(&X[0,0])
         return X
-
-    def _get_sufficient_statistics(self):
-        self.thisptr.initializeSufficientStatistics()
-        self.thisptr.computeSufficientStatistics()
-
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] obs = np.zeros((self.n_states, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] obs2 = np.zeros((self.n_states, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=1, dtype=np.float32_t] post = np.zeros((self.n_states), dtype=np.float32)
-        cdef np.ndarray[ndim=2, dtype=np.float32_t] trans = np.zeros((self.n_states, self.n_states), dtype=np.float32)
-
-        self.thisptr.getStatsObs(&obs[0,0])
-        self.thisptr.getStatsObsSquared(&obs2[0,0])
-        self.thisptr.getStatsPost(&post[0])
-        self.thisptr.getStatsTransCounts(&trans[0,0])
-
-        stats = {'post': post, 'obs': obs, 'obs**2': obs2, 'trans': trans}
-        return stats
-
-    def _naiveCounts(self):
-        from scipy.misc import logsumexp
-        fwdlattice = self.getFwdLattice()
-        bwdlattice = self.getBwdLattice()
-        framelogprob = self.getFrameLogProb()
-        log_transmat = np.log(self.transmat)
-        lnP = logsumexp(fwdlattice[-1])
-        lneta = np.zeros((self.n_observations - 1, self.n_states, self.n_states))
-        for i in range(self.n_states):
-            for j in range(self.n_states):
-                for t in range(self.n_observations - 1):
-                    lneta[t, i, j] = fwdlattice[t, i] + log_transmat[i, j] \
-                                     + framelogprob[t + 1, j] + bwdlattice[t + 1, j] - lnP
-
-        return np.exp(logsumexp(lneta, axis=0))
 
     def __dealloc__(self):
         if self.thisptr is not NULL:
