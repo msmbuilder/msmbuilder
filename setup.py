@@ -97,7 +97,7 @@ def customize_compiler_for_nvcc(self):
             try:
                 postargs = extra_postargs['gcc']
             except TypeError:
-                postargs = []
+                postargs = extra_postargs
 
         super(obj, src, ext, cc_args, postargs, pp_opts)
         # reset the default compiler_so, which we might have changed for cuda
@@ -125,8 +125,10 @@ def locate_cuda():
         # otherwise, search the PATH for NVCC
         nvcc = find_executable('nvcc')
         if nvcc is None:
-            raise EnvironmentError('The nvcc binary could not be '
-                'located in your $PATH. Either add it to your path, or set $CUDAHOME')
+            raise EnvironmentError(
+                'The nvcc compiler could not be located in your $PATH. '
+                'To enable CUDA acceleration, either add it to your path, '
+                'or set $CUDAHOME')
         home = os.path.dirname(os.path.dirname(nvcc))
 
     cudaconfig = {'home':home, 'nvcc':nvcc,
@@ -271,13 +273,15 @@ try:
                   libraries=['cudart', 'cublas'],
                   runtime_library_dirs=[CUDA['lib64']],
                   extra_compile_args={'gcc': [],
-                                      'nvcc': ['-arch=sm_30', '-G', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+                                      'nvcc': ['-arch=sm_30', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
                   sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.'+cppcython_extension,
                            'platforms/cuda/src/CUDAGaussianHMM.cu'],
                   include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels']))
 
 except EnvironmentError as e:
+    print('\033[91m', '#'*60)
     print(e)
+    print('#'*60, '\033[0m')
 
 
 write_spline_data()

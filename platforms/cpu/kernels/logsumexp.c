@@ -16,7 +16,6 @@ float logsumexp2(float v1, float v2) {
 
 
 float logsumexp(const float* __restrict__ buf, int N) {
-    int i;
     int nu = (( N >> 2 ) << 2 );
     const float* StX = buf + nu;
     float sum = 0;
