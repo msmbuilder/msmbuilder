@@ -11,7 +11,8 @@ void transitioncounts(const float* __restrict__ fwdlattice,
                       const float* __restrict__ framelogprob,
                       const int n_observations,
                       const int n_states,
-                      float* __restrict__ transcounts);
+                      float* __restrict__ transcounts,
+                      float* logprob);
 
 #ifdef __cplusplus
 }

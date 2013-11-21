@@ -18,16 +18,17 @@ cdef extern from "do_estep.c":
         float* transcounts,
         float* obs,
         float* obs2,
-        float* post) nogil
+        float* post,
+        float* logprob) nogil
 
 
-cdef class CPUGaussianHMM:
+cdef class GaussianHMMCPUImpl:
     cdef list sequences
     cdef int n_sequences
     cdef np.ndarray seq_lengths
     cdef int n_states, n_features
     cdef float** seq_pointers
-    cdef np.ndarray means, variances, log_transmat, log_transmat_T, log_startprob
+    cdef np.ndarray means, vars, log_transmat, log_transmat_T, log_startprob
 
     def __cinit__(self, n_states, n_features):
         self.n_states = n_states
@@ -70,16 +71,16 @@ cdef class CPUGaussianHMM:
         def __get__(self):
             return self.means
 
-    property variances_:
+    property vars_:
         def __set__(self, value):
             cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] v = np.asarray(value, order='c', dtype=np.float32)
             if (v.shape[0] != self.n_states) or (v.shape[1] != self.n_features):
                 raise TypeError('Variances must have shape (%d, %d), You supplied (%d, %d)' %
                                 (self.n_states, self.n_features, v.shape[0], v.shape[1]))
-            self.variances = v
+            self.vars = v
         
         def __get__(self):
-            return self.variances
+            return self.vars
     
     property transmat_:
         def __set__(self, value):
@@ -104,28 +105,25 @@ cdef class CPUGaussianHMM:
                                 (self.n_states, s.shape[0]))
             self.log_startprob = np.log(s)
 
-    def fit(self, sequences):
-        self._sequences = sequences
-        for i in range(2):
-            self._do_estep()
 
-    def _do_estep(self):
+    def do_estep(self):
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat = self.log_transmat
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat_T = self.log_transmat_T
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = self.means
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] variances = self.variances
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] vars = self.vars
         cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = self.seq_lengths
 
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts = np.zeros((self.n_states, self.n_states), dtype=np.float32)
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs = np.zeros((self.n_states, self.n_features), dtype=np.float32)
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs2 = np.zeros((self.n_states, self.n_features), dtype=np.float32)
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post = np.zeros(self.n_states, dtype=np.float32)
+        cdef float logprob
 
-        do_estep(&log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0], &variances[0,0],
+        do_estep(&log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0], &vars[0,0],
                  <const float**> self.seq_pointers, self.n_sequences, &seq_lengths[0], self.n_features, self.n_states,
-                 &transcounts[0,0], &obs[0,0], &obs2[0,0], &post[0])
-        return {'trans': transcounts, 'obs': obs, 'obs**2': obs2, 'post': post}
+                 &transcounts[0,0], &obs[0,0], &obs2[0,0], &post[0], &logprob)
+        return logprob, {'trans': transcounts, 'obs': obs, 'obs**2': obs2, 'post': post}
         
 
 

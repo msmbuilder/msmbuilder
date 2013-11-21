@@ -134,7 +134,7 @@ def locate_cuda():
             raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
 
     return cudaconfig
-CUDA = locate_cuda()
+
 
 # run the customize_compiler
 class custom_build_ext(build_ext):
@@ -217,53 +217,64 @@ def detect_openmp():
     return hasopenmp, needs_gomp
 
 
-_hmm = Extension('mixtape._hmm',
-                 sources=['mixtape/_hmm.'+cython_extension],
-                 libraries=['m'],
-                 include_dirs=[np.get_include()])
-
-_vmhmm = Extension('mixtape._vmhmm',
-                   sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+cython_extension,
-                            'src/vonmises/spleval.c',
-                            'src/cephes/i0.c', 'src/cephes/chbevl.c'],
-                   libraries=['m'],
-                   include_dirs=[np.get_include(), 'src/cephes'])
-
-_gamma = Extension('mixtape._gamma',
-                      sources=['src/gamma/gammawrap.'+cython_extension,
-                               'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
-                               'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
-                               'src/cephes/mtherr.c', 'src/cephes/gamma.c'],
-                      libraries=['m'],
-                      extra_compile_args=['--std=c99', '-Wall'],
-                      include_dirs=[np.get_include(), 'src/cephes'])
-
-_cudahmm = Extension('mixtape._cudahmm',
-                     language="c++",
-                     library_dirs=[CUDA['lib64']],
-                     libraries=['cudart', 'cublas'],
-                     runtime_library_dirs=[CUDA['lib64']],
-                     extra_compile_args={'gcc': [],
-                                         'nvcc': ['-arch=sm_30', '-G', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
-                     sources=['platforms/cuda/wrappers/CUDAGaussianHMM.pyx',
-                              'platforms/cuda/src/CUDAGaussianHMM.cu'],
-                     include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels'])
-
 openmp_enabled, needs_gomp = detect_openmp()
 extra_compile_args = []
 if openmp_enabled:
     extra_compile_args.append('-fopenmp')
 libraries = ['gomp'] if needs_gomp else []
+extensions = []
 
-_cpuhmm = Extension('mixtape._cpuhmm',
-                    language='c++',
-                    sources=['platforms/cpu/wrappers/CPUGaussianHMM.pyx'] +
-                              glob.glob('platforms/cpu/kernels/*.c'),
-                    extra_compile_args=extra_compile_args,
-                    libraries=libraries,
-                    include_dirs=[np.get_include(),
-                                  'platforms/cpu/kernels',
-                                  'platforms/cpu/kernels/include/'])
+extensions.append(
+    Extension('mixtape._reversibility',
+              sources=['src/reversibility.pyx'],
+              libraries=['m'],
+              include_dirs=[np.get_include()]))
+
+extensions.append(
+    Extension('mixtape._hmm',
+              language='c++',
+              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
+                        glob.glob('platforms/cpu/kernels/*.c'),
+              libraries=libraries,
+              extra_compile_args=extra_compile_args,
+              include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
+                            'platforms/cpu/kernels/']))
+
+extensions.append(
+    Extension('mixtape._vmhmm',
+              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+cython_extension,
+                       'src/vonmises/spleval.c',
+                       'src/cephes/i0.c', 'src/cephes/chbevl.c'],
+              libraries=['m'],
+              include_dirs=[np.get_include(), 'src/cephes']))
+
+extensions.append(
+    Extension('mixtape._gamma',
+              sources=['src/gamma/gammawrap.'+cython_extension,
+                       'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
+                       'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
+                       'src/cephes/mtherr.c', 'src/cephes/gamma.c'],
+              libraries=['m'],
+              extra_compile_args=['--std=c99', '-Wall'],
+              include_dirs=[np.get_include(), 'src/cephes']))
+
+
+try:
+    CUDA = locate_cuda()
+    extensionsa.append(
+        Extension('mixtape._cudahmm',
+                  language="c++",
+                  library_dirs=[CUDA['lib64']],
+                  libraries=['cudart', 'cublas'],
+                  runtime_library_dirs=[CUDA['lib64']],
+                  extra_compile_args={'gcc': [],
+                                      'nvcc': ['-arch=sm_30', '-G', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+                  sources=['platforms/cuda/wrappers/CUDAGaussianHMM.pyx',
+                           'platforms/cuda/src/CUDAGaussianHMM.cu'],
+                  include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels']))
+
+except EnvironmentError as e:
+    print(e)
 
 
 write_spline_data()
@@ -278,5 +289,5 @@ setup(name='mixtape',
       classifiers=CLASSIFIERS.splitlines(),
       packages=['mixtape'],
       zip_safe=False,
-      ext_modules=[_hmm, _vmhmm, _gamma, _cudahmm, _cpuhmm],
+      ext_modules=extensions,
       cmdclass={'build_ext': custom_build_ext})

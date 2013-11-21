@@ -31,7 +31,7 @@ cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
         void getStatsTransCounts(float* out)
 
 
-cdef class CUDAGaussianHMM:
+cdef class GaussianHMMCPUImpl:
     cdef CPPCUDAGaussianHMM *thisptr
     cdef list sequences
     cdef int n_sequences, n_observations, n_states, n_features

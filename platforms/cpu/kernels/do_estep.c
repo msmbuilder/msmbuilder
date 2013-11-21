@@ -24,7 +24,8 @@ void do_estep(const float* __restrict__ log_transmat,
               float* __restrict__ transcounts,
               float* __restrict__ obs,
               float* __restrict__ obs2,
-              float* __restrict__ post)
+              float* __restrict__ post,
+              float* logprob)
 {
     int i, j, k;
     const float alpha = 1.0;
@@ -74,7 +75,7 @@ void do_estep(const float* __restrict__ log_transmat,
         compute_posteriors(fwdlattice, bwdlattice, sequence_lengths[i], n_states, posteriors);
 
         // Compute sufficient statistics for this sequence
-        transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts);
+        transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, logprob);
         sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features,
               posteriors, &n_states, &beta, seq_obs, &n_features);
         sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features,
