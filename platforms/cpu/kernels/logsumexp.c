@@ -38,7 +38,6 @@ float logsumexp(const float* __restrict__ buf, int N) {
     if (N > 0) {
         X = buf;
         if (nu != 0) {
-            StX = buf + nu;
             _v = _mm_loadu_ps(X);
             X += 4;
             while (X != StX) {
@@ -55,7 +54,6 @@ float logsumexp(const float* __restrict__ buf, int N) {
 
         X = buf;
         if (nu != 0) {
-            StX = X + nu;
             _m = _mm_load1_ps(&max);
             _v = exp_ps(_mm_sub_ps(_mm_loadu_ps(X), _m));
             X += 4;

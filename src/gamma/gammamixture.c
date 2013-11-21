@@ -46,7 +46,8 @@ int gamma_mixture(const float* __restrict__ X, const int n_samples, const int n_
     int err_1, err_2, err_3, err_4, err_5, err_6, err_7;
     float temp_logg_j;
     double logsumexp_logg, p;
-    double alpha_argument, new_alpha, logl;
+    double alpha_argument, new_alpha;
+    double logl = 0;
     double old_logl = 0;
 
     aligned_float * __restrict__ log_X;
