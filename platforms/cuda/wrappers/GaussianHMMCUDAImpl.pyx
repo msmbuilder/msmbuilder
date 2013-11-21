@@ -1,3 +1,10 @@
+#################################################################
+#    Copyright (c) 2013, Stanford University and the Authors    #
+#    Author: Robert McGibbon <rmcgibbo@gmail.com>               #
+#    Contributors:                                              #
+#                                                               #
+#################################################################
+
 from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as np

@@ -1,3 +1,10 @@
+#################################################################
+#    Copyright (c) 2013, Stanford University and the Authors    #
+#    Author: Robert McGibbon <rmcgibbo@gmail.com>               #
+#    Contributors:                                              #
+#                                                               #
+#################################################################
+
 import numpy as np
 cimport numpy as np
 from cython.parallel cimport prange

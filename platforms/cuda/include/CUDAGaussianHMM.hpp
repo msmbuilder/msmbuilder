@@ -1,3 +1,10 @@
+/*****************************************************************/
+/*    Copyright (c) 2013, Stanford University and the Authors    */
+/*    Author: Robert McGibbon <rmcgibbo@gmail.com>               */
+/*    Contributors:                                              */
+/*                                                               */
+/*****************************************************************/
+
 #ifndef MIXTAPE_CUDAGAUSSIANHMM_H
 #define MIXTAPE_CUDAGAUSSIANHMM_H
 #include <stdlib.h>
