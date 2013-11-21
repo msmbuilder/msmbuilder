@@ -49,12 +49,12 @@ void do_estep(const float* __restrict__ log_transmat,
     }
 
     #ifdef _OPENMP
-    #pragma omp parallel for shared(means_over_variances, means2_over_variances, log_variances)
+    #pragma omp parallel for shared(means_over_variances, means2_over_variances, log_variances) \
+        private(sequence, sequence2, framelogprob, fwdlattice, bwdlattice, posteriors, seq_transcounts, seq_obs, seq_obs2, seq_post)
     #endif
     for (i = 0; i < n_sequences; i++) {
         sequence = sequences[i];
         sequence2 = (float*) malloc(sequence_lengths[i]*n_features*sizeof(float));
-        framelogprob = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         framelogprob = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         fwdlattice = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         bwdlattice = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
@@ -109,6 +109,7 @@ void do_estep(const float* __restrict__ log_transmat,
         }
 
         // Free iteration-local memory
+        free(sequence2);
         free(framelogprob);
         free(fwdlattice);
         free(bwdlattice);

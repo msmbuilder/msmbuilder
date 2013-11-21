@@ -15,11 +15,6 @@ int sgemm(const char *transa, const char *transb, const int *m,
           const int *ldb, const float *beta, float *c, const int *ldc)
 {
 
-
-    /* System generated locals */
-    int i__1, i__2, i__3;
-        
-
     /* Local variables */
     static int info;
     static int nota, notb;
@@ -244,9 +239,7 @@ int sgemm(const char *transa, const char *transb, const int *m,
 
     if (*alpha == 0.f) {
 	if (*beta == 0.f) {
-	    i__1 = *n;
 	    for (j = 1; j <= *n; ++j) {
-		i__2 = *m;
 		for (i = 1; i <= *m; ++i) {
 		    C(i,j) = 0.f;
 /* L10: */
@@ -254,9 +247,7 @@ int sgemm(const char *transa, const char *transb, const int *m,
 /* L20: */
 	    }
 	} else {
-	    i__1 = *n;
 	    for (j = 1; j <= *n; ++j) {
-		i__2 = *m;
 		for (i = 1; i <= *m; ++i) {
 		    C(i,j) = *beta * C(i,j);
 /* L30: */
@@ -274,26 +265,21 @@ int sgemm(const char *transa, const char *transb, const int *m,
 
 /*           Form  C := alpha*A*B + beta*C. */
 
-	    i__1 = *n;
 	    for (j = 1; j <= *n; ++j) {
 		if (*beta == 0.f) {
-		    i__2 = *m;
 		    for (i = 1; i <= *m; ++i) {
 			C(i,j) = 0.f;
 /* L50: */
 		    }
 		} else if (*beta != 1.f) {
-		    i__2 = *m;
 		    for (i = 1; i <= *m; ++i) {
 			C(i,j) = *beta * C(i,j);
 /* L60: */
 		    }
 		}
-		i__2 = *k;
 		for (l = 1; l <= *k; ++l) {
 		    if (B(l,j) != 0.f) {
 			temp = *alpha * B(l,j);
-			i__3 = *m;
 			for (i = 1; i <= *m; ++i) {
 			    C(i,j) += temp * A(i,l);
 /* L70: */
@@ -307,12 +293,9 @@ int sgemm(const char *transa, const char *transb, const int *m,
 
 /*           Form  C := alpha*A'*B + beta*C */
 
-	    i__1 = *n;
 	    for (j = 1; j <= *n; ++j) {
-		i__2 = *m;
 		for (i = 1; i <= *m; ++i) {
 		    temp = 0.f;
-		    i__3 = *k;
 		    for (l = 1; l <= *k; ++l) {
 			temp += A(l,i) * B(l,j);
 /* L100: */
@@ -332,26 +315,21 @@ int sgemm(const char *transa, const char *transb, const int *m,
 
 /*           Form  C := alpha*A*B' + beta*C */
 
-	    i__1 = *n;
 	    for (j = 1; j <= *n; ++j) {
 		if (*beta == 0.f) {
-		    i__2 = *m;
 		    for (i = 1; i <= *m; ++i) {
 			C(i,j) = 0.f;
 /* L130: */
 		    }
 		} else if (*beta != 1.f) {
-		    i__2 = *m;
 		    for (i = 1; i <= *m; ++i) {
 			C(i,j) = *beta * C(i,j);
 /* L140: */
 		    }
 		}
-		i__2 = *k;
 		for (l = 1; l <= *k; ++l) {
 		    if (B(j,l) != 0.f) {
 			temp = *alpha * B(j,l);
-			i__3 = *m;
 			for (i = 1; i <= *m; ++i) {
 			    C(i,j) += temp * A(i,l);
 /* L150: */
@@ -365,12 +343,9 @@ int sgemm(const char *transa, const char *transb, const int *m,
 
 /*           Form  C := alpha*A'*B' + beta*C */
 
-	    i__1 = *n;
 	    for (j = 1; j <= *n; ++j) {
-		i__2 = *m;
 		for (i = 1; i <= *m; ++i) {
 		    temp = 0.f;
-		    i__3 = *k;
 		    for (l = 1; l <= *k; ++l) {
 			temp += A(l,i) * B(j,l);
 /* L180: */
