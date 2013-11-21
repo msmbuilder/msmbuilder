@@ -4,10 +4,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void gaussian_loglikelihood_diag(const float* __restrict__ sequences, const float* __restrict__ means,
-                                 const float* __restrict__ variances, const size_t n_trajs,
-                                 const size_t* __restrict__ n_observations, const size_t n_states, const size_t n_features,
-                                     float* __restrict__ loglikelihoods);
+
+void gaussian_loglikelihood_diag(const float* __restrict__ sequence,
+                                 const float* __restrict__ sequence2,
+                                 const float* __restrict__ means,
+                                 const float* __restrict__ variances,
+                                 const float* __restrict__ means_over_variances,
+                                 const float* __restrict__ means2_over_variances,
+                                 const float* __restrict__ log_variances,
+                                 const int n_observations,
+                                 const int n_states, const int n_features,
+                                 float* __restrict__ loglikelihoods);
+
 #ifdef __cplusplus
 }
 #endif

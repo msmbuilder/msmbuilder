@@ -55,7 +55,7 @@ cdef class CUDAGaussianHMM:
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c',
                                           dtype=np.float32)
-                S = value[i]
+                S = self.sequences[i]
                 seq_pointers[i] = &S[0,0]
                 seq_lengths[i] = len(S)
                 if self.n_features != S.shape[1]:

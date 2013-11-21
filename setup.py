@@ -18,6 +18,7 @@ DOCLINES = __doc__.split("\n")
 
 import os
 import sys
+import glob
 import numpy as np
 from distutils.spawn import find_executable                     
 try:
@@ -195,8 +196,14 @@ _cudahmm = Extension('mixtape._cudahmm',
                      sources=['platforms/cuda/wrappers/CUDAGaussianHMM.pyx',
                               'platforms/cuda/src/CUDAGaussianHMM.cu'],
                      include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels'])
-                                   
 
+_cpuhmm = Extension('mixtape._cpuhmm',
+                    language='c++',
+                    sources=['platforms/cpu/wrappers/CPUGaussianHMM.pyx'] +
+                              glob.glob('platforms/cpu/kernels/*.c'),
+                    include_dirs=[np.get_include(),
+                                  'platforms/cpu/kernels',
+                                  'platforms/cpu/kernels/include/'])
 
 
 write_spline_data()
@@ -211,5 +218,5 @@ setup(name='mixtape',
       classifiers=CLASSIFIERS.splitlines(),
       packages=['mixtape'],
       zip_safe=False,
-      ext_modules=[_hmm, _vmhmm, _gamma, _cudahmm],
+      ext_modules=[_hmm, _vmhmm, _gamma, _cudahmm, _cpuhmm],
       cmdclass={'build_ext': custom_build_ext})

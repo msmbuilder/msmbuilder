@@ -1,10 +1,17 @@
 #include <emmintrin.h>
+#include "logsumexp.h"
 #include "float.h"
 #include <stdio.h>
 #include <math.h>
 #include "sse_mathfun.h"
 
-float logsumexp(float* buf, int N) {
+float logsumexp2(float v1, float v2) {
+    float max = (((v1) > (v2)) ? (v1) : (v2));
+    return log(exp(v1-max) + exp(v2-max)) + max;
+}
+
+
+float logsumexp(const float* __restrict__ buf, int N) {
     int i;
     int nu = (( N >> 2 ) << 2 );
     float* StX = buf + nu;

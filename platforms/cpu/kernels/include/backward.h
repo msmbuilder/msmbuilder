@@ -5,11 +5,13 @@
 extern "C" {
 #endif
 
-// Note that here, we use the log transition matrix, whereas
-// in the forward kernel we use its transpose
-void do_backward(const float* __restrict__ log_transmat, const float* __restrict__ log_startprob,
-                  const float* __restrict__ frame_logprob, const size_t n_trajs, const size_t* __restrict__ n_observations,
-              const size_t n_states, float* __restrict__ bwdlattice);
+void backward(const float* __restrict__ log_transmat,
+              const float* __restrict__ log_startprob,
+              const float* __restrict__ frame_logprob,
+              const int sequence_length,
+              const int n_states,
+              float* __restrict__ bwdlattice);
+
 #ifdef __cplusplus
 }
 #endif
