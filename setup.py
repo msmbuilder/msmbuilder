@@ -25,6 +25,7 @@ import subprocess
 from distutils.ccompiler import new_compiler
 from distutils.spawn import find_executable
 import numpy as np
+
 try:
     from setuptools import setup, Extension
 except ImportError:
@@ -33,10 +34,12 @@ except ImportError:
 try:
     from Cython.Distutils import build_ext
     setup_kwargs = {'cmdclass': {'build_ext': build_ext}}
-    cython_extension = 'pyx'
+    ccython_extension = 'pyx'
+    cppcython_extension = 'pyx'
 except ImportError:
     setup_kwargs = {}
-    cython_extension = 'c'
+    ccython_extension = 'c'
+    cppython_extension = 'cpp'
 
 ##########################
 __version__ = 0.1
@@ -226,14 +229,14 @@ extensions = []
 
 extensions.append(
     Extension('mixtape._reversibility',
-              sources=['src/reversibility.pyx'],
+              sources=['src/reversibility.'+ccython_extension],
               libraries=['m'],
               include_dirs=[np.get_include()]))
 
 extensions.append(
     Extension('mixtape._hmm',
               language='c++',
-              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
+              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.'+cppcython_extension] +
                         glob.glob('platforms/cpu/kernels/*.c'),
               libraries=libraries,
               extra_compile_args=extra_compile_args,
@@ -242,7 +245,7 @@ extensions.append(
 
 extensions.append(
     Extension('mixtape._vmhmm',
-              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+cython_extension,
+              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+ccython_extension,
                        'src/vonmises/spleval.c',
                        'src/cephes/i0.c', 'src/cephes/chbevl.c'],
               libraries=['m'],
@@ -250,7 +253,7 @@ extensions.append(
 
 extensions.append(
     Extension('mixtape._gamma',
-              sources=['src/gamma/gammawrap.'+cython_extension,
+              sources=['src/gamma/gammawrap.'+ccython_extension,
                        'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
                        'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
                        'src/cephes/mtherr.c', 'src/cephes/gamma.c'],
@@ -261,7 +264,7 @@ extensions.append(
 
 try:
     CUDA = locate_cuda()
-    extensionsa.append(
+    extensions.append(
         Extension('mixtape._cudahmm',
                   language="c++",
                   library_dirs=[CUDA['lib64']],
@@ -269,7 +272,7 @@ try:
                   runtime_library_dirs=[CUDA['lib64']],
                   extra_compile_args={'gcc': [],
                                       'nvcc': ['-arch=sm_30', '-G', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
-                  sources=['platforms/cuda/wrappers/CUDAGaussianHMM.pyx',
+                  sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.'+cppcython_extension,
                            'platforms/cuda/src/CUDAGaussianHMM.cu'],
                   include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels']))
 

@@ -31,7 +31,7 @@ cdef extern from "CUDAGaussianHMM.hpp" namespace "Mixtape":
         void getStatsTransCounts(float* out)
 
 
-cdef class GaussianHMMCPUImpl:
+cdef class GaussianHMMCUDAImpl:
     cdef CPPCUDAGaussianHMM *thisptr
     cdef list sequences
     cdef int n_sequences, n_observations, n_states, n_features
@@ -82,7 +82,7 @@ cdef class GaussianHMMCPUImpl:
                                 (self.n_states, self.n_features, m.shape[0], m.shape[1]))
             self.thisptr.setMeans(&m[0,0])
 
-    property variances_:
+    property vars_:
         def __get__(self):
             cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] v = np.zeros((self.n_states, self.n_features), dtype=np.float32)
             self.thisptr.getVariances(&v[0,0])
@@ -122,7 +122,7 @@ cdef class GaussianHMMCPUImpl:
                                 (self.n_states, s.shape[0]))
             self.thisptr.setStartProb(&s[0])
 
-    def _do_estep(self):
+    def do_estep(self):
         self.thisptr.computeEStep()
         self.thisptr.initializeSufficientStatistics()
         self.thisptr.computeSufficientStatistics()
