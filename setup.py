@@ -20,6 +20,7 @@ import os
 import sys
 import glob
 import shutil
+import textwrap
 import tempfile
 import subprocess
 from distutils.ccompiler import new_compiler
@@ -207,7 +208,7 @@ def hasfunction(cc, funcname, include=None, extra_postargs=None):
 def detect_openmp():
     "Does this compiler support OpenMP parallelization?"
     compiler = new_compiler()
-    print('Attempting to autodetect OpenMP support...', end=' ')
+    print('\n\033[95mAttempting to autodetect OpenMP support...\033[0m')
     hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
     needs_gomp = hasopenmp
     if not hasopenmp:
@@ -216,9 +217,9 @@ def detect_openmp():
         needs_gomp = hasopenmp
     print
     if hasopenmp:
-        print('Compiler supports OpenMP')
+        print('\033[92mCompiler supports OpenMP\033[0m\n')
     else:
-        print('Did not detect OpenMP support; parallel RMSD disabled')
+        print('\033[91mDid not detect OpenMP support; parallel support disabled\033[0m\n')
     return hasopenmp, needs_gomp
 
 
@@ -279,9 +280,9 @@ try:
                   include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels']))
 
 except EnvironmentError as e:
-    print('\033[91m', '#'*60)
-    print(e)
-    print('#'*60, '\033[0m')
+    print('\033[91m%s' % '#'*60)
+    print("\n".join(textwrap.wrap(str(e), 60)))
+    print('#'*60, '\033[0m\n')
 
 
 write_spline_data()
