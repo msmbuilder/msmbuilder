@@ -16,11 +16,11 @@ int sgemm(const char *transa, const char *transb, const int *m,
 {
 
     /* Local variables */
-    static int info;
-    static int nota, notb;
-    static float temp;
-    static int i, j, l, ncola;
-    static int nrowa, nrowb;
+    int info;
+    int nota, notb;
+    float temp;
+    int i, j, l, ncola;
+    int nrowa, nrowb;
 
 
 /*  Purpose   
@@ -384,7 +384,7 @@ static int lsame_(const char *ca, const char *cb)
     int ret_val;
 
     /* Local variables */
-    static int inta, intb, zcode;
+    int inta, intb, zcode;
 
 
 /*  -- LAPACK auxiliary routine (version 2.0) --   

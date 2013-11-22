@@ -207,27 +207,29 @@ class GaussianFusionHMM(object):
 
         if 'm' in params:
             means = stats['obs'] / denom  # unregularized means
-            strength = self.fusion_prior / getdiff(means)  # adaptive regularization strength
-            rhs =  stats['obs'] / self.vars_
-            for i in range(self.n_features):
-                np.fill_diagonal(strength[i], 0)
 
-            for s in range(self.n_lqa_iter):
-                diff = getdiff(means)
-                if np.all(diff <= difference_cutoff):
-                    break
-                offdiagonal = -strength / diff
-                diagonal_penalty = np.sum(strength/diff, axis=2)
-                for f in range(self.n_features):
-                    if np.all(diff[f] <= difference_cutoff):
-                        continue
-                    ridge_approximation = np.diag(stats['post'] / self.vars_[:, f] + diagonal_penalty[f]) + offdiagonal[f]
-                    means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
+            if self.fusion_prior > 0 and self.n_lqa_iter > 0:
+                strength = self.fusion_prior / getdiff(means)  # adaptive regularization strength
+                rhs =  stats['obs'] / self.vars_
+                for i in range(self.n_features):
+                    np.fill_diagonal(strength[i], 0)
 
-            for i in range(self.n_features):
-                for k, j in zip(*np.triu_indices(self.n_states)):
-                    if diff[i, k, j] <= difference_cutoff:
-                        means[k, i] = means[j, i]
+                for s in range(self.n_lqa_iter):
+                    diff = getdiff(means)
+                    if np.all(diff <= difference_cutoff):
+                        break
+                    offdiagonal = -strength / diff
+                    diagonal_penalty = np.sum(strength/diff, axis=2)
+                    for f in range(self.n_features):
+                        if np.all(diff[f] <= difference_cutoff):
+                            continue
+                        ridge_approximation = np.diag(stats['post'] / self.vars_[:, f] + diagonal_penalty[f]) + offdiagonal[f]
+                        means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
+
+                for i in range(self.n_features):
+                    for k, j in zip(*np.triu_indices(self.n_states)):
+                        if diff[i, k, j] <= difference_cutoff:
+                            means[k, i] = means[j, i]
             self.means_ = means
 
         if 'v' in params:
@@ -248,6 +250,7 @@ class GaussianFusionHMM(object):
         return self._means_
     @means_.setter
     def means_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
         self._means_ = value
         self._impl.means_ = value
 
@@ -256,22 +259,25 @@ class GaussianFusionHMM(object):
         return self._vars_
     @vars_.setter
     def vars_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
         self._vars_ = value
         self._impl.vars_ = value
-        
+
     @property
     def transmat_(self):
         return self._transmat_
     @transmat_.setter
     def transmat_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
         self._transmat_ = value
         self._impl.transmat_ = value
-    
+
     @property
     def populations_(self):
         return self._populations_
     @populations_.setter
     def populations_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
         self._populations_ = value
         self._impl.startprob_ = value
 
@@ -304,4 +310,3 @@ class GaussianFusionHMM(object):
         eigvals = np.linalg.eigvals(self.transmat_)
         np.sort(eigvals)
         return -1 / np.log(eigvals[:-1])
-

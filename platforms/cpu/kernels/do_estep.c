@@ -7,13 +7,15 @@
 
 #include "stdlib.h"
 #include "stdio.h"
+#ifdef _OPENMP
 #include "omp.h"
+#endif
 #include "math.h"
 
 #include "gaussian_likelihood.h"
 #include "forward.h"
 #include "backward.h"
-#include "posteriors.h"                 
+#include "posteriors.h"
 #include "transitioncounts.h"
 #include "sgemm.h"
 
@@ -35,19 +37,19 @@ void do_estep(const float* __restrict__ log_transmat,
               float* logprob)
 {
     int i, j, k;
+    float tlocallogprob;
     const float alpha = 1.0;
     const float beta = 1.0;
     const float *sequence;
     float *sequence2;
     float *means_over_variances, *means2_over_variances, *log_variances;
     float *framelogprob, *fwdlattice, *bwdlattice, *posteriors, *seq_transcounts, *seq_obs, *seq_obs2, *seq_post;
-    
+
     means_over_variances = (float*) malloc(n_states*n_features*sizeof(float));
     means2_over_variances = (float*) malloc(n_states*n_features*sizeof(float));
     log_variances = (float*) malloc(n_states*n_features*sizeof(float));
     if (means2_over_variances == NULL || means2_over_variances == NULL || log_variances == NULL) {
-        fprintf(stderr, "Memory allocation failure");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "Memory allocation failure in %s at %d\n", __FILE__, __LINE__); exit(EXIT_FAILURE);
     }
     for (i = 0; i < n_states*n_features; i++) {
         means_over_variances[i] = means[i] / variances[i];
@@ -56,8 +58,14 @@ void do_estep(const float* __restrict__ log_transmat,
     }
 
     #ifdef _OPENMP
-    #pragma omp parallel for shared(means_over_variances, means2_over_variances, log_variances) \
-        private(sequence, sequence2, framelogprob, fwdlattice, bwdlattice, posteriors, seq_transcounts, seq_obs, seq_obs2, seq_post)
+    #pragma omp parallel for default(none)                                  \
+        shared(log_transmat, log_transmat_T, log_startprob, means,          \
+               variances, sequences, sequence_lengths, transcounts,         \
+               obs, obs2, post, logprob, means_over_variances,              \
+               means2_over_variances, log_variances, stderr)                \
+        private(sequence, sequence2, framelogprob, fwdlattice, bwdlattice,  \
+                posteriors, seq_transcounts, seq_obs, seq_obs2, seq_post,   \
+                tlocallogprob, j, k)
     #endif
     for (i = 0; i < n_sequences; i++) {
         sequence = sequences[i];
@@ -70,50 +78,51 @@ void do_estep(const float* __restrict__ log_transmat,
         seq_obs = (float*) calloc(n_states*n_features, sizeof(float));
         seq_obs2 = (float*) calloc(n_states*n_features, sizeof(float));
         seq_post = (float*) calloc(n_states, sizeof(float));
+        if (sequence2==NULL || framelogprob == NULL || fwdlattice == NULL || bwdlattice == NULL || posteriors == NULL
+            || seq_transcounts == NULL || seq_obs == NULL || seq_obs2 ==NULL || seq_post == NULL) {
+            fprintf(stderr, "Memory allocation failure in %s at %d\n", __FILE__, __LINE__); exit(EXIT_FAILURE);
+        }
+
         for (j = 0; j < sequence_lengths[i]*n_features; j++)
             sequence2[j] = sequence[j]*sequence[j];
 
         // Do work for this sequence
         gaussian_loglikelihood_diag(sequence, sequence2, means, variances,
                                     means_over_variances, means2_over_variances, log_variances,
-                                    sequence_lengths[i], n_states, n_features, framelogprob);
+                                    sequence_lengths[i], n_states, n_features,framelogprob);
+
         forward(log_transmat_T, log_startprob, framelogprob, sequence_lengths[i], n_states, fwdlattice);
         backward(log_transmat, log_startprob, framelogprob, sequence_lengths[i], n_states, bwdlattice);
         compute_posteriors(fwdlattice, bwdlattice, sequence_lengths[i], n_states, posteriors);
 
         // Compute sufficient statistics for this sequence
-        transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, logprob);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features,
-              posteriors, &n_states, &beta, seq_obs, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features,
-              posteriors, &n_states, &beta, seq_obs2, &n_features);
+        tlocallogprob = 0;
+        transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
+        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
+        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
         for (k = 0; k < n_states; k++)
             for (j = 0; j < sequence_lengths[i]; j++)
                 seq_post[k] += posteriors[j*n_states + k];
 
         // Update the sufficient statistics. This needs to be threadsafe.
+        #ifdef _OPENMP
+        #pragma omp critical
+        {
+        #endif
+        *logprob += tlocallogprob;
         for (j = 0; j < n_states; j++) {
-            #ifdef _OPENMP
-            #pragma omp atomic
-            #endif
             post[j] += seq_post[j];
             for (k = 0; k < n_features; k++) {
-                #ifdef _OPENMP
-                #pragma omp atomic
-                #endif
                 obs[j*n_features+k] += seq_obs[j*n_features+k];
-                #ifdef _OPENMP
-                #pragma omp atomic
-                #endif
                 obs2[j*n_features+k] += seq_obs2[j*n_features+k];
             }
             for (k = 0; k < n_states; k++) {
-                #ifdef _OPENMP
-                #pragma omp atomic
-                #endif
                 transcounts[j*n_states+k] += seq_transcounts[j*n_states+k];
             }
         }
+        #ifdef _OPENMP
+        }
+        #endif
 
         // Free iteration-local memory
         free(sequence2);
@@ -131,4 +140,3 @@ void do_estep(const float* __restrict__ log_transmat,
     free(means2_over_variances);
     free(log_variances);
 }
-
