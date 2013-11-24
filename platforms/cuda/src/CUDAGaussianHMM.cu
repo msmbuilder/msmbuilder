@@ -418,13 +418,13 @@ float CUDAGaussianHMM::computeSufficientStatistics() {
             d_transcounts_, d_logprob_);
         break;
     case 8:    
-        transitioncounts4_8_16<4, 256><<<max(1, n_sequences_/16), 256>>>(
+        transitioncounts4_8_16<8, 256><<<max(1, n_sequences_/16), 256>>>(
             d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_transcounts_, d_logprob_);
         break;
     case 16:    
-        transitioncounts4_8_16<4, 256><<<max(1, n_sequences_/16), 256>>>(
+        transitioncounts4_8_16<16, 256><<<max(1, n_sequences_/16), 256>>>(
             d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_transcounts_, d_logprob_);
