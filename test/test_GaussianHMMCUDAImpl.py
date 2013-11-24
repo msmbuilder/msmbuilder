@@ -29,6 +29,7 @@ def test_1():
 
 
 def test_2():
+    np.random.seed(42)
     n_features = 32
     length = 100
 
@@ -60,33 +61,30 @@ def test_2():
 
         framelogprob = pyhmm._compute_log_likelihood(t1)
         cuframelogprob = cuhmm._get_framelogprob()
-        #yield lambda: np.testing.assert_array_almost_equal(framelogprob, cuframelogprob, decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(framelogprob, cuframelogprob, decimal=3)
 
         fwdlattice = pyhmm._do_forward_pass(framelogprob)[1]
         cufwdlattice = cuhmm._get_fwdlattice()
-        #yield lambda: np.testing.assert_array_almost_equal(fwdlattice, cufwdlattice, decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(fwdlattice, cufwdlattice, decimal=3)
 
         bwdlattice = pyhmm._do_backward_pass(framelogprob)
         cubwdlattice = cuhmm._get_bwdlattice()
-        #yield lambda: np.testing.assert_array_almost_equal(bwdlattice, cubwdlattice, decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(bwdlattice, cubwdlattice, decimal=3)
 
         gamma = fwdlattice + bwdlattice
         posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
         cuposteriors = cuhmm._get_posteriors()
-        #yield lambda: np.testing.assert_array_almost_equal(posteriors, cuposteriors, decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(posteriors, cuposteriors, decimal=3)
 
         stats = pyhmm._initialize_sufficient_statistics()
         pyhmm._accumulate_sufficient_statistics(
             stats, t1, framelogprob, posteriors, fwdlattice,
             bwdlattice, 'stmc')
 
-        print 'python trans\n', stats['trans']
-        print 'cuda trans\n', custats['trans']
-        print 'difference\n', np.abs(stats['trans'] - custats['trans'])
         yield lambda: np.testing.assert_array_almost_equal(stats['trans'], custats['trans'], decimal=3)
-        #yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=3)
-        #yield lambda: np.testing.assert_array_almost_equal(stats['obs'], custats['obs'], decimal=3)
-        #yield lambda: np.testing.assert_array_almost_equal(stats['obs**2'], custats['obs**2'], decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(stats['obs'], custats['obs'], decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(stats['obs**2'], custats['obs**2'], decimal=3)
 
 
 

@@ -11,19 +11,19 @@ def test_1():
         hmm = GaussianHMMCPUImpl(n_states, n_features)
         hmm._sequences = [t1]
         
-        means = np.random.randn(n_states, n_features)
+        means = np.random.randn(n_states, n_features).astype(np.float32)
         hmm.means_ = means
         yield lambda: np.testing.assert_array_almost_equal(hmm.means_, means)
 
-        vars = np.random.rand(n_states, n_features)
+        vars = np.random.rand(n_states, n_features).astype(np.float32)
         hmm.vars_ = vars
         yield lambda: np.testing.assert_array_almost_equal(hmm.vars_, vars)
 
-        transmat = np.random.rand(n_states, n_states)
+        transmat = np.random.rand(n_states, n_states).astype(np.float32)
         hmm.transmat_ = transmat
         yield lambda: np.testing.assert_array_almost_equal(hmm.transmat_, transmat)
 
-        startprob = np.random.rand(n_states)
+        startprob = np.random.rand(n_states).astype(np.float32)
         hmm.startprob_ = startprob
         yield lambda: np.testing.assert_array_almost_equal(hmm.startprob_, startprob)
 

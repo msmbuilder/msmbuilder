@@ -1,10 +1,5 @@
 #include "stdio.h"
-
-// Compile-time static assert
-// Usage: static_assert<1<2>::valid_expression();
-template <bool b> struct static_assert{};
-template <> struct static_assert<true> { __device__ static void valid_expression() {}; };
-
+#include "staticassert.cuh"
 
 /**
  * Compute a set of specialized matrix-matrix products of the form
