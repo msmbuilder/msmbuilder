@@ -11,6 +11,7 @@
 #include <vector>
 #include <limits>
 #include <string>
+#define CUDA_ERROR_CHECK
 #include "safecuda.hpp"
 #include "MixtapeException.hpp"
 #include "CUDAGaussianHMM.hpp"
@@ -21,6 +22,8 @@
 #include "gaussian_likelihood.cu"
 #include "posteriors.cu"
 #include "expectedtransitions.cu"
+#include "sufficientstatistics.cu"
+
 #define TIMING
 #define TIMING_SETUP() cudaEvent_t start, stop; float time; cudaEventCreate(&start); cudaEventCreate(&stop)
 #define TIMING_PROLOGUE() cudaEventRecord(start, 0)
@@ -157,14 +160,15 @@ float CUDAGaussianHMM::computeEStep() {
     switch (n_pstates_) {
     case 4:
         TIMING_PROLOGUE();
-        forward4<<<n_sequences_, 32>>>(
+        forward4<<<max(1, n_sequences_/4), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_fwdlattice_);
         TIMING_EPILOGUE("forward4");
-        
+        CudaCheckError();
+
         TIMING_PROLOGUE();
-        backward4<<<n_sequences_, 32>>>(
+        backward4<<<max(1, n_sequences_/4), 256>>>(
             d_log_transmat_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_bwdlattice_);
@@ -172,7 +176,7 @@ float CUDAGaussianHMM::computeEStep() {
         cudaDeviceSynchronize();
 
         TIMING_PROLOGUE();
-        posteriors<4><<<n_observations_/1024, 32>>>(
+        posteriors<4><<<max(1, n_observations_/4096), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         TIMING_EPILOGUE("posteriors4");
@@ -368,10 +372,11 @@ void CUDAGaussianHMM::initializeSufficientStatistics(void) {
 }
 
 float CUDAGaussianHMM::computeSufficientStatistics() {
+    TIMING_SETUP();
+#ifdef USE_CUBLAS
     float alpha = 1.0f;
     float beta = 1.0f;
     cublasStatus_t status;
-    TIMING_SETUP();
 
     // Compute the sufficient statistics for the mean,
     // \Sum_i p(X_i in state_k) * X_i
@@ -385,8 +390,7 @@ float CUDAGaussianHMM::computeSufficientStatistics() {
         d_posteriors_, n_pstates_,
         &beta, d_obs_, n_features_);
     TIMING_EPILOGUE("sgemm posterior weighted obs");
-
-    if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
+    if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i code=%s\n", __FILE__, __LINE__, _cudaGetErrorEnum(status)); exit(EXIT_FAILURE); }
 
     // Compute the sufficient statistics for the variance,
     // \Sum_i p(X_i in state_k) * X_i**2
@@ -412,9 +416,16 @@ float CUDAGaussianHMM::computeSufficientStatistics() {
         &beta, d_post_, 1);
     TIMING_EPILOGUE("sgemm sum(posterior, axis=0)");
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
-    
+#else
     TIMING_PROLOGUE();
-    transitioncounts<<<n_observations_/1024, 32>>>(
+    sufficientstatistics<4, 128><<<100, 128>>>(
+        d_posteriors_, d_sequences_, n_observations_, n_states_, n_features_,
+        d_obs_, d_obs_squared_, d_post_);
+    TIMING_EPILOGUE("sufficientstatistics");
+#endif
+
+    TIMING_PROLOGUE();
+    transitioncounts<<<max(1, 1), 32>>>(
         d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
         n_observations_, n_pstates_, d_transcounts_, d_logprob_);
     TIMING_EPILOGUE("transitioncount");

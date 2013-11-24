@@ -145,6 +145,9 @@ cdef class GaussianHMMCUDAImpl:
         self.thisptr.getStatsObsSquared(&obs2[0,0])
         self.thisptr.getStatsPost(&post[0])
         self.thisptr.getStatsTransCounts(&trans[0,0])
+        if not np.all(np.isfinite(trans)):
+            print trans
+            raise ValueError('do_estep: transounts contains NaNs')
 
         stats = {'post': post, 'obs': obs, 'obs**2': obs2, 'trans': trans}
         print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
