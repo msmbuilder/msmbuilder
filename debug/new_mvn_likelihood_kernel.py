@@ -1,4 +1,5 @@
-source = '''#include <stdio.h>
+from jinja2 import Template
+tpl = Template('''#include <stdio.h>
 
 __global__ void log_diag_mvn_likelihood(
 const float* __restrict__ sequences,
@@ -27,8 +28,8 @@ float* __restrict__ loglikelihoods)
      * has to iterate in the blocked n_states/n_featues space, computing a 
      * total of (n_states/W1) * (n_features/W2) entries per thread gid iteration.
      */ 
-    const unsigned int W1 = 8;
-    const unsigned int W2 = 8;
+    const unsigned int W1 = {{W1}};
+    const unsigned int W2 = {{W2}};
 
     __shared__ float SEQ[W1][W2];
     __shared__ float MU[W1][W2];
@@ -94,37 +95,78 @@ for (unsigned int statesBlock = 0; statesBlock < ((n_states+W1-1)/W1)*W1; states
     gid += gridDim.x*blockDim.x;
 }
 }
-'''
+''')
 import os
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
-func = SourceModule(source).get_function('log_diag_mvn_likelihood')
 
-n_samples = 8
-n_states = 9
-n_features = 33
-np.random.seed(42)
-sequences = np.random.rand(n_samples, n_features).astype(np.float32)
-means = np.random.rand(n_states, n_features).astype(np.float32)
-variances = np.random.rand(n_states, n_features).astype(np.float32)
-loglikelihoods = np.zeros((n_samples, n_states), dtype=np.float32)
+def speed(n_samples, n_states, n_features, W1, W2):
+    module = SourceModule(tpl.render(W1=W1, W2=W2))
+    func = module.get_function('log_diag_mvn_likelihood')
 
+    sequences = np.zeros((n_samples, n_features), dtype=np.float32)
+    means = np.zeros((n_states, n_features), dtype=np.float32)
+    variances = np.ones((n_states, n_features), dtype=np.float32)
+    logvariances = np.ones((n_states, n_features), dtype=np.float32)
+    loglikelihoods = np.zeros((n_samples, n_states), dtype=np.float32)
 
-func(cuda.In(sequences), cuda.In(means), cuda.In(variances), cuda.In(np.log(variances)),
-     np.int32(n_samples), np.int32(n_states), np.int32(n_features),
-     cuda.InOut(loglikelihoods),
-     block=(64,1,1), grid=(1,1))
+    N_THREADS = 4096
 
-print 'loglikelihoods'
-print loglikelihoods
-
-print 'sklearn'
-from sklearn.mixture.gmm import _log_multivariate_normal_density_diag
-r = _log_multivariate_normal_density_diag(sequences, means, variances)
-print r
-
-print np.abs(r - loglikelihoods) < 1e-4
+    start = cuda.Event()
+    end = cuda.Event()
 
 
+    start.record()
+    func(cuda.In(sequences), cuda.In(means), cuda.In(variances), cuda.In(np.log(variances)),
+         np.int32(n_samples), np.int32(n_states), np.int32(n_features),
+         cuda.InOut(loglikelihoods),
+         block=(W1*W2,1,1), grid=(N_THREADS/(W1*W2),1))
+    end.record()
+    end.synchronize()
+    
+    return {'n_samples': n_samples, 'n_states': n_states,
+            'n_features': n_features, 'W1': W1, 'W2': W2,
+            'time': np.around(start.time_till(end), decimals=3)}
+    
+
+def test():
+    func = SourceModule(source).get_function('log_diag_mvn_likelihood')
+    n_samples = 8
+    n_states = 9
+    n_features = 33
+    np.random.seed(42)
+    sequences = np.random.rand(n_samples, n_features).astype(np.float32)
+    means = np.random.rand(n_states, n_features).astype(np.float32)
+    variances = np.random.rand(n_states, n_features).astype(np.float32)
+    loglikelihoods = np.zeros((n_samples, n_states), dtype=np.float32)
+    
+    func(cuda.In(sequences), cuda.In(means), cuda.In(variances), cuda.In(np.log(variances)),
+         np.int32(n_samples), np.int32(n_states), np.int32(n_features),
+         cuda.InOut(loglikelihoods),
+         block=(64,1,1), grid=(1,1))
+
+    print 'loglikelihoods'
+    print loglikelihoods
+
+    print 'sklearn'
+    from sklearn.mixture.gmm import _log_multivariate_normal_density_diag
+    r = _log_multivariate_normal_density_diag(sequences, means, variances)
+    print r
+    print np.abs(r - loglikelihoods) < 1e-4
+
+
+if __name__ == '__main__':
+    for n_states in [4, 8, 16, 32]:
+        for n_features in [8, 16, 32, 64, 128]:
+            best = None
+            for W1 in [4, 8, 16, 32]:
+                for W2 in [4, 8, 16, 32]:
+                    if W1 <= W2:
+                        r = speed(n_samples=1000000, n_states=n_states,
+                                  n_features=n_features, W1=W1, W2=W2)
+                        if best is None or r['time'] < best['time']:
+                            best = r
+            print 'n_states=%d, n_features=%d Opt W1=%d, W2=%d' % \
+                (n_states, n_features, best['W1'], best['W2'])
