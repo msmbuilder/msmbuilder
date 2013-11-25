@@ -158,63 +158,64 @@ float CUDAGaussianHMM::computeEStep() {
 
     switch (n_pstates_) {
     case 4:
-        forward4<<<max(1, n_sequences_/4), 256>>>(
+        forward4<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_fwdlattice_);
-
-        backward4<<<max(1, n_sequences_/4), 256>>>(
+        backward4<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_bwdlattice_);
         cudaDeviceSynchronize();
 
-        posteriors<4><<<max(1, n_observations_/4096), 256>>>(
+        posteriors<4><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         break;
+
     case 8:
-        forward8<<<1, 32>>>(
+        forward8<<<max(1, n_sequences_/8) , 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_fwdlattice_);
-        backward8<<<1, 32>>>(
+        backward8<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_bwdlattice_);
         cudaDeviceSynchronize();
 
-        posteriors<8><<<1, 32>>>(
+        posteriors<8><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         break;
+
     case 16:
-        forward16<<<1, 32>>>(
+        forward16<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_fwdlattice_);
-        backward16<<<1, 32>>>(
+        backward16<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_bwdlattice_);
 
         cudaDeviceSynchronize();
-        posteriors<16><<<1, 32>>>(
+        posteriors<16><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         break;
     case 32:
-        forward32<<<1, 64>>>(
+        forward32<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_fwdlattice_);
-        backward32<<<1, 32>>>(
+        backward32<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_bwdlattice_);
 
         cudaDeviceSynchronize();
-        posteriors<32><<<1, 32>>>(
+        posteriors<32><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
         break;

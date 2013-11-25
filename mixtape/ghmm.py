@@ -189,9 +189,7 @@ class GaussianFusionHMM(object):
                 counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
                 self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
             elif self.reversible_type == 'transpose':
-                print('stats["trans"]', stats['trans'])
                 revcounts = np.maximum(self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
-                print('revcounts\n', revcounts)
                 self.populations_ = np.sum(revcounts, axis=0)
                 self.transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
             else:
