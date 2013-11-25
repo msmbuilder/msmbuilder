@@ -35,8 +35,7 @@ from __future__ import print_function, division
 
 import numpy as np
 from sklearn import cluster
-from sklearn.mixture import sample_gaussian, log_multivariate_normal_density
-_AVAILABLE_PLATFORMS = ['cpu']
+_AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _hmm, _reversibility
 try:
     from mixtape import _cudahmm
@@ -129,9 +128,11 @@ class GaussianFusionHMM(object):
                              % reversible_type)
         if not platform in _AVAILABLE_PLATFORMS:
             raise ValueError('Invalid platform "%s". Available platforms are '
-                             '%s' % platform, ', '.join(_AVAILABLE_PLATFORMS))
+                             '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))
         if self.platform == 'cpu':
             self._impl = _hmm.GaussianHMMCPUImpl(self.n_states, self.n_features)
+        if self.platform == 'sklearn':
+            self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
         elif self.platform == 'cuda':
             self._impl = _cudahmm.GaussianHMMCUDAImpl(self.n_states, self.n_features)
         else:
@@ -190,7 +191,8 @@ class GaussianFusionHMM(object):
                 self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
             elif self.reversible_type == 'transpose':
                 revcounts = np.maximum(self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
-                self.populations_ = np.sum(revcounts, axis=0)
+                populations = np.sum(revcounts, axis=0)
+                self.populations_ = populations / np.sum(populations)
                 self.transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
             else:
                 raise ValueError('Invalid value for reversible_type: %s '
@@ -310,3 +312,38 @@ class GaussianFusionHMM(object):
         eigvals = np.linalg.eigvals(self.transmat_)
         np.sort(eigvals)
         return -1 / np.log(eigvals[:-1])
+
+
+class _SklearnGaussianHMMCPUImpl(object):
+    def __init__(self, n_states, n_features):
+        from sklearn.hmm import GaussianHMM
+        self.impl = GaussianHMM(n_states, params='stmc')
+
+        self._sequences = None
+        self.means_ = None
+        self.vars_ = None
+        self.transmat_ = None
+        self.startprob_ = None
+
+
+    def do_estep(self):
+        from sklearn.utils.extmath import logsumexp
+
+        self.impl.means_ = self.means_.astype(np.double)
+        self.impl.covars_ = self.vars_.astype(np.double)
+        self.impl.transmat_ = self.transmat_.astype(np.double)
+        self.impl.startprob_ = self.startprob_.astype(np.double)
+        stats = self.impl._initialize_sufficient_statistics()
+        curr_logprob = 0
+        for seq in self._sequences:
+            seq = seq.astype(np.double)
+            framelogprob = self.impl._compute_log_likelihood(seq)
+            lpr, fwdlattice = self.impl._do_forward_pass(framelogprob)
+            bwdlattice = self.impl._do_backward_pass(framelogprob)
+            gamma = fwdlattice + bwdlattice
+            posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
+            curr_logprob += lpr
+            self.impl._accumulate_sufficient_statistics(
+                stats, seq, framelogprob, posteriors, fwdlattice,
+                bwdlattice, self.impl.params)
+        return curr_logprob, stats
