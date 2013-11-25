@@ -12,7 +12,6 @@
 #include <limits>
 #include <string>
 #define CUDA_ERROR_CHECK
-//#define USE_CUBLAS
 #include "safecuda.hpp"
 #include "MixtapeException.hpp"
 #include "CUDAGaussianHMM.hpp"
@@ -24,6 +23,10 @@
 #include "posteriors.cu"
 #include "expectedtransitions.cu"
 #include "sufficientstatistics.cu"
+
+//#define USE_CUBLAS
+#define NEW_MVN_KERNEL
+
 
 namespace Mixtape {
 CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
@@ -44,6 +47,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
     , d_log_transmat_T_(NULL)
     , d_means_(NULL)
     , d_variances_(NULL)
+    , d_logvariances_(NULL)
     , d_log_startprob_(NULL)
     , d_logprob_(NULL)
     , d_sequence_lengths_(NULL)
@@ -61,6 +65,7 @@ CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
     cudaMalloc2((void **) &d_log_transmat_T_, n_pstates_*n_pstates_*sizeof(float));
     cudaMalloc2((void **) &d_means_, n_pstates_*n_features_*sizeof(float));
     cudaMalloc2((void **) &d_variances_, n_pstates_*n_features_*sizeof(float));
+    cudaMalloc2((void **) &d_logvariances_, n_pstates_*n_features_*sizeof(float));
     cudaMalloc2((void **) &d_log_startprob_, n_pstates_*sizeof(float));
     cudaMalloc2((void **) &d_logprob_, sizeof(float));
 
@@ -79,6 +84,7 @@ void CUDAGaussianHMM::setSequences(const float** sequences,
                                    const int n_sequences,
                                    const int* sequence_lengths)
 {
+    n_observations_ = 0;
     n_sequences_ = n_sequences;
     sequence_lengths_.resize(n_sequences);
     cum_sequence_lengths_.resize(n_sequences);
@@ -117,7 +123,7 @@ void CUDAGaussianHMM::setSequences(const float** sequences,
                             n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
     CudaSafeCall(cudaMemcpy(d_cum_sequence_lengths_, &cum_sequence_lengths_[0],
                             n_sequences_*sizeof(float), cudaMemcpyHostToDevice));
-    fill<<<1, 256>>>(d_ones_, 1.0, n_observations_);
+    fill<<<100, 256>>>(d_ones_, 1.0, n_observations_);
 #ifdef USE_CUBLAS
     square<<<1, 256>>>(d_sequences_, n_observations_*n_features_, d_sequences2_);
 #endif
@@ -151,13 +157,24 @@ float CUDAGaussianHMM::computeEStep() {
     if (d_sequences_ == NULL)
         throw MixtapeException("Sequence data not initialized");
 
+#ifdef NEW_MVN_KERNEL
+    fill<<<100, 256>>>(d_framelogprob_, 0.0, n_observations_*n_pstates_);
+#else
     gaussian_likelihood<<<n_sequences_, 256>>>(
-        d_sequences_, d_means_, d_variances_, n_sequences_,
-        d_sequence_lengths_, d_cum_sequence_lengths_, n_pstates_,
-        n_features_, d_framelogprob_);
+         d_sequences_, d_means_, d_variances_, n_sequences_,
+         d_sequence_lengths_, d_cum_sequence_lengths_, n_pstates_,
+         n_features_, d_framelogprob_);
+#endif
+    cudaDeviceSynchronize();
 
-    switch (n_pstates_) {
-    case 4:
+
+    if (n_pstates_ == 4) {
+#ifdef NEW_MVN_KERNEL
+        log_diag_mvn_likelihood<4,16><<<256, 64>>>(
+            d_sequences_, d_means_,  d_variances_, d_logvariances_,
+            n_observations_, n_pstates_, n_features_, d_framelogprob_);
+        cudaDeviceSynchronize();
+#endif
         forward4<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -171,9 +188,15 @@ float CUDAGaussianHMM::computeEStep() {
         posteriors<4><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
-        break;
+    }
+    else if (n_pstates_ == 8) {
+#ifdef NEW_MVN_KERNEL
+        log_diag_mvn_likelihood<8,16><<<256, 128>>>(
+            d_sequences_, d_means_,  d_variances_, d_logvariances_,
+            n_observations_, n_pstates_, n_features_, d_framelogprob_);
+        cudaDeviceSynchronize();
+#endif
 
-    case 8:
         forward8<<<max(1, n_sequences_/8) , 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -187,9 +210,14 @@ float CUDAGaussianHMM::computeEStep() {
         posteriors<8><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
-        break;
+    } else if (n_pstates_ == 16) {
+#ifdef NEW_MVN_KERNEL
+        log_diag_mvn_likelihood<8,16><<<256, 128>>>(
+            d_sequences_, d_means_,  d_variances_, d_logvariances_,
+            n_observations_, n_pstates_, n_features_, d_framelogprob_);
+        cudaDeviceSynchronize();
+#endif
 
-    case 16:
         forward16<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -203,8 +231,13 @@ float CUDAGaussianHMM::computeEStep() {
         posteriors<16><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
-        break;
-    case 32:
+    } else if (n_pstates_ == 32) {
+#ifdef NEW_MVN_KERNEL
+        log_diag_mvn_likelihood<8,16><<<256, 128>>>(
+            d_sequences_, d_means_,  d_variances_, d_logvariances_,
+            n_observations_, n_pstates_, n_features_, d_framelogprob_);
+        cudaDeviceSynchronize();
+#endif
         forward32<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -218,8 +251,8 @@ float CUDAGaussianHMM::computeEStep() {
         posteriors<32><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
-        break;
-    default:
+
+    } else {
         throw MixtapeException("n_states > 32 is not implemented yet");
     }
 
@@ -244,12 +277,16 @@ void CUDAGaussianHMM::getMeans(float* out) {
 }
 
 void CUDAGaussianHMM::setVariances(const float* variances) {
-    if (n_pstates_ != n_states_)
-        // we need to fill some values in for the means corresponding to the
-        // padding states. Otherwise, nans propagate through the system
-        fill<<<1, 256>>>(d_variances_ + n_states_*n_features_, 1.0,
-                         (n_pstates_-n_states_) * n_features_);
-    CudaSafeCall(cudaMemcpy(d_variances_, variances, n_states_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
+    std::vector<float> vars(n_pstates_*n_features_, -1.0);
+    std::vector<float> logvars(n_pstates_*n_features_, 1.0);
+
+    for (int i = 0; i < n_states_*n_features_; i++) {
+        vars[i] = variances[i];
+        logvars[i] = log(variances[i]);
+    }
+    CudaSafeCall(cudaMemcpy(d_variances_, &vars[0], n_pstates_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_logvariances_, &logvars[0], n_pstates_*n_features_*sizeof(float), cudaMemcpyHostToDevice));
+
     cudaDeviceSynchronize();
 }
 
@@ -412,19 +449,19 @@ float CUDAGaussianHMM::computeSufficientStatistics() {
 #endif
 
     switch (n_pstates_) {
-    case 4:    
+    case 4:
         transitioncounts4_8_16<4, 256><<<max(1, n_sequences_/16), 256>>>(
             d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_transcounts_, d_logprob_);
         break;
-    case 8:    
+    case 8:
         transitioncounts4_8_16<8, 256><<<max(1, n_sequences_/16), 256>>>(
             d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_transcounts_, d_logprob_);
         break;
-    case 16:    
+    case 16:
         transitioncounts4_8_16<16, 256><<<max(1, n_sequences_/16), 256>>>(
             d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -450,6 +487,7 @@ CUDAGaussianHMM::~CUDAGaussianHMM() {
     CudaSafeCall(cudaFree(d_log_transmat_T_));
     CudaSafeCall(cudaFree(d_means_));
     CudaSafeCall(cudaFree(d_variances_));
+    CudaSafeCall(cudaFree(d_logvariances_));
     CudaSafeCall(cudaFree(d_log_startprob_));
     CudaSafeCall(cudaFree(d_logprob_));
     CudaSafeCall(cudaFree(d_sequence_lengths_));

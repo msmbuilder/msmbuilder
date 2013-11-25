@@ -51,6 +51,7 @@ private:
     float* d_log_transmat_T_;
     float* d_means_;
     float* d_variances_;
+    float* d_logvariances_;
     float* d_log_startprob_;
     float* d_logprob_;
     int*   d_sequence_lengths_;
