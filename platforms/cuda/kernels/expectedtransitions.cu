@@ -21,8 +21,8 @@
  */
 template <unsigned int N_STATES, unsigned int BLOCK_SIZE>
 __global__ void transitioncounts4_8_16(
-const float* __restrict__ fwdlattice,
-const float* __restrict__ bwdlattice,
+const mixed* __restrict__ fwdlattice,
+const mixed* __restrict__ bwdlattice,
 const float* __restrict__ log_transmat,
 const float* __restrict__ frame_logprob,
 const int* __restrict__ sequence_lengths,
@@ -39,9 +39,9 @@ float* __restrict__ logprob)
     static_assert<N_STATES && ((N_STATES & (N_STATES-1)) == 0)>::valid_expression();
 
     volatile __shared__ float logtmat[N_STATES][N_STATES];
-    volatile __shared__ float tlogprob[BLOCK_SIZE/(N_STATES*N_STATES)];
-    volatile __shared__ float fwd[BLOCK_SIZE/(N_STATES*N_STATES)][N_STATES][N_STATES];
-    volatile __shared__ float bwd[BLOCK_SIZE/(N_STATES*N_STATES)][N_STATES][N_STATES];
+    volatile __shared__ mixed tlogprob[BLOCK_SIZE/(N_STATES*N_STATES)];
+    volatile __shared__ mixed fwd[BLOCK_SIZE/(N_STATES*N_STATES)][N_STATES][N_STATES];
+    volatile __shared__ mixed bwd[BLOCK_SIZE/(N_STATES*N_STATES)][N_STATES][N_STATES];
     volatile __shared__ float flp[BLOCK_SIZE/(N_STATES*N_STATES)][N_STATES][N_STATES];
 
     unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
@@ -54,17 +54,17 @@ float* __restrict__ logprob)
         const int i = lid / N_STATES;
         const int j = lid % N_STATES;
         const unsigned int teamid = (gid % BLOCK_SIZE) / (N_STATES*N_STATES);
-        const float* _fwdlattice = fwdlattice + cum_sequence_lengths[s]*N_STATES;
-        const float* _bwdlattice = bwdlattice + cum_sequence_lengths[s]*N_STATES;
+        const mixed* _fwdlattice = fwdlattice + cum_sequence_lengths[s]*N_STATES;
+        const mixed* _bwdlattice = bwdlattice + cum_sequence_lengths[s]*N_STATES;
         const float* _frame_logprob = frame_logprob + cum_sequence_lengths[s]*N_STATES;
-        float lneta_ij = -FLT_MAX;
+        mixed lneta_ij = -FLT_MAX;
 
         if (lid < N_STATES) {
-            float tmp = _fwdlattice[(sequence_lengths[s]-1)*N_STATES + lid];
-            tmp = logsumexp<N_STATES>(tmp);
+            mixed tmp = _fwdlattice[(sequence_lengths[s]-1)*N_STATES + lid];
+            tmp = logsumexp<mixed, N_STATES>(tmp);
             if (lid == 0) {
                 tlogprob[teamid] = tmp;
-                atomicAdd(logprob, tlogprob[teamid]);
+                atomicAdd(logprob, (float) tlogprob[teamid]);
             }
         }
 
@@ -95,25 +95,24 @@ float* __restrict__ logprob)
                 // when N_STATES <= 4, we are implicltly warp-synchronous
                 __syncthreads();
 
-            float Slneta_ij[N_STATES-1];
+            mixed Slneta_ij[N_STATES-1];
             #pragma unroll
             for (int t = 0; t < N_STATES-1; t++) {
                 Slneta_ij[t] = fwd[teamid][t][i] + logtmat[i][j] + flp[teamid][t+1][j] + bwd[teamid][t+1][j] - tlogprob[teamid];
             }
 
-            float m = lneta_ij;
+            mixed m = lneta_ij;
             #pragma unroll
             for (int t = 0; t < N_STATES-1; t++)
                 m = fmaxf(m, Slneta_ij[t]);
 
-            float local_logsumexp = expf(lneta_ij - m);
-
+            mixed local_logsumexp = expf(lneta_ij - m);
             #pragma unroll
             for (int t = 0; t < N_STATES-1; t++)
                 local_logsumexp += expf(Slneta_ij[t] - m);
-            lneta_ij = m + logf(local_logsumexp);
+            lneta_ij = m + log(local_logsumexp);
         }
-        atomicAdd(transcounts + (i*N_STATES + j), expf(lneta_ij));
+        atomicAdd(transcounts + (i*N_STATES + j), (float) exp(lneta_ij));
         gid += gridDim.x*blockDim.x;
     }
 }

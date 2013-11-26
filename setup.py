@@ -19,6 +19,7 @@ DOCLINES = __doc__.split("\n")
 import os
 import sys
 import glob
+import copy
 import shutil
 import textwrap
 import tempfile
@@ -31,16 +32,8 @@ try:
     from setuptools import setup, Extension
 except ImportError:
     from distutils.core import setup, Extension
+from Cython.Distutils import build_ext
 
-try:
-    from Cython.Distutils import build_ext
-    setup_kwargs = {'cmdclass': {'build_ext': build_ext}}
-    ccython_extension = 'pyx'
-    cppcython_extension = 'pyx'
-except ImportError:
-    setup_kwargs = {}
-    ccython_extension = 'c'
-    cppython_extension = 'cpp'
 
 ##########################
 __version__ = 0.1
@@ -143,11 +136,44 @@ def locate_cuda():
     return cudaconfig
 
 
-# run the customize_compiler
 class custom_build_ext(build_ext):
     def build_extensions(self):
+        # Add the NVCC hacks
         customize_compiler_for_nvcc(self.compiler)
-        build_ext.build_extensions(self)
+
+        # Here come the cython hacks
+        from distutils.command.build_ext import build_ext as _build_ext
+        # first, AVOID calling cython.build_ext's build_extensions
+        # method, because it cythonizes all of the pyx files to cpp
+        # here, which we do *not* want to do. Instead, we want to do
+        # them one at a time during build_extension so that we can
+        # regenerate them on every extension. This is necessary for getting
+        # the single/mixed precision builds to work correctly, because we
+        # use the same pyx file, with different macros, and make differently
+        # named extensions. Since each extension needs to have a unique init
+        # method in the cpp code, the cpp needs to be translated fresh from
+        # pyx.
+        _build_ext.build_extensions(self)
+
+    def build_extension(self, ext):
+        # Clean all cython files for each extension
+        # and force the cpp files to be rebuilt from pyx.
+        cplus = self.cython_cplus or getattr(ext, 'cython_cplus', 0) or \
+                (ext.language and ext.language.lower() == 'c++')
+        if len(ext.define_macros) > 0:
+            for f in ext.sources:
+                if f.endswith('.pyx'):
+                    if cplus:
+                        compiled = f[:-4] + '.cpp'
+                    else:
+                        compiled = f[:-4] + '.c'
+                    if os.path.exists(compiled):
+                        os.unlink(compiled)
+        ext.sources = self.cython_sources(ext.sources, ext)
+        build_ext.build_extension(self, ext)
+
+
+
 ###############################################################################
 ###############################################################################
 
@@ -233,14 +259,14 @@ extensions = []
 
 extensions.append(
     Extension('mixtape._reversibility',
-              sources=['src/reversibility.'+ccython_extension],
+              sources=['src/reversibility.pyx'],
               libraries=['m'],
               include_dirs=[np.get_include()]))
 
 extensions.append(
     Extension('mixtape._hmm',
               language='c++',
-              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.'+cppcython_extension] +
+              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
                         glob.glob('platforms/cpu/kernels/*.c') +
                         glob.glob('platforms/cpu/kernels/*.cpp'),
               libraries=libraries,
@@ -250,7 +276,7 @@ extensions.append(
 
 extensions.append(
     Extension('mixtape._vmhmm',
-              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.'+ccython_extension,
+              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.pyx',
                        'src/vonmises/spleval.c',
                        'src/cephes/i0.c', 'src/cephes/chbevl.c'],
               libraries=['m'],
@@ -258,7 +284,7 @@ extensions.append(
 
 extensions.append(
     Extension('mixtape._gamma',
-              sources=['src/gamma/gammawrap.'+ccython_extension,
+              sources=['src/gamma/gammawrap.pyx',
                        'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
                        'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
                        'src/cephes/mtherr.c', 'src/cephes/gamma.c'],
@@ -269,17 +295,23 @@ extensions.append(
 
 try:
     CUDA = locate_cuda()
+    kwargs = dict(
+        language="c++",
+        library_dirs=[CUDA['lib64']],
+        libraries=['cudart', 'cublas'],
+        runtime_library_dirs=[CUDA['lib64']],
+        extra_compile_args={'gcc': [],
+                            #'nvcc': ['-arch=sm_30', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+                            'nvcc': ['-arch=sm_30', '-c', '--compiler-options', "'-fPIC'"]},
+        sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.pyx',
+                 'platforms/cuda/src/CUDAGaussianHMM.cu'],
+        include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels'])
+
     extensions.append(
-        Extension('mixtape._cudahmm',
-                  language="c++",
-                  library_dirs=[CUDA['lib64']],
-                  libraries=['cudart', 'cublas'],
-                  runtime_library_dirs=[CUDA['lib64']],
-                  extra_compile_args={'gcc': [],
-                                      'nvcc': ['-arch=sm_30', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
-                  sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.'+cppcython_extension,
-                           'platforms/cuda/src/CUDAGaussianHMM.cu'],
-                  include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels']))
+        Extension('mixtape._cuda_ghmm_single', define_macros=[('mixed', 'float')], **kwargs))
+    extensions.append(
+        Extension('mixtape._cuda_ghmm_mixed', define_macros=[('mixed', 'double')], **kwargs))
+
 
 except EnvironmentError as e:
     print('\033[91m%s' % '#'*60)
@@ -298,6 +330,7 @@ setup(name='mixtape',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),
       packages=['mixtape'],
+      package_dir={'mixtape':'Mixtape'},
       zip_safe=False,
       ext_modules=extensions,
       cmdclass={'build_ext': custom_build_ext})

@@ -5,6 +5,7 @@
 /*                                                               */
 /*****************************************************************/
 
+#include "warpshuffle.cuh"
 #ifndef MIXTAPE_LOGSUMEXP_H
 #define MIXTAPE_LOGSUMEXP_H
 
@@ -20,28 +21,29 @@
  *
  */
 
-template <int N>
-__device__ float logsumexp(float value)
+
+template <typename T, int N>
+static __device__ T logsumexp(T value)
 {
-    float max = value;
+    T max = value;
 #if __CUDA_ARCH__ >= 300
     for(int offset = 1; offset < N; offset <<= 1)
-        max = fmaxf(max, __shfl_down(max, offset, N));
+        max = fmaxf(max, shfl_down(max, offset, N));
     for(int offset = 1; offset < N; offset <<= 1)
-        max = __shfl_up(max, offset, N);
+        max = shfl_up(max, offset, N);
 
-    value = expf(value - max);
+    value = exp(value - max);
 
     for(int offset = 1; offset < N; offset <<= 1)
-        value += __shfl_down(value, offset, N);
+        value += shfl_down(value, offset, N);
 
-    value = logf(value) + max;
+    value = log(value) + max;
     for(int offset = 1; offset < N; offset <<= 1)
-        value = __shfl_up(value, offset, N);
+        value = shfl_up(value, offset, N);
 
     return value;
 #else
-    return 0;
+    return max;
     // const unsigned int gid = blockIdx.x*blockDim.x+threadIdx.x;
     // const unsigned int lid = gid % 32;
     // __shared__ volatile float s[32];

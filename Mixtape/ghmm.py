@@ -39,7 +39,8 @@ from sklearn import cluster
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _hmm, _reversibility
 try:
-    from mixtape import _cudahmm
+    from mixtape import _cuda_ghmm_single
+    from mixtape import _cuda_ghmm_mixed
     _AVAILABLE_PLATFORMS.append('cuda')
 except ImportError:
     pass
@@ -134,7 +135,12 @@ class GaussianFusionHMM(object):
         elif self.platform == 'sklearn':
             self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
         elif self.platform == 'cuda':
-            self._impl = _cudahmm.GaussianHMMCUDAImpl(self.n_states, self.n_features)
+            if precision == 'single':
+                self._impl = _cuda_ghmm_single.GaussianHMMCUDAImpl(self.n_states, self.n_features)
+            elif precision == 'mixed':
+                self._impl = _cuda_ghmm_mixed.GaussianHMMCUDAImpl(self.n_states, self.n_features)
+            else:
+                raise ValueError('Only single and mixed precision are supported on CUDA')
         else:
             raise ValueError('Invalid platform "%s". Available platforms are '
                              '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))

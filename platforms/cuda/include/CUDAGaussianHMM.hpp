@@ -43,8 +43,8 @@ public:
 
 
 private:
-    float* d_fwdlattice_;
-    float* d_bwdlattice_;
+    mixed* d_fwdlattice_;
+    mixed* d_bwdlattice_;
     float* d_posteriors_;
     float* d_framelogprob_;
     float* d_log_transmat_;

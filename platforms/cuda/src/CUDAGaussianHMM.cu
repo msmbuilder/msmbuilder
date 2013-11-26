@@ -29,6 +29,7 @@
 
 
 namespace Mixtape {
+
 CUDAGaussianHMM::CUDAGaussianHMM(const int n_states,
                                  const int n_features)
     : n_sequences_(0)
@@ -103,8 +104,8 @@ void CUDAGaussianHMM::setSequences(const float** sequences,
 #ifdef USE_CUBLAS
     cudaMalloc2((void **) &d_sequences2_, n_observations_*n_features_*sizeof(float));
 #endif
-    cudaMalloc2((void **) &d_fwdlattice_, n_observations_*n_pstates_*sizeof(float));
-    cudaMalloc2((void **) &d_bwdlattice_, n_observations_*n_pstates_*sizeof(float));
+    cudaMalloc2((void **) &d_fwdlattice_, n_observations_*n_pstates_*sizeof(mixed));
+    cudaMalloc2((void **) &d_bwdlattice_, n_observations_*n_pstates_*sizeof(mixed));
     cudaMalloc2((void **) &d_posteriors_, n_observations_*n_pstates_*sizeof(float));
     cudaMalloc2((void **) &d_framelogprob_, n_observations_*n_pstates_*sizeof(float));
     cudaMalloc2((void **) &d_ones_, n_observations_*sizeof(float));
@@ -161,9 +162,9 @@ float CUDAGaussianHMM::computeEStep() {
     fill<<<100, 256>>>(d_framelogprob_, 0.0, n_observations_*n_pstates_);
 #else
     gaussian_likelihood<<<n_sequences_, 256>>>(
-         d_sequences_, d_means_, d_variances_, n_sequences_,
-         d_sequence_lengths_, d_cum_sequence_lengths_, n_pstates_,
-         n_features_, d_framelogprob_);
+                                               d_sequences_, d_means_, d_variances_, n_sequences_,
+                                               d_sequence_lengths_, d_cum_sequence_lengths_, n_pstates_,
+                                               n_features_, d_framelogprob_);
 #endif
     cudaDeviceSynchronize();
 
@@ -188,15 +189,14 @@ float CUDAGaussianHMM::computeEStep() {
         posteriors<4><<<max(1, n_sequences_/8), 256>>>(
             d_fwdlattice_, d_bwdlattice_, n_sequences_,
             d_sequence_lengths_, d_cum_sequence_lengths_, d_posteriors_);
-    }
-    else if (n_pstates_ == 8) {
+
+    } else if (n_pstates_ == 8) {
 #ifdef NEW_MVN_KERNEL
         log_diag_mvn_likelihood<8,16><<<512, 128>>>(
             d_sequences_, d_means_,  d_variances_, d_logvariances_,
             n_observations_, n_pstates_, n_features_, d_framelogprob_);
         cudaDeviceSynchronize();
 #endif
-
         forward8<<<max(1, n_sequences_/8) , 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -217,7 +217,6 @@ float CUDAGaussianHMM::computeEStep() {
             n_observations_, n_pstates_, n_features_, d_framelogprob_);
         cudaDeviceSynchronize();
 #endif
-
         forward16<<<max(1, n_sequences_/8), 256>>>(
             d_log_transmat_T_, d_log_startprob_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
@@ -406,47 +405,9 @@ void CUDAGaussianHMM::initializeSufficientStatistics(void) {
 }
 
 float CUDAGaussianHMM::computeSufficientStatistics() {
-#ifdef USE_CUBLAS
-    float alpha = 1.0f;
-    float beta = 1.0f;
-    cublasStatus_t status;
-
-    // Compute the sufficient statistics for the mean,
-    // \Sum_i p(X_i in state_k) * X_i
-    // MATRIX_MULTIPLY(posteriors.T, obs)
-    status = cublasSgemm(
-        (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
-        n_features_, n_pstates_, n_observations_, &alpha,
-        d_sequences_, n_features_,
-        d_posteriors_, n_pstates_,
-        &beta, d_obs_, n_features_);
-    if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i code=%s\n", __FILE__, __LINE__, _cudaGetErrorEnum(status)); exit(EXIT_FAILURE); }
-
-    // Compute the sufficient statistics for the variance,
-    // \Sum_i p(X_i in state_k) * X_i**2
-    // MATRIX_MULTIPLY(posteriors.T, obs**2)
-    status = cublasSgemm(
-        (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
-        n_features_, n_pstates_, n_observations_, &alpha,
-        d_sequences2_, n_features_,
-        d_posteriors_, n_pstates_,
-        &beta, d_obs_squared_, n_features_);
-    if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
-
-    // Compute the normalization constant for the posterior weighted
-    // averages, \Sum_i (P_X_i in state_k)
-    status = cublasSgemm(
-        (cublasHandle_t) cublas_handle_, CUBLAS_OP_N, CUBLAS_OP_T,
-        1, n_pstates_, n_observations_, &alpha,
-        d_ones_, 1,
-        d_posteriors_, n_pstates_,
-        &beta, d_post_, 1);
-    if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
-#else
     sufficientstatistics<4, 128><<<256, 128>>>(
         d_posteriors_, d_sequences_, n_observations_, n_pstates_, n_features_,
         d_obs_, d_obs_squared_, d_post_);
-#endif
 
     switch (n_pstates_) {
     case 4:
