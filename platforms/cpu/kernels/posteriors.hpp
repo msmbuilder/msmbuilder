@@ -4,20 +4,22 @@
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
-
+#ifndef MIXTAPE_CPU_POSTERIORS_H
+#define MIXTAPE_CPU_POSTERIORS_H
 #include "math.h"
-#include "posteriors.h"
-#include "logsumexp.h"
+#include "logsumexp.hpp"
+namespace Mixtape {
 
-void compute_posteriors(const float* __restrict__ fwdlattice,
-                        const float* __restrict__ bwdlattice,
+template<typename REAL>
+void compute_posteriors(const REAL* __restrict__ fwdlattice,
+                        const REAL* __restrict__ bwdlattice,
                         const int sequence_length,
                         const int n_states,
                         float* __restrict__ posteriors)
 {
     int t, i;
-    float gamma[n_states];
-    float normalizer;
+    REAL gamma[n_states];
+    REAL normalizer;
 
     for (t = 0; t < sequence_length; t++) {
         for (i = 0; i < n_states; i++)
@@ -28,3 +30,5 @@ void compute_posteriors(const float* __restrict__ fwdlattice,
     }
 }
 
+}
+#endif

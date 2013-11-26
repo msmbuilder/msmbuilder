@@ -5,20 +5,24 @@
 /*                                                               */
 /*****************************************************************/
 
-#include "logsumexp.h"
-#include "backward.h"
+#ifndef MIXTAPE_CPU_BACKWARD_H
+#define MIXTAPE_CPU_BACKWARD_H
+
+#include "logsumexp.hpp"
 #include "stdlib.h"
 #include "stdio.h"
+namespace Mixtape {
 
+template <typename REAL>
 void backward(const float* __restrict__ log_transmat,
               const float* __restrict__ log_startprob,
               const float* __restrict__ frame_logprob,
               const int sequence_length,
               const int n_states,
-              float* __restrict__ bwdlattice)
+              REAL* __restrict__ bwdlattice)
 {
     int t, i, j;
-    float work_buffer[n_states];
+    REAL work_buffer[n_states];
 
     for (j = 0; j < n_states; j++)
         bwdlattice[(sequence_length-1)*n_states + j] = 0.0f;
@@ -31,3 +35,7 @@ void backward(const float* __restrict__ log_transmat,
         }
     }
 }
+
+} // namespace
+
+#endif

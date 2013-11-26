@@ -82,6 +82,7 @@ def customize_compiler_for_nvcc(self):
 
     # save references to the default compiler_so and _comple methods
     default_compiler_so = self.compiler_so
+    #default_compiler_so[0] = 'g++'
     super = self._compile
 
     # now redefine the _compile method. This gets executed for each
@@ -240,7 +241,8 @@ extensions.append(
     Extension('mixtape._hmm',
               language='c++',
               sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.'+cppcython_extension] +
-                        glob.glob('platforms/cpu/kernels/*.c'),
+                        glob.glob('platforms/cpu/kernels/*.c') +
+                        glob.glob('platforms/cpu/kernels/*.cpp'),
               libraries=libraries,
               extra_compile_args=extra_compile_args,
               include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',

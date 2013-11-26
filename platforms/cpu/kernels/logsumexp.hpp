@@ -4,21 +4,39 @@
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
+#ifndef MIXTAPE_CPU_LOGSUMEXP_H
+#define MIXTAPE_CPU_LOGSUMEXP_H
 
 #include <emmintrin.h>
-#include "logsumexp.h"
 #include "float.h"
 #include <stdio.h>
 #include <math.h>
 #include "sse_mathfun.h"
 
-static inline float MAX(float v1, float v2) {
+template <typename REAL>
+static inline REAL realmax(REAL v1, REAL v2) {
     return (((v1) > (v2)) ? (v1) : (v2));
 }
 
 float logsumexp2(float v1, float v2) {
     float max = (((v1) > (v2)) ? (v1) : (v2));
     return log(exp(v1-max) + exp(v2-max)) + max;
+}
+
+
+double logsumexp(const double* __restrict__ buf, int N) {
+    int i;
+    double sum = 0;
+    double max = buf[0];
+
+    for (i = 1; i < N; i++)
+        if (buf[i] > max)
+            max = buf[i];
+
+    for (i = 0; i < N; i++)
+        sum += exp(buf[i] - max);
+
+    return log(sum) + max;
 }
 
 
@@ -35,10 +53,10 @@ float logsumexp(const float* __restrict__ buf, int N) {
     if (N == 1)
         return buf[0];
     if (N == 2) {
-        max = MAX(buf[0], buf[1]);
+        max = realmax(buf[0], buf[1]);
         return log(exp(buf[0] - max) + exp(buf[1] - max)) + max;
     } if (N == 3) {
-        max = MAX(MAX(buf[0], buf[1]), buf[2]);
+        max = realmax(realmax(buf[0], buf[1]), buf[2]);
         return log(exp(buf[0] - max) + exp(buf[1] - max) + exp(buf[2] - max)) + max;
     }
     
@@ -53,11 +71,11 @@ float logsumexp(const float* __restrict__ buf, int N) {
             }
 
             _mm_store_ps(max4, _v);
-            max = MAX(MAX(MAX(max4[0], max4[1]), max4[2]), max4[3]);
+            max = realmax(realmax(realmax(max4[0], max4[1]), max4[2]), max4[3]);
         }
 
         for(; X < buf + N; X++)
-            max = MAX(max, *X);
+            max = realmax(max, *X);
 
         X = buf;
         if (nu != 0) {
@@ -97,7 +115,7 @@ float _mm_logsumexp(__m128* buf, int N) {
         _v = _mm_max_ps(_v, buf[i]);
 
     _mm_store_ps(max4, _v);
-    mymax = MAX(MAX(MAX(max4[0], max4[1]), max4[2]), max4[3]); 
+    mymax = realmax(realmax(realmax(max4[0], max4[1]), max4[2]), max4[3]); 
 
     _m = _mm_load1_ps(&mymax);
     _v = exp_ps(_mm_sub_ps(buf[0], _m));
@@ -112,18 +130,5 @@ float _mm_logsumexp(__m128* buf, int N) {
     return log(sum) + mymax;
 }
 
-/*int main() {
-    float buf[33];
-    for (int i = 0; i < 33; i++)
-        buf[i] = pow(2.0, -i);
-    printf("logsumexp = %f\n", logsumexp(buf, 32));
 
-
-    __m128 bufv[8];
-    for (int i = 0; i < 8; i++)
-        bufv[i] = _mm_loadu_ps(buf + 4*i);
-    printf("logsumexp = %f\n", _mm_logsumexp(bufv, 8));
-
-    return 1;    
-}
-*/
+#endif

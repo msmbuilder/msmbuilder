@@ -4,6 +4,7 @@
  */
 
 #include "stdio.h"
+
 static int lsame_(const char *ca, const char *cb);
 static int max(int x, int y) {
     return (((x) > (y)) ? (x) : (y));

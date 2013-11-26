@@ -4,6 +4,8 @@
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
+#ifndef MIXTAPE_CPU_DO_ESTEP
+#define MIXTAPE_CPU_DO_ESTEP
 
 #include "stdlib.h"
 #include "stdio.h"
@@ -13,13 +15,21 @@
 #include "math.h"
 
 #include "gaussian_likelihood.h"
-#include "forward.h"
-#include "backward.h"
-#include "posteriors.h"
-#include "transitioncounts.h"
+#include "forward.hpp"
+#include "backward.hpp"
+#include "posteriors.hpp"
+#include "transitioncounts.hpp"
 #include "sgemm.h"
 
+namespace Mixtape {
 
+/**
+ * Run the E-step, computing sufficient statistics over all of the trajectories
+ *
+ * The template parameter controls the precision of the foward and backward lattices
+ * which are subject to accumulated floating point error during long trajectories.
+ */
+template<typename REAL>
 void do_estep(const float* __restrict__ log_transmat,
               const float* __restrict__ log_transmat_T,
               const float* __restrict__ log_startprob,
@@ -43,7 +53,8 @@ void do_estep(const float* __restrict__ log_transmat,
     const float *sequence;
     float *sequence2;
     float *means_over_variances, *means2_over_variances, *log_variances;
-    float *framelogprob, *fwdlattice, *bwdlattice, *posteriors, *seq_transcounts, *seq_obs, *seq_obs2, *seq_post;
+    float *framelogprob, *posteriors, *seq_transcounts, *seq_obs, *seq_obs2, *seq_post;
+    REAL *fwdlattice, *bwdlattice;
 
     means_over_variances = (float*) malloc(n_states*n_features*sizeof(float));
     means2_over_variances = (float*) malloc(n_states*n_features*sizeof(float));
@@ -71,8 +82,8 @@ void do_estep(const float* __restrict__ log_transmat,
         sequence = sequences[i];
         sequence2 = (float*) malloc(sequence_lengths[i]*n_features*sizeof(float));
         framelogprob = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
-        fwdlattice = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
-        bwdlattice = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
+        fwdlattice = (REAL*) malloc(sequence_lengths[i]*n_states*sizeof(REAL));
+        bwdlattice = (REAL*) malloc(sequence_lengths[i]*n_states*sizeof(REAL));
         posteriors = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         seq_transcounts = (float*) calloc(n_states*n_states, sizeof(float));
         seq_obs = (float*) calloc(n_states*n_features, sizeof(float));
@@ -140,3 +151,8 @@ void do_estep(const float* __restrict__ log_transmat,
     free(means2_over_variances);
     free(log_variances);
 }
+
+
+} // namespace
+
+#endif

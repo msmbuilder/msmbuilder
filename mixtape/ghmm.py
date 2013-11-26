@@ -106,7 +106,7 @@ class GaussianFusionHMM(object):
                  fusion_prior=1e-2, thresh=1e-2, reversible_type='mle',
                  transmat_prior=None, vars_prior=1e-3, vars_weight=1,
                  random_state=None, params='tmv', init_params='tmv',
-                 platform='cpu', timing=True):
+                 platform='cpu', precision='mixed', timing=True):
         self.n_states = n_states
         self.n_features = n_features
         self.n_em_iter = n_em_iter
@@ -130,7 +130,7 @@ class GaussianFusionHMM(object):
                              % reversible_type)
 
         if self.platform == 'cpu':
-            self._impl = _hmm.GaussianHMMCPUImpl(self.n_states, self.n_features)
+            self._impl = _hmm.GaussianHMMCPUImpl(self.n_states, self.n_features, precision)
         elif self.platform == 'sklearn':
             self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
         elif self.platform == 'cuda':

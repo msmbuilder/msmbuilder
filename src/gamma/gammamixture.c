@@ -72,13 +72,13 @@ int gamma_mixture(const float* __restrict__ X, const int n_samples, const int n_
     static const double PI_OFFSET = 0.001;
     double pi_renormalizer;
 
-    err_1 = posix_memalign((void*) &log_X, 16, n_samples*n_features*sizeof(aligned_float));
-    err_3 = posix_memalign((void*) &logg, 16, n_components*sizeof(double));
-    err_2 = posix_memalign((void*) &normalization, 16, n_components*n_features*sizeof(double));
-    err_4 = posix_memalign((void*) &Sum_p,  16, n_components*sizeof(double));
-    err_5 = posix_memalign((void*) &Sum_x_p, 16, n_components*n_features*sizeof(double));
-    err_6 = posix_memalign((void*) &Sum_logx_p, 16, n_components*n_features*sizeof(double));
-    err_7 = posix_memalign((void*) &Sum_lograte_p, 16, n_components*n_features*sizeof(double));
+    err_1 = posix_memalign((void**) &log_X, 16, n_samples*n_features*sizeof(aligned_float));
+    err_3 = posix_memalign((void**) &logg, 16, n_components*sizeof(double));
+    err_2 = posix_memalign((void**) &normalization, 16, n_components*n_features*sizeof(double));
+    err_4 = posix_memalign((void**) &Sum_p,  16, n_components*sizeof(double));
+    err_5 = posix_memalign((void**) &Sum_x_p, 16, n_components*n_features*sizeof(double));
+    err_6 = posix_memalign((void**) &Sum_logx_p, 16, n_components*n_features*sizeof(double));
+    err_7 = posix_memalign((void**) &Sum_lograte_p, 16, n_components*n_features*sizeof(double));
 
 
     if (err_1 != 0 || err_2 != 0 || err_3 != 0 || err_4 != 0 || err_6 != 0 || err_7 != 0) {

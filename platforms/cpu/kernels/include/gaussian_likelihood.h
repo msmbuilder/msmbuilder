@@ -1,6 +1,5 @@
 #ifndef MIXTAPE_CPU_GAUSSIAN_LIKELIHOOD_H
 #define MIXTAPE_CPU_GAUSSIAN_LIKELIHOOD_H
-#include <stdlib.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -9,37 +9,41 @@
 import numpy as np
 cimport numpy as np
 from cython.parallel cimport prange
+from libcpp.string cimport string
 from libc.stdlib cimport malloc, free
 
-cdef extern from "do_estep.c":
-    void do_estep(
-        const float* log_transmat,
-        const float* log_transmat_T,
-        const float* log_startprob,
-        const float* means,
-        const float* variances,
-        const float** sequences,
-        const int n_sequences,
-        const np.int32_t* sequence_lengths,
-        const int n_features,
-        const int n_states,
-        float* transcounts,
-        float* obs,
-        float* obs2,
-        float* post,
-        float* logprob) nogil
-
+cdef extern from "do_estep.hpp" namespace "Mixtape":
+    void do_estep_single "Mixtape::do_estep<float>"(
+        const float* log_transmat, const float* log_transmat_T,
+        const float* log_startprob, const float* means,
+        const float* variances, const float** sequences,
+        const int n_sequences, const np.int32_t* sequence_lengths,
+        const int n_features, const int n_states,
+        float* transcounts, float* obs, float* obs2,
+        float* post, float* logprob) nogil
+    void do_estep_mixed "Mixtape::do_estep<double>"(
+        const float* log_transmat, const float* log_transmat_T,
+        const float* log_startprob, const float* means,
+        const float* variances, const float** sequences,
+        const int n_sequences, const np.int32_t* sequence_lengths,
+        const int n_features, const int n_states,
+        float* transcounts, float* obs, float* obs2,
+        float* post, float* logprob) nogil
 
 cdef class GaussianHMMCPUImpl:
     cdef list sequences
     cdef int n_sequences
     cdef np.ndarray seq_lengths
     cdef int n_states, n_features
+    cdef str precision
     cdef np.ndarray means, vars, log_transmat, log_transmat_T, log_startprob
 
-    def __cinit__(self, n_states, n_features):
+    def __cinit__(self, n_states, n_features, precision='single'):
         self.n_states = n_states
         self.n_features = n_features
+        self.precision = str(precision)
+        if self.precision not in ['single', 'mixed']:
+            raise ValueError('This platform only supports single or mixed precision')            
 
     property _sequences:
         def __set__(self, value):
@@ -122,9 +126,21 @@ cdef class GaussianHMMCPUImpl:
             sequence = self.sequences[i]
             seq_pointers[i] = &sequence[0,0]
 
-        do_estep(&log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0], &vars[0,0],
-                 <const float**> seq_pointers, self.n_sequences, &seq_lengths[0], self.n_features, self.n_states,
-                 &transcounts[0,0], &obs[0,0], &obs2[0,0], &post[0], &logprob)
+        if self.precision == 'single':
+            do_estep_single(
+                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0],
+                &vars[0,0], <const float**> seq_pointers, self.n_sequences, &seq_lengths[0],
+                self.n_features, self.n_states, &transcounts[0,0], &obs[0,0], &obs2[0,0],
+                &post[0], &logprob)
+        elif self.precision == 'mixed':
+            do_estep_mixed(
+                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0],
+                &vars[0,0], <const float**> seq_pointers, self.n_sequences, &seq_lengths[0],
+                self.n_features, self.n_states, &transcounts[0,0], &obs[0,0], &obs2[0,0],
+                &post[0], &logprob)
+        else:
+            raise RuntimeError('Invalid precision')
+
         free(seq_pointers)
         #print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
         return logprob, {'trans': transcounts, 'obs': obs, 'obs**2': obs2, 'post': post}

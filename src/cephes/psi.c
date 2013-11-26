@@ -115,8 +115,7 @@ static const double MAXNUM = 1.7976931348623158E+308;
 
 
 
-double psi(x)
-double x;
+double psi(double x)
 {
     double p, q, nz, s, w, y, z;
     int i, n, negative;

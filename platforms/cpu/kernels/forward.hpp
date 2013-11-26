@@ -5,19 +5,21 @@
 /*                                                               */
 /*****************************************************************/
 
-#include "logsumexp.h"
+#include "logsumexp.hpp"
 #include "stdlib.h"
+namespace Mixtape {
 
+template <typename REAL>
 void forward(
 const float* __restrict__ log_transmat_T,
 const float* __restrict__ log_startprob,
 const float* __restrict__ frame_logprob,
 const int sequence_length,
 const int n_states,
-float* __restrict__ fwdlattice)
+REAL* __restrict__ fwdlattice)
 {
     int t, i, j;
-    float work_buffer[n_states];
+    REAL work_buffer[n_states];
 
     for (j = 0; j < n_states; j++)
         fwdlattice[0*n_states + j] = log_startprob[j] + frame_logprob[0*n_states + j];
@@ -31,3 +33,5 @@ float* __restrict__ fwdlattice)
         }
     }
 }
+
+} // namespace

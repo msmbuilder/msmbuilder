@@ -4,16 +4,18 @@
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
-
+#ifndef MIXTAPE_CPU_TRANSITIONCOUNTS_H
+#define MIXTAPE_CPU_TRANSITIONCOUNTS_H
 #include "math.h"
 #include "float.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "transitioncounts.h"
-#include "logsumexp.h"
+#include "logsumexp.hpp"
+namespace Mixtape {
 
-void transitioncounts(const float* __restrict__ fwdlattice,
-                      const float* __restrict__ bwdlattice,
+template <typename REAL>
+void transitioncounts(const REAL* __restrict__ fwdlattice,
+                      const REAL* __restrict__ bwdlattice,
                       const float* __restrict__ log_transmat,
                       const float* __restrict__ framelogprob,
                       const int n_observations,
@@ -22,8 +24,8 @@ void transitioncounts(const float* __restrict__ fwdlattice,
                       float* logprob)
 {
     int i, j, t;
-    float* work_buffer;
-    work_buffer = (float*) malloc((n_observations-1)*sizeof(float));
+    REAL* work_buffer;
+    work_buffer = (REAL*) malloc((n_observations-1)*sizeof(REAL));
     *logprob = logsumexp(fwdlattice+(n_observations-1)*n_states, n_states);
 
     for (i = 0; i < n_states; i++) {
@@ -37,3 +39,6 @@ void transitioncounts(const float* __restrict__ fwdlattice,
     }
     free(work_buffer);
 }
+
+} // namespace
+#endif

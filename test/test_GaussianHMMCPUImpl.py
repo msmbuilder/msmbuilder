@@ -44,10 +44,10 @@ def test_2():
         chmm._sequences = [t1]
 
         pyhmm = GaussianHMM(n_components=n_states, init_params='', params='', covariance_type='diag')
-        chmm.means_ = means
-        chmm.vars_ = vars
-        chmm.transmat_ = transmat
-        chmm.startprob_ = startprob
+        chmm.means_ = means.astype(np.float32)
+        chmm.vars_ = vars.astype(np.float32)
+        chmm.transmat_ = transmat.astype(np.float32)
+        chmm.startprob_ = startprob.astype(np.float32)
         clogprob, cstats = chmm.do_estep()
 
         pyhmm.means_ = means
