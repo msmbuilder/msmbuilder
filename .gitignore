@@ -34,3 +34,10 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# Cython-ed files
+platforms/cpu/wrappers/GaussianHMMCPUImpl.cpp
+platforms/cuda/wrappers/GaussianHMMCUDAImpl.cpp
+src/gamma/gammawrap.c
+src/reversibility.c
+src/vonmises/vmhmmwrap.c
