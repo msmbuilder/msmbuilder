@@ -5,7 +5,7 @@
 #                                                               #
 #################################################################
 
-import time
+#import time
 import numpy as np
 cimport numpy as np
 from cython.parallel cimport prange
@@ -102,7 +102,7 @@ cdef class GaussianHMMCPUImpl:
 
 
     def do_estep(self):
-        starttime = time.time()
+        #starttime = time.time()
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat = self.log_transmat
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat_T = self.log_transmat_T
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
@@ -122,11 +122,9 @@ cdef class GaussianHMMCPUImpl:
             sequence = self.sequences[i]
             seq_pointers[i] = &sequence[0,0]
 
-        print "Calling do_estep..."
         do_estep(&log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0], &vars[0,0],
                  <const float**> seq_pointers, self.n_sequences, &seq_lengths[0], self.n_features, self.n_states,
                  &transcounts[0,0], &obs[0,0], &obs2[0,0], &post[0], &logprob)
-        print "do_estep!"
         free(seq_pointers)
-        print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
+        #print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
         return logprob, {'trans': transcounts, 'obs': obs, 'obs**2': obs2, 'post': post}

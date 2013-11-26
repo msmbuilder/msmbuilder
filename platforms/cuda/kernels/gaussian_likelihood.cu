@@ -72,10 +72,13 @@ float* __restrict__ loglikelihoods)
 
         for (unsigned int featuresBlock = 0; featuresBlock < ((n_features+W2-1)/W2)*W2; featuresBlock += W2) {
             const bool validFeature = (featuresBlock+loadCol) < n_features;
+            __syncthreads();
             SEQ[loadRow][loadCol] = (validSample && validFeature) ? sequences[(samplesBlock+loadRow)*n_features + (featuresBlock+loadCol)] : 0.0f;
         for (unsigned int statesBlock = 0; statesBlock < ((n_states+W1-1)/W1)*W1; statesBlock += W1) {
             // Load 64 W1*W2 items into shared memory from the global arrays
             const bool validState = (statesBlock+loadRow) < n_states;
+
+            __syncthreads();
             if (validState && validFeature) {
                 MU[loadRow][loadCol] = means[(statesBlock+loadRow)*n_features + (featuresBlock+loadCol)];
                 SIG2[loadRow][loadCol] = variances[(statesBlock+loadRow)*n_features + (featuresBlock+loadCol)];

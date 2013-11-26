@@ -33,6 +33,7 @@
 #-----------------------------------------------------------------------------
 from __future__ import print_function, division
 
+import time
 import numpy as np
 from sklearn import cluster
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
@@ -105,7 +106,7 @@ class GaussianFusionHMM(object):
                  fusion_prior=1e-2, thresh=1e-2, reversible_type='mle',
                  transmat_prior=None, vars_prior=1e-3, vars_weight=1,
                  random_state=None, params='tmv', init_params='tmv',
-                 platform='cpu'):
+                 platform='cpu', timing=True):
         self.n_states = n_states
         self.n_features = n_features
         self.n_em_iter = n_em_iter
@@ -120,23 +121,23 @@ class GaussianFusionHMM(object):
         self.params = params
         self.init_params = init_params
         self.platform = platform
+        self.timing = timing
         self._impl = None
 
         if not reversible_type in ['mle', 'transpose']:
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % reversible_type)
-        if not platform in _AVAILABLE_PLATFORMS:
-            raise ValueError('Invalid platform "%s". Available platforms are '
-                             '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))
+
         if self.platform == 'cpu':
             self._impl = _hmm.GaussianHMMCPUImpl(self.n_states, self.n_features)
-        if self.platform == 'sklearn':
+        elif self.platform == 'sklearn':
             self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
         elif self.platform == 'cuda':
             self._impl = _cudahmm.GaussianHMMCUDAImpl(self.n_states, self.n_features)
         else:
-            raise RuntimeError()
+            raise ValueError('Invalid platform "%s". Available platforms are '
+                             '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))
 
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
@@ -157,9 +158,23 @@ class GaussianFusionHMM(object):
         """
         self._init(sequences, self.init_params)
         self.fit_logprob_ = []
+        iterations_timing = []
+        n_obs = sum(len(s) for s in sequences)
+
         for i in range(self.n_em_iter):
+            if self.timing:
+                iterations_timing.append(time.time())
+
             # Expectation step
             curr_logprob, stats = self._impl.do_estep()
+            if stats['trans'].sum() > 10*n_obs:
+                print('Number of transition counts', stats['trans'].sum())
+                print('Total sequence length', n_obs)
+                print("Numerical overflow detected. Try splitting your trajectories")
+                print("into shorter segments or running in double")
+                break
+
+
             self.fit_logprob_.append(curr_logprob)
 
             # Check for convergence
@@ -168,6 +183,14 @@ class GaussianFusionHMM(object):
 
             # Maximization step
             self._do_mstep(stats, self.params)
+
+        if self.timing:
+            us_per_sample_per_iter = 1e6 * np.diff(iterations_timing) / sum(len(s) for s in sequences)
+            print('GaussianHMM EM Fitting')
+            print('----------------------')
+            print('Platform: %s' % self.platform)
+            print('EM Iters: %s' % i)
+            print('Speed:    %.3f +/- %.3f us/sample\n' % (np.mean(us_per_sample_per_iter ), np.std(us_per_sample_per_iter )))
 
         return self
 
@@ -346,4 +369,5 @@ class _SklearnGaussianHMMCPUImpl(object):
             self.impl._accumulate_sufficient_statistics(
                 stats, seq, framelogprob, posteriors, fwdlattice,
                 bwdlattice, self.impl.params)
+
         return curr_logprob, stats

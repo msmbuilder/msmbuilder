@@ -5,7 +5,7 @@
 #                                                               #
 #################################################################
 
-import time
+#import time
 import warnings
 from libc.stdlib cimport malloc, free
 import numpy as np
@@ -132,7 +132,7 @@ cdef class GaussianHMMCUDAImpl:
             self.thisptr.setStartProb(&s[0])
 
     def do_estep(self):
-        starttime = time.time()
+        #starttime = time.time()
         self.thisptr.computeEStep()
         self.thisptr.initializeSufficientStatistics()
         logprob = self.thisptr.computeSufficientStatistics()
@@ -150,7 +150,7 @@ cdef class GaussianHMMCUDAImpl:
              warnings.warn('cuda do_estep: transounts contains NaNs')
 
         stats = {'post': post, 'obs': obs, 'obs**2': obs2, 'trans': trans}
-        print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
+        #print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
         return logprob, stats
 
 

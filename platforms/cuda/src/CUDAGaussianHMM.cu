@@ -25,7 +25,7 @@
 #include "sufficientstatistics.cu"
 
 //#define USE_CUBLAS
-#define NEW_MVN_KERNEL
+//#define NEW_MVN_KERNEL
 
 
 namespace Mixtape {
@@ -191,7 +191,7 @@ float CUDAGaussianHMM::computeEStep() {
     }
     else if (n_pstates_ == 8) {
 #ifdef NEW_MVN_KERNEL
-        log_diag_mvn_likelihood<8,16><<<256, 128>>>(
+        log_diag_mvn_likelihood<8,16><<<512, 128>>>(
             d_sequences_, d_means_,  d_variances_, d_logvariances_,
             n_observations_, n_pstates_, n_features_, d_framelogprob_);
         cudaDeviceSynchronize();
@@ -443,7 +443,7 @@ float CUDAGaussianHMM::computeSufficientStatistics() {
         &beta, d_post_, 1);
     if (status != CUBLAS_STATUS_SUCCESS) { fprintf(stderr, "cublasSgemm() failed at %s:%i\n", __FILE__, __LINE__); exit(EXIT_FAILURE); }
 #else
-    sufficientstatistics<4, 128><<<100, 128>>>(
+    sufficientstatistics<4, 128><<<256, 128>>>(
         d_posteriors_, d_sequences_, n_observations_, n_pstates_, n_features_,
         d_obs_, d_obs_squared_, d_post_);
 #endif
@@ -456,7 +456,7 @@ float CUDAGaussianHMM::computeSufficientStatistics() {
             d_transcounts_, d_logprob_);
         break;
     case 8:
-        transitioncounts4_8_16<8, 256><<<max(1, n_sequences_/16), 256>>>(
+        transitioncounts4_8_16<8, 64><<<max(1, 1), 64>>>(
             d_fwdlattice_, d_bwdlattice_, d_log_transmat_, d_framelogprob_,
             d_sequence_lengths_, d_cum_sequence_lengths_, n_sequences_,
             d_transcounts_, d_logprob_);

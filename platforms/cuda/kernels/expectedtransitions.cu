@@ -72,23 +72,34 @@ float* __restrict__ logprob)
              tBlock < divU(sequence_lengths[s]-1, N_STATES-1)*(N_STATES-1);
              tBlock += (N_STATES-1))
         {
+            if (tBlock > 7) break;
+            
+            if (N_STATES > 4)
+                // After 2 hours of very painful debugging, it seems that if 
+                // this sync isnt here *before* the load into shared memory,
+                // some of the threads in this iteration can kill other threads
+                // in the previous iteration
+                __syncthreads();
+
             if ((tBlock*N_STATES + lid) < sequence_lengths[s]*N_STATES) {
                 fwd[teamid][i][j] = _fwdlattice[tBlock*N_STATES + lid];
                 bwd[teamid][i][j] = _bwdlattice[tBlock*N_STATES + lid];
-                flp[teamid][i][j] = _frame_logprob[tBlock*N_STATES + lid];
+                flp[teamid][i][j] = _frame_logprob[tBlock*N_STATES + i*N_STATES + j];
             } else {
                 fwd[teamid][i][j] = -FLT_MAX;
                 bwd[teamid][i][j] = -FLT_MAX;
                 flp[teamid][i][j] = -FLT_MAX;
             }
+
             if (N_STATES > 4)
                 // when N_STATES <= 4, we are implicltly warp-synchronous
                 __syncthreads();
 
             float Slneta_ij[N_STATES-1];
             #pragma unroll
-            for (int t = 0; t < N_STATES-1; t++)
+            for (int t = 0; t < N_STATES-1; t++) {
                 Slneta_ij[t] = fwd[teamid][t][i] + logtmat[i][j] + flp[teamid][t+1][j] + bwd[teamid][t+1][j] - tlogprob[teamid];
+            }
 
             float m = lneta_ij;
             #pragma unroll
@@ -96,6 +107,7 @@ float* __restrict__ logprob)
                 m = fmaxf(m, Slneta_ij[t]);
 
             float local_logsumexp = expf(lneta_ij - m);
+
             #pragma unroll
             for (int t = 0; t < N_STATES-1; t++)
                 local_logsumexp += expf(Slneta_ij[t] - m);

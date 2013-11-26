@@ -86,15 +86,19 @@ float* D)
         // on whether you expect A or B to have more columns
         for (aColBlock = 0; aColBlock < (nColsA+W-1)/W; aColBlock++) {
             const bool validColA = (aColBlock*W + tCol) < nColsA;
+            if (W > 4)
+                __syncthreads();
             As[teamid][tRow][tCol] = (validColA && validRow) ? A[(rowBlock*W*nColsA) + tRow*nColsA + (aColBlock*W + tCol)] : 0.0f;
         for (bColBlock = 0; bColBlock < (nColsB+W-1)/W; bColBlock++) {
             const bool validColB = (bColBlock*W + tCol) < nColsB;
+            if (W > 4)
+                __syncthreads();
             Bs[teamid][tRow][tCol] = (validColB && validRow) ? B[(rowBlock*W*nColsB) + tRow*nColsB + (bColBlock*W + tCol)] : 0.0f;
-
             // this is not required when W <= 4, because we're 
             // implicitly warp-cynchronous at that point
             if (W > 4)
                 __syncthreads();  
+
 
             float Ds  = 0.0f;
             float C1s = 0.0f;

@@ -31,10 +31,10 @@ def test_1():
 def test_2():
     np.random.seed(42)
     n_features = 32
-    length = 100
+    length = 20
 
     #for n_states in [3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32]:
-    for n_states in [3]:
+    for n_states in [8]:
         t1 = np.random.randn(length, n_features)
         means = np.random.randn(n_states, n_features)
         vars = np.random.rand(n_states, n_features)
@@ -71,6 +71,7 @@ def test_2():
         cubwdlattice = cuhmm._get_bwdlattice()
         yield lambda: np.testing.assert_array_almost_equal(bwdlattice, cubwdlattice, decimal=3)
 
+ 
         gamma = fwdlattice + bwdlattice
         posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
         cuposteriors = cuhmm._get_posteriors()
@@ -80,6 +81,11 @@ def test_2():
         pyhmm._accumulate_sufficient_statistics(
             stats, t1, framelogprob, posteriors, fwdlattice,
             bwdlattice, 'stmc')
+
+        print 'ref transcounts'
+        print transitioncounts(cufwdlattice, cubwdlattice, cuframelogprob, np.log(transmat))
+        print 'cutranscounts'
+        print custats['trans']
 
         yield lambda: np.testing.assert_array_almost_equal(stats['trans'], custats['trans'], decimal=3)
         yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=3)
@@ -133,3 +139,32 @@ def reference_backward(framelogprob, startprob, transmat):
             bwdlattice[t, i] = logsumexp(work_buffer)
 
     return bwdlattice
+
+
+def transitioncounts(fwdlattice, bwdlattice, framelogprob, log_transmat):
+    n_observations, n_components = fwdlattice.shape
+    lneta = np.zeros((n_observations-1, n_components, n_components))
+    from scipy.misc import logsumexp
+    logprob = logsumexp(fwdlattice[n_observations-1, :])
+    print 'logprob', logprob
+
+    for t in range(n_observations - 1):
+        for i in range(n_components):
+            for j in range(n_components):
+                lneta[t, i, j] = fwdlattice[t, i] + log_transmat[i, j] \
+                    + framelogprob[t + 1, j] + bwdlattice[t + 1, j] - logprob
+
+
+    print framelogprob
+
+    print 'fwdlattice[:, 0]'
+    print fwdlattice[:, 0]
+    print 'logtransmat[0,0]'
+    print log_transmat[0,0]
+    print 'framelogprob'
+    print framelogprob[:, 0]
+    print 'bwdlattice[:, 0]'
+    print bwdlattice[:, 0]
+    print 'lneta{0,0}'
+    print lneta[:, 0, 0]
+    return np.exp(logsumexp(lneta, 0))
