@@ -185,12 +185,14 @@ class GaussianFusionHMM(object):
             self._do_mstep(stats, self.params)
 
         if self.timing:
-            us_per_sample_per_iter = 1e6 * np.diff(iterations_timing) / sum(len(s) for s in sequences)
-            print('GaussianHMM EM Fitting')
-            print('----------------------')
-            print('Platform: %s' % self.platform)
-            print('EM Iters: %s' % i)
-            print('Speed:    %.3f +/- %.3f us/sample\n' % (np.mean(us_per_sample_per_iter ), np.std(us_per_sample_per_iter )))
+            samples_per_s = sum(len(s) for s in sequences) / np.diff(iterations_timing)
+            #print('GaussianHMM EM Fitting')
+            #print('----------------------')
+            #print('Platform: %s' % self.platform)
+            #print('EM Iters: %s' % i)
+            #print('Speed:    %.3f +/- %.3f us/sample' % (np.mean(us_per_sample_per_iter ), np.std(us_per_sample_per_iter )))
+            self.mean_fit_time_ = np.mean(samples_per_s)
+            self.std_fit_time_ = np.std(samples_per_s)
 
         return self
 
