@@ -341,7 +341,7 @@ class GaussianFusionHMM(object):
         if self.transmat_ is None:
             return None
         eigvals = np.linalg.eigvals(self.transmat_)
-        np.sort(eigvals)
+        eigvals = sorted(eigvals)
         return -1 / np.log(eigvals[:-1])
 
 
