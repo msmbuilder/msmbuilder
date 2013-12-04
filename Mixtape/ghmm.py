@@ -34,6 +34,7 @@
 from __future__ import print_function, division
 
 import time
+import warnings
 import numpy as np
 from sklearn import cluster
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
@@ -206,7 +207,9 @@ class GaussianFusionHMM(object):
         self._impl._sequences = sequences
 
         if 'm' in init_params:
-            self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(sequences[0]).cluster_centers_
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(sequences[0]).cluster_centers_
         if 'v' in init_params:
             self.vars_ = np.vstack([np.var(sequences[0], axis=0)] * self.n_states)
         if 't' in init_params:
@@ -343,6 +346,21 @@ class GaussianFusionHMM(object):
         eigvals = np.linalg.eigvals(self.transmat_)
         eigvals = sorted(eigvals)
         return -1 / np.log(eigvals[:-1])
+    
+    def score(self, sequences):
+        """Log-likelihood of sequences under the model
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        """
+        self._impl._sequences = sequences
+        logprob, _ = self._impl.do_estep()
+        return logprob
+        
 
 
 class _SklearnGaussianHMMCPUImpl(object):
