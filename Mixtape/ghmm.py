@@ -339,13 +339,14 @@ class GaussianFusionHMM(object):
         timescales : array, shape=[n_components-1]
             The characteristic timescales of the transition matrix. If the model
             has not been fit or does not have a transition matrix, the return
-            value will be None.
+            value will be None. The timescales are ordered from longest to
+            shortest.
         """
         if self.transmat_ is None:
             return None
         eigvals = np.linalg.eigvals(self.transmat_)
-        eigvals = sorted(eigvals)
-        return -1 / np.log(eigvals[:-1])
+        eigvals = sorted(eigvals)[::-1]
+        return -1.0 / np.log(eigvals[1:])
     
     def score(self, sequences):
         """Log-likelihood of sequences under the model
@@ -360,7 +361,6 @@ class GaussianFusionHMM(object):
         self._impl._sequences = sequences
         logprob, _ = self._impl.do_estep()
         return logprob
-        
 
 
 class _SklearnGaussianHMMCPUImpl(object):
