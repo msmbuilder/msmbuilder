@@ -331,6 +331,7 @@ setup(name='mixtape',
       classifiers=CLASSIFIERS.splitlines(),
       packages=['mixtape'],
       package_dir={'mixtape':'Mixtape'},
+      scripts=['scripts/md_ghmm'],
       zip_safe=False,
       ext_modules=extensions,
       cmdclass={'build_ext': custom_build_ext})

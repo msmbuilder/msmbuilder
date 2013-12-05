@@ -1,0 +1,139 @@
+#!/usr/bin/env python
+"""
+Fit a (collection of) gaussian fusion hidden Markov models to
+distance pairs in molecular dynamics trajectories.
+"""
+import os
+import sys
+import glob
+import json
+import time
+import argparse
+import numpy as np
+import mdtraj as md
+from sklearn.cross_validation import KFold
+from mixtape.ghmm import GaussianFusionHMM
+from mixtape.lagtime import contraction
+
+################################################################################
+# Setup parser
+################################################################################
+
+parser = argparse.ArgumentParser(description=__doc__)
+group0 = parser.add_argument_group('MDTraj Options')
+group0.add_argument('-d', '--distance-pairs', type=str, help='''Text file
+                    containing the atom indices of the pairs of atoms 
+                    between which we calculate and model the distance''',
+                    required=True)
+group0.add_argument('--dir', type=str, help='''Directory containing
+                    the trajectories to load''', required=True)
+group0.add_argument('--top', type=str, help='''Topology file for loading
+                   trajectores''')
+group0.add_argument('--ext', help='File extension of the trajectories',
+                    required=True,
+                    choices=[e[1:] for e in md.trajectory._LoaderRegistry.keys()])
+
+group1 = parser.add_argument_group('HMM Options')
+group1.add_argument('-k', '--n-states', type=int, default=[4], nargs='+',
+                    help='Number of states in the models')
+group1.add_argument('-l', '--lag-times', type=int, default=[1], nargs='+',
+                    help='Lag time(s) of the model(s)')
+group1.add_argument('--platform', choices=['cuda', 'cpu', 'sklearn'],
+                    default='cpu', help='Implementation platform. default="cpu"')
+group1.add_argument('--fusion-prior', type=float, default=1e-2, help='''Strength of
+                    the adaptive fusion prior. default=1e-2''')
+group1.add_argument('--n-em-iter', type=int, default=100, help='''Maximum number of
+                    iterations of EM. default=100''')
+group1.add_argument('--thresh', type=float, default=1e-2, help='''Convergence
+                    criterion for EM. Quit when the log likelihood decreases by
+                    less than this threshold. default=1e-2''')
+group1.add_argument('--n-lqa-iter', type=int, default=10, help='''Max number of
+                    iterations for local quadradric approximation solving the
+                    fusion-L1. default=10''')
+group1.add_argument('--reversible-type', choices=['mle', 'transpose'], default='mle',
+                    help='''Method by which the model is constrained to be
+                    reversible. default="mle"''')
+
+group2 = parser.add_argument_group('Cross Validation')
+group2.add_argument('--n-cv', type=int, default=1, help='''Run N-fold cross
+                    validation. default=2''')
+group2.add_argument('--test-lag-time', type=int, default=1,
+                    help='Lag time at which to test the models. default=1')
+
+group3 = parser.add_argument_group('Output')
+group3.add_argument('-o', '--out', help='Output file. default="hmms.jsonlines"', default='hmms.jsonlines')
+
+
+def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
+    model = GaussianFusionHMM(
+        n_states=n_states, n_features=n_features, n_em_iter=args.n_em_iter,
+        n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
+        thresh=args.thresh, reversible_type=args.reversible_type,
+                platform=args.platform)
+
+    start = time.time()
+    model.fit(train)
+    end = time.time()
+        
+    result = {
+        'timescales': (model.timescales_() * train_lag_time).tolist(),
+        'transmat': model.transmat_.tolist(),
+        'populations': model.populations_.tolist(),
+        'n_states': model.n_states,
+        'fusion_prior': args.fusion_prior,
+        'train_lag_time': train_lag_time,
+        'train_time': end - start,
+        'means': model.means_.tolist(),
+        'vars': model.vars_.tolist(),
+        'train_logprob': model.fit_logprob_[-1],
+        'n_train_observations': sum(len(t) for t in train),
+        'n_test_observations': sum(len(t) for t in test),
+        'test_lag_time': args.test_lag_time,
+        'cross_validation_fold': fold,
+        'cross_validation_nfolds': args.n_cv,
+    }
+
+    # Reformulate the model to be at the test_lag_time by contracting
+    # the transition matrix
+    model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
+    result['test_logprob'] = model.score(test)
+
+    json.dump(result, outfile)
+    outfile.write('\n')
+
+
+def main():
+    args = parser.parse_args()
+    top = md.load(args.top) if args.top is not None else None
+    pairs = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
+    n_features = pairs.shape[0]
+    
+    data = []
+    filenames = glob.glob(args.dir + '/*.' + args.ext)
+    for tfn in filenames:
+        if not tfn.endswith('h5'):
+            t = md.load(tfn, top=top)
+        else:
+            t = md.load(tfn)
+        data.append(md.geometry.compute_distances(t, pairs, periodic=False))
+
+
+    with open(args.out, 'a') as outfile:
+        outfile.write('# %s\n' % ' '.join(sys.argv))
+
+        for lag_time in args.lag_times:
+            subsampled = [d[::lag_time] for d in data]
+            for n_states in args.n_states:
+            
+                if args.n_cv > 1:
+                    for fold, (train_i, test_i) in enumerate(KFold(n=len(data), n_folds=args.n_cv)):
+                        train = [subsampled[i] for i in train_i]
+                        test = [subsampled[i] for i in test_i]
+                
+                        fit(train, test, n_states, n_features, lag_time, fold, args, outfile)
+                else:
+                    fit(subsampled, subsampled, n_states, n_features, lag_time, 0, args, outfile)
+
+
+if __name__ == '__main__':
+    main()
