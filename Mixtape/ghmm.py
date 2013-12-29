@@ -336,7 +336,7 @@ class GaussianFusionHMM(object):
 
         Returns
         -------
-        timescales : array, shape=[n_components-1]
+        timescales : array, shape=[n_states-1]
             The characteristic timescales of the transition matrix. If the model
             has not been fit or does not have a transition matrix, the return
             value will be None. The timescales are ordered from longest to
@@ -344,9 +344,14 @@ class GaussianFusionHMM(object):
         """
         if self.transmat_ is None:
             return None
-        eigvals = np.linalg.eigvals(self.transmat_)
-        eigvals = sorted(eigvals)[::-1]
-        return -1.0 / np.log(eigvals[1:])
+        try:
+            eigvals = np.linalg.eigvals(self.transmat_)
+            eigvals = sorted(eigvals)[::-1]
+            return -1.0 / np.log(eigvals[1:])
+        except np.linalg.LinAlgError:
+            # this can happen if the transition matrix contains Nans
+            # or Infs, and possibly for other reasons like convergence
+            return np.nan * np.ones(self.n_states - 1)
     
     def score(self, sequences):
         """Log-likelihood of sequences under the model
