@@ -29,7 +29,7 @@ group_mdtraj.add_argument('--top', type=str, help='''Topology file for loading
                    trajectores''')
 group_mdtraj.add_argument('--ext', help='File extension of the trajectories',
                     required=True,
-                    choices=[e[1:] for e in md.trajectory._LoaderRegistry.keys()])
+                    choices=[e[1:] for e in md.trajectory._FormatRegistry.loaders.keys()])
 
 group_munge = parser.add_argument_group('Munging Options')
 group_vector = group_munge.add_mutually_exclusive_group(required=True)
@@ -41,7 +41,7 @@ group_vector.add_argument('-a', '--atom-indices', type=str, help='''Superpose ea
                         coordinates in the topology file, and then use the distance from each atom in
                         the reference conformation to the corresponding atom in each MD conformation.''')
 group_munge.add_argument('-sp', '--split', type=int, help='''Split trajectories into smaller chunks. This
-                         looses some counts (i.e. like 1% of the counts are lost with --split 100), but can
+                         looses some counts (i.e. like 1%% of the counts are lost with --split 100), but can
                          help with speed (on gpu + multicore cpu) and numerical instabilities that come when
                          trajectories get extremely long.''')
 
