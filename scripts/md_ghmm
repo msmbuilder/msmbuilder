@@ -43,7 +43,7 @@ group_vector.add_argument('-a', '--atom-indices', type=str, help='''Superpose ea
 group_munge.add_argument('-sp', '--split', type=int, help='''Split trajectories into smaller chunks. This
                          looses some counts (i.e. like 1%% of the counts are lost with --split 100), but can
                          help with speed (on gpu + multicore cpu) and numerical instabilities that come when
-                         trajectories get extremely long.''')
+                         trajectories get extremely long.''', default=10000)
 
 group_hmm = parser.add_argument_group('HMM Options')
 group_hmm.add_argument('-k', '--n-states', type=int, default=[2], nargs='+',
@@ -77,12 +77,12 @@ group_out.add_argument('-o', '--out', help='Output file. default="hmms.jsonlines
 
 
 def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
+    pprint(args.__dict__)
     kwargs = dict(n_states=n_states, n_features=n_features, n_em_iter=args.n_em_iter,
         n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
         thresh=args.thresh, reversible_type=args.reversible_type,
                 platform=args.platform)
     model = GaussianFusionHMM(**kwargs)
-    pprint(kwargs)
 
     start = time.time()
     model.fit(train)
@@ -141,25 +141,17 @@ def main():
     n_features = indices.shape[0]
     load_time_start = time.time()
     for tfn in filenames:
-        if not tfn.endswith('h5'):
-            t = md.load(tfn, top=top)
-        else:
-            t = md.load(tfn)
-
-        if args.distance_pairs is not None:
-            item = md.geometry.compute_distances(t, indices, periodic=False)
-        else:
-            if top is None:
-                parser.error('--top is required')
-            t.superpose(top, atom_indices=indices)
-            diff2 = (t.xyz[:, indices] - top.xyz[0, indices])**2
-            item = np.sqrt(np.sum(diff2, axis=2))
-
-        if args.split is None or args.split < 1:
-            data.append(item)
-        else:
-            for i in range(0, len(item), args.split):
-                data.append(item[i:i+args.split])
+        kwargs = {} if tfn.endswith('h5') else {'top': top}
+        for t in md.iterload(tfn, chunk=args.split, **kwargs):
+            if args.distance_pairs is not None:
+                item = md.geometry.compute_distances(t, indices, periodic=False)
+            else:
+                if top is None:
+                    parser.error('--top is required')
+                t.superpose(top, atom_indices=indices)
+                diff2 = (t.xyz[:, indices] - top.xyz[0, indices])**2
+                item = np.sqrt(np.sum(diff2, axis=2))
+                data.append(item)
 
     print 'Loading data into memory + vectorization: %f s' % (time.time() - load_time_start)
     print 'Fitting with %s timeseries from %d trajectories with %d total observations' % (
