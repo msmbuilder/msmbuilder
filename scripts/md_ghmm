@@ -69,8 +69,9 @@ group_hmm.add_argument('--reversible-type', choices=['mle', 'transpose'], defaul
 group_cv = parser.add_argument_group('Cross Validation')
 group_cv.add_argument('--n-cv', type=int, default=1, help='''Run N-fold cross
                     validation. default=2''')
-group_cv.add_argument('--test-lag-time', type=int, default=1,
-                    help='Lag time at which to test the models. default=1')
+# We're training and testing at the same lag time for the moment
+# group_cv.add_argument('--test-lag-time', type=int, default=1,
+#                     help='Lag time at which to test the models. default=1')
 
 group_out = parser.add_argument_group('Output')
 group_out.add_argument('-o', '--out', help='Output file. default="hmms.jsonlines"', default='hmms.jsonlines')
@@ -102,18 +103,15 @@ def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
         'train_logprob': model.fit_logprob_[-1],
         'n_train_observations': sum(len(t) for t in train),
         'n_test_observations': sum(len(t) for t in test),
-        'test_lag_time': args.test_lag_time,
+        #'test_lag_time': args.test_lag_time,
         'cross_validation_fold': fold,
         'cross_validation_nfolds': args.n_cv,
     }
 
-    # Reformulate the model to be at the test_lag_time by contracting
-    # the transition matrix
-    try:
-        model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
-        result['test_logprob'] = model.score(test)
-    except:
-        result['test_logprob'] = float('nan')
+    # model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
+    # Don't do any contraction -- train and test at the same lagtime
+    result['test_logprob'] = model.score(test)
+    result['test_lag_time'] = args.train_lag_time
 
     if not np.all(np.isfinite(model.transmat_)):
         print 'Nonfinite numbers in transmat !!'
