@@ -103,6 +103,7 @@ def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
         'train_logprob': model.fit_logprob_[-1],
         'n_train_observations': sum(len(t) for t in train),
         'n_test_observations': sum(len(t) for t in test),
+        'train_logprobs': model.fit_logprob_,
         #'test_lag_time': args.test_lag_time,
         'cross_validation_fold': fold,
         'cross_validation_nfolds': args.n_cv,
@@ -111,7 +112,7 @@ def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
     # model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
     # Don't do any contraction -- train and test at the same lagtime
     result['test_logprob'] = model.score(test)
-    result['test_lag_time'] = args.train_lag_time
+    result['test_lag_time'] = train_lag_time
 
     if not np.all(np.isfinite(model.transmat_)):
         print 'Nonfinite numbers in transmat !!'
