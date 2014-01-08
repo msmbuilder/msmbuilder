@@ -150,7 +150,7 @@ def main():
                 t.superpose(top, atom_indices=indices)
                 diff2 = (t.xyz[:, indices] - top.xyz[0, indices])**2
                 item = np.sqrt(np.sum(diff2, axis=2))
-                data.append(item)
+            data.append(item)
 
     print 'Loading data into memory + vectorization: %f s' % (time.time() - load_time_start)
     print 'Fitting with %s timeseries from %d trajectories with %d total observations' % (
