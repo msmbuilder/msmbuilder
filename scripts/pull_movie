@@ -1,0 +1,90 @@
+#!/usr/bin/env python
+"""
+Sample a trajectory from the model
+"""
+import os
+import glob
+import json
+import numpy as np
+import mdtraj as md
+from sklearn.hmm import GaussianHMM
+from argparse import ArgumentParser
+parser = ArgumentParser(__doc__)
+parser.add_argument('--filename', required=True)
+parser.add_argument('--n-states', type=int, required=True)
+parser.add_argument('--length', type=int, required=True)
+parser.add_argument('--lag-time', type=int, required=True)
+parser.add_argument('--topology', required=True)
+group_munge = parser.add_argument_group('Munging Options')
+group_vector = group_munge.add_mutually_exclusive_group(required=True)
+group_vector.add_argument('-d', '--distance-pairs', type=str,
+                         help='''Vectorize the MD trajectories by extracting timeseries of the distance
+                         between pairs of atoms in each frame. Supply a text file where each row contains
+                         the space-separate indices of two atoms which form a pair to monitor''')
+group_vector.add_argument('-a', '--atom-indices', type=str, help='''Superpose each MD conformation on the
+                        coordinates in the topology file, and then use the distance from each atom in
+                        the reference conformation to the corresponding atom in each MD conformation.''')
+parser.add_argument('--dir')
+parser.add_argument('--ext')
+
+
+def iterobjects(fn):
+    for line in open(fn, 'r'):
+        if line.startswith('#'):
+            print line
+            continue
+        obj = json.loads(line)
+        # print obj['n_states'], obj['train_lag_time']
+        yield obj
+
+
+def get_model(filename, n_states, lag_time):
+    matches = [o for o in iterobjects(filename) if o['n_states'] == n_states and o['train_lag_time'] == lag_time]
+    return matches[0]
+
+
+def load_timeseries(filenames, atom_indices, topology):
+    X = []
+    i = []
+    f = []
+    for file in filenames:
+        t = md.load(file)
+        t.superpose(topology, atom_indices=atom_indices)
+        diff2 = (t.xyz[:, atom_indices] - topology.xyz[0, atom_indices])**2
+        x = np.sqrt(np.sum(diff2, axis=2))
+
+        X.append(x)
+        i.append(np.arange(len(x)))
+        f.extend([file]*len(x))
+   
+    return np.concatenate(X), np.concatenate(i), f
+
+
+def main():
+    args = parser.parse_args()
+    modeldict = get_model(args.filename, args.n_states, args.lag_time)
+    model = GaussianHMM(modeldict['n_states'])
+    model.means_ = modeldict['means']
+    model.covars_ = modeldict['vars']
+    model.transmat_ = modeldict['transmat']
+    model.startprob_ = modeldict['populations']
+
+    Xt, St = model.sample(args.length)
+
+    topology = md.load(args.topology)
+    filenames = glob.glob(os.path.join(args.dir, '*.%s' % args.ext))
+    atom_indices = np.loadtxt(args.atom_indices, dtype=int)
+    xx, ii, ff = load_timeseries(filenames, atom_indices, topology)
+
+    movieframes = []
+    for x in Xt:
+        i = np.argmin(np.sum((x - xx)**2, axis=1))
+        movieframes.append(md.load_frame(ff[i], ii[i]))
+    movie = reduce(lambda a, b: a.join(b), movieframes)
+    movie.superpose(movie)
+    movie.save('movie.xtc')
+    movie[0].save('movie.xtc.pdb')
+        
+
+if __name__ == '__main__':
+   main()
