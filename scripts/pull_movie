@@ -11,6 +11,7 @@ from sklearn.hmm import GaussianHMM
 from argparse import ArgumentParser
 parser = ArgumentParser(__doc__)
 parser.add_argument('--filename', required=True)
+parser.add_argument('--out', default='movie')
 parser.add_argument('--n-states', type=int, required=True)
 parser.add_argument('--length', type=int, required=True)
 parser.add_argument('--lag-time', type=int, required=True)
@@ -33,7 +34,10 @@ def iterobjects(fn):
         if line.startswith('#'):
             print line
             continue
-        obj = json.loads(line)
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
         # print obj['n_states'], obj['train_lag_time']
         yield obj
 
@@ -82,8 +86,8 @@ def main():
         movieframes.append(md.load_frame(ff[i], ii[i]))
     movie = reduce(lambda a, b: a.join(b), movieframes)
     movie.superpose(movie)
-    movie.save('movie.xtc')
-    movie[0].save('movie.xtc.pdb')
+    movie.save('%s.xtc' % args.out)
+    movie[0].save('%s.xtc.pdb' % args.out)
         
 
 if __name__ == '__main__':

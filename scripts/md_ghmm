@@ -68,7 +68,7 @@ group_hmm.add_argument('--reversible-type', choices=['mle', 'transpose'], defaul
 
 group_cv = parser.add_argument_group('Cross Validation')
 group_cv.add_argument('--n-cv', type=int, default=1, help='''Run N-fold cross
-                    validation. default=2''')
+                    validation. default=1''')
 # We're training and testing at the same lag time for the moment
 # group_cv.add_argument('--test-lag-time', type=int, default=1,
 #                     help='Lag time at which to test the models. default=1')
@@ -156,7 +156,7 @@ def main():
     print 'Fitting with %s timeseries from %d trajectories with %d total observations' % (
         len(data), len(filenames), sum(len(e) for e in data))
 
-    with open(args.out, 'a') as outfile:
+    with open(args.out, 'a', 0) as outfile:
         outfile.write('# %s\n' % ' '.join(sys.argv))
 
         for lag_time in args.lag_times:
