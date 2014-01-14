@@ -32,8 +32,14 @@ try:
     from setuptools import setup, Extension
 except ImportError:
     from distutils.core import setup, Extension
-from Cython.Distutils import build_ext
-
+try:
+    import Cython
+    from Cython.Distutils import build_ext
+    if Cython.__version__ < '0.18':
+        raise ImportError()
+except ImportError:
+    print('Cython version 0.18 or later is required. Try "easy_install cython"')
+    sys.exit(1)
 
 ##########################
 __version__ = 0.1
