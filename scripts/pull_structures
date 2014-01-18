@@ -29,8 +29,8 @@ group_vector.add_argument('-d', '--distance-pairs', type=str,
 group_vector.add_argument('-a', '--atom-indices', type=str, help='''Superpose each MD conformation on the
                         coordinates in the topology file, and then use the distance from each atom in
                         the reference conformation to the corresponding atom in each MD conformation.''')
-parser.add_argument('--dir', help='Directory containing the trajectory files')
-parser.add_argument('--ext', help='File extension of the trajectory files')
+parser.add_argument('--dir', required=True, help='Directory containing the trajectory files')
+parser.add_argument('--ext', required=True, help='File extension of the trajectory files')
 
 
 def main():
@@ -47,15 +47,16 @@ def main():
     topology = md.load(args.topology)
     atom_indices = np.loadtxt(args.atom_indices, dtype=int)
     filenames = glob.glob(os.path.join(args.dir, '*.%s' % args.ext))
-    xx, ii, ff = load_timeseries(filenames, atom_indices, topology)
+    if len(filenames) == 0:
+        parser.error('No files matched.')
 
+    xx, ii, ff = load_timeseries(filenames, atom_indices, topology)
     logprob = log_multivariate_normal_density(xx, means, vars, covariance_type='diag')
     assignments = np.argmax(logprob, axis=1)
     probs = np.max(logprob, axis=1)
 
     for state in range(means.shape[0]):
-        # pick the structures that have the highest log
-        # probability in this state
+        # pick the structures that have the highest log probability in the state
         p = probs[assignments==state]
         sorted_filenms = ff[assignments==state][p.argsort()]
         sorted_indices = ii[assignments==state][p.argsort()]
