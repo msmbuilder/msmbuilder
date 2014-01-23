@@ -204,14 +204,19 @@ class GaussianFusionHMM(object):
         return self
 
     def _init(self, sequences, init_params):
-        self._impl._sequences = sequences
+        '''
+	Find initial means(hot start)
+	'''
+	self._impl._sequences = sequences
+
+        small_dataset = np.vstack(sequences[0:min(len(sequences), 50)])
 
         if 'm' in init_params:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(sequences[0]).cluster_centers_
+                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
         if 'v' in init_params:
-            self.vars_ = np.vstack([np.var(sequences[0], axis=0)] * self.n_states)
+            self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         if 't' in init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
@@ -250,17 +255,27 @@ class GaussianFusionHMM(object):
                 for i in range(self.n_features):
                     np.fill_diagonal(strength[i], 0)
 
+                break_lqa = False
                 for s in range(self.n_lqa_iter):
                     diff = getdiff(means)
-                    if np.all(diff <= difference_cutoff):
+                    if np.all(diff <= difference_cutoff) or break_lqa:
                         break
+
                     offdiagonal = -strength / diff
                     diagonal_penalty = np.sum(strength/diff, axis=2)
                     for f in range(self.n_features):
                         if np.all(diff[f] <= difference_cutoff):
                             continue
                         ridge_approximation = np.diag(stats['post'] / self.vars_[:, f] + diagonal_penalty[f]) + offdiagonal[f]
-                        means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
+                        try:
+                            means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
+                        except np.linalg.LinAlgError:
+                            # I'm not really sure what exactly causes the ridge
+                            # approximation to be non-solvable, but it probably
+                            # means we're too close to the merging. Maybe 1e-10
+                            # is cutting it too close. ANyways, just break now and
+                            # use the last valid value of the means.
+                            break_lqa = True
 
                 for i in range(self.n_features):
                     for k, j in zip(*np.triu_indices(self.n_states)):
