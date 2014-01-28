@@ -3,6 +3,7 @@
 Fit a (collection of) gaussian fusion hidden Markov models to
 distance pairs in molecular dynamics trajectories.
 """
+from __future__ import print_function
 import os
 import sys
 import glob
@@ -78,11 +79,11 @@ group_out.add_argument('-o', '--out', help='Output file. default="hmms.jsonlines
 
 
 def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
-    pprint(args.__dict__)
     kwargs = dict(n_states=n_states, n_features=n_features, n_em_iter=args.n_em_iter,
         n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
         thresh=args.thresh, reversible_type=args.reversible_type,
                 platform=args.platform)
+    print(kwargs)
     model = GaussianFusionHMM(**kwargs)
 
     start = time.time()
@@ -115,7 +116,7 @@ def fit(train, test, n_states, n_features, train_lag_time, fold, args, outfile):
     result['test_lag_time'] = train_lag_time
 
     if not np.all(np.isfinite(model.transmat_)):
-        print 'Nonfinite numbers in transmat !!'
+        print('Nonfinite numbers in transmat !!')
 
     json.dump(result, outfile)
     outfile.write('\n')
@@ -152,9 +153,9 @@ def main():
                 item = np.sqrt(np.sum(diff2, axis=2))
             data.append(item)
 
-    print 'Loading data into memory + vectorization: %f s' % (time.time() - load_time_start)
-    print 'Fitting with %s timeseries from %d trajectories with %d total observations' % (
-        len(data), len(filenames), sum(len(e) for e in data))
+    print('Loading data into memory + vectorization: %f s' % (time.time() - load_time_start))
+    print('Fitting with %s timeseries from %d trajectories with %d total observations' % (
+        len(data), len(filenames), sum(len(e) for e in data)))
 
     with open(args.out, 'a', 0) as outfile:
         outfile.write('# %s\n' % ' '.join(sys.argv))
