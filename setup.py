@@ -41,6 +41,13 @@ except ImportError:
     print('Cython version 0.18 or later is required. Try "easy_install cython"')
     sys.exit(1)
 
+try:
+    import sklearn
+    if sklearn.__version__ < '0.14':
+        raise ImportError()
+except ImportError:
+    print('Scikit-learn version 0.14 or better is required. Try "easy_install sklearn"')
+
 ##########################
 __version__ = 0.1
 ##########################
