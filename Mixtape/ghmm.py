@@ -250,22 +250,28 @@ class GaussianFusionHMM(object):
                 for i in range(self.n_features):
                     np.fill_diagonal(strength[i], 0)
 
+                break_lqa = False
                 for s in range(self.n_lqa_iter):
                     diff = getdiff(means)
-                    if np.all(diff <= difference_cutoff):
+                    if np.all(diff <= difference_cutoff) or break_lqa:
                         break
+
                     offdiagonal = -strength / diff
                     diagonal_penalty = np.sum(strength/diff, axis=2)
                     for f in range(self.n_features):
                         if np.all(diff[f] <= difference_cutoff):
                             continue
                         ridge_approximation = np.diag(stats['post'] / self.vars_[:, f] + diagonal_penalty[f]) + offdiagonal[f]
-                        means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
+                        try:
+                            means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
+                        except np.linalg.LinAlgError:
+                            break_lqa = True
 
                 for i in range(self.n_features):
                     for k, j in zip(*np.triu_indices(self.n_states)):
                         if diff[i, k, j] <= difference_cutoff:
                             means[k, i] = means[j, i]
+
             self.means_ = means
 
         if 'v' in params:
