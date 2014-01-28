@@ -100,6 +100,9 @@ class GaussianFusionHMM(object):
         If 't' is in params, the transition matrix will be set. If
         'm' is in params, the statemeans will be set. If 'v' is in
         params, the state variances will be set.
+    n_hotstart_sequences : int
+        Number of sequences to use when hotstarting the EM with kmeans.
+        Default=50
 
     Notes
     -----
@@ -108,7 +111,8 @@ class GaussianFusionHMM(object):
                  fusion_prior=1e-2, thresh=1e-2, reversible_type='mle',
                  transmat_prior=None, vars_prior=1e-3, vars_weight=1,
                  random_state=None, params='tmv', init_params='tmv',
-                 platform='cpu', precision='mixed', timing=True):
+                 platform='cpu', precision='mixed', timing=True,
+                 n_hotstart_sequences=50):
         self.n_states = n_states
         self.n_features = n_features
         self.n_em_iter = n_em_iter
@@ -124,6 +128,7 @@ class GaussianFusionHMM(object):
         self.init_params = init_params
         self.platform = platform
         self.timing = timing
+        self.n_hotstart_sequences = n_hotstart_sequences
         self._impl = None
 
         if not reversible_type in ['mle', 'transpose']:
@@ -204,14 +209,19 @@ class GaussianFusionHMM(object):
         return self
 
     def _init(self, sequences, init_params):
-        self._impl._sequences = sequences
+        '''
+	Find initial means(hot start)
+	'''
+	self._impl._sequences = sequences
+
+        small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart_sequences)])
 
         if 'm' in init_params:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(sequences[0]).cluster_centers_
+                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
         if 'v' in init_params:
-            self.vars_ = np.vstack([np.var(sequences[0], axis=0)] * self.n_states)
+            self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         if 't' in init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
@@ -265,6 +275,11 @@ class GaussianFusionHMM(object):
                         try:
                             means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
                         except np.linalg.LinAlgError:
+                            # I'm not really sure what exactly causes the ridge
+                            # approximation to be non-solvable, but it probably
+                            # means we're too close to the merging. Maybe 1e-10
+                            # is cutting it too close. ANyways, just break now and
+                            # use the last valid value of the means.
                             break_lqa = True
 
                 for i in range(self.n_features):
