@@ -85,7 +85,7 @@ def reversible_transmat(np.ndarray[ndim=2, dtype=DTYPE_T] counts):
     symcounts = (counts + counts.T - np.diag(np.diag(counts)))[triu_indices]
     rowsums = np.sum(counts, axis=1)
     logrowsums = np.log(rowsums)
-    u0 = np.log(symcounts)
+    u0 = np.log(symcounts + 1e-10)
 
     uf, f, d = scipy.optimize.fmin_l_bfgs_b(
         reversible_transmat_likelihood, u0,
