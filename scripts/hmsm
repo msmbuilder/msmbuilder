@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+from mixtape.cmdline import argument, Command, RootCommandBase
+
+class Subcommand1(Command):
+    #name = 'subcommandname'
+    description = 'description sdsdf sffsd'
+    option1 = argument('--opt', help='option one is sweet', type=int)
+
+    def start(self, args):
+        print args
+        print 'start!'
+
+def main():
+    class RootCommand(RootCommandBase):
+        name = 'hmsm'
+        description = 'Hidden Markov Models of Biomolecular Dynamics'
+    RootCommand().start()
+
+
+
+
+if __name__ == '__main__':
+    main()
