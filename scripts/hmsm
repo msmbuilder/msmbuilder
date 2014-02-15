@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-from mixtape.cmdline import argument, Command, RootCommandBase
+'Hidden Markov Models of Biomolecular Dynamics'
+from mixtape.cmdline import App
+from mixtape.cmdline import argument, Command
 
 class Subcommand1(Command):
     #name = 'subcommandname'
@@ -11,10 +13,8 @@ class Subcommand1(Command):
         print 'start!'
 
 def main():
-    class RootCommand(RootCommandBase):
-        name = 'hmsm'
-        description = 'Hidden Markov Models of Biomolecular Dynamics'
-    RootCommand().start()
+    app = App(name=__name__, description=__doc__)
+    app.start()
 
 
 

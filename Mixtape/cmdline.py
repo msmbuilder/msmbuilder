@@ -2,7 +2,7 @@ import sys
 import abc
 import argparse
 
-__all__ = ['argument', 'Command', 'RootCommandBase']
+__all__ = ['argument', 'Command', 'App']
 
 class argument(object):
     """Wrapper for arguments that will get passed to
@@ -32,13 +32,13 @@ class Command(object):
         pass
 
 
-class RootCommandBase(Command):
-    """Superclass for the root command
-    """
+class _RootCommand(Command):
+    description = None
+
     @classmethod
     def _subcommands(cls):
         for subclass in Command.__subclasses__():
-            if subclass != cls and not issubclass(subclass, RootCommandBase):
+            if subclass != cls:
                 yield subclass
 
     def __init__(self, argv=None):
@@ -74,3 +74,9 @@ class RootCommandBase(Command):
                     subparser.add_argument(*v.args, dest=k, **v.kwargs)
         return parser
 
+
+def App(name, description):
+    rc = _RootCommand()
+    rc.name = name
+    rc.description = description
+    return rc
