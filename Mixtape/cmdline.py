@@ -14,6 +14,7 @@ __all__ = ['argument', 'argument_group', 'Command', 'App']
 
 
 class argument(object):
+    'wraps parser.add_argument'
     def __init__(self, *args, **kwargs):
         self.parent = None
         self.args = args
@@ -25,6 +26,7 @@ class argument(object):
 
 
 class argument_group(object):
+    'wraps parser.add_argument_group'
     def __init__(self, *args, **kwargs):
         self.parent = None
         self.args = args
@@ -52,6 +54,7 @@ class argument_group(object):
 
 
 class mutually_exclusive_group(object):
+    'wraps parser.add_mutually_exclusive_group'
     def __init__(self, *args, **kwargs):
         self.parent = None
         self.args = args
