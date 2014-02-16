@@ -15,7 +15,7 @@ __all__ = ['FitEm']
 
 class FitEM(Command):
     name = 'fit-em'
-    description = '''Fit a gaussian fusion hidden Markov models with EM'''
+    description = '''Fit gaussian fusion hidden Markov models with EM'''
 
     group_mdtraj = argument_group('MDTraj Options')
     group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
