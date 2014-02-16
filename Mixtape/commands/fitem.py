@@ -1,11 +1,21 @@
+from __future__ import print_function
+import sys
+import glob
+import json
+import time
 import numpy as np
 import mdtraj as md
-from mixtape.cmdline import Command, argument, argument_group
 
+from sklearn.cross_validation import KFold
+from mixtape.ghmm import GaussianFusionHMM
+# from mixtape.lagtime import contraction
+from mixtape.cmdline import Command, argument_group
+
+__all__ = ['FitEm']
 
 class FitEM(Command):
     name = 'fit-em'
-    description = 'description sdsdf sffsd'
+    description = '''Fit a gaussian fusion hidden Markov models with EM'''
 
     group_mdtraj = argument_group('MDTraj Options')
     group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
@@ -68,7 +78,104 @@ class FitEM(Command):
 
     def __init__(self, args):
         self.args = args
+        self.top = md.load(args.top) if args.top is not None else None
+        data = []
+
+        if args.distance_pairs is not None:
+            self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
+            if self.indices.shape[1] != 2:
+                self.error('distance-pairs must have shape (N, 2). %s had shape %s' % (args.distance_pairs, indices.shape))
+        else:
+            self.indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=2)
+            if self.indices.shape[1] != 1:
+                self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, indices.shape))
+            self.indices = self.indices.reshape(-1)
+
+        self.filenames = glob.glob(args.dir + '/*.' + args.ext)
+        self.n_features = self.indices.shape[0]
+
 
     def start(self):
-        print 'start!'
-        print self.args
+        args = self.args
+        data = self.load_data()
+
+        with open(args.out, 'a', 0) as outfile:
+            outfile.write('# %s\n' % ' '.join(sys.argv))
+
+            for lag_time in args.lag_times:
+                subsampled = [d[::lag_time] for d in data]
+                for n_states in args.n_states:
+
+                    if args.n_cv > 1:
+                        for fold, (train_i, test_i) in enumerate(KFold(n=len(data), n_folds=args.n_cv)):
+                            train = [subsampled[i] for i in train_i]
+                            test = [subsampled[i] for i in test_i]
+
+                            self.fit(train, test, n_states, n_features, lag_time, fold, args, outfile)
+                    else:
+                        self.fit(subsampled, subsampled, n_states, n_features, lag_time, 0, args, outfile)
+
+
+    def fit(self, train, test, n_states, n_features, train_lag_time, fold, args, outfile):    
+        kwargs = dict(n_states=n_states, n_features=n_features, n_em_iter=args.n_em_iter,
+            n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
+            thresh=args.thresh, reversible_type=args.reversible_type,
+                    platform=args.platform)
+        print(kwargs)
+        model = GaussianFusionHMM(**kwargs)
+
+        start = time.time()
+        model.fit(train)
+        end = time.time()
+
+        result = {
+            'timescales': (model.timescales_() * train_lag_time).tolist(),
+            'transmat': model.transmat_.tolist(),
+            'populations': model.populations_.tolist(),
+            'n_states': model.n_states,
+            'split': args.split,
+            'fusion_prior': args.fusion_prior,
+            'train_lag_time': train_lag_time,
+            'train_time': end - start,
+            'means': model.means_.tolist(),
+            'vars': model.vars_.tolist(),
+            'train_logprob': model.fit_logprob_[-1],
+            'n_train_observations': sum(len(t) for t in train),
+            'n_test_observations': sum(len(t) for t in test),
+            'train_logprobs': model.fit_logprob_,
+            #'test_lag_time': args.test_lag_time,
+            'cross_validation_fold': fold,
+            'cross_validation_nfolds': args.n_cv,
+        }
+
+        # model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
+        # Don't do any contraction -- train and test at the same lagtime
+        result['test_logprob'] = model.score(test)
+        result['test_lag_time'] = train_lag_time
+
+        if not np.all(np.isfinite(model.transmat_)):
+            print('Nonfinite numbers in transmat !!')
+
+        json.dump(result, outfile)
+        outfile.write('\n')
+
+    def load_data(self):
+        load_time_start = time.time()
+        for tfn in self.filenames:
+            kwargs = {} if tfn.endswith('h5') else {'top': top}
+            for t in md.iterload(tfn, chunk=self.args.split, **kwargs):
+                if self.args.distance_pairs is not None:
+                    item = md.geometry.compute_distances(t, self.indices, periodic=False)
+                else:
+                    if top is None:
+                        self.error('--top is required')
+                    t.superpose(top, atom_indices=self.indices)
+                    diff2 = (t.xyz[:, indices] - top.xyz[0, indices])**2
+                    item = np.sqrt(np.sum(diff2, axis=2))
+                data.append(item)
+
+        print('Loading data into memory + vectorization: %f s' % (time.time() - load_time_start))
+        print('Fitting with %s timeseries from %d trajectories with %d total observations' % (
+            len(data), len(filenames), sum(len(e) for e in data)))
+
+        return data 
