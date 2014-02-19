@@ -11,7 +11,7 @@ from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group
 
-__all__ = ['FitEm']
+__all__ = ['FitEM']
 
 class FitEM(Command):
     name = 'fit-em'
@@ -79,16 +79,15 @@ class FitEM(Command):
     def __init__(self, args):
         self.args = args
         self.top = md.load(args.top) if args.top is not None else None
-        data = []
 
         if args.distance_pairs is not None:
             self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
             if self.indices.shape[1] != 2:
-                self.error('distance-pairs must have shape (N, 2). %s had shape %s' % (args.distance_pairs, indices.shape))
+                self.error('distance-pairs must have shape (N, 2). %s had shape %s' % (args.distance_pairs, self.indices.shape))
         else:
             self.indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=2)
             if self.indices.shape[1] != 1:
-                self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, indices.shape))
+                self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, self.indices.shape))
             self.indices = self.indices.reshape(-1)
 
         self.filenames = glob.glob(args.dir + '/*.' + args.ext)
@@ -111,13 +110,13 @@ class FitEM(Command):
                             train = [subsampled[i] for i in train_i]
                             test = [subsampled[i] for i in test_i]
 
-                            self.fit(train, test, n_states, n_features, lag_time, fold, args, outfile)
+                            self.fit(train, test, n_states, lag_time, fold, args, outfile)
                     else:
-                        self.fit(subsampled, subsampled, n_states, n_features, lag_time, 0, args, outfile)
+                        self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
 
-    def fit(self, train, test, n_states, n_features, train_lag_time, fold, args, outfile):    
-        kwargs = dict(n_states=n_states, n_features=n_features, n_em_iter=args.n_em_iter,
+    def fit(self, train, test, n_states, train_lag_time, fold, args, outfile):
+        kwargs = dict(n_states=n_states, n_features=self.n_features, n_em_iter=args.n_em_iter,
             n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
             thresh=args.thresh, reversible_type=args.reversible_type,
                     platform=args.platform)
@@ -161,21 +160,22 @@ class FitEM(Command):
 
     def load_data(self):
         load_time_start = time.time()
+        data = []
         for tfn in self.filenames:
-            kwargs = {} if tfn.endswith('h5') else {'top': top}
+            kwargs = {} if tfn.endswith('h5') else {'top': self.top}
             for t in md.iterload(tfn, chunk=self.args.split, **kwargs):
                 if self.args.distance_pairs is not None:
                     item = md.geometry.compute_distances(t, self.indices, periodic=False)
                 else:
-                    if top is None:
+                    if self.top is None:
                         self.error('--top is required')
-                    t.superpose(top, atom_indices=self.indices)
-                    diff2 = (t.xyz[:, indices] - top.xyz[0, indices])**2
+                    t.superpose(self.top, atom_indices=self.indices)
+                    diff2 = (t.xyz[:, self.indices] - self.top.xyz[0, self.indices])**2
                     item = np.sqrt(np.sum(diff2, axis=2))
                 data.append(item)
 
         print('Loading data into memory + vectorization: %f s' % (time.time() - load_time_start))
         print('Fitting with %s timeseries from %d trajectories with %d total observations' % (
-            len(data), len(filenames), sum(len(e) for e in data)))
+            len(data), len(self.filenames), sum(len(e) for e in data)))
 
-        return data 
+        return data

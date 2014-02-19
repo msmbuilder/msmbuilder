@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import os
+import itertools
 import mdtraj as md
 import numpy as np
 from mixtape.cmdline import Command, argument, argument_group
@@ -20,7 +21,7 @@ class AtomIndices(Command):
     group1.add_argument('-a', '--atoms', action='store_true',
         help='''Create a 1-dimensional index file containing the indices of the
         selected atoms.''')
-    
+
     section2 = argument_group(description='Selection Criteria: Choose One')
     group2 = section2.add_mutually_exclusive_group(required=True)
     group2.add_argument('--minimal', action='store_true', help='''Keep the
@@ -34,7 +35,7 @@ class AtomIndices(Command):
         carbons.''')
     group2.add_argument('--all', action='store_true', help='''Selection
         includes every atom.''')
-    
+
     def __init__(self, args):
         self.args = args
         if os.path.exists(args.out):
@@ -43,20 +44,20 @@ class AtomIndices(Command):
         print('Loaded pdb containing (%d) chains, (%d) residues, (%d) atoms.' %
             (self.pdb.topology.n_chains, self.pdb.topology.n_residues,
              self.pdb.topology.n_atoms))
-        
+
     def start(self):
         if self.args.all:
             atom_indices = np.arange(self.pdb.n_atoms)
         elif self.args.alpha:
             atom_indices = [a.index for a in self.pdb.topology.atoms if a.name == 'CA']
         elif self.args.minimal:
-            atom_indices = [a.index for a in self.pdb.topology.atoms if a.name in 
+            atom_indices = [a.index for a in self.pdb.topology.atoms if a.name in
                 ['CA', 'CB', 'C', 'N', 'O'] and any(ra.name == 'CA' for ra in a.residue.atoms)]
         elif self.args.heavy:
             raise NotImplementedError
         else:
             raise RuntimeError
-            
+
         print('Selected (%d) atoms from (%d) unique residues.' % (len(atom_indices),
             len(np.unique([self.pdb.topology.atom(i).residue.index for i in atom_indices]))))
 
@@ -67,4 +68,3 @@ class AtomIndices(Command):
         else:
             raise RuntimeError
         np.savetxt(self.args.out, atom_indices, '%d')
-            
