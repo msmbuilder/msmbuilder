@@ -29,13 +29,6 @@ except ImportError:
     print('Cython version 0.18 or later is required. Try "easy_install cython"')
     sys.exit(1)
 
-try:
-    import sklearn
-    if sklearn.__version__ < '0.14':
-        raise ImportError()
-except ImportError:
-    print('Scikit-learn version 0.14 or better is required. Try "easy_install sklearn"')
-
 ##########################
 __version__ = 0.1
 ##########################
@@ -44,7 +37,7 @@ CLASSIFIERS = """\
 Intended Audience :: Science/Research
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
-Programming Language :: C
+Programming Language :: C++
 Programming Language :: Python
 Development Status :: 3 - Alpha
 Topic :: Software Development
@@ -324,4 +317,5 @@ setup(name='mixtape',
       scripts=['scripts/hmsm'],
       zip_safe=False,
       ext_modules=extensions,
+      install_requires=['IPython', 'scikit-learn>=0.14'],
       cmdclass={'build_ext': custom_build_ext})
