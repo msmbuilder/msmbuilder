@@ -38,7 +38,7 @@ import warnings
 import numpy as np
 from sklearn import cluster
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
-from mixtape import _hmm, _reversibility
+from mixtape import _ghmm, _reversibility
 try:
     from mixtape import _cuda_ghmm_single
     from mixtape import _cuda_ghmm_mixed
@@ -56,7 +56,7 @@ class GaussianFusionHMM(object):
 
     Parameters
     ----------
-    n_components : int
+    n_states : int
         The number of components (states) in the model
     n_em_iter : int
         The number of iterations of expectation-maximization to run
@@ -137,7 +137,7 @@ class GaussianFusionHMM(object):
                              % reversible_type)
 
         if self.platform == 'cpu':
-            self._impl = _hmm.GaussianHMMCPUImpl(self.n_states, self.n_features, precision)
+            self._impl = _ghmm.GaussianHMMCPUImpl(self.n_states, self.n_features, precision)
         elif self.platform == 'sklearn':
             self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
         elif self.platform == 'cuda':

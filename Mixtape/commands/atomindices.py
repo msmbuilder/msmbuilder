@@ -8,7 +8,7 @@ from mixtape.cmdline import Command, argument, argument_group
 __all__ = ['AtomIndices']
 
 class AtomIndices(Command):
-    description="Create index file for atoms or distance pairs"
+    description="Create index file for atoms or distance pairs."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
     out = argument('-o', '--out', required=True, help='Path to output file')
 

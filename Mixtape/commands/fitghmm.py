@@ -11,11 +11,11 @@ from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group
 
-__all__ = ['FitEM']
+__all__ = ['FitGHMM']
 
-class FitEM(Command):
-    name = 'fit-em'
-    description = '''Fit gaussian fusion hidden Markov models with EM'''
+class FitGHMM(Command):
+    name = 'fit-ghmm'
+    description = '''Fit gaussian fusion hidden Markov models with EM.'''
 
     group_mdtraj = argument_group('MDTraj Options')
     group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
@@ -128,6 +128,7 @@ class FitEM(Command):
         end = time.time()
 
         result = {
+            'model': 'GaussianFusionHMM',
             'timescales': (model.timescales_() * train_lag_time).tolist(),
             'transmat': model.transmat_.tolist(),
             'populations': model.populations_.tolist(),

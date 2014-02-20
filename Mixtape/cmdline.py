@@ -61,7 +61,9 @@ if __name__ == '__main__':
 from __future__ import print_function, division
 import sys
 import abc
+import re
 import argparse
+from IPython.utils.text import wrap_paragraphs
 
 __all__ = ['argument', 'argument_group', 'Command', 'App']
 
@@ -88,25 +90,22 @@ class argument_group(object):
         self.parent = None
         self.args = args
         self.kwargs = kwargs
-        self.arguments = []
-        self.mutually_exclusive_groups = []
+        self.children = []
 
     def add_argument(self, *args, **kwargs):
         arg = argument(*args, **kwargs)
         arg.parent = self
-        self.arguments.append(arg)
+        self.children.append(arg)
 
     def add_mutually_exclusive_group(self, *args, **kwargs):
         group = mutually_exclusive_group(*args, **kwargs)
         group.parent = self
-        self.mutually_exclusive_groups.append(group)
+        self.children.append(group)
         return group
 
     def register(self, root):
         group = root.add_argument_group(*self.args, **self.kwargs)
-        for x in self.arguments:
-            x.register(group)
-        for x in self.mutually_exclusive_groups:
+        for x in self.children:
             x.register(group)
 
 
@@ -178,10 +177,13 @@ class App(object):
 
     def _build_parser(self):
         parser = argparse.ArgumentParser(description=self.description)
-        subparsers = parser.add_subparsers(dest=self.subcommand_dest)
+        subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
         for klass in self._subcommands():
+            # http://stackoverflow.com/a/17124446/1079728
+            first_sentence = ' '.join(' '.join(re.split(r'(?<=[.:;])\s', klass.description)[:1]).split())
+            description = '\n\n'.join(wrap_paragraphs(klass.description))
             subparser = subparsers.add_parser(
-                klass._get_name(), help=klass.description, description=klass.description)
+                klass._get_name(), help=first_sentence, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
             for v in klass.__dict__.values():
                 if isinstance(v, (argument, argument_group, mutually_exclusive_group)):
                     if v.parent is None:
