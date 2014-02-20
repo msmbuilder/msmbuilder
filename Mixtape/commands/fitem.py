@@ -11,10 +11,10 @@ from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group
 
-__all__ = ['FitEM']
+__all__ = ['FitGHMM']
 
-class FitEM(Command):
-    name = 'fit-em'
+class FitGHMM(Command):
+    name = 'fit-ghmm'
     description = '''Fit gaussian fusion hidden Markov models with EM'''
 
     group_mdtraj = argument_group('MDTraj Options')
