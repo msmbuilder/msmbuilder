@@ -1,4 +1,4 @@
-from .fitem import FitGHMM
+from .fitghmm import FitGHMM
 from .atomindices import AtomIndices
 from .inspect_output import Inspect
 
