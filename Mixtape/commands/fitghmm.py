@@ -15,7 +15,7 @@ __all__ = ['FitGHMM']
 
 class FitGHMM(Command):
     name = 'fit-ghmm'
-    description = '''Fit gaussian fusion hidden Markov models with EM'''
+    description = '''Fit gaussian fusion hidden Markov models with EM.'''
 
     group_mdtraj = argument_group('MDTraj Options')
     group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
@@ -128,6 +128,7 @@ class FitGHMM(Command):
         end = time.time()
 
         result = {
+            'model': 'GaussianFusionHMM',
             'timescales': (model.timescales_() * train_lag_time).tolist(),
             'transmat': model.transmat_.tolist(),
             'populations': model.populations_.tolist(),

@@ -56,7 +56,7 @@ class GaussianFusionHMM(object):
 
     Parameters
     ----------
-    n_components : int
+    n_states : int
         The number of components (states) in the model
     n_em_iter : int
         The number of iterations of expectation-maximization to run
