@@ -137,6 +137,7 @@ class VonMisesHMM(_BaseHMM):
         if 't' in params:
             self.transmat_ = np.ones((self.n_states, self.n_states)) * (1.0 / self.n_components)
             self.populations_ = np.ones(self.n_states) / self.n_states
+            self.startprob_ = self.populations_
             
         if (hasattr(self, 'n_features')
                 and self.n_features != obs[0].shape[1]):
@@ -270,6 +271,7 @@ class VonMisesHMM(_BaseHMM):
                 raise ValueError('Invalid value for reversible_type: %s '
                                  'Must be either "mle" or "transpose"'
                                  % self.reversible_type)
+            self.startprob_ = self.populations_
 
         if 'm' in params:
             self._fitmeans(posteriors, obs, out=self._means_)
