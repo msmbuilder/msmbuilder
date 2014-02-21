@@ -277,6 +277,10 @@ extensions.append(
               include_dirs=[np.get_include(), 'src/cephes']))
 
 try:
+    if '--disable-cuda' in sys.argv:
+        sys.argv.remove('--disable-cuda')
+        raise EnvironmentError()
+
     CUDA = locate_cuda()
     kwargs = dict(
         language="c++",

@@ -13,12 +13,13 @@ def iterobjects(fn):
             pass
 
 
-def load_timeseries(filenames, atom_indices, topology):
+def load_superpose_timeseries(filenames, atom_indices, topology):
     X = []
     i = []
     f = []
     for file in filenames:
-        t = md.load(file)
+        kwargs = None  if file.endswith('.h5') else {'top': topology}
+        t = md.load(file, **kwargs)
         t.superpose(topology, atom_indices=atom_indices)
         diff2 = (t.xyz[:, atom_indices] - topology.xyz[0, atom_indices])**2
         x = np.sqrt(np.sum(diff2, axis=2))
