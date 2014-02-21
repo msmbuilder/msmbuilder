@@ -1,4 +1,37 @@
+'''Fit an L1-Regularized Reversible Von-Mises Hidden Markov Model
+'''
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
 from __future__ import print_function
+
 import sys
 import glob
 import json
@@ -8,10 +41,16 @@ import mdtraj as md
 
 from mixtape.vmhmm import VonMisesHMM
 from mixtape.cmdline import Command, argument_group
+from mixtape.commands.mixins import MDTrajInputMixin
 
 __all__ = ['FitVMHMM']
 
-class FitVMHMM(Command):
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
+
+
+class FitVMHMM(Command, MDTrajInputMixin):
     name = 'fit-vmhmm'
     description = '''Fit von-Mises hidden Markov models with EM.
 
@@ -27,25 +66,12 @@ class FitVMHMM(Command):
     (e.g. protein dihedral angles).
     '''
 
-    group_mdtraj = argument_group('MDTraj Options')
-    group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
-        the trajectories to load''', required=True)
-    group_mdtraj.add_argument('--top', type=str, help='''Topology file for
-        loading trajectories''')
-    group_mdtraj.add_argument('--ext', help='File extension of the trajectories',
-        required=True, choices=[e[1:] for e in md.trajectory._FormatRegistry.loaders.keys()])
-
     group_munge = argument_group('Munging Options')
     group_munge.add_argument('-d', '--dihedral-indices', required=True, type=str,
         help='''Vectorize the MD trajectories by extracting timeseries of the
         dihedral (torsion) angles between sets of 4 atoms. Supply a text file
         where each row contains the space-separate indices of four atoms which
         form a dihedral angle to monitor. These indices are 0-based.''')
-    group_munge.add_argument('-sp', '--split', type=int, help='''Split
-        trajectories into smaller chunks. This looses some counts (i.e. like
-        1%% of the counts are lost with --split 100), but can help with speed
-        (on gpu + multicore cpu) and numerical instabilities that come when
-        trajectories get extremely long.''', default=10000)
 
     group_hmm = argument_group('HMM Options')
     group_hmm.add_argument('-k', '--n-states', type=int, default=[2],
@@ -67,6 +93,11 @@ class FitVMHMM(Command):
     group_hmm.add_argument('--reversible-type', choices=['mle', 'transpose'],
         default='mle', help='''Method by which the model is constrained to be
         reversible. default="mle"''')
+    group_hmm.add_argument('-sp', '--split', type=int, help='''Split
+            trajectories into smaller chunks. This looses some counts (i.e. like
+            1%% of the counts are lost with --split 100), but can help with speed
+            (on gpu + multicore cpu) and numerical instabilities that come when
+            trajectories get extremely long.''', default=10000)
 
     group_out = argument_group('Output')
     group_out.add_argument('-o', '--out', default='hmms.jsonlines',
