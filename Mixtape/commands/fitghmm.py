@@ -32,6 +32,7 @@
 
 from __future__ import print_function, division
 import sys
+import os
 import glob
 import json
 import time
@@ -94,7 +95,10 @@ class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
 
     def __init__(self, args):
         self.args = args
-        self.top = md.load(args.top) if args.top is not None else None
+        if args.top is not None:
+            self.top = md.load(os.path.expanduser(args.top))
+        else:
+            self.top = None
 
         if args.distance_pairs is not None:
             self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
@@ -106,7 +110,7 @@ class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
                 self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, self.indices.shape))
             self.indices = self.indices.reshape(-1)
 
-        self.filenames = glob.glob(args.dir + '/*.' + args.ext)
+        self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.indices.shape[0]
 
 

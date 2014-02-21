@@ -55,7 +55,7 @@ class PullMeansGHMM(SampleGHMM):
     description='''Draw samples at the center of each state in a Gaussian HMM.
 
     '''
-    nps = None
+    nps = None  # override this from superclass
 
     def start(self):
         xx, ii, ff = load_timeseries(self.filenames, self.atom_indices, self.topology)

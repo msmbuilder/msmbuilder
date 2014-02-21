@@ -82,7 +82,7 @@ class AtomIndices(Command):
         self.args = args
         if os.path.exists(args.out):
             self.error('IOError: file exists: %s' % args.out)
-        self.pdb = md.load(args.pdb)
+        self.pdb = md.load(os.path.expanduser(args.pdb))
         print('Loaded pdb containing (%d) chains, (%d) residues, (%d) atoms.' %
             (self.pdb.topology.n_chains, self.pdb.topology.n_residues,
              self.pdb.topology.n_atoms))
