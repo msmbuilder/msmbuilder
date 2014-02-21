@@ -29,7 +29,8 @@ class SampleGHMM(Command):
     The reason for this complexity is that the Gaussian distributions for
     each state are continuous distributions over the featurized space. To
     visualize the structures corresponding to each state, however, we would
-    need to "invert" the featurization, and draw raw structures. Alternatively,
+    need to sample from this distribution and then "invert" the featurization,
+    to reconstruct the cartesian coordinates for our samples. Alternatively,
     we can draw from a discrete distribution over our available structures;
     but this introduces the question of what discrete distribution "optimally"
     represents the continuous (Gaussian) distribution of interest.
