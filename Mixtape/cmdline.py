@@ -65,10 +65,19 @@ import re
 import argparse
 from IPython.utils.text import wrap_paragraphs
 
-__all__ = ['argument', 'argument_group', 'Command', 'App']
+__all__ = ['argument', 'argument_group', 'Command', 'App', 'multiple_int_parser']
 
 #-----------------------------------------------------------------------------
-# Argument stuff
+# argparse types
+#-----------------------------------------------------------------------------
+def multiple_int_parser(arg):
+    try:
+        return map(int, re.split('\s+|,\s+', arg))
+    except ValueError as err:
+       raise argparse.ArgumentTypeError(str(err))
+
+#-----------------------------------------------------------------------------
+# Argument Declaration Class Attibutes
 #-----------------------------------------------------------------------------
 
 

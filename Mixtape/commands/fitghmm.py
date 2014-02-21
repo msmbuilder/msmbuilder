@@ -42,7 +42,7 @@ import mdtraj as md
 from sklearn.cross_validation import KFold
 from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
-from mixtape.cmdline import Command, argument_group, argument
+from mixtape.cmdline import Command, argument_group, argument, multiple_int_parser
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
 
 __all__ = ['FitGHMM']
@@ -56,10 +56,10 @@ class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
     description = '''Fit L1-Regularized Reversible Gaussian hidden Markov models with EM.'''
 
     group_hmm = argument_group('HMM Options')
-    group_hmm.add_argument('-k', '--n-states', type=int, default=[2],
-        help='Number of states in the models. Default = [2,]', nargs='+')
-    group_hmm.add_argument('-l', '--lag-times', type=int, default=[1],
-        help='Lag time(s) of the model(s). Default = [1,]', nargs='+')
+    group_hmm.add_argument('-k', '--n-states', type=multiple_int_parser, default=[2],
+        help='Number of states in the models. Default = [2]', nargs='+')
+    group_hmm.add_argument('-l', '--lag-times', type=multiple_int_parser, default=[1],
+        help='Lag time(s) of the model(s). Default = [1]', nargs='+')
     group_hmm.add_argument('--platform', choices=['cuda', 'cpu', 'sklearn'],
         default='cpu', help='Implementation platform. default="cpu"')
     group_hmm.add_argument('--fusion-prior', type=float, default=1e-2,
