@@ -54,13 +54,13 @@ class PullMeansGHMM(SampleGHMM):
 
     def start(self):
         xx, ii, ff = load_superpose_timeseries(self.filenames, self.atom_indices, self.topology)
-        logprob = log_multivariate_normal_density(xx, self.model['means'],
-                self.model['vars'], covariance_type='diag')
+        logprob = log_multivariate_normal_density(xx, np.array(self.model['means']),
+                np.array(self.model['vars']), covariance_type='diag')
         assignments = np.argmax(logprob, axis=1)
         probs = np.max(logprob, axis=1)
 
         data = {'filename': [], 'index': [], 'state': []}
-        for k in range(self.model.n_states):
+        for k in range(self.model['n_states']):
             # pick the structures that have the highest log probability in the state
             p = probs[assignments==k]
             sorted_filenms = ff[assignments==k][p.argsort()]

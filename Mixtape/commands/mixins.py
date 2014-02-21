@@ -7,7 +7,7 @@ class MDTrajInputMixin(object):
     group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
         the trajectories to load''', required=True)
     group_mdtraj.add_argument('--top', type=str, help='''Topology file for
-        loading trajectories''')
+        loading trajectories''', required=True)
     group_mdtraj.add_argument('--ext', help='File extension of the trajectories',
         required=True, choices=[e[1:] for e in md.trajectory._FormatRegistry.loaders.keys()])
 
