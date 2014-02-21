@@ -18,7 +18,7 @@ def load_superpose_timeseries(filenames, atom_indices, topology):
     i = []
     f = []
     for file in filenames:
-        kwargs = None  if file.endswith('.h5') else {'top': topology}
+        kwargs = {}  if file.endswith('.h5') else {'top': topology}
         t = md.load(file, **kwargs)
         t.superpose(topology, atom_indices=atom_indices)
         diff2 = (t.xyz[:, atom_indices] - topology.xyz[0, atom_indices])**2
