@@ -38,6 +38,7 @@ import glob
 import numpy as np
 import mdtraj as md
 import pandas as pd
+from sklearn.mixture.gmm import log_multivariate_normal_density
 
 from mixtape.utils import iterobjects, load_superpose_timeseries
 from mixtape.discrete_approx import discrete_approx_mvn

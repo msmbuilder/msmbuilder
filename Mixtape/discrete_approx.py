@@ -144,10 +144,6 @@ def discrete_approx_mvn(X, means, covars):
 
         return obj_value, grad_value
 
-    # Check our analytic gradient
-    assert scipy.optimize.check_grad(lambda x: objective_and_grad(x)[0], lambda x: objective_and_grad(x)[1],
-                                     np.random.randn(len(moments))) < 1e-5
-
     result = scipy.optimize.minimize(objective_and_grad, jac=True, x0=np.ones_like(moments), method='BFGS')
     if not result['success']:
         print(result)
