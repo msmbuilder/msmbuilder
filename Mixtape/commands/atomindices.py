@@ -105,7 +105,7 @@ class AtomIndices(Command):
             len(np.unique([self.pdb.topology.atom(i).residue.index for i in atom_indices]))))
 
         if self.args.distance_pairs:
-            out = np.array(list(itertools.combinations(atom_indices)))
+            out = np.array(list(itertools.combinations(atom_indices, 2)))
         elif self.args.atoms:
             out = np.array(atom_indices)
         else:
