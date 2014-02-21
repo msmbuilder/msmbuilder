@@ -33,7 +33,6 @@
 from __future__ import print_function
 
 import os
-import sys
 import glob
 import numpy as np
 import mdtraj as md
@@ -41,7 +40,7 @@ import pandas as pd
 
 from mixtape.utils import iterobjects, load_superpose_timeseries
 from mixtape.discrete_approx import discrete_approx_mvn
-from mixtape.cmdline import Command, argument, argument_group
+from mixtape.cmdline import Command, argument_group
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
 
 __all__ = ['SampleGHMM']
@@ -81,17 +80,17 @@ class SampleGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
     Economics Letters 118.3 (2013): 445-450.
     '''
 
-    fn = argument('--filename', required=True, help='''Path to the jsonlines output
-        file containg the HMMs''')
-    ns = argument('--n-states', type=int, required=True, help='''Number of states in
-        the model to select from''')
-    nps = argument('--n-per-state', type=int, default=3, help='''Number of structures
-        to pull from each state''')
-    lt = argument('--lag-time', type=int, required=True, help='''Training lag
+    group = argument_group('I/O Arguments')
+    group.add_argument('--filename', required=True, help='''Path to the
+        jsonlines output file containg the HMMs''')
+    group.add_argument('--n-states', type=int, required=True, help='''Number of
+        states in the model to select from''')
+    group.add_argument('--n-per-state', type=int, default=3, help='''Number of
+        structures to pull from each state''')
+    group.add_argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
-
-    out = argument('-o', '--out', metavar='OUTPUT_CSV_FILE', required=True,
-                   help='File to which to save the output, in CSV format')
+    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE', required=True,
+        help='File to which to save the output, in CSV format')
 
     def __init__(self, args):
         if os.path.exists(args.out):
