@@ -58,7 +58,7 @@ class PullMeansGHMM(SampleGHMM):
     nps = None  # override this from superclass
 
     def start(self):
-        xx, ii, ff = load_timeseries(self.filenames, self.atom_indices, self.topology)
+        xx, ii, ff = load_superpose_timeseries(self.filenames, self.atom_indices, self.topology)
         logprob = log_multivariate_normal_density(xx, self.model['means'],
                 self.model['vars'], covariance_type='diag')
         assignments = np.argmax(logprob, axis=1)

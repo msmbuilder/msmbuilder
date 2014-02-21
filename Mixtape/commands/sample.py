@@ -108,6 +108,8 @@ class SampleGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
         self.out = args.out
         self.topology = md.load(args.top)
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
+        print(args.atom_indices)
+        print(args)
         self.atom_indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=1)
 
         if len(self.filenames) == 0:
