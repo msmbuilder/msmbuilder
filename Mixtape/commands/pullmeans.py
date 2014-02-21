@@ -32,17 +32,11 @@
 
 from __future__ import print_function, division
 
-import os
-import sys
-import glob
 import numpy as np
-import mdtraj as md
 import pandas as pd
 from sklearn.mixture.gmm import log_multivariate_normal_density
 
-from mixtape.utils import iterobjects, load_superpose_timeseries
-from mixtape.discrete_approx import discrete_approx_mvn
-from mixtape.cmdline import Command, argument, argument_group
+from mixtape.utils import load_superpose_timeseries
 from mixtape.commands.sample import SampleGHMM
 
 __all__ = ['PullMeansGHMM']
@@ -66,7 +60,7 @@ class PullMeansGHMM(SampleGHMM):
         probs = np.max(logprob, axis=1)
 
         data = {'filename': [], 'index': [], 'state': []}
-        for k in range(means.shape[0]):
+        for k in range(self.model.n_states):
             # pick the structures that have the highest log probability in the state
             p = probs[assignments==k]
             sorted_filenms = ff[assignments==k][p.argsort()]
