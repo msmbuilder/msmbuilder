@@ -110,4 +110,4 @@ class AtomIndices(Command):
             out = np.array(atom_indices)
         else:
             raise RuntimeError
-        np.savetxt(self.args.out, atom_indices, '%d')
+        np.savetxt(self.args.out, out, '%d')
