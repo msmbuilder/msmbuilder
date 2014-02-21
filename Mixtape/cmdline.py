@@ -184,7 +184,7 @@ class App(object):
             description = '\n\n'.join(wrap_paragraphs(klass.description))
             subparser = subparsers.add_parser(
                 klass._get_name(), help=first_sentence, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
-            for v in klass.__dict__.values():
+            for v in (getattr(klass, e) for e in dir(klass)):
                 if isinstance(v, (argument, argument_group, mutually_exclusive_group)):
                     if v.parent is None:
                         v.register(subparser)
@@ -193,6 +193,10 @@ class App(object):
 
     @classmethod
     def _subcommands(cls):
-        for subclass in Command.__subclasses__():
+        for subclass in all_subclasses(Command):
             if subclass != cls:
                 yield subclass
+
+def all_subclasses(cls):
+    return cls.__subclasses__() + [g for s in cls.__subclasses__()
+                                   for g in all_subclasses(s)]
