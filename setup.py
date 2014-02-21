@@ -277,6 +277,10 @@ extensions.append(
               include_dirs=[np.get_include(), 'src/cephes']))
 
 try:
+    if '--disable-cuda' in sys.argv:
+        sys.argv.remove('--disable-cuda')
+        raise EnvironmentError()
+
     CUDA = locate_cuda()
     kwargs = dict(
         language="c++",
@@ -284,7 +288,6 @@ try:
         libraries=['cudart', 'cublas'],
         runtime_library_dirs=[CUDA['lib64']],
         extra_compile_args={'gcc': [],
-                            #'nvcc': ['-arch=sm_30', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
                             'nvcc': ['-arch=sm_30', '-c', '--compiler-options', "'-fPIC'"]},
         sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.pyx',
                  'platforms/cuda/src/CUDAGaussianHMM.cu'],
@@ -317,5 +320,6 @@ setup(name='mixtape',
       scripts=['scripts/hmsm'],
       zip_safe=False,
       ext_modules=extensions,
-      install_requires=['IPython', 'scikit-learn>=0.14'],
+      install_requires=['IPython', 'scikit-learn>=0.14',
+          'scipy>=0.11.0', 'pandas>=0.9.0'],
       cmdclass={'build_ext': custom_build_ext})

@@ -1,5 +1,38 @@
-from __future__ import print_function
+'''Fit an L1-Regularized Reversible Gaussian Hidden Markov Model
+'''
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
+from __future__ import print_function, division
 import sys
+import os
 import glob
 import json
 import time
@@ -9,39 +42,18 @@ import mdtraj as md
 from sklearn.cross_validation import KFold
 from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
-from mixtape.cmdline import Command, argument_group
+from mixtape.cmdline import Command, argument_group, argument
+from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
 
 __all__ = ['FitGHMM']
 
-class FitGHMM(Command):
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
+
+class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
     name = 'fit-ghmm'
-    description = '''Fit gaussian fusion hidden Markov models with EM.'''
-
-    group_mdtraj = argument_group('MDTraj Options')
-    group_mdtraj.add_argument('--dir', type=str, help='''Directory containing
-        the trajectories to load''', required=True)
-    group_mdtraj.add_argument('--top', type=str, help='''Topology file for
-        loading trajectories''')
-    group_mdtraj.add_argument('--ext', help='File extension of the trajectories',
-        required=True, choices=[e[1:] for e in md.trajectory._FormatRegistry.loaders.keys()])
-
-    group_munge = argument_group('Munging Options')
-    group_vector = group_munge.add_mutually_exclusive_group(required=True)
-    group_vector.add_argument('-d', '--distance-pairs', type=str,
-        help='''Vectorize the MD trajectories by extracting timeseries of the
-        distance between pairs of atoms in each frame. Supply a text file where
-        each row contains the space-separate indices of two atoms which form a
-        pair to monitor''')
-    group_vector.add_argument('-a', '--atom-indices', type=str,
-        help='''Superpose each MD conformation on the coordinates in the
-        topology file, and then use the distance from each atom in the
-        reference conformation to the corresponding atom in each MD
-        conformation.''')
-    group_munge.add_argument('-sp', '--split', type=int, help='''Split
-        trajectories into smaller chunks. This looses some counts (i.e. like
-        1%% of the counts are lost with --split 100), but can help with speed
-        (on gpu + multicore cpu) and numerical instabilities that come when
-        trajectories get extremely long.''', default=10000)
+    description = '''Fit L1-Regularized Reversible Gaussian hidden Markov models with EM.'''
 
     group_hmm = argument_group('HMM Options')
     group_hmm.add_argument('-k', '--n-states', type=int, default=[2],
@@ -63,6 +75,11 @@ class FitGHMM(Command):
     group_hmm.add_argument('--reversible-type', choices=['mle', 'transpose'],
         default='mle', help='''Method by which the model is constrained to be
         reversible. default="mle"''')
+    group_hmm.add_argument('-sp', '--split', type=int, help='''Split
+        trajectories into smaller chunks. This looses some counts (i.e. like
+        1%% of the counts are lost with --split 100), but can help with speed
+        (on gpu + multicore cpu) and numerical instabilities that come when
+        trajectories get extremely long.''', default=10000)
 
     group_cv = argument_group('Cross Validation')
     group_cv.add_argument('--n-cv', type=int, default=1,
@@ -78,7 +95,10 @@ class FitGHMM(Command):
 
     def __init__(self, args):
         self.args = args
-        self.top = md.load(args.top) if args.top is not None else None
+        if args.top is not None:
+            self.top = md.load(os.path.expanduser(args.top))
+        else:
+            self.top = None
 
         if args.distance_pairs is not None:
             self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
@@ -90,7 +110,7 @@ class FitGHMM(Command):
                 self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, self.indices.shape))
             self.indices = self.indices.reshape(-1)
 
-        self.filenames = glob.glob(args.dir + '/*.' + args.ext)
+        self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.indices.shape[0]
 
 
