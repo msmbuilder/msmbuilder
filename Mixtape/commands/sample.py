@@ -1,4 +1,37 @@
+'''Sample from each state in an HMM
+'''
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
 from __future__ import print_function
+
 import os
 import sys
 import glob
@@ -7,12 +40,19 @@ import mdtraj as md
 import pandas as pd
 
 from mixtape.utils import iterobjects, load_superpose_timeseries
-from mixtape.discrete_mvn import discrete_approx_mvn
+from mixtape.discrete_approx import discrete_approx_mvn
 from mixtape.cmdline import Command, argument, argument_group
+from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
 
-class SampleGHMM(Command):
+__all__ = ['SampleGHMM']
+
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
+
+class SampleGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
     name = 'sample-ghmm'
-    description = '''Draw iid samples from each state in an Gaussian HMM.
+    description = '''Draw iid samples from each state in a Gaussian HMM.
 
     The output is a small CSV file with 3 columns: 'filename', 'index',
     and 'state'. Each row gives the path to a trajectory file, the index
@@ -49,26 +89,9 @@ class SampleGHMM(Command):
         to pull from each state''')
     lt = argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
-    top = argument('--top', metavar='PDB_FILE', required=True,
-                   help='Topology file for the system')
-    dir = argument('--dir', metavar='DIRECTORY', required=True,
-                   help='Directory containing the trajectory files')
-    ext = argument('--ext', metavar='EXTENSION', required=True,
-                   help='File extension of the trajectory files')
+
     out = argument('-o', '--out', metavar='OUTPUT_CSV_FILE', required=True,
                    help='File to which to save the output, in CSV format')
-
-    group_munge = argument_group('Munging Options')
-    group_vector = group_munge.add_mutually_exclusive_group(required=True)
-    group_vector.add_argument('-d', '--distance-pairs', type=str, help='''Vectorize
-        the MD trajectories by extracting timeseries of the distance
-        between pairs of atoms in each frame. Supply a text file where
-        each row contains the space-separate indices of two atoms which
-        form a pair to monitor''')
-    group_vector.add_argument('-a', '--atom-indices', type=str, help='''Superpose
-        each MD conformation on the coordinates in the topology file, and then use
-        the distance from each atom in the reference conformation to the
-        corresponding atom in each MD conformation.''')
 
     def __init__(self, args):
         if os.path.exists(args.out):
@@ -80,9 +103,9 @@ class SampleGHMM(Command):
             self.error('No model with n_states=%d, train_lag_time=%d in %s.' % (
                 args.n_states, args.lag_time, args.filename))
 
+        self.args = args
         self.model = matches[0]
         self.out = args.out
-        self.n_per_state = args.n_per_state
         self.topology = md.load(args.top)
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
         self.atom_indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=1)
@@ -101,7 +124,7 @@ class SampleGHMM(Command):
         for k in range(self.model['n_states']):
             weights = discrete_approx_mvn(xx, self.model['means'][k], self.model['vars'][k])
             cumsum = np.cumsum(weights)
-            for i in range(self.n_per_state):
+            for i in range(self.args.n_per_state):
                 index = np.sum(cumsum < np.random.rand())
                 data['filename'].append(ff[index])
                 data['index'].append(ii[index])
