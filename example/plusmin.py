@@ -13,12 +13,12 @@ import sys
 # Usual
 SAMPLE = False
 LEARN = True
-PLOT = True
+PLOT = False
 
 ## For param changes
 #SAMPLE = True
 #LEARN = False
-#PLOT = True
+#PLOT = False
 
 NUM_ITERS = 10
 T = 500
@@ -42,7 +42,7 @@ if SAMPLE:
 else:
   xs = reshape(loadtxt('../example/xs.txt'), (T,x_dim))
   Ss = reshape(loadtxt('../example/Ss.txt'), (T))
-#print "True Log-LL = %s" % str(true_log_ll)
+
 if LEARN:
   As = zeros((K, x_dim, x_dim))
   bs = zeros((K, x_dim))
@@ -66,11 +66,10 @@ if LEARN:
   l.em(xs, em_iters=NUM_ITERS, em_vars=em_vars)
   sim_xs,sim_Ss = l.sample(T,s_init=0, x_init=means[0],
       y_init=means[0])
-#print "True Log-LL = %s" % str(true_log_ll)
+
 if PLOT:
   plt.close('all')
   plt.figure(1)
-  #plt.plot(range(T), xs, label='Hidden State')
   plt.plot(range(T), xs, label="Observations")
   if LEARN:
     plt.plot(range(T), sim_xs, label='Sampled Observations')
