@@ -59,22 +59,31 @@ if __name__ == '__main__':
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division
+import re
 import sys
 import abc
-import re
 import argparse
 from IPython.utils.text import wrap_paragraphs
 
-__all__ = ['argument', 'argument_group', 'Command', 'App', 'multiple_int_parser']
+__all__ = ['argument', 'argument_group', 'Command', 'App', 'MultipleIntAction']
 
 #-----------------------------------------------------------------------------
 # argparse types
 #-----------------------------------------------------------------------------
-def multiple_int_parser(arg):
-    try:
-        return map(int, re.split('\s+|,\s+', arg))
-    except ValueError as err:
-       raise argparse.ArgumentTypeError(str(err))
+
+class MultipleIntAction(argparse.Action):
+    """An argparse Action to be used as an alternative to `nargs='+', type=int`
+    (instead, you use `nargs='+', action=MultipleIntAction`. This allows the user
+    to specify either a space separated list of ints (ala the former solution)
+    _or_ a comma separated list"""
+    def __call__(self, parser, namespace, values, option_string=None):
+        if isinstance(values, list):
+            values = ' '.join(values)
+        try:
+            parsed = map(int, re.findall('[^,;\s]+', values))
+            setattr(namespace, self.dest, parsed)
+        except ValueError:
+            raise argparse.ArgumentError(self, 'Invalid list of integers: "%s"' % values)
 
 #-----------------------------------------------------------------------------
 # Argument Declaration Class Attibutes
