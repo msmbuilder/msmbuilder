@@ -33,7 +33,6 @@
 from __future__ import print_function, division
 
 import os
-import itertools
 import numpy as np
 import mdtraj as md
 from mdtraj.geometry.dihedral import (_atom_sequence, PHI_ATOMS, PSI_ATOMS,
@@ -96,7 +95,7 @@ class DihedralIndices(Command):
         if self.args.chi2:
             dihedral_atom_types.extend(CHI2_ATOMS)
         if self.args.chi3:
-            dihedral_atom_types.extend(CHI3__ATOMS)
+            dihedral_atom_types.extend(CHI3_ATOMS)
         if self.args.chi4:
             dihedral_atom_types.extend(CHI4_ATOMS)
 

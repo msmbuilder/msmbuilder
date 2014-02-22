@@ -32,14 +32,12 @@
 
 from __future__ import print_function, division
 
-import os
 import sys
 import numpy as np
 import pandas as pd
-import mdtraj as md
 
 from mixtape.utils import iterobjects
-from mixtape.cmdline import Command, argument, argument_group
+from mixtape.cmdline import Command, argument
 
 __all__ = ['Inspect']
 
