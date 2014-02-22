@@ -1,16 +1,4 @@
-"""mixtape: scikit-learn compatible mixture models and hidden Markov models
-
-Currently, this package implements a mixture model of gamma distributions
-and a hidden Markov model with von Mises emissions.
-
-See http://scikit-learn.org/stable/modules/hmm.html for a
-practical description of hidden Markov models. The von Mises
-distribution, (also known as the circular normal distribution or
-Tikhonov distribution) is a continuous probability distribution on
-the circle. For multivariate signals, the emmissions distribution
-implemented by this model is a product of univariate von Mises
-distributuons -- analogous to the multivariate Gaussian distribution
-with a diagonal covariance matrix.
+"""mixtape: hidden Markov models and beyond
 """
 
 from __future__ import print_function
@@ -41,13 +29,6 @@ except ImportError:
     print('Cython version 0.18 or later is required. Try "easy_install cython"')
     sys.exit(1)
 
-try:
-    import sklearn
-    if sklearn.__version__ < '0.14':
-        raise ImportError()
-except ImportError:
-    print('Scikit-learn version 0.14 or better is required. Try "easy_install sklearn"')
-
 ##########################
 __version__ = 0.1
 ##########################
@@ -56,7 +37,7 @@ CLASSIFIERS = """\
 Intended Audience :: Science/Research
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
-Programming Language :: C
+Programming Language :: C++
 Programming Language :: Python
 Development Status :: 3 - Alpha
 Topic :: Software Development
@@ -277,7 +258,7 @@ extensions.append(
               include_dirs=[np.get_include()]))
 
 extensions.append(
-    Extension('mixtape._hmm',
+    Extension('mixtape._ghmm',
               language='c++',
               sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
                         glob.glob('platforms/cpu/kernels/*.c') +
@@ -295,18 +276,11 @@ extensions.append(
               libraries=['m'],
               include_dirs=[np.get_include(), 'src/cephes']))
 
-extensions.append(
-    Extension('mixtape._gamma',
-              sources=['src/gamma/gammawrap.pyx',
-                       'src/gamma/gammamixture.c', 'src/gamma/gammautils.c',
-                       'src/cephes/zeta.c', 'src/cephes/psi.c', 'src/cephes/polevl.c',
-                       'src/cephes/mtherr.c', 'src/cephes/gamma.c'],
-              libraries=['m'],
-              extra_compile_args=['--std=c99', '-Wall'],
-              include_dirs=[np.get_include(), 'src/cephes']))
-
-
 try:
+    if '--disable-cuda' in sys.argv:
+        sys.argv.remove('--disable-cuda')
+        raise EnvironmentError()
+
     CUDA = locate_cuda()
     kwargs = dict(
         language="c++",
@@ -314,7 +288,6 @@ try:
         libraries=['cudart', 'cublas'],
         runtime_library_dirs=[CUDA['lib64']],
         extra_compile_args={'gcc': [],
-                            #'nvcc': ['-arch=sm_30', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
                             'nvcc': ['-arch=sm_30', '-c', '--compiler-options', "'-fPIC'"]},
         sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.pyx',
                  'platforms/cuda/src/CUDAGaussianHMM.cu'],
@@ -347,4 +320,6 @@ setup(name='mixtape',
       scripts=['scripts/hmsm'],
       zip_safe=False,
       ext_modules=extensions,
+      install_requires=['IPython', 'scikit-learn>=0.14',
+          'scipy>=0.11.0', 'pandas>=0.9.0'],
       cmdclass={'build_ext': custom_build_ext})

@@ -36,8 +36,9 @@ import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
 import scipy.special
+from sklearn.utils.extmath import logsumexp
 from scipy.stats.distributions import vonmises
-import _vmhmm
+from mixtape import _vmhmm, _reversibility
 
 #-----------------------------------------------------------------------------
 # Globals
@@ -51,8 +52,7 @@ __all__ = ['VonMisesHMM']
 
 
 class VonMisesHMM(_BaseHMM):
-    """
-    Hidden Markov Model with von Mises Emissions
+    """Hidden Markov Model with von Mises Emissions
 
     The von Mises distribution, (also known as the circular normal
     distribution or Tikhonov distribution) is a continuous probability
@@ -71,7 +71,7 @@ class VonMisesHMM(_BaseHMM):
 
     Parameters
     ----------
-    n_components : int
+    n_states : int
         Number of states in the model.
     random_state: RandomState or an int seed (0 by default)
         A random number generator instance
@@ -81,14 +81,19 @@ class VonMisesHMM(_BaseHMM):
         Convergence threshold.
     params : string, optional
         Controls which parameters are updated in the training
-        process.  Can contain any combination of 's' for startprob,
-        't' for transmat, 'm' for means, and 'k' for kappas. Defaults to all
-        parameters.
+        process.  Can contain any combination of  't' for transmat, 'm' for
+        means, and 'k' for kappas. Defaults to all parameters.
+    reversible_type : str
+        Method by which the reversibility of the transition matrix
+        is enforced. 'mle' uses a maximum likelihood method that is
+        solved by numerical optimization (BFGS), and 'transpose'
+        uses a more restrictive (but less computationally complex)
+        direct symmetrization of the expected number of counts.
     init_params : string, optional
         Controls which parameters are initialized prior to
-        training.  Can contain any combination of 's' for
-        startprob, 't' for transmat, 'm' for means, and 'k' for
-        kappas, the concentration parameters. Defaults to all parameters.
+        training.  Can contain any combination of 't' for transmat, 'm' for
+        means, and 'k' for kappas, the concentration parameters. Defaults to
+        all parameters.
 
     Attributes
     ----------
@@ -113,20 +118,27 @@ class VonMisesHMM(_BaseHMM):
     .. [2] Murray, Richard F., and Yaniv Morgenstern. "Cue combination on the
     circle and the sphere." Journal of vision 10.11 (2010).
     """
-    def __init__(self, n_components=1, startprob=None, transmat=None,
-                 startprob_prior=None, transmat_prior=None,
-                 algorithm="viterbi", random_state=None, n_iter=10,
-                 thresh=1e-2, params='stmk', init_params='stmk'):
-        _BaseHMM.__init__(self, n_components, startprob, transmat,
-                          startprob_prior=startprob_prior,
-                          transmat_prior=transmat_prior, algorithm=algorithm,
+    def __init__(self, n_states=1, transmat=None, transmat_prior=None,
+                 reversible_type='mle', random_state=None, n_iter=10,
+                 thresh=1e-2, params='tmk', init_params='tmk'):
+        _BaseHMM.__init__(self, n_states, startprob=None, transmat=transmat,
+                          startprob_prior=None,
+                          transmat_prior=transmat_prior, algorithm='viterbi',
                           random_state=random_state, n_iter=n_iter,
                           thresh=thresh, params=params,
                           init_params=init_params)
         self._fitkappas = self._c_fitkappas
+        self.reversible_type = reversible_type
+        self.n_states = n_states
+        if self.transmat_prior is None:
+            self.transmat_prior = 1.0
 
     def _init(self, obs, params='stmk'):
-        super(VonMisesHMM, self)._init(obs, params)
+        if 't' in params:
+            self.transmat_ = np.ones((self.n_states, self.n_states)) * (1.0 / self.n_components)
+            self.populations_ = np.ones(self.n_states) / self.n_states
+            self.startprob_ = self.populations_
+            
         if (hasattr(self, 'n_features')
                 and self.n_features != obs[0].shape[1]):
             raise ValueError('Unexpected number of dimensions, got %s but '
@@ -137,6 +149,8 @@ class VonMisesHMM(_BaseHMM):
         if 'm' in params:
             # Cluster the sine and cosine of the input data with kmeans to
             # get initial centers
+            # the number of initial trajectories used should be configurable...
+            # currently it's just the 0-th one
             cluster_centers = cluster.KMeans(n_clusters=self.n_components).fit(
                 np.hstack((np.sin(obs[0]), np.cos(obs[0])))).cluster_centers_
             self._means_ = np.arctan2(cluster_centers[:, :self.n_features],
@@ -241,16 +255,81 @@ class VonMisesHMM(_BaseHMM):
                    out=out)
 
     def _do_mstep(self, stats, params):
-        super(VonMisesHMM, self)._do_mstep(stats, params)
-
         posteriors = np.vstack(stats['posteriors'])
         obs = np.vstack(stats['obs'])
+
+        if 't' in params:
+            if self.reversible_type == 'mle':
+                counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
+                self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
+            elif self.reversible_type == 'transpose':
+                revcounts = np.maximum(self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
+                populations = np.sum(revcounts, axis=0)
+                self.populations_ = populations / np.sum(populations)
+                self.transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
+            else:
+                raise ValueError('Invalid value for reversible_type: %s '
+                                 'Must be either "mle" or "transpose"'
+                                 % self.reversible_type)
+            self.startprob_ = self.populations_
 
         if 'm' in params:
             self._fitmeans(posteriors, obs, out=self._means_)
         if 'k' in params:
             self._fitkappas(posteriors, obs, self._means_)
 
+    def fit(self, obs):
+        """Estimate model parameters.
+
+        An initialization step is performed before entering the EM
+        algorithm. If you want to avoid this step, pass proper
+        ``init_params`` keyword argument to estimator's constructor.
+
+        Parameters
+        ----------
+        obs : list
+            List of array-like observation sequences, each of which
+            has shape (n_i, n_features), where n_i is the length of
+            the i_th observation.
+
+        Notes
+        -----
+        In general, `logprob` should be non-decreasing unless
+        aggressive pruning is used.  Decreasing `logprob` is generally
+        a sign of overfitting (e.g. a covariance parameter getting too
+        small).  You can fix this by getting more training data,
+        or strengthening the appropriate subclass-specific regularization
+        parameter.
+        """
+        self._init(obs, self.init_params)
+
+        logprob = []
+        for i in range(self.n_iter):
+            # Expectation step
+            stats = self._initialize_sufficient_statistics()
+            curr_logprob = 0
+            for seq in obs:
+                framelogprob = self._compute_log_likelihood(seq)
+                lpr, fwdlattice = self._do_forward_pass(framelogprob)
+                bwdlattice = self._do_backward_pass(framelogprob)
+                gamma = fwdlattice + bwdlattice
+                posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
+                curr_logprob += lpr
+                self._accumulate_sufficient_statistics(
+                    stats, seq, framelogprob, posteriors, fwdlattice,
+                    bwdlattice, self.params)
+            logprob.append(curr_logprob)
+
+            # Check for convergence.
+            if i > 0 and abs(logprob[-1] - logprob[-2]) < self.thresh:
+                break
+
+            # Maximization step
+            self._do_mstep(stats, self.params)
+        
+        self.fit_logprob_ = logprob
+        return self
+        
     def overlap_(self):
         """
         Compute the matrix of normalized log overlap integrals between the hidden state distributions
@@ -285,7 +364,42 @@ class VonMisesHMM(_BaseHMM):
                 log_overlap[i,j] -= 0.5*(log_overlap[i, i] + log_overlap[j, j])
 
         return log_overlap
+    
+    def timescales_(self):
+        """The implied relaxation timescales of the hidden Markov transition
+        matrix
 
+        By diagonalizing the transition matrix, its propagation of an arbitrary
+        initial probability vector can be written as a sum of the eigenvectors
+        of the transition weighted by per-eigenvector term that decays
+        exponentially with time. Each of these eigenvectors describes a
+        "dynamical mode" of the transition matrix and has a characteristic
+        timescale, which gives the timescale on which that mode decays towards
+        equilibrium. These timescales are given by :math:`-1/log(u_i)` where
+        :math:`u_i` are the eigenvalues of the transition matrix. In an HMM
+        with N components, the number of non-infinite timescales is N-1. (The
+        -1 comes from the fact that the stationary distribution of the chain
+        is associated with an eigenvalue of 1, and an infinite characteritic
+        timescale).
+
+        Returns
+        -------
+        timescales : array, shape=[n_states-1]
+            The characteristic timescales of the transition matrix. If the model
+            has not been fit or does not have a transition matrix, the return
+            value will be None. The timescales are ordered from longest to
+            shortest.
+        """
+        if self.transmat_ is None:
+            return None
+        try:
+            eigvals = np.linalg.eigvals(self.transmat_)
+            eigvals = sorted(eigvals)[::-1]
+            return -1.0 / np.log(eigvals[1:])
+        except np.linalg.LinAlgError:
+            # this can happen if the transition matrix contains Nans
+            # or Infs, and possibly for other reasons like convergence
+            return np.nan * np.ones(self.n_states - 1)
 
 def circwrap(x):
     "Wrap an array on (-pi, pi)"

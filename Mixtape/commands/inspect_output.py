@@ -1,13 +1,49 @@
+'''Inspect the contents of a .jsonlines file
+'''
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice, this
+#   list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
 from __future__ import print_function, division
-import os
+
 import sys
 import numpy as np
 import pandas as pd
-import mdtraj as md
+
 from mixtape.utils import iterobjects
-from mixtape.cmdline import Command, argument, argument_group
+from mixtape.cmdline import Command, argument
 
 __all__ = ['Inspect']
+
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
 
 class Inspect(Command):
     description = "Inspect the content of a '.jsonlines' output file"
@@ -22,6 +58,7 @@ class Inspect(Command):
         self.args = args
         self.models = list(iterobjects(self.args.input))
         self.df = pd.DataFrame(self.models)
+        self.details = args.details
 
     def start(self):
         df = self.df
@@ -36,7 +73,6 @@ class Inspect(Command):
         print('-'*80)
 
         df[['train_lag_time', 'n_states', 'timescales']].to_csv(sys.stdout, sep='\t', index=False)
-        print('\n')
 
         if self.details:
             print('-'*80)
@@ -46,14 +82,25 @@ class Inspect(Command):
                 print('N training observations:', df['n_train_observations'][i])
                 print('\nTrain Lag Time:', df['train_lag_time'][i])
                 print('\nN States', df['n_states'][i])
+
                 print('\nTimescales:')
                 print(df['timescales'][i])
+
                 print('\nTransmat:')
                 print(np.array(df['transmat'][i]))
+
                 print('\nMeans:')
                 print(np.array(df['means'][i]))
-                print('\nVars:')
-                print(np.array(df['vars'][i]))
+
+                if 'vars' in df:
+                    print('\nVars:')
+                    print(np.array(df['vars'][i]))
+                elif 'kappas' in df:
+                    print('\nKappas:')
+                    print(np.array(df['kappas'][i]))
+
                 print('\nTraining Logprobs (each EM iteration)')
                 print(np.array(df['train_logprobs'][i]))
-                print('\n\n')
+
+                if i < len(df)-1:
+                    print('\n' + ('~'*70) + '\n')
