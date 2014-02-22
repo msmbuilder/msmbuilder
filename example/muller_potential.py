@@ -8,7 +8,7 @@ take the meaning of those numbers with a grain of salt.
 from mixtape.mslds import *
 from numpy import array, reshape, savetxt, loadtxt, zeros
 from simtk.unit import kelvin, picosecond, femtosecond, nanometer, dalton
-from Kmeans import *
+from mixtape.utils import *
 import simtk.openmm as mm
 import matplotlib.pyplot as pp
 import numpy as np
@@ -66,7 +66,7 @@ class MullerForce(mm.CustomExternalForce):
     ax.contourf(xx, yy, V.clip(max=200), 40, **kwargs)
 
 # Now run code
-PLOT = True
+PLOT = False
 LEARN = True
 NUM_TRAJS = 1
 
@@ -96,8 +96,9 @@ Qs = zeros((K, x_dim, x_dim))
 start = T/4
 xs = zeros((NUM_TRAJS * (T-start), y_dim))
 
-# Clear Display
-pp.cla()
+if PLOT:
+	# Clear Display
+	pp.cla()
 # Choose starting conformations uniform on the grid
 # between (-1.5, -0.2) and (1.2, 2)
 ########################################################################
@@ -123,7 +124,6 @@ for traj in range(NUM_TRAJS):
     x = context.getState(getPositions=True).\
           getPositions(asNumpy=True).value_in_unit(nanometer)
     # Save the state
-    #print "\tshape(x[%d]) = %s" % (i, str(shape(x)))
     if i > start:
       xs[traj * (T-start) + (i-start),:] = x[0,0:2]
     trajectory[i,:] = x[0,0:2]
@@ -142,7 +142,7 @@ if LEARN:
     Sigmas[i] = emp_covars[i]
     Qs[i] = 0.5 * Sigmas[i]
 
-  # Learn the Switching Filter
+  # Learn the MetastableSwitchingLDS
   bs = means
   l = MetastableSwitchingLDS(x_dim, y_dim, K=K,
       As=As,bs=bs,mus=mus,Sigmas=Sigmas,Qs=Qs)
