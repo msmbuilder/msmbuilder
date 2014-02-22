@@ -4,10 +4,9 @@ from numpy import nonzero, reshape, diag, copy, ones
 from numpy.linalg import svd, inv, eig
 from numpy.random import randn, multinomial, multivariate_normal
 from numpy.random import rand
-from Kmeans import *
-from utils import *
-from A_sdp import *
-from Q_sdp import *
+from mixtape.utils import *
+from mixtape.A_sdp import *
+from mixtape.Q_sdp import *
 import scipy.linalg as linalg
 import scipy.stats as stats
 import sys
