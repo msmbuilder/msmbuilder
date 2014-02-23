@@ -8,8 +8,6 @@
 #import time
 import numpy as np
 cimport numpy as np
-from cython.parallel cimport prange
-from libcpp.string cimport string
 from libc.stdlib cimport malloc, free
 
 cdef extern from "ghmm_estep.hpp" namespace "Mixtape":

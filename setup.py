@@ -15,6 +15,7 @@ import subprocess
 from distutils.ccompiler import new_compiler
 from distutils.spawn import find_executable
 import numpy as np
+from numpy.distutils import system_info
 
 try:
     from setuptools import setup, Extension
@@ -94,6 +95,22 @@ def customize_compiler_for_nvcc(self):
 
     # inject our redefined _compile method into the class
     self._compile = _compile
+
+
+def get_lapack():
+    from collections import defaultdict
+    lapack_info = defaultdict(lambda: [])
+    lapack_info.update(system_info.get_info('lapack'))
+    if len(lapack_info) == 0:
+        try:
+            from scipy.linalg import _flapack
+            lapack_info['extra_link_args'] = [_flapack.__file__]
+            return lapack_info
+        except ImportError:
+            pass
+        print('LAPACK libraries could not be located.', file=sys.stderr)
+        sys.exit(1)
+    return lapack_info
 
 
 def locate_cuda():
@@ -250,6 +267,8 @@ if openmp_enabled:
     extra_compile_args.append('-fopenmp')
 libraries = ['gomp'] if needs_gomp else []
 extensions = []
+lapack_info = get_lapack()
+
 
 extensions.append(
     Extension('mixtape._reversibility',
@@ -268,6 +287,19 @@ extensions.append(
               include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
                             'platforms/cpu/kernels/']))
 
+extensions.append(
+    Extension('mixtape._switching_var1',
+          language='c++',
+          sources=['platforms/cpu/wrappers/SwitchingVAR1CPUImpl.pyx'] +
+                    glob.glob('platforms/cpu/kernels/*.c') +
+                    glob.glob('platforms/cpu/kernels/*.cpp'),
+          libraries=libraries + lapack_info['libraries'],
+          extra_compile_args=extra_compile_args,
+          extra_link_args=lapack_info['extra_link_args'],
+          include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
+                        'platforms/cpu/kernels/']))
+                            
+                            
 extensions.append(
     Extension('mixtape._vmhmm',
               sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.pyx',

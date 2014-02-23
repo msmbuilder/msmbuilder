@@ -112,7 +112,6 @@ class MetastableSwitchingLDS(object):
                 r = np.dot(r, r.T)
                 sigmas[i] = 0.1 * np.eye(n_features) + r
 
-
         self.n_states = n_states
         self.n_features = n_features
         self.n_iter = n_iter
