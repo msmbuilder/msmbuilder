@@ -12,8 +12,8 @@ from cython.parallel cimport prange
 from libcpp.string cimport string
 from libc.stdlib cimport malloc, free
 
-cdef extern from "do_estep.hpp" namespace "Mixtape":
-    void do_estep_single "Mixtape::do_estep<float>"(
+cdef extern from "ghmm_estep.hpp" namespace "Mixtape":
+    void do_estep_single "Mixtape::do_ghmm_estep<float>"(
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* means,
         const float* variances, const float** sequences,
@@ -21,7 +21,7 @@ cdef extern from "do_estep.hpp" namespace "Mixtape":
         const int n_features, const int n_states,
         float* transcounts, float* obs, float* obs2,
         float* post, float* logprob) nogil
-    void do_estep_mixed "Mixtape::do_estep<double>"(
+    void do_estep_mixed "Mixtape::do_ghmm_estep<double>"(
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* means,
         const float* variances, const float** sequences,
