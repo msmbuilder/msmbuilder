@@ -56,23 +56,11 @@ class PullMeansGHMM(SampleGHMM):
 
     def start(self):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
-        logprob = []
-        ff = []
-        ii = []
-        for file in self.filenames:
-            kwargs = {}  if file.endswith('.h5') else {'top': topology}
-            t = md.load(file, **kwargs)
-            features = featurizer.featurize(t)
-            logprob_local = log_multivariate_normal_density(features, np.array(self.model['means']),
-                np.array(self.model['vars']), covariance_type='diag')
-            logprob.extend(logprob_local)
-            ii.append(np.arange(len(features)))
-            ff.extend([file]*len(features))
-        
-        ii = np.concatenate(ii)
-        ff = np.array(ff)
-        
-        logprob = np.array(logprob)
+
+        features, ii, ff = mixtape.featurizer.featurize_all(self.filenames, featurizer, topology)
+        logprob = log_multivariate_normal_density(features, np.array(self.model['means']),
+            np.array(self.model['vars']), covariance_type='diag')
+
         assignments = np.argmax(logprob, axis=1)
         probs = np.max(logprob, axis=1)
 

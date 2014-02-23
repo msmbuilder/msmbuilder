@@ -1,6 +1,6 @@
-'''Fit an L1-Regularized Reversible Gaussian Hidden Markov Model
+'''Save a trajectory featurizer to disk
 '''
-# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Author: Kyle A. Beauchamp (kyleabeauchamp@gmail.com)
 # Contributors:
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
@@ -31,19 +31,12 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division
-import sys
 import os
-import glob
-import json
-import time
 import numpy as np
 import mdtraj as md
 
-from sklearn.cross_validation import KFold
-from mixtape.ghmm import GaussianFusionHMM
-# from mixtape.lagtime import contraction
-from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape.cmdline import Command, argument_group
+from mixtape.commands.mixins import GaussianFeaturizationMixin
 from mixtape.featurizer import SuperposeFeaturizer, AtomPairsFeaturizer
 
 __all__ = ['SaveFeaturizer']
