@@ -10,7 +10,7 @@ from numpy.random import rand, randn, multinomial, multivariate_normal
 import scipy.linalg as linalg
 #import scipy.stats as stats
 
-
+from mixtape.utils import categorical
 from mdtraj.utils import ensure_type
 """
 An Implementation of the Metastable Switching LDS. A forward-backward
@@ -69,6 +69,8 @@ class MetastableSwitchingLDS(object):
         Qs = ensure_type(Qs, np.double, ndim=3, name='Qs', shape=(n_states, n_features, n_features), can_be_none=True)
         transmat = ensure_type(transmat, np.double, ndim=3, name='transmat', shape=(n_states, n_states), can_be_none=True)
 
+        # set default (random) values for the parameters before fitting, if not
+        # supplied
         if As is None:
             # Produce a random As
             As = np.empty((n_states, n_features, n_features))
@@ -97,41 +99,55 @@ class MetastableSwitchingLDS(object):
         self.Qs_ = Qs
         self.transmat_ = transmat
 
-    def sample(self, T, s_init=None, x_init=None, y_init=None):
+    def sample(self, n_samples, init_state=None, init_obs=None):
+        """Sample a trajectory from model distribution
+
+        Parameters
+        ----------
+        n_samples : int
+            The length of the trajectory
+        init_state : int
+            The initial hidden metastable state, in {0, ..., n_states-1}
+        init_obs : np.ndarray, shape=(n_features)
+            The initial "observed" data point.
+
+        Returns
+        -------
+        obs : np.ndarray, shape=(n_samples, n_features)
+            The "observed" data samples.
+        hidden_state : np.ndarray, shape=(n_samples, n_states)
+            The hidden state of the process.
         """
-        Inputs:
-          T: time to run simulation
-        Outputs:
-          xs: Hidden continuous states
-          Ss: Hidden switch states
-        """
-        x_dim, y_dim, = self.x_dim, self.y_dim
         # Allocate Memory
-        xs = zeros((T, x_dim))
-        Ss = zeros(T)
-        # Compute Invariant
-        _, vl = linalg.eig(self.Z, left=True, right=False)
-        pi = vl[:, 0]
-        # Sample Start conditions
-        sample = multinomial(1, pi, size=1)
-        if s_init == None:
-            Ss[0] = nonzero(sample)[0][0]
+        obs = np.zeros((n_samples, self.n_features))
+        hidden_state = np.zeros(n_samples, dtype=int)
+
+        # set the initial values of the sequences
+        if init_state is None:
+            # Compute the stationary distribution of the transition matrix
+            _, vl = linalg.eig(self.transmat_, left=True, right=False)
+            pi = vl[:, 0] / np.sum(vl[:, 0])
+            # Sample Start conditions
+            hidden_state[0] = categorical(pi)
         else:
-            Ss[0] = s_init
-        if x_init == None:
-            xs[0] = multivariate_normal(self.mus[Ss[0]], self.Sigmas[Ss[0]])
+            hidden_state[0] = init_state
+
+        if init_obs is None:
+            obs[0] = multivariate_normal(self.mus_[hidden_state[0]],
+                                         self.sigmas_[hidden_state[0]])
         else:
-            xs[0] = x_init
+            obs[0] = init_obs
+
         # Perform time updates
-        for t in range(0, T - 1):
-            s = Ss[t]
-            A = self.As[s]
-            b = self.bs[s]
-            Q = self.Qs[s]
-            xs[t + 1] = multivariate_normal(dot(A, xs[t]) + b, Q)
-            sample = multinomial(1, self.Z[s], size=1)[0]
-            Ss[t + 1] = nonzero(sample)[0][0]
-        return (xs, Ss)
+        for t in range(T - 1):
+            s = hidden_state[t]
+            A = self.As_[s]
+            b = self.bs_[s]
+            Q = self.Qs_[s]
+            xs[t + 1] = multivariate_normal(dot(A, obs[t]) + b, Q)
+            hidden_state[t + 1] = categorical(self.transmat_[s])
+
+        return obs, hidden_state
 
     def Viterbi(self, xs):
         """
