@@ -1,4 +1,6 @@
 import numpy as np
+from sklearn.hmm import GaussianHMM
+
 
 cimport numpy as np
 from libc.stdlib cimport malloc, free
@@ -147,15 +149,9 @@ cdef class SwitchingVAR1CPUImpl:
 
         if self.precision == 'single':
             do_estep_single(
-                &log_transmat[0,0],
-                &log_transmat_T[0,0],
-                &log_startprob[0],
-                &means[0,0],
-                &covars[0,0,0],
-                <const float**> seq_pointers,
-                self.n_sequences,
-                &seq_lengths[0],
-                self.n_features,
+                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0],
+                &means[0,0], &covars[0,0,0], <const float**> seq_pointers,
+                self.n_sequences, &seq_lengths[0], self.n_features,
                 self.n_states, &transcounts[0,0], &obs[0,0], &obs_but_first[0,0],
                 &obs_but_last[0,0], &obs_obs_T[0,0,0], &obs_obs_T_offset[0,0,0],
                 &obs_obs_T_but_first[0,0,0], &obs_obs_T_but_last[0,0,0], &post[0],
@@ -190,10 +186,9 @@ cdef class SwitchingVAR1CPUImpl:
 
 def test_1():
     from sklearn.mixture.gmm import _log_multivariate_normal_density_full
-    np.random.seed(1)
     cdef int length = 5
-    cdef int n_states = 1
-    cdef int n_features = 2
+    cdef int n_states = 2
+    cdef int n_features = 3
     
     cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] sequence = np.random.randn(length, n_features).astype(np.float32)
     cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = np.random.randn(n_states, n_features).astype(np.float32)
@@ -213,25 +208,56 @@ def test_1():
     print loglikelihoods
 
 
+
+
 def test_2():
-    cdef int length = 5
-    cdef int n_states = 1
+    class ExitMe(Exception):
+        def __init__(self, value):
+            self.value = value
+
+    class MyGaussianHMM(GaussianHMM):
+        def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+                                              posteriors, fwdlattice, bwdlattice,
+                                              params):
+            print 'posteriors'
+            print posteriors
+            print 'framelogprob'
+            print framelogprob
+            print 
+            for t, o in enumerate(obs):
+                obsobsT = np.outer(o, o)
+                for c in range(self.n_components):
+                    stats['obs*obs.T'][c] += posteriors[t, c] * obsobsT
+                    # stats['obs*obs.T'][c] += obsobsT
+
+            raise ExitMe(stats)
+
+
+    cdef int length = 3
+    cdef int n_states = 2
     cdef int n_features = 2
+    sequences = [np.random.randn(length, n_features).astype(np.float32)]
     
-    sequence = [np.random.randn(length, n_features).astype(np.float32)]
-    means = np.random.randn(n_states, n_features).astype(np.float32)
-    covars = np.random.rand(n_states, n_features, n_features).astype(np.float32)
-    transmat = np.random.rand(n_states, n_states).astype(np.float32)
-    startprob = np.random.rand(n_states).astype(np.float32)
-    for i in range(n_states):
-        covars[i] += covars[i].T + 10*np.eye(n_features, n_features)
+    
+    gmm = MyGaussianHMM(n_components=n_states, covariance_type='full')
+    try:
+        gmm.fit(sequences)
+    except ExitMe as e:
+        stats = e.value
+    
     
     model = SwitchingVAR1CPUImpl(n_states, n_features)
-    model._sequences = sequence
-    model.means_ = means
-    model.covars_ = covars
-    model.transmat_ = transmat
-    model.startprob_ = startprob
+    model._sequences = sequences
+    model.means_ = gmm.means_.astype(np.float32)
+    model.covars_ = gmm.covars_.astype(np.float32)
+    model.transmat_ = gmm.transmat_.astype(np.float32)
+    model.startprob_ = gmm.startprob_.astype(np.float32)
     
-    model.do_estep()
+    lpr, myresult = model.do_estep()
+
+    print 'gmm stats', stats['obs*obs.T']
+    print 'myresult', myresult['obs*obs.T']
+    
+    
+# test_1()
 test_2()

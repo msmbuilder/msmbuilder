@@ -63,7 +63,6 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
 {
     int i, j, k, m, n;
     float tlocallogprob;
-    const int one = 1;
     const float onef = 1.0;
     const float *sequence;
     float *framelogprob, *posteriors, *seq_transcounts, *seq_obs, *seq_obs_but_first;
@@ -73,8 +72,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
     float obs_m, obs_n;
     
     REAL *fwdlattice, *bwdlattice;
-    // 
-
+    
     // #ifdef _OPENMP
     // #pragma omp parallel for default(none)                                  \
     //     shared(log_transmat, log_transmat_T, log_startprob, means,          \
@@ -106,7 +104,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
 
         // Do work for this sequence
         gaussian_loglikelihood_full(sequence, means, covariances,
-            sequence_lengths[i], n_states, n_features,framelogprob);
+            sequence_lengths[i], n_states, n_features, framelogprob);
         forward(log_transmat_T, log_startprob, framelogprob, sequence_lengths[i], n_states, fwdlattice);
         backward(log_transmat, log_startprob, framelogprob, sequence_lengths[i], n_states, bwdlattice);
         compute_posteriors(fwdlattice, bwdlattice, sequence_lengths[i], n_states, posteriors);
@@ -118,41 +116,70 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         for (k = 0; k < n_states; k++)
             for (j = 0; j < sequence_lengths[i]; j++)
                 seq_post[k] += posteriors[j*n_states + k];
+        
+        printf("Posteriors\n");
+        for (j = 0; j < sequence_lengths[i]; j++) {
+            for (k = 0; k < n_states; k++)
+                printf("%f  ", posteriors[j*n_states + k]);
+            printf("\n");
+        }
 
+        printf("framelogprob\n");
+        for (j = 0; j < sequence_lengths[i]; j++) {
+            for (k = 0; k < n_states; k++)
+                printf("%f  ", framelogprob[j*n_states + k]);
+            printf("\n");
+        }
+        
+        
         for (j = 0; j < sequence_lengths[i]; j++) {
             for (m = 0; m < n_features; m++) {
                 obs_m = sequence[j*n_features + m];
                 for (n = 0; n < n_features; n++) {
                     obs_n = sequence[j*n_features + n];
-                    
-                        for (k = 0; k < n_states; k++)
-                            seq_obs_obs_T[k*n_features*n_features + m*n_features + n] += \
-                                posteriors[j*n_states + k] * obs_m * obs_n;
+                    for (k = 0; k < n_states; k++) {
+                        seq_obs_obs_T[k*n_features*n_features + m*n_features + n] += \
+                            posteriors[j*n_states + k] * obs_m * obs_n;
+                    }
                 }
+                // printf("\n");
             }
+            // printf("\n\n");
         }
-            
-    //     // Update the sufficient statistics. This needs to be threadsafe.
-    //     #ifdef _OPENMP
-    //     #pragma omp critical
-    //     {
-    //     #endif
-    //     *logprob += tlocallogprob;
-    //     for (j = 0; j < n_states; j++) {
-    //         post[j] += seq_post[j];
-    //         for (k = 0; k < n_features; k++) {
-    //             obs[j*n_features+k] += seq_obs[j*n_features+k];
-    //             obs2[j*n_features+k] += seq_obs2[j*n_features+k];
-    //         }
-    //         for (k = 0; k < n_states; k++) {
-    //             transcounts[j*n_states+k] += seq_transcounts[j*n_states+k];
-    //         }
-    //     }
-    //     #ifdef _OPENMP
-    //     }
-    //     #endif
-    // 
-    //     // Free iteration-local memory
+        
+        printf("seq_obs_obs_T\n");
+        for (k = 0; k < n_states; k++) {
+            for (m = 0; m < n_features; m++) {
+                for (n = 0; n < n_features; n++)
+                    printf("%f   ", seq_obs_obs_T[k*n_features*n_features + m*n_features + n]);
+                printf("\n");
+            }
+            printf("\n");
+        }
+        printf("\n");
+
+        // Update the sufficient statistics. This needs to be threadsafe.
+        #ifdef _OPENMP
+        #pragma omp critical
+        {
+        #endif
+        *logprob += tlocallogprob;
+        for (j = 0; j < n_states; j++) {
+            post[j] += seq_post[j];
+            for (k = 0; k < n_features; k++)
+                obs[j*n_features+k] += seq_obs[j*n_features+k];
+
+            for (k = 0; k < n_states; k++)
+                transcounts[j*n_states+k] += seq_transcounts[j*n_states+k];
+
+            for (k = 0; k < n_features*n_features; k++)
+                obs_obs_T[j*n_features*n_features + k] += seq_obs_obs_T[j*n_features*n_features + k];
+        }
+        #ifdef _OPENMP
+        }
+        #endif
+    
+        // Free iteration-local memory
         free(framelogprob);
         free(fwdlattice);
         free(bwdlattice);
