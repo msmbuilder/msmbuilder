@@ -219,17 +219,8 @@ def test_2():
         def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                               posteriors, fwdlattice, bwdlattice,
                                               params):
-            print 'posteriors'
-            print posteriors
-            print 'framelogprob'
-            print framelogprob
-            print 
-            for t, o in enumerate(obs):
-                obsobsT = np.outer(o, o)
-                for c in range(self.n_components):
-                    stats['obs*obs.T'][c] += posteriors[t, c] * obsobsT
-                    # stats['obs*obs.T'][c] += obsobsT
-
+            super(MyGaussianHMM, self)._accumulate_sufficient_statistics(stats,
+                obs, framelogprob, posteriors, fwdlattice, bwdlattice, params)
             raise ExitMe(stats)
 
 
@@ -255,8 +246,11 @@ def test_2():
     
     lpr, myresult = model.do_estep()
 
-    print 'gmm stats', stats['obs*obs.T']
-    print 'myresult', myresult['obs*obs.T']
+    from pprint import pprint
+    print 'gmm stats'
+    pprint(stats)
+    print 'my stats'
+    pprint(myresult)
     
     
 # test_1()

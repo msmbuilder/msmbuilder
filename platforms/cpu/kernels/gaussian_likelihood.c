@@ -68,7 +68,7 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
 
         // Cholesky decomposition of the covariance matrix
         spotrf_("L", &n_features, cv_chol, &n_features, &info);
-        if (info != 0) { fprintf(stderr, "LAPACK Error"); exit(1); }
+        if (info != 0) { fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); exit(1); }
 
         cv_log_det = 0;
         for (j = 0; j < n_features; j++) {
@@ -78,7 +78,7 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
         // solve the triangular system
         strtrs_("L", "N", "N", &n_features, &n_observations, cv_chol, &n_features,
                 sequence_minus_means, &n_features, &info);
-        if (info != 0) { fprintf(stderr, "LAPACK Error"); exit(1); }
+        if (info != 0) { fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); exit(1); }
 
         for (j = 0; j < n_observations; j++) {
             loglikelihoods[j*n_states + i] = -0.5 * (cv_log_det + prefactor);

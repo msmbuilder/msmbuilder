@@ -29,6 +29,15 @@
 
 namespace Mixtape {
 
+void _update_state_matricies(int k, int n, float* A, const float* alpha, const float* B)
+{
+    int kk, i;
+    for (kk = 0; kk < k; kk++) {
+        for (i = 0; i < n*n; i++)
+            A[kk * n * n + i] += alpha[kk] * B[i];
+    }
+}
+
 /**
  * Run the Metastable Switching Linear Dynamical System E-step, computing
  * sufficient statistics over all of the trajectories
@@ -61,7 +70,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
               float* __restrict__ post_but_last,
               float* __restrict__ logprob)
 {
-    int i, j, k, m, n;
+    int i, j, k, m, n, length, length_minus_1;
     float tlocallogprob;
     const float onef = 1.0;
     const float *sequence;
@@ -69,94 +78,106 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
     float *seq_obs_but_last, *seq_obs_obs_T, *seq_obs_obs_T_offset;
     float *seq_obs_obs_T_but_first, *seq_obs_obs_T_but_last, *seq_post;
     float *seq_post_but_last, *seq_post_but_first;
+    float *frame_obs_obs_T, *frame_obs_obs_T_offset;
     float obs_m, obs_n;
-    
+
     REAL *fwdlattice, *bwdlattice;
-    
-    // #ifdef _OPENMP
-    // #pragma omp parallel for default(none)                                  \
-    //     shared(log_transmat, log_transmat_T, log_startprob, means,          \
-    //            variances, sequences, sequence_lengths, transcounts,         \
-    //            obs, obs2, post, logprob, means_over_variances,              \
-    //            means2_over_variances, log_variances, stderr)                \
-    //     private(sequence, sequence2, framelogprob, fwdlattice, bwdlattice,  \
-    //             posteriors, seq_transcounts, seq_obs, seq_obs2, seq_post,   \
-    //             tlocallogprob, j, k)
-    // #endif
+
+    #ifdef _OPENMP
+    #pragma omp parallel for default(none)                                    \
+        shared(log_transmat, log_transmat_T, log_startprob, means,            \
+               covariances, sequences, sequence_lengths, transcounts,         \
+               obs, obs_but_first, obs_but_last, obs_obs_T, obs_obs_T_offset, \
+               obs_obs_T_but_first, obs_obs_T_but_last, post, post_but_first, \
+               post_but_last, logprob, stderr);
+        private(sequence, framelogprob, fwdlattice, bwdlattice,               \
+                posteriors, seq_transcounts, seq_obs, seq_obs_obs_T,          \
+                seq_obs_obs_T_offset, seq_obs_obs_T_but_first,                \
+                seq_obs_obs_T_but_last, frame_obs_obs_T, seq_post,            \
+                seq_post_but_first, seq_post_but_last, tlocallogprob, j, k,   \
+                length, length_minus_1);
+    #endif
     for (i = 0; i < n_sequences; i++) {
         sequence = sequences[i];
+        length = sequence_lengths[i];
+        length_minus_1 = length - 1;
         framelogprob = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         fwdlattice = (REAL*) malloc(sequence_lengths[i]*n_states*sizeof(REAL));
         bwdlattice = (REAL*) malloc(sequence_lengths[i]*n_states*sizeof(REAL));
         posteriors = (float*) malloc(sequence_lengths[i]*n_states*sizeof(float));
         seq_transcounts = (float*) calloc(n_states*n_states, sizeof(float));
         seq_obs = (float*) calloc(n_states*n_features, sizeof(float));
+        seq_obs_but_first = (float*) calloc(n_states*n_features, sizeof(float));
+        seq_obs_but_last = (float*) calloc(n_states*n_features, sizeof(float));
         seq_obs_obs_T = (float*) calloc(n_states*n_features*n_features, sizeof(float));
-        // seq_obs = (float*) calloc(n_states*n_features, sizeof(float));
-        // seq_obs = (float*) calloc(n_states*n_features, sizeof(float));
-        
-        // seq_obs2 = (float*) calloc(n_states*n_features, sizeof(float));
+        seq_obs_obs_T_offset = (float*) calloc(n_states*n_features*n_features, sizeof(float));
+        seq_obs_obs_T_but_first = (float*) calloc(n_states*n_features*n_features, sizeof(float));
+        seq_obs_obs_T_but_last = (float*) calloc(n_states*n_features*n_features, sizeof(float));
+        frame_obs_obs_T = (float*) malloc(n_features*n_features*sizeof(float));
         seq_post = (float*) calloc(n_states, sizeof(float));
-        // if (sequence2==NULL || framelogprob == NULL || fwdlattice == NULL || bwdlattice == NULL || posteriors == NULL
-            // || seq_transcounts == NULL || seq_obs == NULL || seq_obs2 ==NULL || seq_post == NULL) {
-            // fprintf(stderr, "Memory allocation failure in %s at %d\n", __FILE__, __LINE__); exit(EXIT_FAILURE);
-        // }
+        seq_post_but_first = (float*) calloc(n_states, sizeof(float));
+        seq_post_but_last = (float*) calloc(n_states, sizeof(float));
+
+        if (framelogprob == NULL || fwdlattice == NULL || bwdlattice == NULL || posteriors == NULL
+            || seq_transcounts == NULL || seq_obs == NULL || seq_obs_obs_T ==NULL
+            || seq_obs_obs_T_offset == NULL || seq_obs_obs_T_but_first == NULL
+            || seq_obs_obs_T_but_last == NULL || frame_obs_obs_T == NULL || seq_post == NULL
+            || seq_post_but_first == NULL || seq_post_but_last == NULL) {
+            fprintf(stderr, "Memory allocation failure in %s at %d\n", __FILE__, __LINE__); exit(EXIT_FAILURE);
+        }
 
         // Do work for this sequence
-        gaussian_loglikelihood_full(sequence, means, covariances,
-            sequence_lengths[i], n_states, n_features, framelogprob);
-        forward(log_transmat_T, log_startprob, framelogprob, sequence_lengths[i], n_states, fwdlattice);
-        backward(log_transmat, log_startprob, framelogprob, sequence_lengths[i], n_states, bwdlattice);
-        compute_posteriors(fwdlattice, bwdlattice, sequence_lengths[i], n_states, posteriors);
-    
+        gaussian_loglikelihood_full(sequence, means, covariances, length, n_states, n_features, framelogprob);
+        forward(log_transmat_T, log_startprob, framelogprob, length, n_states, fwdlattice);
+        backward(log_transmat, log_startprob, framelogprob, length, n_states, bwdlattice);
+        compute_posteriors(fwdlattice, bwdlattice, length, n_states, posteriors);
+
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
         transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
-        for (k = 0; k < n_states; k++)
-            for (j = 0; j < sequence_lengths[i]; j++)
+        sgemm("N", "T", &n_features, &n_states, &length, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
+        sgemm("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs_but_first, &n_features);
+        sgemm("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence + n_features, &n_features, posteriors + n_states, &n_states, &onef, seq_obs_but_last, &n_features);
+
+        for (k = 0; k < n_states; k++) {
+            for (j = 0; j < sequence_lengths[i]; j++) {
                 seq_post[k] += posteriors[j*n_states + k];
-        
-        printf("Posteriors\n");
-        for (j = 0; j < sequence_lengths[i]; j++) {
-            for (k = 0; k < n_states; k++)
-                printf("%f  ", posteriors[j*n_states + k]);
-            printf("\n");
+                if (j > 0)
+                    seq_post_but_first[k] += posteriors[j*n_states + k];
+                if (j < sequence_lengths[i] - 1)
+                    seq_post_but_last[k] += posteriors[j*n_states + k];
+            }
         }
 
-        printf("framelogprob\n");
         for (j = 0; j < sequence_lengths[i]; j++) {
-            for (k = 0; k < n_states; k++)
-                printf("%f  ", framelogprob[j*n_states + k]);
-            printf("\n");
-        }
-        
-        
-        for (j = 0; j < sequence_lengths[i]; j++) {
+
+            // sequence[j]*sequence[j].T
             for (m = 0; m < n_features; m++) {
                 obs_m = sequence[j*n_features + m];
                 for (n = 0; n < n_features; n++) {
                     obs_n = sequence[j*n_features + n];
-                    for (k = 0; k < n_states; k++) {
-                        seq_obs_obs_T[k*n_features*n_features + m*n_features + n] += \
-                            posteriors[j*n_states + k] * obs_m * obs_n;
+                    frame_obs_obs_T[m*n_features + n] = obs_m*obs_n;
+                }
+            }
+
+            _update_state_matricies(n_states, n_features, seq_obs_obs_T, &posteriors[j*n_states], frame_obs_obs_T);
+            if (j > 0)
+                _update_state_matricies(n_states, n_features, seq_obs_obs_T_but_first, &posteriors[j*n_states], frame_obs_obs_T);
+            if (j < sequence_lengths[i] - 1)
+                _update_state_matricies(n_states, n_features, seq_obs_obs_T_but_last, &posteriors[j*n_states], frame_obs_obs_T);
+
+            if (j > 0) {
+                // sequence[j]*sequence[j-1].T
+                for (m = 0; m < n_features; m++) {
+                    obs_m = sequence[j*n_features + m];
+                    for (n = 0; n < n_features; n++) {
+                        obs_n = sequence[(j-1)*n_features + n];
+                        frame_obs_obs_T[m*n_features + n] = obs_m*obs_n;
                     }
                 }
-                // printf("\n");
+                _update_state_matricies(n_states, n_features, seq_obs_obs_T_offset, &posteriors[j*n_states], frame_obs_obs_T);
             }
-            // printf("\n\n");
         }
-        
-        printf("seq_obs_obs_T\n");
-        for (k = 0; k < n_states; k++) {
-            for (m = 0; m < n_features; m++) {
-                for (n = 0; n < n_features; n++)
-                    printf("%f   ", seq_obs_obs_T[k*n_features*n_features + m*n_features + n]);
-                printf("\n");
-            }
-            printf("\n");
-        }
-        printf("\n");
 
         // Update the sufficient statistics. This needs to be threadsafe.
         #ifdef _OPENMP
@@ -166,19 +187,29 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         *logprob += tlocallogprob;
         for (j = 0; j < n_states; j++) {
             post[j] += seq_post[j];
-            for (k = 0; k < n_features; k++)
+            post_but_first[j] += seq_post_but_first[j];
+            post_but_last[j] += seq_post_but_last[j];
+
+            for (k = 0; k < n_features; k++) {
                 obs[j*n_features+k] += seq_obs[j*n_features+k];
+                obs_but_first[j*n_features+k] += seq_obs_but_first[j*n_features+k];
+                obs_but_last[j*n_features+k] += seq_obs_but_last[j*n_features+k];
+            }
 
             for (k = 0; k < n_states; k++)
                 transcounts[j*n_states+k] += seq_transcounts[j*n_states+k];
 
-            for (k = 0; k < n_features*n_features; k++)
+            for (k = 0; k < n_features*n_features; k++) {
                 obs_obs_T[j*n_features*n_features + k] += seq_obs_obs_T[j*n_features*n_features + k];
+                obs_obs_T_offset[j*n_features*n_features + k] += seq_obs_obs_T_offset[j*n_features*n_features + k];
+                obs_obs_T_but_first[j*n_features*n_features + k] += seq_obs_obs_T_but_first[j*n_features*n_features + k];
+                obs_obs_T_but_last[j*n_features*n_features + k] += seq_obs_obs_T_but_last[j*n_features*n_features + k];
+            }
         }
         #ifdef _OPENMP
         }
         #endif
-    
+
         // Free iteration-local memory
         free(framelogprob);
         free(fwdlattice);
@@ -186,13 +217,18 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         free(posteriors);
         free(seq_transcounts);
         free(seq_obs);
+        free(seq_obs_but_first);
+        free(seq_obs_but_last);
         free(seq_obs_obs_T);
+        free(seq_obs_obs_T_offset);
+        free(seq_obs_obs_T_but_first);
+        free(seq_obs_obs_T_but_last);
         free(seq_post);
+        free(seq_post_but_first);
+        free(seq_post_but_last);
+        free(frame_obs_obs_T);
     }
-    // 
-    // free(means_over_variances);
-    // free(means2_over_variances);
-    // free(log_variances);
+
 }
 
 
