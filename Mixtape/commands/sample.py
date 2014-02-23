@@ -38,7 +38,7 @@ import numpy as np
 import mdtraj as md
 import pandas as pd
 
-from mixtape.utils import iterobjects, load_superpose_timeseries
+from mixtape.utils import iterobjects
 from mixtape.discrete_approx import discrete_approx_mvn
 from mixtape.cmdline import Command, argument_group
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin

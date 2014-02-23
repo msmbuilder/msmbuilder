@@ -38,7 +38,6 @@ import mdtraj as md
 from sklearn.mixture.gmm import log_multivariate_normal_density
 
 from mixtape.cmdline import argument_group
-from mixtape.utils import load_superpose_timeseries
 from mixtape.commands.sample import SampleGHMM
 import mixtape.utils
 

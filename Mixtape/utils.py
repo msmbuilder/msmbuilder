@@ -29,24 +29,6 @@ def featurize_all(filenames, featurizer, topology):
     return np.concatenate(X), np.concatenate(i), np.array(f)
 
 
-def load_superpose_timeseries(filenames, atom_indices, topology):
-    X = []
-    i = []
-    f = []
-    for file in filenames:
-        kwargs = {}  if file.endswith('.h5') else {'top': topology}
-        t = md.load(file, **kwargs)
-        t.superpose(topology, atom_indices=atom_indices)
-        diff2 = (t.xyz[:, atom_indices] - topology.xyz[0, atom_indices])**2
-        x = np.sqrt(np.sum(diff2, axis=2))
-
-        X.append(x)
-        i.append(np.arange(len(x)))
-        f.extend([file]*len(x))
-
-    return np.concatenate(X), np.concatenate(i), np.array(f)
-
-
 def load(filename):
     featurizer = cPickle.load(open(filename))
     return featurizer
