@@ -38,14 +38,13 @@ import json
 import time
 import numpy as np
 import mdtraj as md
-import cPickle
 
 from sklearn.cross_validation import KFold
 from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
-from mixtape.utils import SuperposeFeaturizer
+from mixtape.utils import SuperposeFeaturizer, AtomPairsFeaturizer
 
 __all__ = ['SaveFeaturizer']
 
@@ -75,6 +74,7 @@ class SaveFeaturizer(Command, GaussianFeaturizationMixin):
             self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
             if self.indices.shape[1] != 2:
                 self.error('distance-pairs must have shape (N, 2). %s had shape %s' % (args.distance_pairs, self.indices.shape))
+            featurizer = AtomPairsFeaturizer(self.indices, self.top)                
         else:
             self.indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=2)
             if self.indices.shape[1] != 1:
@@ -83,7 +83,8 @@ class SaveFeaturizer(Command, GaussianFeaturizationMixin):
             
             featurizer = SuperposeFeaturizer(self.indices, self.top)
             
-        cPickle.dump(featurizer, open(args.filename, 'w'))
+        featurizer.save(args.filename)
+        
 
     def start(self):
         args = self.args

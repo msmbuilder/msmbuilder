@@ -36,7 +36,6 @@ import os
 import glob
 import json
 import time
-import cPickle
 import numpy as np
 import mdtraj as md
 
@@ -45,6 +44,7 @@ from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape import utils
 
 __all__ = ['FitGHMM']
 
@@ -103,7 +103,7 @@ class FitGHMM(Command, MDTrajInputMixin):
         else:
             self.top = None
 
-        self.featurizer = cPickle.load(open(args.featurizer))
+        self.featurizer = utils.load(args.featurizer)
         self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.featurizer.n_features
 
