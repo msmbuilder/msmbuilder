@@ -36,6 +36,7 @@ import os
 import glob
 import json
 import time
+import cPickle
 import numpy as np
 import mdtraj as md
 
@@ -102,7 +103,7 @@ class FitGHMM(Command, MDTrajInputMixin):
         else:
             self.top = None
 
-        self.featurizer = cPickle.loads(open(args.featurizer))
+        self.featurizer = cPickle.load(open(args.featurizer))
         self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.featurizer.n_features
 
