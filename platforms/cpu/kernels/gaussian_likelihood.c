@@ -64,7 +64,7 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
         memcpy(cv_chol, &covariances[i*n_features*n_features], n_features*n_features*sizeof(float));
         for (j = 0; j < n_observations; j++)
             for (k = 0; k < n_features; k++)
-                sequence_minus_means[j*n_features + k] = sequence[j*n_features + k] - means[i*n_states + k];
+                sequence_minus_means[j*n_features + k] = sequence[j*n_features + k] - means[i*n_features + k];
 
         // Cholesky decomposition of the covariance matrix
         spotrf_("L", &n_features, cv_chol, &n_features, &info);
@@ -81,11 +81,11 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
         if (info != 0) { fprintf(stderr, "LAPACK Error"); exit(1); }
 
         for (j = 0; j < n_observations; j++) {
-            loglikelihoods[i*n_states + j] = -0.5 * (cv_log_det + prefactor);
+            loglikelihoods[j*n_states + i] = -0.5 * (cv_log_det + prefactor);
             for (k = 0; k < n_features; k++) {
                 chol_sol = sequence_minus_means[j*n_features + k];
                 chol2 = chol_sol * chol_sol;
-                loglikelihoods[i*n_states + j] += -0.5*chol2;
+                loglikelihoods[j*n_states + i] += -0.5*chol2;
             }
         }
         free(cv_chol);
