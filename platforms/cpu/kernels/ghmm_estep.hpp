@@ -4,8 +4,8 @@
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
-#ifndef MIXTAPE_CPU_DO_ESTEP
-#define MIXTAPE_CPU_DO_ESTEP
+#ifndef MIXTAPE_CPU_GHMM_ESTEP
+#define MIXTAPE_CPU_GHMM_ESTEP
 
 #include "stdlib.h"
 #include "stdio.h"
@@ -24,13 +24,13 @@
 namespace Mixtape {
 
 /**
- * Run the E-step, computing sufficient statistics over all of the trajectories
+ * Run the GHMM E-step, computing sufficient statistics over all of the trajectories
  *
  * The template parameter controls the precision of the foward and backward lattices
  * which are subject to accumulated floating point error during long trajectories.
  */
 template<typename REAL>
-void do_estep(const float* __restrict__ log_transmat,
+void do_ghmm_estep(const float* __restrict__ log_transmat,
               const float* __restrict__ log_transmat_T,
               const float* __restrict__ log_startprob,
               const float* __restrict__ means,

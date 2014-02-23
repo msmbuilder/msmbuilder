@@ -15,6 +15,13 @@ void gaussian_loglikelihood_diag(const float* __restrict__ sequence,
                                  const int n_states, const int n_features,
                                  float* __restrict__ loglikelihoods);
 
+void gaussian_loglikelihood_full(const float* __restrict__ sequence,
+                                 const float* __restrict__ means,
+                                 const float* __restrict__ covariances,
+                                 const int n_observations,
+                                 const int n_states,
+                                 const int n_features,
+                                 float* __restrict__ loglikelihoods);
 #ifdef __cplusplus
 }
 #endif
