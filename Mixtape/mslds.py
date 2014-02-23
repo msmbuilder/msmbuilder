@@ -1,15 +1,3 @@
-#import sys
-import numpy as np
-from numpy.random import rand, randn, multivariate_normal
-import scipy.linalg as linalg
-from mdtraj.utils import ensure_type
-from sklearn.hmm import GaussianHMM
-
-from mixtape.A_sdp import solve_A
-from mixtape.Q_sdp import solve_Q
-from mixtape.utils import (iter_vars, categorical, transition_counts,
-                           empirical_wells, assignment_to_weights)
-
 """
 An Implementation of the Metastable Switching LDS. A forward-backward
 inference pass computes switch posteriors from the smoothed hidden states.
@@ -17,6 +5,22 @@ The switch posteriors are used in the M-step to update parameter estimates.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
+
+import warnings
+import numpy as np
+from numpy.random import multivariate_normal
+import scipy.linalg
+from sklearn import cluster
+from sklearn.hmm import GaussianHMM
+from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
+from mdtraj.utils import ensure_type
+
+from mixtape import _reversibility
+from mixtape._switching_var1 import SwitchingVAR1CPUImpl
+from mixtape.A_sdp import solve_A
+from mixtape.Q_sdp import solve_Q
+from mixtape.utils import iter_vars, categorical
+
 
 
 class MetastableSwitchingLDS(object):
@@ -62,66 +66,64 @@ class MetastableSwitchingLDS(object):
         State-to-state Markov jump probabilities
     n_iter : int, optional
         Number of iterations to perform during training
+    init_params : string, optional, default
+        Controls which parameters are initialized prior to
+        training. Can contain any combination of
+        't' for transmat, 'm' for means, and 'c' for covars, 'q' for Q matrices,
+        'a' for A matrices, and 'b' for b vectors. Defaults to all parameters.
     params : string, optional, default
         Controls which parameters are updated in the training
         process.  Can contain any combination of
-        't' for transmat, 'm' for means, and 's' for sigmas, 'q' for Q matrices,
+        't' for transmat, 'm' for means, and 'c' for covars, 'q' for Q matrices,
         'a' for A matrices, and 'b' for b vectors. Defaults to all parameters.
     """
             
-    def __init__(self, n_states, n_features, means=None, sigmas=None, As=None,
-                 bs=None, Qs=None, transmat=None, n_iter=10, params='tmsqab'):
-        As = ensure_type(As, np.double, ndim=3, name='As', shape=(n_states, n_features, n_features), can_be_none=True)
-        bs = ensure_type(bs, np.double, ndim=2, name='bs', shape=(n_states, n_features), can_be_none=True)
-        Qs = ensure_type(Qs, np.double, ndim=3, name='Qs', shape=(n_states, n_features, n_features), can_be_none=True)
-        sigmas = ensure_type(sigmas, np.double, ndim=3, name='sigmas', shape=(n_states, n_features, n_features), can_be_none=True)
-        means = ensure_type(means, np.double, ndim=2, name='means', shape=(n_states, n_features), can_be_none=True)
-        transmat = ensure_type(transmat, np.double, ndim=3, name='transmat', shape=(n_states, n_states), can_be_none=True)
-
-        # set default (random) values for the parameters before fitting, if not
-        # supplied
-        if As is None:
-            # Produce a random As
-            As = np.empty((n_states, n_features, n_features))
-            for i in range(n_states):
-                A = randn(n_features, n_features)
-                # Stabilize A
-                u, s, v = np.linalg.svd(A)
-                As[i] = rand() * np.dot(u, v.T)
-
-        if bs is None:
-            bs = rand(n_states, n_features)
-        if means is None:
-            means = rand(n_states, n_features)
-
-        if Qs is None:
-            Qs = np.empty((n_states, n_features, n_features))
-            for i in range(n_states):
-                r = rand(n_features, n_features)
-                r = (1.0 / n_features) * np.dot(r.T, r)
-                Qs[i] = r
-
-        if transmat is None:
-            transmat = rand(n_states, n_states)
-            transmat = self.Z / (sum(self.Z, axis=0))
-
-        if sigmas is None:
-            sigmas = np.empty((n_states, n_features, n_features))
-            for i in range(n_states):
-                r = rand(n_features, n_features)
-                r = np.dot(r, r.T)
-                sigmas[i] = 0.1 * np.eye(n_features) + r
+    def __init__(self, n_states, n_features, init_params='tmcqab', params='tmsqab',
+                 n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed'):
 
         self.n_states = n_states
         self.n_features = n_features
         self.n_iter = n_iter
+        self.init_params = init_params
         self.params = params
-        self.As_ = As
-        self.bs_ = bs
-        self.Qs_ = Qs
-        self.sigmas_ = sigmas
-        self.means_ = means
-        self.transmat_ = transmat
+        self.precision = precision
+        if covars_prior <= 0:
+            covars_prior = 0
+            covars_weight = 0
+        self.covars_prior = covars_prior
+        self.covars_weight = covars_weight
+        self._impl = SwitchingVAR1CPUImpl(n_states, n_features, precision)
+
+        self.As_ = None
+        self.bs_ = None
+        self.Qs_ = None
+        self._covars_ = None
+        self._means_ = None
+        self._transmat_ = None
+        self._populations_ = None
+
+    def _init(self, sequences):
+        """Initialize the state, prior to fitting (hot starting)
+        """
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, shape=(None, self.n_features)) for s in sequences]
+        self._impl._sequences = sequences
+
+        small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart_sequences)])
+
+        if 'm' in self.init_params:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
+        if 'c' in self.init_params:
+            cv = np.cov(small_dataset.T)
+            self._covars_ = distribute_covar_matrix_to_match_covariance_type(
+                cv, 'full', self.n_states)
+            self._covars_[self._covars_==0] = 1e-5
+        if 't' in self.init_params:
+            transmat_ = np.empty((self.n_states, self.n_states))
+            transmat_.fill(1.0 / self.n_states)
+            self.transmat_ = transmat_
+            self.populations_ = np.ones(self.n_states) / self.n_states
 
     def sample(self, n_samples, init_state=None, init_obs=None):
         """Sample a trajectory from model distribution
@@ -148,17 +150,14 @@ class MetastableSwitchingLDS(object):
 
         # set the initial values of the sequences
         if init_state is None:
-            # Compute the stationary distribution of the transition matrix
-            _, vl = linalg.eig(self.transmat_, left=True, right=False)
-            pi = vl[:, 0] / np.sum(vl[:, 0])
             # Sample Start conditions
-            hidden_state[0] = categorical(pi)
+            hidden_state[0] = categorical(self.populations_)
         else:
             hidden_state[0] = init_state
 
         if init_obs is None:
             obs[0] = multivariate_normal(self.means_[hidden_state[0]],
-                                         self.sigmas_[hidden_state[0]])
+                                         self.covars_[hidden_state[0]])
         else:
             obs[0] = init_obs
 
@@ -175,7 +174,7 @@ class MetastableSwitchingLDS(object):
 
     def predict(self, obs):
         """Find most likely state sequence corresponding to `obs`.
-        
+
         Parameters
         ----------
         obs : np.ndarray, shape=(n_samples, n_features)
@@ -187,144 +186,93 @@ class MetastableSwitchingLDS(object):
         hidden_states : np.ndarray, shape=(n_states)
             Index of the most likely states for each observation
         """
-        _, vl = linalg.eig(self.transmat_, left=True, right=False)
+        _, vl = scipy.linalg.eig(self.transmat_, left=True, right=False)
         startprob = vl[:, 0] / np.sum(vl[:, 0])
-        
+
         model = GaussianHMM(n_components=self.n_states, covariance_type='full')
         model.startprob_ = startprob
         model.transmat_ = self.transmat_
         model.means_ = self.means_
-        model.covars_ = self.sigmas_
+        model.covars_ = self.covars_
         return model.predict(obs)
 
-    def fit(self, obs):
+    def fit(self, sequences):
         """Estimate model parameters.
-        
+
+        An initialization step is performed before entering the EM
+        algorithm. If you want to avoid this step, pass proper
+        ``init_params`` keyword argument to estimator's constructor.
+
         Parameters
         ----------
-        obs : np.ndarray, shape=(n_samples, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
         """
-        obs = ensure_type(obs, dtype=np.double, ndim=2, shape=(None, self.n_features))
-        n_samples = len(obs)
+        self._init(sequences)
+        n_obs = sum(len(s) for s in sequences)
 
-        W_i_Ts = np.zeros((self.n_iter, n_samples, self.n_states))
-        
         for i in range(self.n_iter):
-            assignments = self.predict(obs)
-            W_i_T = assignment_to_weights(assignments, self.n_states)
-            Zhat = transition_counts(assignments, self.n_states)
-            M_tt_1T = np.tile(Zhat, (n_samples, 1, 1))
-            self._em_update(W_i_T, M_tt_1T, obs, i)
-            W_i_Ts[i] = W_i_T
+            _, stats = self._impl.do_estep()
+            if stats['trans'].sum() > 10*n_obs:
+                print('Number of transition counts', stats['trans'].sum())
+                print('Total sequence length', n_obs)
+                print("Numerical overflow detected. Try splitting your trajectories")
+                print("into shorter segments or running in double")
+                break
 
-    def _initialize_sufficient_statistics(self):
-        stats = {}
-        stats['cor'] = np.zeros((self.n_states, self.n_features, self.n_features))
-        stats['cov'] = np.zeros((self.n_states, self.n_features, self.n_features))
-        stats['cov_but_first'] = np.zeros((self.n_states, self.n_features, self.n_features))
-        stats['cov_but_last'] = np.zeros((self.n_states, self.n_features, self.n_features))
-        stats['mean'] = np.zeros((self.n_states, self.n_features))
-        stats['mean_but_first'] = np.zeros((self.n_states, self.n_features))
-        stats['mean_but_last'] = np.zeros((self.n_states, self.n_features))
-        stats['transitions'] = np.zeros((self.n_states, self.n_states))
+            # Maximization step
+            self._do_mstep(stats, set(self.params) & set('cmt'))
 
-        # Use Laplacian Pseudocounts
-        stats['total'] = np.ones(self.n_states)
-        stats['total_but_last'] = np.ones(self.n_states)
-        stats['total_but_first'] = np.ones(self.n_states)
+        if len(set(self.params) & set('qab')) > 0:
+            self._do_mstep(stats, self.params)
 
-        return stats
+        return self
 
-    def compute_sufficient_statistics(self, W_i_T, M_tt_1T, obs):
-        # TODO: refactor this so that we can compute sufficient statistics
-        # over multiple trajectories
-
-        stats = self._initialize_sufficient_statistics()
-        n_samples = len(obs)
-        for t in range(n_samples):
-            for k in range(self.n_states):
-                if t > 0:
-                    stats['cor'][k] += W_i_T[t, k] * np.outer(obs[t], obs[t - 1])
-                    stats['cov_but_first'][k] += W_i_T[t, k] * np.outer(obs[t], obs[t])
-                    stats['total_but_first'][k] += W_i_T[t, k]
-                    stats['mean_but_first'][k] += W_i_T[t, k] * obs[t]
-                stats['cov'][k] += W_i_T[t, k] * np.outer(obs[t], obs[t])
-                stats['mean'][k] += W_i_T[t, k] * obs[t]
-                stats['total'][k] += W_i_T[t, k]
-                if t < n_samples:
-                    stats['total_but_last'][k] += W_i_T[t, k]
-                    stats['mean_but_last'][k] += W_i_T[t, k] * obs[t]
-                    stats['cov_but_last'][
-                        k] += W_i_T[t, k] * np.outer(obs[t], obs[t])
-        stats['transitions'] = M_tt_1T[0]
-        return stats
-
-    def _em_update(self, W_i_T, M_tt_1T, obs, itr):
-        """
-        
-        """
-        n_samples = len(obs)
-        stats = self.compute_sufficient_statistics(W_i_T, M_tt_1T, obs)
-
-        if 's' in self.params:
-            self._sigmas_update(stats)
-        if 'm' in self.params:
+    def _do_mstep(self, stats, params):
+        if 'm' in params:
             self._means_update(stats)
-        if 't' in self.params:
-            self._transmat_update(stats, n_samples)
+        if 'c' in params:
+            self._covars_update(stats)
+        if 't' in params:
+            self._transmat_update(stats)
 
-        if itr > 2:
-            means, covars = empirical_wells(obs, W_i_T)
-
-            if 'q' in self.params:
-                self._Q_update(stats, covars)
-            if 'a' in self.params:
-                self._A_update(stats, covars)
-            if 'b' in self.params:
-                self._b_update(stats, means)
-
-    def _b_update(self, stats, means):
-        for i in range(self.n_states):
-            mu = self.means_[i]
-            self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
+        if 'q' in params:
+            self._Q_update(stats)
+        if 'a' in params:
+            self._A_update(stats)
+        if 'b' in params:
+            self._b_update(stats)
 
     def _means_update(self, stats):
-        for i in range(self.n_states):
-            self.means_[i] = stats['mean'][i] / stats['total'][i]
+        self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
 
-    def _sigmas_update(self, stats):
-        for i in range(self.n_states):
-            mu = np.reshape(self.means_[i], (self.n_features, 1))
-            sigma_num = (stats['cov'][i] +
-                         -np.dot(mu, np.reshape(stats['mean'][i], (self.n_features, 1)).T) +
-                         -np.dot(np.reshape(stats['mean'][i], (self.n_features, 1)), mu.T) +
-                         stats['total'][i] * np.dot(mu, mu.T))
-            sigma_denom = stats['total'][i]
-            self.sigmas_[i] = sigma_num / sigma_denom
+    def _covars_update(self, stats):
+        cvnum = np.empty((self.n_states, self.n_features, self.n_features))
+        for c in range(self.n_states):
+            obsmean = np.outer(stats['obs'][c], self._means_[c])
 
-    def _transmat_update(self, stats, T):
-        Z = np.zeros((self.n_states, self.n_states))
-        for i in range(self.n_states):
-            for j in range(self.n_states):
-                Z[i, j] += (T - 1) * stats['transitions'][i, j]
-                Z_denom = stats['total_but_last'][i]
-                Z[i, j] /= Z_denom
-        for i in range(self.n_states):
-            s = np.sum(Z[i, :])
-            Z[i, :] /= s
+            cvnum[c] = (stats['obs*obs.T'][c]
+                        - obsmean - obsmean.T
+                        + np.outer(self._means_[c], self._means_[c])
+                        * stats['post'][c])
+        cvweight = max(self.covars_weight - self.n_features, 0)
+        self.covars_ = ((self.covars_prior + cvnum) /
+                         (cvweight + stats['post'][:, None, None]))
 
-        self.transmat_ = Z
+    def _transmat_update(self, stats):
+        counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
+        self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
 
     def _A_update(self, stats, covars):
         for i in range(self.n_states):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
-            B = stats['cor'][i]
-            mean_but_last = np.reshape(stats['mean_but_last'][i], (self.n_features, 1))
+            B = stats['obs*obs[t-1].T'][i]
+            mean_but_last = np.reshape(stats['obs[:-1]'][i], (self.n_features, 1))
             C = np.dot(b, mean_but_last.T)
-            E = stats['cov_but_last'][i]
-            Sigma = self.sigmas_[i]
+            E = stats['obs[:-1]*obs[:-1].T'][i]
+            Sigma = self.covars_[i]
             Q = self.Qs_[i]
             sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q)
             avec = np.array(sol['x'])
@@ -335,20 +283,20 @@ class MetastableSwitchingLDS(object):
     def _Q_update(self, stats, covars):
         for i in range(self.n_states):
             A = self.As_[i]
-            Sigma = self.sigmas_[i]
+            Sigma = self.covars_[i]
             b = np.reshape(self.bs_[i], (self.n_features, 1))
-            B = ((stats['cov_but_first'][i]
-                  - np.dot(stats['cor'][i], A.T)
-                  - np.dot(np.reshape(stats['mean_but_first'][i], (self.n_features, 1)),
+            B = ((stats['obs[1:]*obs[1:].T'][i]
+                  - np.dot(stats['obs*obs[t-1].T'][i], A.T)
+                  - np.dot(np.reshape(stats['obs[1:]'][i], (self.n_features, 1)),
                         b.T))
-                 + (-np.dot(A, stats['cor'][i].T) +
-                    np.dot(A, np.dot(stats['cov_but_last'][i], A.T)) +
-                    np.dot(A, np.dot(np.reshape(stats['mean_but_last'][i], (self.n_features, 1)),
+                 + (-np.dot(A, stats['obs*obs[t-1].T'][i].T) +
+                    np.dot(A, np.dot(stats['obs[:-1]*obs[:-1].T'][i], A.T)) +
+                    np.dot(A, np.dot(np.reshape(stats['obs[:-1]'][i], (self.n_features, 1)),
                                b.T)))
-                 + (-np.dot(b, np.reshape(stats['mean_but_first'][i], (self.n_features, 1)).T) +
-                    np.dot(b, np.dot(np.reshape(stats['mean_but_last'][i], (self.n_features, 1)).T,
+                 + (-np.dot(b, np.reshape(stats['obs[1:]'][i], (self.n_features, 1)).T) +
+                    np.dot(b, np.dot(np.reshape(stats['obs[:-1]'][i], (self.n_features, 1)).T,
                                A.T)) +
-                    stats['total_but_first'][i] * np.dot(b, b.T)))
+                    stats['post[1:]'][i] * np.dot(b, b.T)))
             sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma)
             qvec = np.array(sol['x'])
             qvec = qvec[1 + self.n_features * (self.n_features + 1) / 2:]
@@ -359,6 +307,39 @@ class MetastableSwitchingLDS(object):
                     Q[j, k] = qvec[vec_pos]
                     Q[k, j] = Q[j, k]
             self.Qs_[i] = Q
+
+    def _b_update(self, stats):
+        for i in range(self.n_states):
+            mu = self.means_[i]
+            self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
+
+    @property
+    def covars_(self):
+        return self._covars_
+    @covars_.setter
+    def covars_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._covars_ = value
+        self._impl.covars_ = value
+
+    @property
+    def transmat_(self):
+        return self._transmat_
+    @transmat_.setter
+    def transmat_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._transmat_ = value
+        self._impl.transmat_ = value
+
+    @property
+    def populations_(self):
+        return self._populations_
+    @populations_.setter
+    def populations_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._populations_ = value
+        self._impl.startprob_ = value
+
 
     def compute_metastable_wells(self):
         """Compute the metastable wells according to the formula
