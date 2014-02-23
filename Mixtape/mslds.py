@@ -1,17 +1,15 @@
 #import sys
 import numpy as np
-#from numpy import dot, shape, eye, outer, sum, log, zeros
-#from numpy import nonzero, reshape, diag, copy, ones
-#from numpy.linalg import svd, inv, eig
-from numpy.random import rand, randn, multinomial, multivariate_normal
-#from mixtape.utils import *
-#from mixtape.A_sdp import *
-#from mixtape.Q_sdp import *
+from numpy.random import rand, randn, multivariate_normal
 import scipy.linalg as linalg
-#import scipy.stats as stats
-
-from mixtape.utils import categorical
 from mdtraj.utils import ensure_type
+from sklearn.hmm import GaussianHMM
+
+from mixtape.A_sdp import solve_A
+from mixtape.Q_sdp import solve_Q
+from mixtape.utils import (iter_vars, categorical, transition_counts,
+                           empirical_wells, assignment_to_weights)
+
 """
 An Implementation of the Metastable Switching LDS. A forward-backward
 inference pass computes switch posteriors from the smoothed hidden states.
@@ -62,11 +60,22 @@ class MetastableSwitchingLDS(object):
         Covariance matrix for the noise in each state
     transmat : np.ndarray, shape=(n_states, n_states)
         State-to-state Markov jump probabilities
+    n_iter : int, optional
+        Number of iterations to perform during training
+    params : string, optional, default
+        Controls which parameters are updated in the training
+        process.  Can contain any combination of
+        't' for transmat, 'm' for means, and 's' for sigmas, 'q' for Q matrices,
+        'a' for A matrices, and 'b' for b vectors. Defaults to all parameters.
     """
-    def __init__(self, n_states, n_features, As=None, bs=None, Qs=None, transmat=None):
+            
+    def __init__(self, n_states, n_features, means=None, sigmas=None, As=None,
+                 bs=None, Qs=None, transmat=None, n_iter=10, params='tmsqab'):
         As = ensure_type(As, np.double, ndim=3, name='As', shape=(n_states, n_features, n_features), can_be_none=True)
         bs = ensure_type(bs, np.double, ndim=2, name='bs', shape=(n_states, n_features), can_be_none=True)
         Qs = ensure_type(Qs, np.double, ndim=3, name='Qs', shape=(n_states, n_features, n_features), can_be_none=True)
+        sigmas = ensure_type(sigmas, np.double, ndim=3, name='sigmas', shape=(n_states, n_features, n_features), can_be_none=True)
+        means = ensure_type(means, np.double, ndim=2, name='means', shape=(n_states, n_features), can_be_none=True)
         transmat = ensure_type(transmat, np.double, ndim=3, name='transmat', shape=(n_states, n_states), can_be_none=True)
 
         # set default (random) values for the parameters before fitting, if not
@@ -82,21 +91,37 @@ class MetastableSwitchingLDS(object):
 
         if bs is None:
             bs = rand(n_states, n_features)
+        if means is None:
+            means = rand(n_states, n_features)
+
         if Qs is None:
             Qs = np.empty((n_states, n_features, n_features))
             for i in range(n_states):
                 r = rand(n_features, n_features)
                 r = (1.0 / n_features) * np.dot(r.T, r)
                 Qs[i] = r
+
         if transmat is None:
             transmat = rand(n_states, n_states)
             transmat = self.Z / (sum(self.Z, axis=0))
 
+        if sigmas is None:
+            sigmas = np.empty((n_states, n_features, n_features))
+            for i in range(n_states):
+                r = rand(n_features, n_features)
+                r = np.dot(r, r.T)
+                sigmas[i] = 0.1 * np.eye(n_features) + r
+
+
         self.n_states = n_states
         self.n_features = n_features
+        self.n_iter = n_iter
+        self.params = params
         self.As_ = As
         self.bs_ = bs
         self.Qs_ = Qs
+        self.sigmas_ = sigmas
+        self.means_ = means
         self.transmat_ = transmat
 
     def sample(self, n_samples, init_state=None, init_obs=None):
@@ -133,251 +158,232 @@ class MetastableSwitchingLDS(object):
             hidden_state[0] = init_state
 
         if init_obs is None:
-            obs[0] = multivariate_normal(self.mus_[hidden_state[0]],
+            obs[0] = multivariate_normal(self.means_[hidden_state[0]],
                                          self.sigmas_[hidden_state[0]])
         else:
             obs[0] = init_obs
 
         # Perform time updates
-        for t in range(T - 1):
+        for t in range(n_samples - 1):
             s = hidden_state[t]
             A = self.As_[s]
             b = self.bs_[s]
             Q = self.Qs_[s]
-            xs[t + 1] = multivariate_normal(dot(A, obs[t]) + b, Q)
+            obs[t + 1] = multivariate_normal(np.dot(A, obs[t]) + b, Q)
             hidden_state[t + 1] = categorical(self.transmat_[s])
 
         return obs, hidden_state
 
-    def Viterbi(self, xs):
-        """
-        Identify the most likely hidden state sequence.
-        """
-        K, mus, Sigmas, Z = self.K, self.mus, self.Sigmas, self.Z
-        (T, xdim) = shape(xs)
-        logVs = zeros((T, K))
-        Ptr = zeros((T, K))
-        assignment = zeros(T)
-        for k in range(K):
-            logVs[0, k] = log_multivariate_normal_pdf(xs[0], mus[k], Sigmas[k])
-            Ptr[0, k] = k
-        for t in range(T - 1):
-            for k in range(K):
-                logVs[t + 1, k] = log_multivariate_normal_pdf(xs[t + 1], mus[k],
-                                                              Sigmas[k]) + max(log(Z[:, k]) + logVs[t])
-                Ptr[t + 1, k] = argmax(log(Z[:, k]) + logVs[t])
-        assignment[T - 1] = argmax(logVs[T - 1, k])
-        for t in range(T - 1, 0, -1):
-            assignment[t - 1] = Ptr[t, assignment[t]]
-        return assignment
+    def predict(self, obs):
+        """Find most likely state sequence corresponding to `obs`.
+        
+        Parameters
+        ----------
+        obs : np.ndarray, shape=(n_samples, n_features)
+            Sequence of n_features-dimensional data points. Each row
+            corresponds to a single point in the sequence.
 
-    def em(self, ys, em_iters=10, em_vars='all'):
+        Returns
+        -------
+        hidden_states : np.ndarray, shape=(n_states)
+            Index of the most likely states for each observation
         """
-        Expectation Maximization
-        Inputs:
-          ys: A sequence of shape (T, y_dim)
-        Outputs:
-          None (all updates are made to internal states)
+        _, vl = linalg.eig(self.transmat_, left=True, right=False)
+        startprob = vl[:, 0] / np.sum(vl[:, 0])
+        
+        model = GaussianHMM(n_components=self.n_states, covariance_type='full')
+        model.startprob_ = startprob
+        model.transmat_ = self.transmat_
+        model.means_ = self.means_
+        model.covars_ = self.sigmas_
+        return model.predict(obs)
+
+    def fit(self, obs):
+        """Estimate model parameters.
+        
+        Parameters
+        ----------
+        obs : np.ndarray, shape=(n_samples, n_features)
+            Sequence of n_features-dimensional data points. Each row
+            corresponds to a single point in the sequence.
         """
-        (T, _) = shape(ys)
-        K, x_dim, y_dim = self.K, self.x_dim, self.y_dim
+        obs = ensure_type(obs, dtype=np.double, ndim=2, shape=(None, self.n_features))
+        n_samples = len(obs)
 
-        # regularization
-        alpha = 0.1
-        itr = 0
-        W_i_Ts = zeros((em_iters, T, K))
-        assignments = self.Viterbi(ys)
-        while itr < em_iters:
-            assignments = self.Viterbi(ys)
-            W_i_T = assignment_to_weights(assignments, K)
-            Zhat = transition_counts(assignments, K)
-            M_tt_1T = tile(Zhat, (T, 1, 1))
-            self.em_update(W_i_T, M_tt_1T,
-                           ys, ys, alpha, itr, em_vars)
-            W_i_Ts[itr] = W_i_T
-            itr += 1
+        W_i_Ts = np.zeros((self.n_iter, n_samples, self.n_states))
+        
+        for i in range(self.n_iter):
+            assignments = self.predict(obs)
+            W_i_T = assignment_to_weights(assignments, self.n_states)
+            Zhat = transition_counts(assignments, self.n_states)
+            M_tt_1T = np.tile(Zhat, (n_samples, 1, 1))
+            self._em_update(W_i_T, M_tt_1T, obs, i)
+            W_i_Ts[i] = W_i_T
 
-    def compute_sufficient_statistics(self, W_i_T, M_tt_1T, xs):
-        (T, x_dim) = shape(xs)
-        K = self.K
-
+    def _initialize_sufficient_statistics(self):
         stats = {}
-        stats['cor'] = zeros((K, x_dim, x_dim))
-        stats['cov'] = zeros((K, x_dim, x_dim))
-        stats['cov_but_first'] = zeros((K, x_dim, x_dim))
-        stats['cov_but_last'] = zeros((K, x_dim, x_dim))
-        stats['mean'] = zeros((K, x_dim))
-        stats['mean_but_first'] = zeros((K, x_dim))
-        stats['mean_but_last'] = zeros((K, x_dim))
-        stats['transitions'] = zeros((K, K))
+        stats['cor'] = np.zeros((self.n_states, self.n_features, self.n_features))
+        stats['cov'] = np.zeros((self.n_states, self.n_features, self.n_features))
+        stats['cov_but_first'] = np.zeros((self.n_states, self.n_features, self.n_features))
+        stats['cov_but_last'] = np.zeros((self.n_states, self.n_features, self.n_features))
+        stats['mean'] = np.zeros((self.n_states, self.n_features))
+        stats['mean_but_first'] = np.zeros((self.n_states, self.n_features))
+        stats['mean_but_last'] = np.zeros((self.n_states, self.n_features))
+        stats['transitions'] = np.zeros((self.n_states, self.n_states))
+
         # Use Laplacian Pseudocounts
-        stats['total'] = ones(K)
-        stats['total_but_last'] = ones(K)
-        stats['total_but_first'] = ones(K)
-        for t in range(T):
-            for k in range(K):
+        stats['total'] = np.ones(self.n_states)
+        stats['total_but_last'] = np.ones(self.n_states)
+        stats['total_but_first'] = np.ones(self.n_states)
+
+        return stats
+
+    def compute_sufficient_statistics(self, W_i_T, M_tt_1T, obs):
+        # TODO: refactor this so that we can compute sufficient statistics
+        # over multiple trajectories
+
+        stats = self._initialize_sufficient_statistics()
+        n_samples = len(obs)
+        for t in range(n_samples):
+            for k in range(self.n_states):
                 if t > 0:
-                    stats['cor'][k] += W_i_T[t, k] * outer(xs[t], xs[t - 1])
-                    stats['cov_but_first'][
-                        k] += W_i_T[t, k] * outer(xs[t], xs[t])
+                    stats['cor'][k] += W_i_T[t, k] * np.outer(obs[t], obs[t - 1])
+                    stats['cov_but_first'][k] += W_i_T[t, k] * np.outer(obs[t], obs[t])
                     stats['total_but_first'][k] += W_i_T[t, k]
-                    stats['mean_but_first'][k] += W_i_T[t, k] * xs[t]
-                stats['cov'][k] += W_i_T[t, k] * outer(xs[t], xs[t])
-                stats['mean'][k] += W_i_T[t, k] * xs[t]
+                    stats['mean_but_first'][k] += W_i_T[t, k] * obs[t]
+                stats['cov'][k] += W_i_T[t, k] * np.outer(obs[t], obs[t])
+                stats['mean'][k] += W_i_T[t, k] * obs[t]
                 stats['total'][k] += W_i_T[t, k]
-                if t < T:
+                if t < n_samples:
                     stats['total_but_last'][k] += W_i_T[t, k]
-                    stats['mean_but_last'][k] += W_i_T[t, k] * xs[t]
+                    stats['mean_but_last'][k] += W_i_T[t, k] * obs[t]
                     stats['cov_but_last'][
-                        k] += W_i_T[t, k] * outer(xs[t], xs[t])
+                        k] += W_i_T[t, k] * np.outer(obs[t], obs[t])
         stats['transitions'] = M_tt_1T[0]
         return stats
 
-    def em_update(self, W_i_T, M_tt_1T, xs, ys, alpha, itr,
-                  em_vars='all'):
+    def _em_update(self, W_i_T, M_tt_1T, obs, itr):
         """
-        Inputs:
-          W_i_T= P[S_{t}=i|x_{1:T}]
-          M_tt_1Ts = \sum_t P[S_t=j,S_{t+1}=k|x_{1:T}]
-          em_vars: Variables to learn
+        
         """
-        K, x_dim = self.K, self.x_dim
-        (T, _) = shape(xs)
-        P_cur_prev = zeros((T, x_dim, x_dim))
-        P_cur = zeros((T, x_dim, x_dim))
-        means, covars = empirical_wells(xs, W_i_T)
-        stats = self.compute_sufficient_statistics(W_i_T, M_tt_1T, xs)
-        for t in range(T):
-            if t > 0:
-                P_cur_prev[t] = outer(xs[t], xs[t - 1])
-            P_cur[t] = outer(xs[t], xs[t])
-        # Update Sigmas
-        if 'Sigmas' in em_vars:
-            self.Sigma_update(stats)
-        # Update mus
-        if 'mus' in em_vars:
-            self.mu_update(stats)
-        # Update Z
-        if 'Z' in em_vars:
-            self.Z_update(stats, T)
+        n_samples = len(obs)
+        stats = self.compute_sufficient_statistics(W_i_T, M_tt_1T, obs)
+
+        if 's' in self.params:
+            self._sigmas_update(stats)
+        if 'm' in self.params:
+            self._means_update(stats)
+        if 't' in self.params:
+            self._transmat_update(stats, n_samples)
+
         if itr > 2:
-            # Update Qs
-            if 'Qs' in em_vars:
-                self.Q_update(stats, covars)
-            # Update As
-            if 'As' in em_vars:
-                self.A_update(stats, covars)
-            # Update bs
-            if 'bs' in em_vars:
-                self.b_update(stats, means)
+            means, covars = empirical_wells(obs, W_i_T)
 
-    def b_update(self, stats, means):
-        K, x_dim = self.K, self.x_dim
-        for i in range(K):
-            mu = self.mus[i]
-            #self.bs[i] = dot(eye(x_dim) - self.As[i], means[i])
-            self.bs[i] = dot(eye(x_dim) - self.As[i], mu)
+            if 'q' in self.params:
+                self._Q_update(stats, covars)
+            if 'a' in self.params:
+                self._A_update(stats, covars)
+            if 'b' in self.params:
+                self._b_update(stats, means)
 
-    def mu_update(self, stats):
-        K, x_dim = self.K, self.x_dim
-        for k in range(K):
-            # Use Laplace Pseudocount
-            self.mus[k] = stats['mean'][k] / (stats['total'][k])
+    def _b_update(self, stats, means):
+        for i in range(self.n_states):
+            mu = self.means_[i]
+            self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
 
-    def Sigma_update(self, stats):
-        K, x_dim = self.K, self.x_dim
-        for k in range(K):
-            mu = reshape(self.mus[k], (x_dim, 1))
-            Sigma_num = (stats['cov'][k] +
-                         -dot(mu, reshape(stats['mean'][k], (x_dim, 1)).T) +
-                         -dot(reshape(stats['mean'][k], (x_dim, 1)), mu.T) +
-                         stats['total'][k] * dot(mu, mu.T))
-            Sigma_denom = stats['total'][k]
-            self.Sigmas[k] = Sigma_num / Sigma_denom
+    def _means_update(self, stats):
+        for i in range(self.n_states):
+            self.means_[i] = stats['mean'][i] / stats['total'][i]
 
-    def Z_update(self, stats, T):
-        K = self.K
-        Z = zeros((K, K))
-        for i in range(K):
-            for j in range(K):
+    def _sigmas_update(self, stats):
+        for i in range(self.n_states):
+            mu = np.reshape(self.means_[i], (self.n_features, 1))
+            sigma_num = (stats['cov'][i] +
+                         -np.dot(mu, np.reshape(stats['mean'][i], (self.n_features, 1)).T) +
+                         -np.dot(np.reshape(stats['mean'][i], (self.n_features, 1)), mu.T) +
+                         stats['total'][i] * np.dot(mu, mu.T))
+            sigma_denom = stats['total'][i]
+            self.sigmas_[i] = sigma_num / sigma_denom
+
+    def _transmat_update(self, stats, T):
+        Z = np.zeros((self.n_states, self.n_states))
+        for i in range(self.n_states):
+            for j in range(self.n_states):
                 Z[i, j] += (T - 1) * stats['transitions'][i, j]
                 Z_denom = stats['total_but_last'][i]
                 Z[i, j] /= Z_denom
-        for i in range(K):
-            s = sum(Z[i, :])
+        for i in range(self.n_states):
+            s = np.sum(Z[i, :])
             Z[i, :] /= s
-        self.Z = Z
 
-    def A_update(self, stats, covars):
-        K, x_dim = self.K, self.x_dim
-        for i in range(K):
-            b = reshape(self.bs[i], (x_dim, 1))
+        self.transmat_ = Z
+
+    def _A_update(self, stats, covars):
+        for i in range(self.n_states):
+            b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = stats['cor'][i]
-            mean_but_last = reshape(stats['mean_but_last'][i], (x_dim, 1))
-            C = dot(b, mean_but_last.T)
+            mean_but_last = np.reshape(stats['mean_but_last'][i], (self.n_features, 1))
+            C = np.dot(b, mean_but_last.T)
             E = stats['cov_but_last'][i]
-            Sigma = self.Sigmas[i]
-            Q = self.Qs[i]
-            sol, _, G, _ = solve_A(x_dim, B, C, E, Sigma, Q)
-            avec = array(sol['x'])
-            avec = avec[1 + x_dim * (x_dim + 1) / 2:]
-            A = reshape(avec, (x_dim, x_dim), order='F')
-            self.As[i] = A
+            Sigma = self.sigmas_[i]
+            Q = self.Qs_[i]
+            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q)
+            avec = np.array(sol['x'])
+            avec = avec[1 + self.n_features * (self.n_features + 1) / 2:]
+            A = np.reshape(avec, (self.n_features, self.n_features), order='F')
+            self.As_[i] = A
 
-    def Q_update(self, stats, covars):
-        K, x_dim = self.K, self.x_dim
-        for i in range(self.K):
-            A = self.As[i]
-            Sigma = self.Sigmas[i]
-            b = reshape(self.bs[i], (x_dim, 1))
+    def _Q_update(self, stats, covars):
+        for i in range(self.n_states):
+            A = self.As_[i]
+            Sigma = self.sigmas_[i]
+            b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = ((stats['cov_but_first'][i]
-                  - dot(stats['cor'][i], A.T)
-                  - dot(reshape(stats['mean_but_first'][i], (x_dim, 1)),
+                  - np.dot(stats['cor'][i], A.T)
+                  - np.dot(np.reshape(stats['mean_but_first'][i], (self.n_features, 1)),
                         b.T))
-                 + (-dot(A, stats['cor'][i].T) +
-                    dot(A, dot(stats['cov_but_last'][i], A.T)) +
-                    dot(A, dot(reshape(stats['mean_but_last'][i], (x_dim, 1)),
+                 + (-np.dot(A, stats['cor'][i].T) +
+                    np.dot(A, np.dot(stats['cov_but_last'][i], A.T)) +
+                    np.dot(A, np.dot(np.reshape(stats['mean_but_last'][i], (self.n_features, 1)),
                                b.T)))
-                 + (-dot(b, reshape(stats['mean_but_first'][i], (x_dim, 1)).T) +
-                    dot(b, dot(reshape(stats['mean_but_last'][i], (x_dim, 1)).T,
+                 + (-np.dot(b, np.reshape(stats['mean_but_first'][i], (self.n_features, 1)).T) +
+                    np.dot(b, np.dot(np.reshape(stats['mean_but_last'][i], (self.n_features, 1)).T,
                                A.T)) +
-                    stats['total_but_first'][i] * dot(b, b.T)))
-            sol, _, _, _ = solve_Q(x_dim, A, B, Sigma)
-            qvec = array(sol['x'])
-            qvec = qvec[1 + x_dim * (x_dim + 1) / 2:]
-            Q = zeros((x_dim, x_dim))
-            for j in range(x_dim):
+                    stats['total_but_first'][i] * np.dot(b, b.T)))
+            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma)
+            qvec = np.array(sol['x'])
+            qvec = qvec[1 + self.n_features * (self.n_features + 1) / 2:]
+            Q = np.zeros((self.n_features, self.n_features))
+            for j in range(self.n_features):
                 for k in range(j + 1):
                     vec_pos = j * (j + 1) / 2 + k
                     Q[j, k] = qvec[vec_pos]
                     Q[k, j] = Q[j, k]
-            self.Qs[i] = Q
+            self.Qs_[i] = Q
 
     def compute_metastable_wells(self):
         """Compute the metastable wells according to the formula
             x_i = (I - A)^{-1}b
           Output: wells
         """
-        K, x_dim = self.K, self.x_dim
-        wells = zeros((K, x_dim))
-        for i in range(K):
-            wells[i] = dot(inv(eye(x_dim) - self.As[i]), self.bs[i])
+        wells = np.zeros((self.n_states, self.n_features))
+        for i in range(self.n_states):
+            wells[i] = np.dot(np.linalg.inv(np.eye(self.n_features) -
+                            self.As_[i]), self.bs_[i])
         return wells
 
-    def compute_process_covariances(self):
-        K, x_dim = self.K, self.x_dim
-        covs = zeros((K, x_dim, x_dim))
-        N = 10000
-        for k in range(K):
-            A = self.As[k]
-            Q = self.Qs[k]
+    def compute_process_covariances(self, N=10000):
+
+        covs = np.zeros((self.n_states, self.n_features, self.n_features))
+        for k in range(self.n_states):
+            A = self.As_[k]
+            Q = self.Qs_[k]
             V = iter_vars(A, Q, N)
             covs[k] = V
         return covs
 
     def compute_eigenspectra(self):
-        K, x_dim = self.K, self.x_dim
-        eigenspectra = zeros((K, x_dim, x_dim))
-        for k in range(K):
-            eigenspectra[k] = diag(eig(self.As[k])[0])
+        eigenspectra = np.zeros((self.n_states, self.n_features, self.n_features))
+        for k in range(self.n_states):
+            eigenspectra[k] = np.diag(np.linalg.eigvals(self.As_[k]))
         return eigenspectra
