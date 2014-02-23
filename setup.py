@@ -262,7 +262,7 @@ def detect_openmp():
 
 
 openmp_enabled, needs_gomp = detect_openmp()
-extra_compile_args = []
+extra_compile_args = ['-msse3']
 if openmp_enabled:
     extra_compile_args.append('-fopenmp')
 libraries = ['gomp'] if needs_gomp else []

@@ -15,7 +15,7 @@ cdef extern from "ghmm_estep.hpp" namespace "Mixtape":
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* means,
         const float* variances, const float** sequences,
-        const int n_sequences, const np.int32_t* sequence_lengths,
+        const int n_sequences, const int* sequence_lengths,
         const int n_features, const int n_states,
         float* transcounts, float* obs, float* obs2,
         float* post, float* logprob) nogil
@@ -23,7 +23,7 @@ cdef extern from "ghmm_estep.hpp" namespace "Mixtape":
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* means,
         const float* variances, const float** sequences,
-        const int n_sequences, const np.int32_t* sequence_lengths,
+        const int n_sequences, const int* sequence_lengths,
         const int n_features, const int n_states,
         float* transcounts, float* obs, float* obs2,
         float* post, float* logprob) nogil
@@ -50,7 +50,7 @@ cdef class GaussianHMMCPUImpl:
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
             
-            cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
+            cdef np.ndarray[ndim=1, dtype=int] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
             cdef np.ndarray[ndim=2, dtype=np.float32_t] S
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
@@ -110,7 +110,7 @@ cdef class GaussianHMMCPUImpl:
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = self.means
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] vars = self.vars
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = self.seq_lengths
+        cdef np.ndarray[ndim=1, mode='c', dtype=int] seq_lengths = self.seq_lengths
 
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts = np.zeros((self.n_states, self.n_states), dtype=np.float32)
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs = np.zeros((self.n_states, self.n_features), dtype=np.float32)
@@ -126,16 +126,20 @@ cdef class GaussianHMMCPUImpl:
 
         if self.precision == 'single':
             do_estep_single(
-                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0],
-                &vars[0,0], <const float**> seq_pointers, self.n_sequences, &seq_lengths[0],
-                self.n_features, self.n_states, &transcounts[0,0], &obs[0,0], &obs2[0,0],
-                &post[0], &logprob)
+                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
+                <float*> &log_startprob[0], <float*> &means[0,0],
+                <float*> &vars[0,0], <const float**> seq_pointers,
+                self.n_sequences, &seq_lengths[0],
+                self.n_features, self.n_states, <float*> &transcounts[0,0], <float*> &obs[0,0],
+                <float*> &obs2[0,0], <float*> &post[0], &logprob)
         elif self.precision == 'mixed':
             do_estep_mixed(
-                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0],
-                &vars[0,0], <const float**> seq_pointers, self.n_sequences, &seq_lengths[0],
-                self.n_features, self.n_states, &transcounts[0,0], &obs[0,0], &obs2[0,0],
-                &post[0], &logprob)
+                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
+                <float*> &log_startprob[0], <float*> &means[0,0],
+                <float*> &vars[0,0], <const float**> seq_pointers,
+                self.n_sequences, &seq_lengths[0],
+                self.n_features, self.n_states, <float*> &transcounts[0,0], <float*> &obs[0,0],
+                <float*> &obs2[0,0], <float*> &post[0], &logprob)
         else:
             raise RuntimeError('Invalid precision')
 

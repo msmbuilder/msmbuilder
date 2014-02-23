@@ -83,13 +83,13 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
                covariances, sequences, sequence_lengths, transcounts,         \
                obs, obs_but_first, obs_but_last, obs_obs_T, obs_obs_T_offset, \
                obs_obs_T_but_first, obs_obs_T_but_last, post, post_but_first, \
-               post_but_last, logprob, stderr);
+               post_but_last, logprob, stderr)                                \
         private(sequence, framelogprob, fwdlattice, bwdlattice,               \
                 posteriors, seq_transcounts, seq_obs, seq_obs_obs_T,          \
                 seq_obs_obs_T_offset, seq_obs_obs_T_but_first,                \
                 seq_obs_obs_T_but_last, frame_obs_obs_T, seq_post,            \
                 seq_post_but_first, seq_post_but_last, tlocallogprob, j, k,   \
-                length, length_minus_1);
+                length, length_minus_1)
     #endif
     for (i = 0; i < n_sequences; i++) {
         sequence = sequences[i];
