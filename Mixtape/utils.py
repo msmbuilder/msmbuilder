@@ -48,7 +48,6 @@ def load_superpose_timeseries(filenames, atom_indices, topology):
 
 
 def load(filename):
-    print(filename)
     featurizer = cPickle.load(open(filename))
     return featurizer
 
