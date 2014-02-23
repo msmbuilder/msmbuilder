@@ -60,10 +60,10 @@ class Featurizer(object):
         pass
 
     def save(self, filename):
-        cPickle.dump(featurizer, open(args.filename, 'w'))
+        cPickle.dump(self, open(filename, 'w'))
 
 
-class SuperposeFeaturizer(object):
+class SuperposeFeaturizer(Featurizer):
     def __init__(self, atom_indices, reference_traj):
         self.atom_indices = atom_indices
         self.reference_traj = reference_traj
@@ -77,7 +77,7 @@ class SuperposeFeaturizer(object):
         
         return x
 
-class AtomPairsFeaturizer(object):
+class AtomPairsFeaturizer(Featurizer):
     def __init__(self, pair_indices, reference_traj, periodic=False):
         self.pair_indices = pair_indices
         self.reference_traj = reference_traj
