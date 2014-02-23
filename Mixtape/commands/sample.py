@@ -42,7 +42,7 @@ from mixtape.utils import iterobjects
 from mixtape.discrete_approx import discrete_approx_mvn
 from mixtape.cmdline import Command, argument_group
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
-import mixtape.utils
+import mixtape.featurizer
 
 __all__ = ['SampleGHMM']
 
@@ -110,7 +110,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
         self.out = args.out
         self.topology = md.load(args.top)
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
-        self.featurizer = mixtape.utils.load(args.featurizer)
+        self.featurizer = mixtape.featurizer.load(args.featurizer)
 
         if len(self.filenames) == 0:
             self.error('No files matched.')
@@ -118,7 +118,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
 
     def start(self):
         print('loading all data...')
-        xx, ii, ff = utils.featurize_all(self.filenames, self.featurizer, self.topology)
+        xx, ii, ff = mixtape.featurizer.featurize_all(self.filenames, self.featurizer, self.topology)
         print('done loading')
 
         data = {'filename': [], 'index': [], 'state': []}

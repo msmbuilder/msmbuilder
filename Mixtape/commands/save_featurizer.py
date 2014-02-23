@@ -44,7 +44,7 @@ from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
-from mixtape.utils import SuperposeFeaturizer, AtomPairsFeaturizer
+from mixtape.featurizer import SuperposeFeaturizer, AtomPairsFeaturizer
 
 __all__ = ['SaveFeaturizer']
 

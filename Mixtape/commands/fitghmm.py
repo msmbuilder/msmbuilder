@@ -44,7 +44,7 @@ from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
-from mixtape import utils
+import mixtape.featurizer
 
 __all__ = ['FitGHMM']
 
@@ -103,7 +103,7 @@ class FitGHMM(Command, MDTrajInputMixin):
         else:
             self.top = None
 
-        self.featurizer = utils.load(args.featurizer)
+        self.featurizer = mixtape.featurizer.load(args.featurizer)
         self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.featurizer.n_features
 

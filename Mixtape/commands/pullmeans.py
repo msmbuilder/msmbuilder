@@ -39,7 +39,7 @@ from sklearn.mixture.gmm import log_multivariate_normal_density
 
 from mixtape.cmdline import argument_group
 from mixtape.commands.sample import SampleGHMM
-import mixtape.utils
+import mixtape.featurizer
 
 __all__ = ['PullMeansGHMM']
 
@@ -55,7 +55,7 @@ class PullMeansGHMM(SampleGHMM):
     nps = None  # override this from superclass
 
     def start(self):
-        featurizer = mixtape.utils.load(self.args.featurizer)
+        featurizer = mixtape.featurizer.load(self.args.featurizer)
         logprob = []
         ff = []
         ii = []
