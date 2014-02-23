@@ -10,7 +10,7 @@ cdef extern from "mslds_estep.hpp" namespace "Mixtape":
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* means,
         const float* covariances, const float** sequences,
-        const int n_sequences, const np.int32_t* sequence_lengths,
+        const int n_sequences, const int* sequence_lengths,
         const int n_features, const int n_states,
         float* transcounts, float* obs, float* obs_but_first,
         float* obs_but_last, float* obs_obs_t, float* obs_obs_T_offset,
@@ -22,7 +22,7 @@ cdef extern from "mslds_estep.hpp" namespace "Mixtape":
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* means,
         const float* covariances, const float** sequences,
-        const int n_sequences, const np.int32_t* sequence_lengths,
+        const int n_sequences, const int* sequence_lengths,
         const int n_features, const int n_states,
         float* transcounts, float* obs, float* obs_but_first,
         float* obs_but_last, float* obs_obs_t, float* obs_obs_T_offset,
@@ -122,7 +122,7 @@ cdef class SwitchingVAR1CPUImpl:
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = self.means
         cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covars = self.covars
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = self.seq_lengths
+        cdef np.ndarray[ndim=1, mode='c', dtype=int] seq_lengths = self.seq_lengths
 
         # All of the sufficient statistics
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts = np.zeros((self.n_states, self.n_states), dtype=np.float32)
@@ -149,21 +149,28 @@ cdef class SwitchingVAR1CPUImpl:
 
         if self.precision == 'single':
             do_estep_single(
-                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0],
-                &means[0,0], &covars[0,0,0], <const float**> seq_pointers,
-                self.n_sequences, &seq_lengths[0], self.n_features,
-                self.n_states, &transcounts[0,0], &obs[0,0], &obs_but_first[0,0],
-                &obs_but_last[0,0], &obs_obs_T[0,0,0], &obs_obs_T_offset[0,0,0],
-                &obs_obs_T_but_first[0,0,0], &obs_obs_T_but_last[0,0,0], &post[0],
-                &post_but_first[0], &post_but_last[0], &logprob)
+                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
+                <float*> &log_startprob[0], <float*> &means[0,0],
+                &covars[0,0,0], <const float**> seq_pointers, self.n_sequences,
+                &seq_lengths[0], self.n_features, self.n_states, <float*>
+                &transcounts[0,0], <float*> &obs[0,0], <float*>
+                &obs_but_first[0,0], <float*> &obs_but_last[0,0], <float*>
+                &obs_obs_T[0,0,0], <float*> &obs_obs_T_offset[0,0,0], <float*>
+                &obs_obs_T_but_first[0,0,0], <float*>
+                &obs_obs_T_but_last[0,0,0], <float*> &post[0], <float*>
+                &post_but_first[0], <float*> &post_but_last[0], &logprob)
         elif self.precision == 'mixed':
             do_estep_mixed(
-                &log_transmat[0,0], &log_transmat_T[0,0], &log_startprob[0], &means[0,0],
-                &covars[0,0,0], <const float**> seq_pointers, self.n_sequences, &seq_lengths[0],
-                self.n_features, self.n_states, &transcounts[0,0], &obs[0,0], &obs_but_first[0,0],
-                &obs_but_last[0,0], &obs_obs_T[0,0,0], &obs_obs_T_offset[0,0,0],
-                &obs_obs_T_but_first[0,0,0], &obs_obs_T_but_last[0,0,0], &post[0],
-                &post_but_first[0], &post_but_last[0], &logprob)
+                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
+                <float*> &log_startprob[0], <float*> &means[0,0], <float*>
+                &covars[0,0,0], <const float**> seq_pointers, self.n_sequences,
+                &seq_lengths[0], self.n_features, self.n_states, <float*>
+                &transcounts[0,0], <float*> &obs[0,0], <float*>
+                &obs_but_first[0,0], <float*> &obs_but_last[0,0], <float*>
+                &obs_obs_T[0,0,0], <float*> &obs_obs_T_offset[0,0,0], <float*>
+                &obs_obs_T_but_first[0,0,0], <float*>
+                &obs_obs_T_but_last[0,0,0], <float*> &post[0], <float*>
+                &post_but_first[0], <float*> &post_but_last[0], &logprob)
         else:
             raise RuntimeError('Invalid precision')
 
