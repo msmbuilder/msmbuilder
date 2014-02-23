@@ -21,12 +21,6 @@
 #include "transitioncounts.hpp"
 #include "sgemm.h"
 
-// sger_(&n_features, &n_features, &onef, &sequence[j*n_features], &one,
-//       sequence[j*n_features], &one, seq_obs_obs_T[j*n_features*n_features],
-//       &n_features);
-// extern int sger_(int *m, int *n, float *alpha,  float *x, int *incx, float *y,
-//                  int *incy, float *a, int *lda);
-
 namespace Mixtape {
 
 void _update_state_matricies(int k, int n, float* A, const float* alpha, const float* B)
