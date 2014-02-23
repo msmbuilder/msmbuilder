@@ -116,9 +116,9 @@ class MetastableSwitchingLDS(object):
                 self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
         if 'c' in self.init_params:
             cv = np.cov(small_dataset.T)
-            self._covars_ = distribute_covar_matrix_to_match_covariance_type(
+            self.covars_ = distribute_covar_matrix_to_match_covariance_type(
                 cv, 'full', self.n_states)
-            self._covars_[self._covars_==0] = 1e-5
+            self.covars_[self._covars_==0] = 1e-5
         if 't' in self.init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
