@@ -51,14 +51,16 @@ __all__ = ['FitGHMM']
 # Code
 #-----------------------------------------------------------------------------
 
-class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
+class FitGHMM(Command, MDTrajInputMixin):
     name = 'fit-ghmm'
     description = '''Fit L1-Regularized Reversible Gaussian hidden Markov models with EM.'''
 
     group_hmm = argument_group('HMM Options')
+    group_hmm.add_argument('--featurizer', type=str, required=True,
+        help='Path to saved featurizer object')
     group_hmm.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2],
         help='Number of states in the models. Default = [2,]', nargs='+')
-    group_hmm.add_argument('-l', '--lag-times', type=MultipleIntAction, default=[1],
+    group_hmm.add_argument('-l', '--lag-times', action=MultipleIntAction, default=[1],
         help='Lag time(s) of the model(s). Default = [1,]', nargs='+')
     group_hmm.add_argument('--platform', choices=['cuda', 'cpu', 'sklearn'],
         default='cpu', help='Implementation platform. default="cpu"')
@@ -100,18 +102,9 @@ class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
         else:
             self.top = None
 
-        if args.distance_pairs is not None:
-            self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
-            if self.indices.shape[1] != 2:
-                self.error('distance-pairs must have shape (N, 2). %s had shape %s' % (args.distance_pairs, self.indices.shape))
-        else:
-            self.indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=2)
-            if self.indices.shape[1] != 1:
-                self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, self.indices.shape))
-            self.indices = self.indices.reshape(-1)
-
+        self.featurizer = cPickle.loads(open(args.featurizer))
         self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
-        self.n_features = self.indices.shape[0]
+        self.n_features = self.featurizer.n_features
 
 
     def start(self):
@@ -185,15 +178,8 @@ class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
         for tfn in self.filenames:
             kwargs = {} if tfn.endswith('h5') else {'top': self.top}
             for t in md.iterload(tfn, chunk=self.args.split, **kwargs):
-                if self.args.distance_pairs is not None:
-                    item = md.geometry.compute_distances(t, self.indices, periodic=False)
-                else:
-                    if self.top is None:
-                        self.error('--top is required')
-                    t.superpose(self.top, atom_indices=self.indices)
-                    diff2 = (t.xyz[:, self.indices] - self.top.xyz[0, self.indices])**2
-                    item = np.sqrt(np.sum(diff2, axis=2))
-                data.append(item)
+                features = self.featurizer.featurize(t)
+                data.append(features)
 
         print('Loading data into memory + vectorization: %f s' % (time.time() - load_time_start))
         print('Fitting with %s timeseries from %d trajectories with %d total observations' % (
