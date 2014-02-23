@@ -38,10 +38,11 @@ import numpy as np
 import mdtraj as md
 import pandas as pd
 
-from mixtape.utils import iterobjects, load_superpose_timeseries
+from mixtape.utils import iterobjects
 from mixtape.discrete_approx import discrete_approx_mvn
 from mixtape.cmdline import Command, argument_group
 from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+import mixtape.featurizer
 
 __all__ = ['SampleGHMM']
 
@@ -49,7 +50,7 @@ __all__ = ['SampleGHMM']
 # Code
 #-----------------------------------------------------------------------------
 
-class SampleGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
+class SampleGHMM(Command, MDTrajInputMixin):
     name = 'sample-ghmm'
     description = '''Draw iid samples from each state in a Gaussian HMM.
 
@@ -81,6 +82,8 @@ class SampleGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
     '''
 
     group = argument_group('I/O Arguments')
+    group.add_argument('--featurizer', type=str, required=True,
+        help='Path to saved featurizer object')
     group.add_argument('--filename', required=True, help='''Path to the
         jsonlines output file containg the HMMs''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
@@ -107,16 +110,15 @@ class SampleGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
         self.out = args.out
         self.topology = md.load(args.top)
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
-        self.atom_indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=1)
+        self.featurizer = mixtape.featurizer.load(args.featurizer)
 
         if len(self.filenames) == 0:
             self.error('No files matched.')
-        if args.distance_pairs is not None:
-            raise NotImplementedError()
+
 
     def start(self):
         print('loading all data...')
-        xx, ii, ff = load_superpose_timeseries(self.filenames, self.atom_indices, self.topology)
+        xx, ii, ff = mixtape.featurizer.featurize_all(self.filenames, self.featurizer, self.topology)
         print('done loading')
 
         data = {'filename': [], 'index': [], 'state': []}
