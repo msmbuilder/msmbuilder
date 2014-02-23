@@ -1,15 +1,17 @@
+#import sys
 import numpy as np
-from numpy import dot, shape, eye, outer, sum, log, zeros
-from numpy import nonzero, reshape, diag, copy, ones
-from numpy.linalg import svd, inv, eig
-from numpy.random import randn, multinomial, multivariate_normal
-from numpy.random import rand
-from mixtape.utils import *
-from mixtape.A_sdp import *
-from mixtape.Q_sdp import *
+#from numpy import dot, shape, eye, outer, sum, log, zeros
+#from numpy import nonzero, reshape, diag, copy, ones
+#from numpy.linalg import svd, inv, eig
+from numpy.random import rand, randn, multinomial, multivariate_normal
+#from mixtape.utils import *
+#from mixtape.A_sdp import *
+#from mixtape.Q_sdp import *
 import scipy.linalg as linalg
-import scipy.stats as stats
-import sys
+#import scipy.stats as stats
+
+
+from mdtraj.utils import ensure_type
 """
 An Implementation of the Metastable Switching LDS. A forward-backward
 inference pass computes switch posteriors from the smoothed hidden states.
@@ -22,74 +24,78 @@ The switch posteriors are used in the M-step to update parameter estimates.
 class MetastableSwitchingLDS(object):
     """Metastable Switching Linear Dynamical System, fit via maximum likelihood.
 
-    This model is an extension of a hidden Markov model,
-    """
+    This model is an extension of a hidden Markov model. In the HMM, when the
+    system stays in a single metastable state, each sample is i.i.d from the
+    state's output distribution. Instead, in this model, the within-state
+    dynamics are modeled by a linear dynamical system. The overall process can
+    be thought of as a Markov jump process between different linear dynamical
+    systems.
 
-    def __init__(self, x_dim, y_dim, K=None, As=None, bs=None, Qs=None,
-                 Z=None, mus=None, Sigmas=None):
-        """
-        Inputs:
-          x_dim: dimension of hidden state
-          y_dim: dimension of observable state
-          K: Number of switching states.
-          As: System transition matrices for each switching state.
-          Qs: System covariance matrices for each switching state.
-          Z: The switching matrix for the discrete state
-          mus: the means for each metastable state
-          Sigmas: the covariance for each metastable state
-        """
-        self.x_dim = x_dim
-        self.y_dim = y_dim
-        if K == None:
-            K = 1
-        self.K = K
-        if As != None and shape(As) == (K, x_dim, x_dim):
-            self.As = copy(As)
-        else:
-            self.As = zeros((K, x_dim, x_dim))
-            for i in range(K):
-                A = randn(x_dim, x_dim)
+    The evolution is governed by the following relations. :math:`S_t` is hidden
+    discrete state in :math:`{1, 2,... K}` which evolves as a discrete-state
+    Markov chain with K by K transition probability matrix `Z`. :math:`Y_t` is
+    the observed signal, which evolves as a linear dynamical system with
+
+    .. math::
+
+        S_t ~ Categorical(Z_{s_{t-1}})
+        Y_t = A_{s_t} Y_{t-1} + e(s_t)
+        e(s_t) ~ \mathcal{N}(b_{S_t}, Q_{S_t})
+
+    Attributes
+    ----------
+
+
+    Parameters
+    ----------
+    n_states : int
+        The number of hidden states. Each state is characterized by a separate
+        stable linear dynamical system that the process can jump between.
+    n_features : int
+        Dimensionality of the space.
+    As : np.ndarray, shape=(n_states, n_features, n_features):
+        Each `A[i]` is the LDS evolution operator for the system, conditional
+        on it being in state `i`.
+    bs : np.ndarray, shape=(n_states, n_features)
+        Mean of the gaussian noise in each state.
+    Qs : np.ndarray, shape=(n_states, n_features, n_features)
+        Covariance matrix for the noise in each state
+    transmat : np.ndarray, shape=(n_states, n_states)
+        State-to-state Markov jump probabilities
+    """
+    def __init__(self, n_states, n_features, As=None, bs=None, Qs=None, transmat=None):
+        As = ensure_type(As, np.double, ndim=3, name='As', shape=(n_states, n_features, n_features), can_be_none=True)
+        bs = ensure_type(bs, np.double, ndim=2, name='bs', shape=(n_states, n_features), can_be_none=True)
+        Qs = ensure_type(Qs, np.double, ndim=3, name='Qs', shape=(n_states, n_features, n_features), can_be_none=True)
+        transmat = ensure_type(transmat, np.double, ndim=3, name='transmat', shape=(n_states, n_states), can_be_none=True)
+
+        if As is None:
+            # Produce a random As
+            As = np.empty((n_states, n_features, n_features))
+            for i in range(n_states):
+                A = randn(n_features, n_features)
                 # Stabilize A
-                u, s, v = svd(A)
-                self.As[i] = rand() * dot(u, v.T)
-        if bs != None and shape(bs) == (K, x_dim):
-            self.bs = copy(bs)
-        else:
-            self.bs = randn(K, x_dim)
-        if Qs != None and shape(Qs) == (K, x_dim, x_dim):
-            self.Qs = copy(Qs)
-        else:
-            self.Qs = zeros((K, x_dim, x_dim))
-            for i in range(K):
-                r = rand(x_dim, x_dim)
-                r = (1.0 / x_dim) * dot(r.T, r)
-                self.Qs[i] = r
-        if Z != None and shape(Z) == (K, K):
-            self.Z = copy(Z)
-        else:
-            self.Z = rand(K, K)
-            self.Z = self.Z / (sum(self.Z, axis=0))
-        if mus != None and shape(mus) == (K, x_dim):
-            self.mus = copy(mus)
-        else:
-            self.mus = zeros((K, x_dim))
-            for i in range(K):
-                self.mus[i] = randn(x_dim)
-        if Sigmas != None and shape(Sigmas) == (K, x_dim, x_dim):
-            self.Sigmas = copy(Sigmas)
-        else:
-            self.Sigmas = zeros((K, x_dim, x_dim))
-            for i in range(K):
-                r = rand(x_dim, x_dim)
-                r = dot(r, r.T)
-                self.Sigmas[i] = 0.1 * eye(x_dim) + r
-        if bs != None and shape(bs) == (K, x_dim):
-            self.bs = copy(bs)
-        else:
-            self.bs = zeros((K, x_dim))
-            for i in range(K):
-                b = rand(x_dim)
-                self.bs[i] = b
+                u, s, v = np.linalg.svd(A)
+                As[i] = rand() * np.dot(u, v.T)
+
+        if bs is None:
+            bs = rand(n_states, n_features)
+        if Qs is None:
+            Qs = np.empty((n_states, n_features, n_features))
+            for i in range(n_states):
+                r = rand(n_features, n_features)
+                r = (1.0 / n_features) * np.dot(r.T, r)
+                Qs[i] = r
+        if transmat is None:
+            transmat = rand(n_states, n_states)
+            transmat = self.Z / (sum(self.Z, axis=0))
+
+        self.n_states = n_states
+        self.n_features = n_features
+        self.As_ = As
+        self.bs_ = bs
+        self.Qs_ = Qs
+        self.transmat_ = transmat
 
     def sample(self, T, s_init=None, x_init=None, y_init=None):
         """
