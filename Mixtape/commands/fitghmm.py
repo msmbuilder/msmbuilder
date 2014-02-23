@@ -58,7 +58,7 @@ class FitGHMM(Command, MDTrajInputMixin, GaussianFeaturizationMixin):
     group_hmm = argument_group('HMM Options')
     group_hmm.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2],
         help='Number of states in the models. Default = [2,]', nargs='+')
-    group_hmm.add_argument('-l', '--lag-times', type=MultipleIntAction, default=[1],
+    group_hmm.add_argument('-l', '--lag-times', action=MultipleIntAction, default=[1],
         help='Lag time(s) of the model(s). Default = [1,]', nargs='+')
     group_hmm.add_argument('--platform', choices=['cuda', 'cpu', 'sklearn'],
         default='cpu', help='Implementation platform. default="cpu"')
