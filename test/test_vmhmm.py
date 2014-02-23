@@ -15,7 +15,7 @@ except ImportError:
     
 
 def test_1():
-    vm = VonMisesHMM(n_components=5)
+    vm = VonMisesHMM(n_states=5)
     gm = GaussianHMM(n_components=5)
     X1 = np.random.randn(100,2)
     yield lambda: vm.fit([X1])
@@ -34,7 +34,7 @@ def test_6():
     """"Test that _c_fitkappa is consistent with the two-step python
     implementation"""
     np.random.seed(42)
-    vm = VonMisesHMM(n_components=13)
+    vm = VonMisesHMM(n_states=13)
     kappas = np.random.randn(13, 7)
     posteriors = np.random.randn(100, 13)
     obs = np.random.randn(100, 7)
@@ -51,8 +51,8 @@ def test_6():
 
 def test_8():
     #"Sample from a VMHMM and then fit to it"
-    n_components = 2
-    vm = VonMisesHMM(n_components=n_components)
+    n_states = 2
+    vm = VonMisesHMM(n_states=n_states)
     means = np.array([[0, 0, 0], [np.pi, np.pi, np.pi]])
     kappas = np.array([[1, 2, 3], [2, 3, 4]])
     transmat = np.array([[0.9, 0.1], [0.1, 0.9]])
@@ -61,12 +61,12 @@ def test_8():
     vm.transmat_ = transmat
     x, s = vm.sample(1000)
 
-    vm = VonMisesHMM(n_components=2)
+    vm = VonMisesHMM(n_states=2)
     vm.fit([x])
     
-    mappingcost = np.zeros((n_components, n_components))
-    for i in range(n_components):
-        for j in range(n_components):
+    mappingcost = np.zeros((n_states, n_states))
+    for i in range(n_states):
+        for j in range(n_states):
             mappingcost[i, j] = np.sum(circwrap(vm.means_[i, :] - means[j, :])**2)
     
     mapping = Munkres().compute(mappingcost)
@@ -85,14 +85,14 @@ def test_8():
 
 
 def test_log_likelihood():
-    n_samples, n_components, n_features = 1000, 27, 16
+    n_samples, n_states, n_features = 1000, 27, 16
     obs = np.random.rand(n_samples, n_features)
-    vm = VonMisesHMM(n_components=n_components)
+    vm = VonMisesHMM(n_states=n_states)
     vm.fit([obs])
     
     t0 = time.time()
     from scipy.stats.distributions import vonmises
-    reference = np.array([np.sum(vonmises.logpdf(obs, vm.kappas_[i], vm.means_[i]), axis=1) for i in range(n_components)]).T
+    reference = np.array([np.sum(vonmises.logpdf(obs, vm.kappas_[i], vm.means_[i]), axis=1) for i in range(n_states)]).T
     t1 = time.time()
     value = _vmhmm._compute_log_likelihood(obs, vm.means_, vm.kappas_)
     t2 = time.time()
