@@ -13,6 +13,8 @@ import simtk.openmm as mm
 import matplotlib.pyplot as pp
 import numpy as np
 import sys
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class MullerForce(mm.CustomExternalForce):
   """OpenMM custom force for propagation on the Muller Potential. Also
@@ -66,7 +68,7 @@ class MullerForce(mm.CustomExternalForce):
     ax.contourf(xx, yy, V.clip(max=200), 40, **kwargs)
 
 # Now run code
-PLOT = False
+PLOT = True
 LEARN = True
 NUM_TRAJS = 1
 
@@ -94,7 +96,8 @@ Qs = zeros((K, x_dim, x_dim))
 
 # Allocate Memory
 start = T/4
-xs = zeros((NUM_TRAJS * (T-start), y_dim))
+n_seq = 1
+xs = zeros((n_seq, NUM_TRAJS * (T-start), y_dim))
 
 if PLOT:
 	# Clear Display
@@ -125,17 +128,17 @@ for traj in range(NUM_TRAJS):
           getPositions(asNumpy=True).value_in_unit(nanometer)
     # Save the state
     if i > start:
-      xs[traj * (T-start) + (i-start),:] = x[0,0:2]
+      xs[0,traj * (T-start) + (i-start),:] = x[0,0:2]
     trajectory[i,:] = x[0,0:2]
     integrator.step(10)
 if LEARN:
   # Compute K-means
-  means, assignments = kmeans(xs, K)
+  means, assignments = kmeans(xs[0], K)
   W_i_Ts = assignment_to_weights(assignments,K)
-  emp_means, emp_covars = empirical_wells(xs, W_i_Ts)
+  emp_means, emp_covars = empirical_wells(xs[0], W_i_Ts)
   for i in range(K):
     A = randn(x_dim, x_dim)
-    u, s, v = svd(A)
+    u, s, v = np.linalg.svd(A)
     As[i] = 0.5 * rand() * dot(u, v.T)
     bs[i] = dot(eye(x_dim) - As[i], means[i])
     mus[i] = emp_means[i]
@@ -144,22 +147,21 @@ if LEARN:
 
   # Learn the MetastableSwitchingLDS
   bs = means
-  l = MetastableSwitchingLDS(x_dim, y_dim, K=K,
-      As=As,bs=bs,mus=mus,Sigmas=Sigmas,Qs=Qs)
-  l.em(xs[:], em_iters=NUM_ITERS, em_vars=em_vars)
-  sim_xs,sim_Ss = l.sample(sim_T,s_init=0, x_init=means[0], y_init=means[0])
+  l = MetastableSwitchingLDS(K, x_dim, n_iter=NUM_ITERS)
+  l.fit(xs)
+  sim_xs,sim_Ss = l.sample(sim_T,init_state=0, init_obs=means[0])
 
 if PLOT:
   pp.plot(trajectory[start:,0], trajectory[start:,1], color='k')
   # Compute K-means
-  means, assignments = kmeans(xs, K)
+  means, assignments = kmeans(xs[0], K)
   pp.scatter(means[:,0], means[:,1], color='r',zorder=10)
-  pp.scatter(xs[:,0], xs[:,1], edgecolor='none', facecolor='k',zorder=1)
+  pp.scatter(xs[0,:,0], xs[0,:,1], edgecolor='none', facecolor='k',zorder=1)
   Delta = 0.5
-  minx = min(xs[:,0])
-  maxx = max(xs[:,0])
-  miny = min(xs[:,1])
-  maxy = max(xs[:,1])
+  minx = min(xs[0,:,0])
+  maxx = max(xs[0,:,0])
+  miny = min(xs[0,:,1])
+  maxy = max(xs[0,:,1])
   if LEARN:
     minx = min(min(sim_xs[:,0]), minx) - Delta
     maxx = max(max(sim_xs[:,0]), maxx) + Delta
