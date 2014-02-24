@@ -34,10 +34,12 @@ from __future__ import print_function, division
 
 import numpy as np
 import pandas as pd
+import mdtraj as md
 from sklearn.mixture.gmm import log_multivariate_normal_density
 
-from mixtape.utils import load_superpose_timeseries
+from mixtape.cmdline import argument_group
 from mixtape.commands.sample import SampleGHMM
+import mixtape.featurizer
 
 __all__ = ['PullMeansGHMM']
 
@@ -53,9 +55,12 @@ class PullMeansGHMM(SampleGHMM):
     nps = None  # override this from superclass
 
     def start(self):
-        xx, ii, ff = load_superpose_timeseries(self.filenames, self.atom_indices, self.topology)
-        logprob = log_multivariate_normal_density(xx, np.array(self.model['means']),
-                np.array(self.model['vars']), covariance_type='diag')
+        featurizer = mixtape.featurizer.load(self.args.featurizer)
+
+        features, ii, ff = mixtape.featurizer.featurize_all(self.filenames, featurizer, self.topology)
+        logprob = log_multivariate_normal_density(features, np.array(self.model['means']),
+            np.array(self.model['vars']), covariance_type='diag')
+
         assignments = np.argmax(logprob, axis=1)
         probs = np.max(logprob, axis=1)
 

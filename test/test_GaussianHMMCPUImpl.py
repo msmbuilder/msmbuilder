@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
-from mixtape._hmm import GaussianHMMCPUImpl
+from mixtape._ghmm import GaussianHMMCPUImpl
 
 def test_1():
     "Test the getters and setters"
