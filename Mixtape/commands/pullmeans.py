@@ -57,7 +57,7 @@ class PullMeansGHMM(SampleGHMM):
     def start(self):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
 
-        features, ii, ff = mixtape.featurizer.featurize_all(self.filenames, featurizer, topology)
+        features, ii, ff = mixtape.featurizer.featurize_all(self.filenames, featurizer, self.topology)
         logprob = log_multivariate_normal_density(features, np.array(self.model['means']),
             np.array(self.model['vars']), covariance_type='diag')
 
