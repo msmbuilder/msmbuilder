@@ -46,7 +46,7 @@ cdef class SwitchingVAR1CPUImpl:
     cdef np.ndarray seq_lengths
     cdef int n_states, n_features
     cdef str precision
-    cdef np.ndarray means, covars, log_transmat, log_transmat_T, log_startprob
+    cdef np.ndarray means, covars, log_transmat, log_transmat_T, log_startprob, Qs, As, bs
 
     def __cinit__(self, n_states, n_features, precision='single'):
         self.n_states = n_states
@@ -59,16 +59,18 @@ cdef class SwitchingVAR1CPUImpl:
         def __set__(self, value):
             self.sequences = value
             self.n_sequences = len(value)
+            print "n_sequences = %s" % str(self.n_sequences)
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
 
             cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
-            cdef np.ndarray[ndim=2, dtype=np.float32_t] S
+            #cdef np.ndarray[ndim=2, dtype=np.float32_t] S
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
-                S = self.sequences[i]
-                seq_lengths[i] = len(S)
-                if self.n_features != S.shape[1]:
+                seq_lengths[i] = len(self.sequences[i])
+                #S[i] = self.sequences[i]
+                print np.shape(self.sequences[i])
+                if self.n_features != self.sequences[i].shape[1]:
                     raise ValueError('All sequences must be arrays of shape N by %d' %
                                      self.n_features)
             self.seq_lengths = seq_lengths
@@ -83,6 +85,16 @@ cdef class SwitchingVAR1CPUImpl:
         def __get__(self):
             return self.means
 
+    property bs_:
+        def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] b):
+            if (b.shape[0] != self.n_states) or (b.shape[1] != self.n_features):
+                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)' %
+                                (self.n_states, self.n_features, b.shape[0], b.shape[1]))
+            self.bs = b
+        
+        def __get__(self):
+            return self.bs
+
     property covars_:
         def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] v):
             if (v.shape[0] != self.n_states) or (v.shape[1] != self.n_features) or (v.shape[2] != self.n_features):
@@ -92,6 +104,26 @@ cdef class SwitchingVAR1CPUImpl:
         
         def __get__(self):
             return self.covars
+
+    property Qs_:
+        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] q):
+            if (q.shape[0] != self.n_states) or (q.shape[1] != self.n_features) or (q.shape[2] != self.n_features):
+                raise TypeError('Local variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
+                                (self.n_states, self.n_features, self.n_features, q.shape[0], q.shape[1], q.shape[1]))
+            self.Qs = q
+        
+        def __get__(self):
+            return self.Qs
+
+    property As_:
+        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] a):
+            if (a.shape[0] != self.n_states) or (a.shape[1] != self.n_features) or (a.shape[2] != self.n_features):
+                raise TypeError('Local variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
+                                (self.n_states, self.n_features, self.n_features, a.shape[0], a.shape[1], a.shape[1]))
+            self.As = a
+        
+        def __get__(self):
+            return self.As
     
     property transmat_:
         def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] t):

@@ -58,7 +58,7 @@ def categorical(pvals, size=None, random_state=None):
         raise TypeError('size must be an int or tuple of ints')
 
     random_state = check_random_state(random_state)
-    return np.sum(cumsum < random_state.random(size), axis=axis)
+    return np.sum(cumsum < random_state.random_sample(size), axis=axis)
 
 
 def iter_vars(A, Q,N):
@@ -76,7 +76,7 @@ def assignment_to_weights(assignments,K):
       if k != ind:
         W_i_Ts[t,k] = 0.0
       else:
-        W_i_Ts[t,ind] = 1.0
+        W_i_Ts[t.__int__(),ind.__int__()] = 1.0
   return W_i_Ts
 
 def empirical_wells(Ys, W_i_Ts):
@@ -152,8 +152,8 @@ def kmeans(ys, K):
     num_each[:] = 0
     for t in range(T):
       k = assignments[t]
-      num_each[k] += 1
-      means[k] += ys[t]
+      num_each[k.__int__()] += 1
+      means[k.__int__()] += ys[t.__int__()]
     for k in range(K):
       if num_each[k] > 0:
         means[k] /= num_each[k]

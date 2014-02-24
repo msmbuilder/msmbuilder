@@ -20,10 +20,10 @@ PLOT = False
 #LEARN = False
 #PLOT = False
 
+n_seq = 1
 NUM_ITERS = 10
 T = 500
 x_dim = 1
-y_dim = 1
 K = 2
 As = reshape(array([[0.5],[0.5]]), (K,x_dim,x_dim))
 bs = reshape(array([[0.5],[-0.5]]), (K,x_dim))
@@ -33,15 +33,22 @@ pi = reshape(array([0.99,0.01]), (K,))
 mus = reshape(array([[1],[-1]]), (K,x_dim))
 Sigmas = reshape(array([[0.01],[0.01]]), (K,x_dim,x_dim))
 
-em_vars = ['As', 'bs', 'Qs', 'Z', 'mus', 'Sigmas']
-s = MetastableSwitchingLDS(x_dim,y_dim,K=K,As=As,bs=bs,Qs=Qs,Z=Z)
+#em_vars = ['As', 'bs', 'Qs', 'Z', 'mus', 'Sigmas']
+s = MetastableSwitchingLDS(K,x_dim)
+s.As_ = As
+s.bs_ = bs
+s.Qs_ = Qs
+s.transmat_ = Z
+s.populations_ = pi
+s.means_ = mus
+s.covars_ = Sigmas
 if SAMPLE:
   xs,Ss = s.sample(T)
-  savetxt('../example/xs.txt', xs)
-  savetxt('../example/Ss.txt', Ss)
+  savetxt('./example/xs.txt', xs)
+  savetxt('./example/Ss.txt', Ss)
 else:
-  xs = reshape(loadtxt('../example/xs.txt'), (T,x_dim))
-  Ss = reshape(loadtxt('../example/Ss.txt'), (T))
+  xs = reshape(loadtxt('./example/xs.txt'), (n_seq, T,x_dim))
+  Ss = reshape(loadtxt('./example/Ss.txt'), (n_seq, T))
 
 if LEARN:
   As = zeros((K, x_dim, x_dim))
@@ -50,9 +57,10 @@ if LEARN:
   Sigmas = zeros((K, x_dim, x_dim))
   Qs = zeros((K, x_dim, x_dim))
   # Compute K-means
-  means, assignments = kmeans(xs, K)
+  print shape(xs[0])
+  means, assignments = kmeans(xs[0], K)
   W_i_Ts = assignment_to_weights(assignments,K)
-  emp_means, emp_covars = empirical_wells(xs, W_i_Ts)
+  emp_means, emp_covars = empirical_wells(xs[0], W_i_Ts)
   for i in range(K):
     A = randn(x_dim, x_dim)
     u, s, v = svd(A)
@@ -61,11 +69,11 @@ if LEARN:
     mus[i] = emp_means[i]
     Sigmas[i] = emp_covars[i]
     Qs[i] = 0.5 * Sigmas[i]
-  l = MetastableSwitchingLDS(x_dim,y_dim,K=K,
-      As=As,bs=bs,mus=mus,Sigmas=Sigmas,Qs=Qs)
-  l.em(xs, em_iters=NUM_ITERS, em_vars=em_vars)
-  sim_xs,sim_Ss = l.sample(T,s_init=0, x_init=means[0],
-      y_init=means[0])
+  #l = MetastableSwitchingLDS(K,x_dim,K=K,
+  #    As=As,bs=bs,mus=mus,Sigmas=Sigmas,Qs=Qs)
+  l = MetastableSwitchingLDS(K,x_dim, n_iter=NUM_ITERS)
+  l.fit(xs)
+  sim_xs,sim_Ss = l.sample(T,init_state=0, init_obs=means[0])
 
 if PLOT:
   plt.close('all')
