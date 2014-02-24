@@ -23,10 +23,10 @@ def assign(featurizer, traj, gfhmm):
     features = featurizer.featurize(traj)
     
     hmm = sklearn.hmm.GaussianHMM(gfhmm.n_states)
-    hmm.means_ = gfhmm.means_
-    hmm.covars_ = gfhmm._vars_
-    hmm.transmat_ = gfhmm.transmat_
-    hmm.startprob_ = gfhmm.populations_
+    hmm.means_ = gfhmm.means_.astype('float')
+    hmm.covars_ = gfhmm._vars_.astype('float')
+    hmm.transmat_ = gfhmm.transmat_.astype('float')
+    hmm.startprob_ = gfhmm.populations_.astype('float')
     
     ass = hmm.predict(features)
     probs = hmm.predict_proba(features)
