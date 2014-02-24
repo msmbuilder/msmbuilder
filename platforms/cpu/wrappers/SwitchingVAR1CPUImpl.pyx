@@ -30,15 +30,6 @@ cdef extern from "mslds_estep.hpp" namespace "Mixtape":
         float* post, float* post_but_first, float* post_but_last,
         float* logprob) nogil
 
-cdef extern from "gaussian_likelihood.h":
-    void gaussian_loglikelihood_full(const float* sequence,
-                                     const float* means,
-                                     const float* covariances,
-                                     const int n_observations,
-                                     const int n_states,
-                                     const int n_features,
-                                     float* loglikelihoods)
-
 
 cdef class SwitchingVAR1CPUImpl:
     cdef list sequences
@@ -66,7 +57,7 @@ cdef class SwitchingVAR1CPUImpl:
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
                 seq_lengths[i] = len(self.sequences[i])
-                print np.shape(self.sequences[i])
+                # print np.shape(self.sequences[i])
                 if self.n_features != self.sequences[i].shape[1]:
                     raise ValueError('All sequences must be arrays of shape N by %d' %
                                      self.n_features)
@@ -219,9 +210,25 @@ cdef class SwitchingVAR1CPUImpl:
         }
         return logprob, result
 
+###############################################################################
+# Tests. These are exposed to nose by being called from one of the python
+# test files
+###############################################################################
 
-def test_1():
+cdef extern from "gaussian_likelihood.h":
+    void gaussian_loglikelihood_full(const float* sequence,
+                                     const float* means,
+                                     const float* covariances,
+                                     const int n_observations,
+                                     const int n_states,
+                                     const int n_features,
+                                     float* loglikelihoods)
+
+def test_gaussian_loglikelihood_full():
+    # check gaussian_loglikelihood_full vs. a reference python implementation
+
     from sklearn.mixture.gmm import _log_multivariate_normal_density_full
+
     cdef int length = 5
     cdef int n_states = 2
     cdef int n_features = 3
@@ -234,60 +241,8 @@ def test_1():
     cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] loglikelihoods = np.zeros((length, n_states), dtype=np.float32)
     
     val = _log_multivariate_normal_density_full(sequence, means, covariances)
-    print 'sklearn'
-    print val
-
     gaussian_loglikelihood_full(&sequence[0, 0], &means[0, 0], &covariances[0, 0,0],
        length, n_states, n_features, &loglikelihoods[0, 0]);
-    # 
-    print 'gaussian_loglikelihood_full'
-    print loglikelihoods
 
+    np.testing.assert_array_almost_equal(val, loglikelihoods)
 
-
-
-def test_2():
-    class ExitMe(Exception):
-        def __init__(self, value):
-            self.value = value
-
-    class MyGaussianHMM(GaussianHMM):
-        def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
-                                              posteriors, fwdlattice, bwdlattice,
-                                              params):
-            super(MyGaussianHMM, self)._accumulate_sufficient_statistics(stats,
-                obs, framelogprob, posteriors, fwdlattice, bwdlattice, params)
-            raise ExitMe(stats)
-
-
-    cdef int length = 3
-    cdef int n_states = 2
-    cdef int n_features = 2
-    sequences = [np.random.randn(length, n_features).astype(np.float32)]
-    
-    
-    gmm = MyGaussianHMM(n_components=n_states, covariance_type='full')
-    try:
-        gmm.fit(sequences)
-    except ExitMe as e:
-        stats = e.value
-    
-    
-    model = SwitchingVAR1CPUImpl(n_states, n_features)
-    model._sequences = sequences
-    model.means_ = gmm.means_.astype(np.float32)
-    model.covars_ = gmm.covars_.astype(np.float32)
-    model.transmat_ = gmm.transmat_.astype(np.float32)
-    model.startprob_ = gmm.startprob_.astype(np.float32)
-    
-    lpr, myresult = model.do_estep()
-
-    from pprint import pprint
-    print 'gmm stats'
-    pprint(stats)
-    print 'my stats'
-    pprint(myresult)
-    
-    
-# test_1()
-test_2()
