@@ -19,7 +19,7 @@
 #include "backward.hpp"
 #include "posteriors.hpp"
 #include "transitioncounts.hpp"
-#include "sgemm.h"
+#include "cblas.h"
 
 namespace Mixtape {
 
@@ -130,9 +130,9 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
         transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm("N", "T", &n_features, &n_states, &length, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs_but_first, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence + n_features, &n_features, posteriors + n_states, &n_states, &onef, seq_obs_but_last, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs_but_last, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence + n_features, &n_features, posteriors + n_states, &n_states, &onef, seq_obs_but_first, &n_features);
 
         for (k = 0; k < n_states; k++) {
             for (j = 0; j < sequence_lengths[i]; j++) {
