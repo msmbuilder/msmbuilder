@@ -18,13 +18,15 @@ def iterobjects(fn):
             pass
 
 
-def assign(featurizer, traj, means, covars):
+def assign(featurizer, traj, gfhmm):
     """Assign stats and state probabilities."""
     features = featurizer.featurize(traj)
     
-    hmm = sklearn.hmm.GaussianHMM(len(means))
-    hmm.means_ = means
-    hmm.covars_ = covars
+    hmm = sklearn.hmm.GaussianHMM(gfhmm.n_states)
+    hmm.means_ = gfhmm.means_
+    hmm.covars_ = gfhmm._vars_
+    hmm.transmat_ = gfhmm.transmat_
+    hmm.startprob_ = gfhmm.populations_
     
     ass = hmm.predict(features)
     probs = hmm.predict_proba(features)
