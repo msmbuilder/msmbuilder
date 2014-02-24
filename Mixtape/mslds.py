@@ -136,11 +136,23 @@ class MetastableSwitchingLDS(object):
             self.transmat_ = transmat_
             self.populations_ = np.ones(self.n_states) / self.n_states
         if 'a' in self.init_params:
-            self.As = np.zeros((self.n_states, self.n_features, self.n_features))
+            self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
             for i in range(self.n_states):
                 A = randn(self.n_features, self.n_features)
                 u, s, v = np.linalg.svd(A)
-                self.As[i] = 0.5 * rand() * np.dot(u, v.T)
+                self.As_[i] = 0.5 * rand() * np.dot(u, v.T)
+        if 'b' in self.init_params:
+            self.bs_ = np.zeros((self.n_states, self.n_features))
+            for i in range(self.n_states):
+                A = self.As_[i]
+                mean = self.means_[i]
+                self.bs_[i] = np.dot(np.eye(self.n_features) -A, mean)
+        if 'q' in self.init_params:
+            self.Qs_ = np.zeros((self.n_states, self.n_features,
+                self.n_features))
+            for i in range(self.n_states):
+                self.Qs_[i] = 0.5 * self.covars_[i]
+
 
     def sample(self, n_samples, init_state=None, init_obs=None):
         """Sample a trajectory from model distribution
@@ -283,7 +295,7 @@ class MetastableSwitchingLDS(object):
         counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
         self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
 
-    def _A_update(self, stats, covars):
+    def _A_update(self, stats):
         for i in range(self.n_states):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = stats['obs*obs[t-1].T'][i]

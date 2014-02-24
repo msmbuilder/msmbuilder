@@ -5,15 +5,17 @@ import matplotlib.pyplot as plt
 from numpy.random import rand
 from numpy.linalg import svd
 import sys
+import warnings
 
 """The switching system has the following one-dimensional dynamics:
     x_{t+1}^1 = x_t + \epsilon_1
     x_{t+1}^2 = -x_t + \epsilon_2
 """
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 # Usual
 SAMPLE = False
 LEARN = True
-PLOT = False
+PLOT = True
 
 ## For param changes
 #SAMPLE = True
@@ -44,6 +46,7 @@ s.means_ = mus
 s.covars_ = Sigmas
 if SAMPLE:
   xs,Ss = s.sample(T)
+  xs = reshape(xs, (n_seq, T, x_dim))
   savetxt('./example/xs.txt', xs)
   savetxt('./example/Ss.txt', Ss)
 else:
@@ -69,17 +72,16 @@ if LEARN:
     mus[i] = emp_means[i]
     Sigmas[i] = emp_covars[i]
     Qs[i] = 0.5 * Sigmas[i]
-  #l = MetastableSwitchingLDS(K,x_dim,K=K,
-  #    As=As,bs=bs,mus=mus,Sigmas=Sigmas,Qs=Qs)
   l = MetastableSwitchingLDS(K,x_dim, n_iter=NUM_ITERS)
   l.fit(xs)
   sim_xs,sim_Ss = l.sample(T,init_state=0, init_obs=means[0])
+  sim_xs = reshape(sim_xs, (n_seq, T, x_dim))
 
 if PLOT:
   plt.close('all')
   plt.figure(1)
-  plt.plot(range(T), xs, label="Observations")
+  plt.plot(range(T), xs[0], label="Observations")
   if LEARN:
-    plt.plot(range(T), sim_xs, label='Sampled Observations')
+    plt.plot(range(T), sim_xs[0], label='Sampled Observations')
   plt.legend()
   plt.show()

@@ -59,16 +59,13 @@ cdef class SwitchingVAR1CPUImpl:
         def __set__(self, value):
             self.sequences = value
             self.n_sequences = len(value)
-            print "n_sequences = %s" % str(self.n_sequences)
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
 
             cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
-            #cdef np.ndarray[ndim=2, dtype=np.float32_t] S
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
                 seq_lengths[i] = len(self.sequences[i])
-                #S[i] = self.sequences[i]
                 print np.shape(self.sequences[i])
                 if self.n_features != self.sequences[i].shape[1]:
                     raise ValueError('All sequences must be arrays of shape N by %d' %
