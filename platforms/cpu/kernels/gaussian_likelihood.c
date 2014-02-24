@@ -10,10 +10,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "gaussian_likelihood.h"
-
-extern int spotrf_(const char *uplo, const int *n, float *a, const int *lda, int *info);
-extern int strtrs_(const char *uplo, const char *trans, const char *diag, const int *n, 
-    const int *nrhs, const float *a, const int *lda, float *b, const int *ldb, int * info);
+#include "cblas.h"
 
 void gaussian_loglikelihood_diag(const float* __restrict__ sequence,
                                  const float* __restrict__ sequence2,

@@ -19,7 +19,7 @@
 #include "backward.hpp"
 #include "posteriors.hpp"
 #include "transitioncounts.hpp"
-#include "sgemm.h"
+#include "cblas.h"
 
 namespace Mixtape {
 
@@ -109,8 +109,8 @@ void do_ghmm_estep(const float* __restrict__ log_transmat,
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
         transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
         for (k = 0; k < n_states; k++)
             for (j = 0; j < sequence_lengths[i]; j++)
                 seq_post[k] += posteriors[j*n_states + k];
