@@ -373,7 +373,7 @@ class GaussianFusionHMM(object):
             # this can happen if the transition matrix contains Nans
             # or Infs, and possibly for other reasons like convergence
             return np.nan * np.ones(self.n_states - 1)
-    
+
     def score(self, sequences):
         """Log-likelihood of sequences under the model
 

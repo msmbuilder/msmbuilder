@@ -4,8 +4,8 @@
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
-#ifndef MIXTAPE_CPU_DO_ESTEP
-#define MIXTAPE_CPU_DO_ESTEP
+#ifndef MIXTAPE_CPU_GHMM_ESTEP
+#define MIXTAPE_CPU_GHMM_ESTEP
 
 #include "stdlib.h"
 #include "stdio.h"
@@ -19,18 +19,18 @@
 #include "backward.hpp"
 #include "posteriors.hpp"
 #include "transitioncounts.hpp"
-#include "sgemm.h"
+#include "cblas.h"
 
 namespace Mixtape {
 
 /**
- * Run the E-step, computing sufficient statistics over all of the trajectories
+ * Run the GHMM E-step, computing sufficient statistics over all of the trajectories
  *
  * The template parameter controls the precision of the foward and backward lattices
  * which are subject to accumulated floating point error during long trajectories.
  */
 template<typename REAL>
-void do_estep(const float* __restrict__ log_transmat,
+void do_ghmm_estep(const float* __restrict__ log_transmat,
               const float* __restrict__ log_transmat_T,
               const float* __restrict__ log_startprob,
               const float* __restrict__ means,
@@ -109,8 +109,8 @@ void do_estep(const float* __restrict__ log_transmat,
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
         transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
         for (k = 0; k < n_states; k++)
             for (j = 0; j < sequence_lengths[i]; j++)
                 seq_post[k] += posteriors[j*n_states + k];
