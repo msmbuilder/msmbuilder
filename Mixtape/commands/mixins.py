@@ -9,7 +9,7 @@ class MDTrajInputMixin(object):
     group_mdtraj.add_argument('--top', type=str, help='''Topology file for
         loading trajectories''', required=True)
     group_mdtraj.add_argument('--ext', help='File extension of the trajectories',
-        required=True, choices=[e[1:] for e in md.trajectory._FormatRegistry.loaders.keys()])
+        required=True, choices=[e[1:] for e in md._FormatRegistry.loaders.keys()])
 
 
 class GaussianFeaturizationMixin(object):

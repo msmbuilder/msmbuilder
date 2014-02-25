@@ -46,15 +46,15 @@ __all__ = ['SaveFeaturizer']
 #-----------------------------------------------------------------------------
 
 class SaveFeaturizer(Command, GaussianFeaturizationMixin):
-    name = 'save-featurizer'
-    description = '''Save a featurizer for later use'''
+    name = 'featurizer'
+    description = '''Creat and save a featurizer for later use'''
 
     group_feature = argument_group('Featurizer Loading')
     group_feature.add_argument('--top', type=str, help='''Topology file for
         loading trajectories''', required=True)    
-    group_feature.add_argument('-f', '--filename', type=str, help='''Output
-    featurizer to this filename.''')
-
+    group_feature.add_argument('-o', '--filename', type=str,
+        help='''Output featurizer to this filename. default='featurizer.pickl' ''',
+        default='featurizer.pickl')
 
     def __init__(self, args):
         self.args = args

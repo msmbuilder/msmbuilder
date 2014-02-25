@@ -32,6 +32,7 @@
 
 from __future__ import print_function, division
 
+import sys
 import numpy as np
 import pandas as pd
 import mdtraj as md
@@ -71,10 +72,15 @@ class PullMeansGHMM(SampleGHMM):
             sorted_filenms = ff[assignments==k][p.argsort()]
             sorted_indices = ii[assignments==k][p.argsort()]
 
-            data['index'].append(sorted_indices[-1])
-            data['filename'].append(sorted_filenms[-1])
-            data['state'].append(k)
+            if len(p) > 0:
+                data['index'].append(sorted_indices[-1])
+                data['filename'].append(sorted_filenms[-1])
+                data['state'].append(k)
+            else:
+                print('WARNING: NO STRUCTURES ASSIGNED TO STATE=%d' % k)
 
         df = pd.DataFrame(data)
-        print('Saving the indices of the sampled states in CSV format to %s' % self.out)
-        df.to_csv(self.out)
+        print('Saving the indices of the selected frames in CSV format to %s' % self.out)
+        with open(self.out, 'w') as f:
+            f.write("# command: %s\n" % ' '.join(sys.argv))
+            df.to_csv(f)
