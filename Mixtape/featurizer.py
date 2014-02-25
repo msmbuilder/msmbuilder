@@ -63,3 +63,15 @@ class AtomPairsFeaturizer(Featurizer):
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d
+
+class TICAFeaturizer(Featurizer):
+    """Featurizer based on atom pair distances."""
+    def __init__(self, tica_filename):
+        self.tica_filename = tica_filename
+        import msmbuilder as msmb
+        self.tica = msmb.reduce.tICA.load(self.tica_filename)
+        self.n_features = self.tica.timelag_corr_mat.shape[0]
+
+    def featurize(self, traj):
+        d = self.tica.project(traj, which=np.arange(self.n_features))
+        return d
