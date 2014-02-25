@@ -194,7 +194,15 @@ class App(object):
         return instance
 
     def _build_parser(self):
-        parser = argparse.ArgumentParser(description=self.description)
+        # Using a custom "MyHelpFormatter" to monkey-patch argparse into making
+        # all of the subcommands get rendered in the help text on one line. To
+        # do this, you need to increase the "action_max_length" argument which
+        # puts more whitespace between the end of the action name and the start
+        # of the helptext.
+        parser = argparse.ArgumentParser(description=self.description,
+            formatter_class=lambda prog: MyHelpFormatter(prog,
+            indent_increment=1, width=88, action_max_length=17))
+
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
         for klass in self._subcommands():
             # http://stackoverflow.com/a/17124446/1079728
@@ -218,3 +226,10 @@ class App(object):
 def all_subclasses(cls):
     return cls.__subclasses__() + [g for s in cls.__subclasses__()
                                    for g in all_subclasses(s)]
+
+
+class MyHelpFormatter(argparse.HelpFormatter):
+    def __init__(self, *args, **kwargs):
+        action_max_length = kwargs.pop('action_max_length', 0)
+        super(MyHelpFormatter, self).__init__(*args, **kwargs)
+        self._action_max_length = action_max_length
