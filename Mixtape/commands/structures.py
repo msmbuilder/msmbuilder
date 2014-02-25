@@ -54,7 +54,6 @@ class Structures(Command):
         One trajectory file in the specified format will be saved with
         the name <prefix>-<state-index>.<extension>. default="state"''',
         default='state')
-    
 
     def outfn(self, state):
         return '%s-%d.%s' % (self.prefix, state, self.ext)
@@ -66,7 +65,13 @@ class Structures(Command):
         self.top = md.load(args.top).topology
 
     def start(self):
-        df = pd.read_csv(self.filename, skiprows=1)
+        # read the csv file with an optional comment on the first line
+        with open(self.filename) as f:
+            line = f.readline()
+            if not line.startswith('#'):
+                f.seek(0, 0)
+            df = pd.read_csv(f)
+                
         if not all(e in df.columns for e in ('filename', 'index', 'state')):
             self.error('CSV file not read properly')
 
