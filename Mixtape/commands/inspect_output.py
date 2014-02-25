@@ -55,7 +55,7 @@ class Inspect(Command):
 
     def __init__(self, args):
         self.args = args
-        self.models = list(iterobjects(self.args.input))
+        self.models = list(iterobjects(self.args.filename))
         self.df = pd.DataFrame(self.models)
         self.details = args.details
 
