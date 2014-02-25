@@ -33,6 +33,7 @@
 from __future__ import print_function
 
 import os
+import sys
 import glob
 import numpy as np
 import mdtraj as md
@@ -82,18 +83,19 @@ class SampleGHMM(Command, MDTrajInputMixin):
     '''
 
     group = argument_group('I/O Arguments')
+    group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE',
+        help='''Path to the jsonlines output file containg the HMMs''')
     group.add_argument('--featurizer', type=str, required=True,
         help='Path to saved featurizer object')
-    group.add_argument('--filename', required=True, help='''Path to the
-        jsonlines output file containg the HMMs''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
     group.add_argument('--n-per-state', type=int, default=3, help='''Number of
         structures to pull from each state''')
     group.add_argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
-    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE', required=True,
-        help='File to which to save the output, in CSV format')
+    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE',
+        help='File to which to save the output, in CSV format. default="samples.csv',
+        default='structures.csv')
 
     def __init__(self, args):
         if os.path.exists(args.out):
@@ -123,6 +125,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
 
         data = {'filename': [], 'index': [], 'state': []}
         for k in range(self.model['n_states']):
+            print('computing weights for k=%d...' % k)
             weights = discrete_approx_mvn(xx, self.model['means'][k], self.model['vars'][k])
             cumsum = np.cumsum(weights)
             for i in range(self.args.n_per_state):
@@ -133,4 +136,6 @@ class SampleGHMM(Command, MDTrajInputMixin):
 
         df = pd.DataFrame(data)
         print('Saving the indices of the sampled states in CSV format to %s' % self.out)
-        df.to_csv(self.out)
+        with open(self.out, 'w') as f:
+            f.write("# command: %s\n" % ' '.join(sys.argv))
+            df.to_csv(f)

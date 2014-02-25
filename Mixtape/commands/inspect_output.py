@@ -47,16 +47,15 @@ __all__ = ['Inspect']
 
 class Inspect(Command):
     description = "Inspect the content of a '.jsonlines' output file"
-    input = argument('-i', '--input', required=True,
-        help='Path to .jsonlines file')
-
+    input = argument('-i', '--filename', metavar='JSONLINES_FILE',
+        required=True, help='Path to .jsonlines file')
     details = argument('--details', action='store_true', help='Print all of the details of each model to stdout')
     n_states = argument('--n-states', type=int, help='Filter the output, only showing models with the specified n_states')
     lag_time = argument('--lag-time', type=int, help='Filter the output, only showing models with the specified lag_time')
 
     def __init__(self, args):
         self.args = args
-        self.models = list(iterobjects(self.args.input))
+        self.models = list(iterobjects(self.args.filename))
         self.df = pd.DataFrame(self.models)
         self.details = args.details
 
