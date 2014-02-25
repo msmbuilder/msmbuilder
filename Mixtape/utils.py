@@ -5,6 +5,7 @@ from numpy.linalg import norm
 from numpy.random import randint
 import mdtraj as md
 
+
 def iterobjects(fn):
     for line in open(fn, 'r'):
         if line.startswith('#'):
