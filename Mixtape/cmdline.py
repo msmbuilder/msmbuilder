@@ -230,6 +230,9 @@ def all_subclasses(cls):
 
 class MyHelpFormatter(argparse.HelpFormatter):
     def __init__(self, *args, **kwargs):
+        # to see what's going on here, you really have to look in the argparse source.
+        # e.g. line 487 in argparse.py, where _action_max_length is used to set the
+        # lateral position of the help text. This is really hacky.
         action_max_length = kwargs.pop('action_max_length', 0)
         super(MyHelpFormatter, self).__init__(*args, **kwargs)
         self._action_max_length = action_max_length
