@@ -1,6 +1,5 @@
 import json
 import numpy as np
-import sklearn.hmm
 
 from sklearn.utils import check_random_state
 from numpy.linalg import norm
@@ -16,22 +15,6 @@ def iterobjects(fn):
             yield json.loads(line)
         except ValueError:
             pass
-
-
-def assign(featurizer, traj, gfhmm):
-    """Assign stats and state probabilities."""
-    features = featurizer.featurize(traj)
-    
-    hmm = sklearn.hmm.GaussianHMM(gfhmm.n_states)
-    hmm.means_ = gfhmm.means_.astype('float')
-    hmm.covars_ = gfhmm._vars_.astype('float')
-    hmm.transmat_ = gfhmm.transmat_.astype('float')
-    hmm.startprob_ = gfhmm.populations_.astype('float')
-    
-    ass = hmm.predict(features)
-    probs = hmm.predict_proba(features)
-
-    return ass, probs
 
 
 def categorical(pvals, size=None, random_state=None):
