@@ -63,3 +63,11 @@ class AtomPairsFeaturizer(Featurizer):
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d
+
+
+class RawPositionsFeaturizer(Featurizer):
+    def __init__(self, n_features):
+        self.n_features = n_features
+
+    def featurize(self, traj):
+        return traj.xyz.reshape(len(traj), -1)
