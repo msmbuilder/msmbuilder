@@ -262,7 +262,7 @@ def detect_openmp():
 
 
 openmp_enabled, needs_gomp = detect_openmp()
-extra_compile_args = []
+extra_compile_args = ['-msse3']
 if openmp_enabled:
     extra_compile_args.append('-fopenmp')
 libraries = ['gomp'] if needs_gomp else []
@@ -298,8 +298,8 @@ extensions.append(
           extra_link_args=lapack_info['extra_link_args'],
           include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
                         'platforms/cpu/kernels/']))
-                            
-                            
+
+
 extensions.append(
     Extension('mixtape._vmhmm',
               sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.pyx',

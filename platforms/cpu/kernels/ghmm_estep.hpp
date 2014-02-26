@@ -69,14 +69,14 @@ void do_ghmm_estep(const float* __restrict__ log_transmat,
     }
 
     #ifdef _OPENMP
-    #pragma omp parallel for default(none)                                  \
-        shared(log_transmat, log_transmat_T, log_startprob, means,          \
-               variances, sequences, sequence_lengths, transcounts,         \
-               obs, obs2, post, logprob, means_over_variances,              \
-               means2_over_variances, log_variances, stderr)                \
-        private(sequence, sequence2, framelogprob, fwdlattice, bwdlattice,  \
-                posteriors, seq_transcounts, seq_obs, seq_obs2, seq_post,   \
-                tlocallogprob, j, k)
+    #pragma omp parallel for default(none) \
+        shared(log_transmat, log_transmat_T, log_startprob, means, \
+               variances, sequences, sequence_lengths, transcounts, \
+               obs, obs2, post, logprob, means_over_variances, \
+               means2_over_variances, log_variances, stderr) \
+        private(sequence, sequence2, framelogprob, fwdlattice, \
+                bwdlattice, posteriors, seq_transcounts, seq_obs, \
+                seq_obs2, seq_post, tlocallogprob, j, k)
     #endif
     for (i = 0; i < n_sequences; i++) {
         sequence = sequences[i];
