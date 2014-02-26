@@ -59,6 +59,9 @@ class PullMeansGHMM(SampleGHMM):
         help='Path to saved featurizer object')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
+    group.add_argument('--n-per-state', type=int, required=True, help='''Select the
+        `n-per-state` most representative structures from each state. default=1''',
+        default=1)
     group.add_argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
     group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE',
@@ -84,9 +87,9 @@ class PullMeansGHMM(SampleGHMM):
             sorted_indices = ii[assignments==k][p.argsort()]
 
             if len(p) > 0:
-                data['index'].append(sorted_indices[-1])
-                data['filename'].append(sorted_filenms[-1])
-                data['state'].append(k)
+                data['index'].extend(sorted_indices[-self.args.n_per_state:])
+                data['filename'].extend(sorted_filenms[-self.args.n_per_state:])
+                data['state'].extend([k]*self.args.n_per_state)
             else:
                 print('WARNING: NO STRUCTURES ASSIGNED TO STATE=%d' % k)
 
