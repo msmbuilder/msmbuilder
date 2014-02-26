@@ -35,12 +35,17 @@ import scipy.linalg
 import scipy.optimize
 from mdtraj.utils import ensure_type
 
-__all__ = ['discrete_approx_mvn']
+__all__ = ['discrete_approx_mvn', 'NotSatisfiableError']
 
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
-def discrete_approx_mvn(X, means, covars):
+
+class NotSatisfiableError(Exception):
+    pass
+
+
+def discrete_approx_mvn(X, means, covars, match_variances=True):
     """Find a discrete approximation to a multivariate normal distribution.
 
     The method employs find the discrete distribution with support only at the
@@ -58,6 +63,10 @@ def discrete_approx_mvn(X, means, covars):
         If covars is 2D, it's interpreted as the covariance matrix for
         the model. If 1D, we assume a diagonal covariance matrix with the
         specified diagonal entries.
+    match_variances : bool, optimal
+        When True, both the means and the variances of the discrete distribution
+        are constrained. Under some circumstances, this is not satisfiable (e.g.
+        if there aren't enough samples
 
     Returns
     -------
@@ -113,7 +122,7 @@ def discrete_approx_mvn(X, means, covars):
         if not len(covars) == len(means):
             raise ValueError('Shape Error: covars and means musth have the same length')
         prob = np.exp(-0.5 * np.sum(1./np.sqrt(covars) * (X - means)**2, axis=1))
-        moments = np.concatenate((means, covars))
+        moments = np.concatenate((means, covars)) if match_variances else means
 
     elif covars.ndim == 2:
         if not (covars.shape[0] == len(means) and covars.shape[1] == len(means)):
@@ -123,12 +132,12 @@ def discrete_approx_mvn(X, means, covars):
         cv_chol = scipy.linalg.cholesky(covars, lower=True)
         cv_sol = scipy.linalg.solve_triangular(cv_chol, (X - means).T, lower=True).T
         prob = np.exp(-0.5 * (np.sum(cv_sol ** 2, axis=1)))
-        moments = np.concatenate((means, np.diag(covars)))
+        moments = np.concatenate((means, np.diag(covars))) if match_variances else means
     else:
         raise ValueError('covars must be 1D or 2D')
 
     # this is T(x_i) for each X_i
-    moment_contributions = np.hstack((X, (X-means)**2))
+    moment_contributions = np.hstack((X, (X-means)**2)) if match_variances else X
 
     def objective_and_grad(l):
         dot = np.dot(moment_contributions, l)
@@ -146,14 +155,15 @@ def discrete_approx_mvn(X, means, covars):
 
     result = scipy.optimize.minimize(objective_and_grad, jac=True, x0=np.ones_like(moments), method='BFGS')
     if not result['success']:
-        print(result)
-        raise ValueError('Convergence!')
+        raise NotSatisfiableError()
 
     dot = np.dot(moment_contributions, result['x'])
     log_denominator = scipy.misc.logsumexp(dot, b=prob)
     weights = prob * np.exp(dot - log_denominator)
-    return weights / np.sum(weights)
-
+    if not np.all(np.isfinite(weights)):
+        raise NotSatisfiableError()
+    weights = weights / np.sum(weights)
+    return weights
 
 if __name__ == '__main__':
     np.random.seed(10)
