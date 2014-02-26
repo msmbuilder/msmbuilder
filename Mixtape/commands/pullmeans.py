@@ -50,10 +50,20 @@ __all__ = ['PullMeansGHMM']
 
 class PullMeansGHMM(SampleGHMM):
     name='means-ghmm'
-    description='''Draw samples at the center of each state in a Gaussian HMM.
+    description='''Draw samples at the center of each state in a Gaussian HMM.'''
 
-    '''
-    nps = None  # override this from superclass
+    group = argument_group('I/O Arguments')
+    group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE',
+        help='''Path to the jsonlines output file containg the HMMs''')
+    group.add_argument('--featurizer', type=str, required=True,
+        help='Path to saved featurizer object')
+    group.add_argument('--n-states', type=int, required=True, help='''Number of
+        states in the model to select from''')
+    group.add_argument('--lag-time', type=int, required=True, help='''Training lag
+        time of the model to select from''')
+    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE',
+        help='File to which to save the output, in CSV format. default="means.csv',
+        default='means.csv')
 
     def start(self):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
@@ -67,7 +77,8 @@ class PullMeansGHMM(SampleGHMM):
 
         data = {'filename': [], 'index': [], 'state': []}
         for k in range(self.model['n_states']):
-            # pick the structures that have the highest log probability in the state
+            # pick the structures that have the highest log 
+            # probability in the state
             p = probs[assignments==k]
             sorted_filenms = ff[assignments==k][p.argsort()]
             sorted_indices = ii[assignments==k][p.argsort()]
