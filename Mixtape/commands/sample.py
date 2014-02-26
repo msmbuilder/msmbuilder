@@ -117,7 +117,6 @@ class SampleGHMM(Command, MDTrajInputMixin):
         self.topology = md.load(args.top)
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
         self.featurizer = mixtape.featurizer.load(args.featurizer)
-        print('matching vars?', args.match_vars)
         self.match_vars = args.match_vars
 
         if len(self.filenames) == 0:

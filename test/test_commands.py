@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+from glob import glob
 import itertools
 import tempfile
 import shutil
@@ -155,13 +156,18 @@ def test_fitghmm():
         shell('hmsm means-ghmm -i hmms.jsonlines --lag-time 1 --n-state 4 '
               '--featurizer featurizer.pickl --dir %s --ext h5 --top %s' % (
                   DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
+        shell('hmsm structures means.csv --ext pdb --prefix means --top %s' %  os.path.join(DATADIR, 'Trajectory0.h5'))
         
-        samples = pd.read_csv('samples.csv', skiprows=1)
-        samples = pd.read_csv('means.csv', skiprows=1)
+        samples_csv = pd.read_csv('samples.csv', skiprows=1)
+        means_csv = pd.read_csv('means.csv', skiprows=1)
         
         model = next(iterobjects('hmms.jsonlines'))
+        means_pdb = md.load(glob('means-*.pdb'))
 
     means = np.array(sorted(model['means'], key=lambda e: e[0]))
     eq(HMM.means_, means, decimal=0)
     
-    print(samples)
+    print(samples_csv)
+    print(means_csv)
+    means_pdb_xyz = means_pdb.xyz.reshape(4, 3)
+    eq(means_pdb_xyz, np.array(model['means']), decimal=0)
