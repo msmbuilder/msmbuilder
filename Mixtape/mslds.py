@@ -8,8 +8,9 @@ The switch posteriors are used in the M-step to update parameter estimates.
 
 import warnings
 import numpy as np
-from numpy.random import multivariate_normal
+from numpy.random import multivariate_normal, randn, rand
 import scipy.linalg
+import numpy.linalg
 from sklearn import cluster
 from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
@@ -21,22 +22,22 @@ from mixtape.A_sdp import solve_A
 from mixtape.Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
 
-
-
 class MetastableSwitchingLDS(object):
-    """Metastable Switching Linear Dynamical System, fit via maximum likelihood.
+    """Metastable Switching Linear Dynamical System, fit via maximum
+    likelihood.
 
-    This model is an extension of a hidden Markov model. In the HMM, when the
-    system stays in a single metastable state, each sample is i.i.d from the
-    state's output distribution. Instead, in this model, the within-state
-    dynamics are modeled by a linear dynamical system. The overall process can
-    be thought of as a Markov jump process between different linear dynamical
-    systems.
+    This model is an extension of a hidden Markov model. In the HMM, when
+    the system stays in a single metastable state, each sample is i.i.d
+    from the state's output distribution. Instead, in this model, the
+    within-state dynamics are modeled by a linear dynamical system. The
+    overall process can be thought of as a Markov jump process between
+    different linear dynamical systems.
 
-    The evolution is governed by the following relations. :math:`S_t` is hidden
-    discrete state in :math:`{1, 2,... K}` which evolves as a discrete-state
-    Markov chain with K by K transition probability matrix `Z`. :math:`Y_t` is
-    the observed signal, which evolves as a linear dynamical system with
+    The evolution is governed by the following relations. :math:`S_t` is
+    hidden discrete state in :math:`{1, 2,... K}` which evolves as a
+    discrete-state Markov chain with K by K transition probability matrix
+    `Z`. :math:`Y_t` is the observed signal, which evolves as a linear
+    dynamical system with
 
     .. math::
 
@@ -51,8 +52,9 @@ class MetastableSwitchingLDS(object):
     Parameters
     ----------
     n_states : int
-        The number of hidden states. Each state is characterized by a separate
-        stable linear dynamical system that the process can jump between.
+        The number of hidden states. Each state is characterized by a
+        separate stable linear dynamical system that the process can jump
+        between.
     n_features : int
         Dimensionality of the space.
     As : np.ndarray, shape=(n_states, n_features, n_features):
@@ -67,24 +69,27 @@ class MetastableSwitchingLDS(object):
     n_iter : int, optional
         Number of iterations to perform during training
     init_params : string, optional, default
-        Controls which parameters are initialized prior to
-        training. Can contain any combination of
-        't' for transmat, 'm' for means, and 'c' for covars, 'q' for Q matrices,
-        'a' for A matrices, and 'b' for b vectors. Defaults to all parameters.
+        Controls which parameters are initialized prior to training. Can
+        contain any combination of 't' for transmat, 'm' for means, and
+        'c' for covars, 'q' for Q matrices, 'a' for A matrices, and 'b'
+        for b vectors. Defaults to all parameters.
     params : string, optional, default
-        Controls which parameters are updated in the training
-        process.  Can contain any combination of
-        't' for transmat, 'm' for means, and 'c' for covars, 'q' for Q matrices,
-        'a' for A matrices, and 'b' for b vectors. Defaults to all parameters.
+        Controls which parameters are updated in the training process.
+        Can contain any combination of 't' for transmat, 'm' for means,
+        and 'c' for covars, 'q' for Q matrices, 'a' for A matrices, and
+        'b' for b vectors. Defaults to all parameters.
     """
-            
-    def __init__(self, n_states, n_features, init_params='tmcqab', params='tmsqab',
-                 n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed'):
+
+    def __init__(self, n_states, n_features, n_hotstart_sequences=10,
+        init_params='tmcqab', transmat_prior=None, params='tmsqab', n_iter=10,
+        covars_prior=1e-2, covars_weight=1, precision='mixed'):
 
         self.n_states = n_states
         self.n_features = n_features
+        self.n_hotstart_sequences = n_hotstart_sequences
         self.n_iter = n_iter
         self.init_params = init_params
+        self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
         if covars_prior <= 0:
@@ -94,21 +99,26 @@ class MetastableSwitchingLDS(object):
         self.covars_weight = covars_weight
         self._impl = SwitchingVAR1CPUImpl(n_states, n_features, precision)
 
-        self.As_ = None
-        self.bs_ = None
-        self.Qs_ = None
+        self._As_ = None
+        self._bs_ = None
+        self._Qs_ = None
         self._covars_ = None
         self._means_ = None
         self._transmat_ = None
         self._populations_ = None
 
+        if self.transmat_prior is None:
+            self.transmat_prior = 1.0
+
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)
         """
-        sequences = [ensure_type(s, dtype=np.float32, ndim=2, shape=(None, self.n_features)) for s in sequences]
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
+           for s in sequences]
         self._impl._sequences = sequences
 
-        small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart_sequences)])
+        small_dataset = np.vstack(
+            sequences[0:min(len(sequences), self.n_hotstart_sequences)])
 
         if 'm' in self.init_params:
             with warnings.catch_warnings():
@@ -116,14 +126,33 @@ class MetastableSwitchingLDS(object):
                 self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
         if 'c' in self.init_params:
             cv = np.cov(small_dataset.T)
-            self.covars_ = distribute_covar_matrix_to_match_covariance_type(
-                cv, 'full', self.n_states)
+            self.covars_ = \
+                distribute_covar_matrix_to_match_covariance_type(
+                  cv, 'full', self.n_states)
             self.covars_[self._covars_==0] = 1e-5
         if 't' in self.init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
             self.transmat_ = transmat_
             self.populations_ = np.ones(self.n_states) / self.n_states
+        if 'a' in self.init_params:
+            self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
+            for i in range(self.n_states):
+                A = randn(self.n_features, self.n_features)
+                u, s, v = np.linalg.svd(A)
+                self.As_[i] = 0.5 * rand() * np.dot(u, v.T)
+        if 'b' in self.init_params:
+            self.bs_ = np.zeros((self.n_states, self.n_features))
+            for i in range(self.n_states):
+                A = self.As_[i]
+                mean = self.means_[i]
+                self.bs_[i] = np.dot(np.eye(self.n_features) -A, mean)
+        if 'q' in self.init_params:
+            self.Qs_ = np.zeros((self.n_states, self.n_features,
+                self.n_features))
+            for i in range(self.n_states):
+                self.Qs_[i] = 0.5 * self.covars_[i]
+
 
     def sample(self, n_samples, init_state=None, init_obs=None):
         """Sample a trajectory from model distribution
@@ -168,7 +197,8 @@ class MetastableSwitchingLDS(object):
             b = self.bs_[s]
             Q = self.Qs_[s]
             obs[t + 1] = multivariate_normal(np.dot(A, obs[t]) + b, Q)
-            hidden_state[t + 1] = categorical(self.transmat_[s])
+            hidden_state[t + 1] = \
+              categorical(self.transmat_[s])
 
         return obs, hidden_state
 
@@ -265,7 +295,7 @@ class MetastableSwitchingLDS(object):
         counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
         self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
 
-    def _A_update(self, stats, covars):
+    def _A_update(self, stats):
         for i in range(self.n_states):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = stats['obs*obs[t-1].T'][i]
@@ -280,7 +310,7 @@ class MetastableSwitchingLDS(object):
             A = np.reshape(avec, (self.n_features, self.n_features), order='F')
             self.As_[i] = A
 
-    def _Q_update(self, stats, covars):
+    def _Q_update(self, stats):
         for i in range(self.n_states):
             A = self.As_[i]
             Sigma = self.covars_[i]
@@ -312,6 +342,42 @@ class MetastableSwitchingLDS(object):
         for i in range(self.n_states):
             mu = self.means_[i]
             self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
+
+    @property
+    def As_(self):
+      return self._As_
+    @As_.setter
+    def As_(self,value):
+      value = np.asarray(value, order='c', dtype=np.float32)
+      self._As_ = value
+      self._impl.As_ = value
+
+    @property
+    def Qs_(self):
+      return self._Qs_
+    @Qs_.setter
+    def Qs_(self,value):
+      value = np.asarray(value, order='c', dtype=np.float32)
+      self._Qs_ = value
+      self._impl.Qs_ = value
+
+    @property
+    def bs_(self):
+      return self._bs_
+    @bs_.setter
+    def bs_(self,value):
+      value = np.asarray(value, order='c', dtype=np.float32)
+      self._bs_ = value
+      self._impl.bs_ = value
+
+    @property
+    def means_(self):
+      return self._means_
+    @means_.setter
+    def means_(self, value):
+      value = np.asarray(value, order='c', dtype=np.float32)
+      self._means_ = value
+      self._impl.means_ = value
 
     @property
     def covars_(self):

@@ -373,7 +373,7 @@ class GaussianFusionHMM(object):
             # this can happen if the transition matrix contains Nans
             # or Infs, and possibly for other reasons like convergence
             return np.nan * np.ones(self.n_states - 1)
-    
+
     def score(self, sequences):
         """Log-likelihood of sequences under the model
 
@@ -387,6 +387,37 @@ class GaussianFusionHMM(object):
         self._impl._sequences = sequences
         logprob, _ = self._impl.do_estep()
         return logprob
+
+    def predict(self, sequences):
+        """Find most likely hidden-state sequence corresponding to
+        each data timeseries.
+
+        Uses the Viterbi algorithm.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+
+        Returns
+        -------
+        viterbi_logprob : float
+            Log probability of the maximum likelihood path through the HMM.
+
+        hidden_sequences : list of np.ndarrays[dtype=int, shape=n_samples_i]
+            Index of the most likely states for each observation.
+        """
+        if not hasattr(self._impl, 'do_viterbi'):
+            raise NotImplementedError(
+                'The %s platform does not support this algorithm (yet)' %
+                self.platform)
+
+        self._impl._sequences = sequences
+        logprob, state_sequences = self._impl.do_viterbi()
+
+        return logprob, state_sequences
 
 
 class _SklearnGaussianHMMCPUImpl(object):
@@ -423,3 +454,14 @@ class _SklearnGaussianHMMCPUImpl(object):
                 bwdlattice, self.impl.params)
 
         return curr_logprob, stats
+
+
+    def do_viterbi(self):
+        logprob = 0
+        state_sequences = []
+        for obs in self._sequences:
+            lpr, ss = self.impl._decode_viterbi(obs)
+            logprob += lpr
+            state_sequences.append(ss)
+
+        return logprob, state_sequences

@@ -30,15 +30,6 @@ cdef extern from "mslds_estep.hpp" namespace "Mixtape":
         float* post, float* post_but_first, float* post_but_last,
         float* logprob) nogil
 
-cdef extern from "gaussian_likelihood.h":
-    void gaussian_loglikelihood_full(const float* sequence,
-                                     const float* means,
-                                     const float* covariances,
-                                     const int n_observations,
-                                     const int n_states,
-                                     const int n_features,
-                                     float* loglikelihoods)
-
 
 cdef class SwitchingVAR1CPUImpl:
     cdef list sequences
@@ -46,7 +37,7 @@ cdef class SwitchingVAR1CPUImpl:
     cdef np.ndarray seq_lengths
     cdef int n_states, n_features
     cdef str precision
-    cdef np.ndarray means, covars, log_transmat, log_transmat_T, log_startprob
+    cdef np.ndarray means, covars, log_transmat, log_transmat_T, log_startprob, Qs, As, bs
 
     def __cinit__(self, n_states, n_features, precision='single'):
         self.n_states = n_states
@@ -62,13 +53,12 @@ cdef class SwitchingVAR1CPUImpl:
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
 
-            cdef np.ndarray[ndim=1, dtype=int] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
-            cdef np.ndarray[ndim=2, dtype=np.float32_t] S
+            cdef np.ndarray[ndim=1, dtype=int] seq_lengths = np.zeros(self.n_sequences, dtype=int)
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
-                S = self.sequences[i]
-                seq_lengths[i] = len(S)
-                if self.n_features != S.shape[1]:
+                seq_lengths[i] = len(self.sequences[i])
+                # print np.shape(self.sequences[i])
+                if self.n_features != self.sequences[i].shape[1]:
                     raise ValueError('All sequences must be arrays of shape N by %d' %
                                      self.n_features)
             self.seq_lengths = seq_lengths
@@ -83,6 +73,16 @@ cdef class SwitchingVAR1CPUImpl:
         def __get__(self):
             return self.means
 
+    property bs_:
+        def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] b):
+            if (b.shape[0] != self.n_states) or (b.shape[1] != self.n_features):
+                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)' %
+                                (self.n_states, self.n_features, b.shape[0], b.shape[1]))
+            self.bs = b
+        
+        def __get__(self):
+            return self.bs
+
     property covars_:
         def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] v):
             if (v.shape[0] != self.n_states) or (v.shape[1] != self.n_features) or (v.shape[2] != self.n_features):
@@ -92,6 +92,26 @@ cdef class SwitchingVAR1CPUImpl:
         
         def __get__(self):
             return self.covars
+
+    property Qs_:
+        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] q):
+            if (q.shape[0] != self.n_states) or (q.shape[1] != self.n_features) or (q.shape[2] != self.n_features):
+                raise TypeError('Local variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
+                                (self.n_states, self.n_features, self.n_features, q.shape[0], q.shape[1], q.shape[1]))
+            self.Qs = q
+        
+        def __get__(self):
+            return self.Qs
+
+    property As_:
+        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] a):
+            if (a.shape[0] != self.n_states) or (a.shape[1] != self.n_features) or (a.shape[2] != self.n_features):
+                raise TypeError('Local variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
+                                (self.n_states, self.n_features, self.n_features, a.shape[0], a.shape[1], a.shape[1]))
+            self.As = a
+        
+        def __get__(self):
+            return self.As
     
     property transmat_:
         def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] t):
@@ -196,9 +216,25 @@ cdef class SwitchingVAR1CPUImpl:
         }
         return logprob, result
 
+###############################################################################
+# Tests. These are exposed to nose by being called from one of the python
+# test files
+###############################################################################
 
-def test_1():
+cdef extern from "gaussian_likelihood.h":
+    void gaussian_loglikelihood_full(const float* sequence,
+                                     const float* means,
+                                     const float* covariances,
+                                     const int n_observations,
+                                     const int n_states,
+                                     const int n_features,
+                                     float* loglikelihoods)
+
+def test_gaussian_loglikelihood_full():
+    # check gaussian_loglikelihood_full vs. a reference python implementation
+
     from sklearn.mixture.gmm import _log_multivariate_normal_density_full
+
     cdef int length = 5
     cdef int n_states = 2
     cdef int n_features = 3
@@ -211,22 +247,10 @@ def test_1():
     cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] loglikelihoods = np.zeros((length, n_states), dtype=np.float32)
     
     val = _log_multivariate_normal_density_full(sequence, means, covariances)
-    print 'sklearn'
-    print val
-
     gaussian_loglikelihood_full(&sequence[0, 0], &means[0, 0], &covariances[0, 0,0],
        length, n_states, n_features, &loglikelihoods[0, 0]);
-    # 
-    print 'gaussian_loglikelihood_full'
-    print loglikelihoods
 
-
-
-
-def test_2():
-    class ExitMe(Exception):
-        def __init__(self, value):
-            self.value = value
+    np.testing.assert_array_almost_equal(val, loglikelihoods)
 
     class MyGaussianHMM(GaussianHMM):
         def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
@@ -237,13 +261,13 @@ def test_2():
             raise ExitMe(stats)
 
 
-    cdef int length = 3
-    cdef int n_states = 2
-    cdef int n_features = 2
-    sequences = [np.random.randn(length, n_features).astype(np.float32)]
+    cdef int length2 = 3
+    cdef int n_states2 = 2
+    cdef int n_features2 = 2
+    sequences = [np.random.randn(length2, n_features2).astype(np.float32)]
     
     
-    gmm = MyGaussianHMM(n_components=n_states, covariance_type='full')
+    gmm = MyGaussianHMM(n_components=n_states2, covariance_type='full')
     try:
         gmm.fit(sequences)
     except ExitMe as e:
@@ -267,4 +291,4 @@ def test_2():
     
     
 # test_1()
-test_2()
+# test_2()

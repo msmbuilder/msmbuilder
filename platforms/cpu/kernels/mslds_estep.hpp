@@ -19,7 +19,7 @@
 #include "backward.hpp"
 #include "posteriors.hpp"
 #include "transitioncounts.hpp"
-#include "sgemm.h"
+#include "cblas.h"
 
 namespace Mixtape {
 
@@ -78,19 +78,19 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
     REAL *fwdlattice, *bwdlattice;
 
     #ifdef _OPENMP
-    #pragma omp parallel for default(none)   \
-        shared(log_transmat, log_transmat_T, log_startprob, means,  \
-           covariances, sequences, sequence_lengths, transcounts, \
-           obs, obs_but_first, obs_but_last, obs_obs_T, obs_obs_T_offset, \
-           obs_obs_T_but_first, obs_obs_T_but_last, post, post_but_first, \
-           post_but_last, logprob, stderr) \
-        private(sequence, framelogprob, fwdlattice, bwdlattice,  \
-            posteriors, seq_transcounts, seq_obs, seq_obs_but_first,\
-            seq_obs_but_last, seq_obs_obs_T, \
-            seq_obs_obs_T_offset, seq_obs_obs_T_but_first, \
-            seq_obs_obs_T_but_last, frame_obs_obs_T, seq_post, \
-            seq_post_but_first, seq_post_but_last, tlocallogprob, j, k, \
-            length, length_minus_1, m, obs_m, n, obs_n)
+    #pragma omp parallel for default(none)                                    \
+        shared(log_transmat, log_transmat_T, log_startprob, means,            \
+               covariances, sequences, sequence_lengths, transcounts,         \
+               obs, obs_but_first, obs_but_last, obs_obs_T, obs_obs_T_offset, \
+               obs_obs_T_but_first, obs_obs_T_but_last, post, post_but_first, \
+               post_but_last, logprob, stderr)                                \
+        private(sequence, framelogprob, fwdlattice, bwdlattice,               \
+                posteriors, seq_transcounts, seq_obs, seq_obs_but_first,      \
+                seq_obs_but_last, seq_obs_obs_T,          \
+                seq_obs_obs_T_offset, seq_obs_obs_T_but_first,                \
+                seq_obs_obs_T_but_last, frame_obs_obs_T, seq_post,            \
+                seq_post_but_first, seq_post_but_last, tlocallogprob, j, k,   \
+                length, length_minus_1, m, obs_m, n, obs_n)
     #endif
     for (i = 0; i < n_sequences; i++) {
         sequence = sequences[i];
@@ -130,9 +130,9 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
         transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm("N", "T", &n_features, &n_states, &length, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs_but_first, &n_features);
-        sgemm("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence + n_features, &n_features, posteriors + n_states, &n_states, &onef, seq_obs_but_last, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs_but_last, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence + n_features, &n_features, posteriors + n_states, &n_states, &onef, seq_obs_but_first, &n_features);
 
         for (k = 0; k < n_states; k++) {
             for (j = 0; j < sequence_lengths[i]; j++) {
@@ -147,9 +147,9 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         for (j = 0; j < sequence_lengths[i]; j++) {
 
             // sequence[j]*sequence[j].T
-            for (m = 0; m < n_features; m++) {
+            for (int m = 0; m < n_features; m++) {
                 obs_m = sequence[j*n_features + m];
-                for (n = 0; n < n_features; n++) {
+                for (int n = 0; n < n_features; n++) {
                     obs_n = sequence[j*n_features + n];
                     frame_obs_obs_T[m*n_features + n] = obs_m*obs_n;
                 }

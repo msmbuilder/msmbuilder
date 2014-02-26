@@ -1,7 +1,7 @@
 import numpy  as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
-from mixtape._cudahmm import GaussianHMMCUDAImpl
+from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
 
 def test_1():
     "Test the getters and setters, which transfer data to/from the GPU"

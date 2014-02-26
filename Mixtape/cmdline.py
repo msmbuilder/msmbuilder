@@ -65,7 +65,8 @@ import abc
 import argparse
 from IPython.utils.text import wrap_paragraphs
 
-__all__ = ['argument', 'argument_group', 'Command', 'App', 'MultipleIntAction']
+__all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
+           'MultipleIntAction']
 
 #-----------------------------------------------------------------------------
 # argparse types
@@ -84,6 +85,31 @@ class MultipleIntAction(argparse.Action):
             setattr(namespace, self.dest, parsed)
         except ValueError:
             raise argparse.ArgumentError(self, 'Invalid list of integers: "%s"' % values)
+
+
+class FlagAction(argparse.Action):
+    # From http://bugs.python.org/issue8538
+    def __init__(self, option_strings, dest, default=None,
+                 required=False, help=None, metavar=None,
+                 positive_prefixes=['--'], negative_prefixes=['--no-']):
+        self.positive_strings = set()
+        self.negative_strings = set()
+        for string in option_strings:
+            assert re.match(r'--[A-z]+', string)
+            suffix = string[2:]
+            for positive_prefix in positive_prefixes:
+                self.positive_strings.add(positive_prefix + suffix)
+            for negative_prefix in negative_prefixes:
+                self.negative_strings.add(negative_prefix + suffix)
+        strings = list(self.positive_strings | self.negative_strings)
+        super(FlagAction, self).__init__(option_strings=strings, dest=dest,
+                nargs=0, const=None, default=default, type=bool, choices=None,
+                required=required, help=help, metavar=metavar)
+    def __call__(self, parser, namespace, values, option_string=None):
+        if option_string in self.positive_strings:
+            setattr(namespace, self.dest, True)
+        else:
+           setattr(namespace, self.dest, False)
 
 #-----------------------------------------------------------------------------
 # Argument Declaration Class Attibutes
@@ -194,7 +220,15 @@ class App(object):
         return instance
 
     def _build_parser(self):
-        parser = argparse.ArgumentParser(description=self.description)
+        # Using a custom "MyHelpFormatter" to monkey-patch argparse into making
+        # all of the subcommands get rendered in the help text on one line. To
+        # do this, you need to increase the "action_max_length" argument which
+        # puts more whitespace between the end of the action name and the start
+        # of the helptext.
+        parser = argparse.ArgumentParser(description=self.description,
+            formatter_class=lambda prog: MyHelpFormatter(prog,
+            indent_increment=1, width=88, action_max_length=17))
+
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
         for klass in self._subcommands():
             # http://stackoverflow.com/a/17124446/1079728
@@ -218,3 +252,13 @@ class App(object):
 def all_subclasses(cls):
     return cls.__subclasses__() + [g for s in cls.__subclasses__()
                                    for g in all_subclasses(s)]
+
+
+class MyHelpFormatter(argparse.HelpFormatter):
+    def __init__(self, *args, **kwargs):
+        # to see what's going on here, you really have to look in the argparse source.
+        # e.g. line 487 in argparse.py, where _action_max_length is used to set the
+        # lateral position of the help text. This is really hacky.
+        action_max_length = kwargs.pop('action_max_length', 0)
+        super(MyHelpFormatter, self).__init__(*args, **kwargs)
+        self._action_max_length = action_max_length

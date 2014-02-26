@@ -282,8 +282,9 @@ extensions.append(
               sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
                         glob.glob('platforms/cpu/kernels/*.c') +
                         glob.glob('platforms/cpu/kernels/*.cpp'),
-              libraries=libraries,
+              libraries=libraries + lapack_info['libraries'],
               extra_compile_args=extra_compile_args,
+              extra_link_args=lapack_info['extra_link_args'],
               include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
                             'platforms/cpu/kernels/']))
 
