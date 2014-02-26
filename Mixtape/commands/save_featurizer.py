@@ -47,7 +47,7 @@ __all__ = ['SaveFeaturizer']
 
 class SaveFeaturizer(Command, GaussianFeaturizationMixin):
     name = 'featurizer'
-    description = '''Create and save a featurizer for later use'''
+    description = '''Create and save a featurizer for later use.'''
 
     group_feature = argument_group('Featurizer Loading')
     group_feature.add_argument('--top', type=str, help='''Topology file for
