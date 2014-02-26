@@ -59,9 +59,8 @@ class PullMeansGHMM(SampleGHMM):
         help='Path to saved featurizer object')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
-    group.add_argument('--n-per-state', type=int, required=True, help='''Select the
-        `n-per-state` most representative structures from each state. default=1''',
-        default=1)
+    group.add_argument('--n-per-state', type=int, default=1, help='''Select the
+        `n-per-state` most representative structures from each state. default=1''')
     group.add_argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
     group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE',
