@@ -42,7 +42,7 @@ import pandas as pd
 from mixtape.utils import iterobjects
 from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from mixtape.cmdline import FlagAction, Command, argument, argument_group
-from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape.commands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['SampleGHMM']
@@ -81,7 +81,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
     approximations of continuous distributions by maximum entropy."
     Economics Letters 118.3 (2013): 445-450.
     '''
-    
+
     group = argument_group('I/O Arguments')
     group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE',
         help='''Path to the jsonlines output file containg the HMMs''')
@@ -138,7 +138,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
                 self.error('Satisfiability failure. Could not match the means & '
                            'variances w/ discrete distribution. Try removing the '
                            'constraint on the variances with --no-match-vars?')
-                
+
             cumsum = np.cumsum(weights)
             for i in range(self.args.n_per_state):
                 index = np.sum(cumsum < np.random.rand())
