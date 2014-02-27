@@ -1,6 +1,7 @@
 from mixtape.mslds import *
+from mixtape.ghmm import *
 from mixtape.utils import *
-from numpy import array, reshape, savetxt, loadtxt
+from numpy import array, reshape, savetxt, loadtxt, eye
 import matplotlib.pyplot as plt
 from numpy.random import rand
 from numpy.linalg import svd
@@ -18,12 +19,13 @@ LEARN = True
 PLOT = True
 
 # For param changes
+# TODO: Make parameter changing automatic
 #SAMPLE = True
 #LEARN = False
 #PLOT = False
 
 n_seq = 1
-NUM_ITERS = 10
+NUM_ITERS = 3
 T = 500
 x_dim = 1
 K = 2
@@ -45,35 +47,23 @@ s.means_ = mus
 s.covars_ = Sigmas
 if SAMPLE:
     xs, Ss = s.sample(T)
-    xs = reshape(xs, (n_seq, T, x_dim))
+    xs = [xs]
     savetxt('./example/xs.txt', xs)
     savetxt('./example/Ss.txt', Ss)
 else:
-    xs = reshape(loadtxt('./example/xs.txt'), (n_seq, T, x_dim))
-    Ss = reshape(loadtxt('./example/Ss.txt'), (n_seq, T))
+    xs = reshape(loadtxt('./example/xs.txt'), (T, x_dim))
+    xs = [xs]
+    Ss = reshape(loadtxt('./example/Ss.txt'), (T))
+    Ss = [Ss]
 
 if LEARN:
-    As = zeros((K, x_dim, x_dim))
-    bs = zeros((K, x_dim))
-    mus = zeros((K, x_dim))
-    Sigmas = zeros((K, x_dim, x_dim))
-    Qs = zeros((K, x_dim, x_dim))
-    # Compute K-means
-    print shape(xs[0])
-    means, assignments = kmeans(xs[0], K)
-    W_i_Ts = assignment_to_weights(assignments, K)
-    emp_means, emp_covars = empirical_wells(xs[0], W_i_Ts)
-    for i in range(K):
-        A = randn(x_dim, x_dim)
-        u, s, v = svd(A)
-        As[i] = 0.5 * rand() * dot(u, v.T)
-        bs[i] = dot(eye(x_dim) - As[i], means[i])
-        mus[i] = emp_means[i]
-        Sigmas[i] = emp_covars[i]
-        Qs[i] = 0.5 * Sigmas[i]
+    # Fit Metastable Switcher
     l = MetastableSwitchingLDS(K, x_dim, n_iter=NUM_ITERS)
     l.fit(xs)
-    sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=means[0])
+    # Fit Gaussian HMM for comparison
+    g = GaussianFusionHMM(K, x_dim)
+    g.fit(xs)
+    sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=mus[0])
     sim_xs = reshape(sim_xs, (n_seq, T, x_dim))
 
 if PLOT:

@@ -140,8 +140,8 @@ if LEARN:
     for i in range(K):
         A = randn(x_dim, x_dim)
         u, s, v = np.linalg.svd(A)
-        As[i] = 0.5 * rand() * dot(u, v.T)
-        bs[i] = dot(eye(x_dim) - As[i], means[i])
+        As[i] = 0.5 * rand() * np.dot(u, v.T)
+        bs[i] = np.dot(np.eye(x_dim) - As[i], means[i])
         mus[i] = emp_means[i]
         Sigmas[i] = emp_covars[i]
         Qs[i] = 0.5 * Sigmas[i]
