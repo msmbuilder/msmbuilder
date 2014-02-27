@@ -51,14 +51,14 @@ def categorical(pvals, size=None, random_state=None):
 
 
 def iter_vars(A, Q, N):
-    V = eye(shape(A)[0])
+    V = np.eye(np.shape(A)[0])
     for i in range(N):
-        V = Q + dot(A, dot(V, A.T))
+        V = Q + np.dot(A, np.dot(V, A.T))
     return V
 
 
 def assignment_to_weights(assignments, K):
-    (T,) = shape(assignments)
+    (T,) = np.shape(assignments)
     W_i_Ts = np.zeros((T, K))
     for t in range(T):
         ind = assignments[t]
@@ -71,8 +71,8 @@ def assignment_to_weights(assignments, K):
 
 
 def empirical_wells(Ys, W_i_Ts):
-    (T, y_dim) = shape(Ys)
-    (_, K) = shape(W_i_Ts)
+    (T, y_dim) = np.shape(Ys)
+    (_, K) = np.shape(W_i_Ts)
     means = np.zeros((K, y_dim))
     covars = np.zeros((K, y_dim, y_dim))
     for k in range(K):
@@ -94,7 +94,7 @@ def empirical_wells(Ys, W_i_Ts):
 
 
 def transition_counts(assignments, K):
-    (T,) = shape(assignments)
+    (T,) = np.shape(assignments)
     Zhat = np.ones((K, K))
     for t in range(1, T):
         i = assignments[t - 1]
@@ -158,8 +158,8 @@ def kmeans(ys, K):
 
 
 def means_match(base_means, means, assignments):
-    (K, y_dim) = shape(means)
-    (T,) = shape(assignments)
+    (K, y_dim) = np.shape(means)
+    (T,) = np.shape(assignments)
     matching = np.zeros(K)
     new_assignments = np.zeros(T)
     for i in range(K):

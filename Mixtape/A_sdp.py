@@ -16,22 +16,15 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     J = real(sqrtm(pinv(Q)))
     H = real(sqrtm(E))
     F = dot(J, C - B)
-    print "F"
-    print F
-    print "J"
-    print J
-    print "H"
-    print H
     # k = x_dim
     # ------------------------------------------
     #|Z+sI-JAF.T -FA.TJ  JAH
     #|    (JAH).T         I
-    #|                       D-Q+eps_I    A
+    #|                       D+eps_I    A
     #|                       A.T        D^{-1}
     #|                                         I  A.T
     #|                                         A   I
     #|                                                Z
-    #|//                                                   s
     # -------------------------------------------
     # First Block Column
     # Z+sI-JAF.T -FA.TJ
@@ -201,10 +194,10 @@ def construct_const_matrix(x_dim, Q, D):
     B1[x_dim:, x_dim:] = eye(x_dim)
 
     # Construct B2
-    eps = 1e-3
+    eps = 1e-4
     B2 = zeros((2 * x_dim, 2 * x_dim))
-    B2[:x_dim, :x_dim] = D - Q + eps * eye(x_dim)
-    B2[:x_dim, :x_dim] = D + eps * eye(x_dim)
+    #B2[:x_dim, :x_dim] = D - Q + eps * eye(x_dim)
+    B2[:x_dim, :x_dim] = D - eps * eye(x_dim)
     B2[x_dim:, x_dim:] = pinv(D)
 
     # Construct B3
@@ -227,16 +220,6 @@ def construct_const_matrix(x_dim, Q, D):
 
 def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
-    print "Q:"
-    print Q
-    print "D:"
-    print D
-    print "B:"
-    print B
-    print "C:"
-    print C
-    print "E:"
-    print E
     MAX_ITERS = 30
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     c = zeros(c_dim)
@@ -245,8 +228,6 @@ def solve_A(x_dim, B, C, E, D, Q):
     for i in range(x_dim):
         vec_pos = prev + i * (i + 1) / 2 + i
         c[vec_pos] = 1.
-    print "c:"
-    print c
     cm = matrix(c)
 
     G, _, _, _ = construct_coeff_matrix(x_dim, Q, C, B, E)
@@ -258,8 +239,6 @@ def solve_A(x_dim, B, C, E, D, Q):
 
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    print "A-solution"
-    print sol['x']
     return sol, c, G, h
 
 

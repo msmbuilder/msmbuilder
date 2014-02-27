@@ -137,7 +137,7 @@ class MetastableSwitchingLDS(object):
             self.populations_ = np.ones(self.n_states) / self.n_states
         if 'a' in self.init_params:
             self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
-            eps = 1e-2
+            eps = 2e-1
             for i in range(self.n_states):
                 #A = randn(self.n_features, self.n_features)
                 #u, s, v = np.linalg.svd(A)
@@ -152,7 +152,7 @@ class MetastableSwitchingLDS(object):
         if 'q' in self.init_params:
             self.Qs_ = np.zeros((self.n_states, self.n_features,
                 self.n_features))
-            eps = 1e-2
+            eps = 2e-1
             for i in range(self.n_states):
                 self.Qs_[i] = eps * self.covars_[i]
 
@@ -263,8 +263,6 @@ class MetastableSwitchingLDS(object):
         return self
 
     def _do_mstep(self, stats, params):
-        print "IN M_STEP"
-        print "params = %s" % params
         if 'm' in params:
             self._means_update(stats)
         if 'c' in params:
@@ -302,13 +300,8 @@ class MetastableSwitchingLDS(object):
     def _A_update(self, stats):
         for i in range(self.n_states):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
-            print "A_SDP:"
-            print "b:"
-            print b
             B = stats['obs*obs[t-1].T'][i]
             mean_but_last = np.reshape(stats['obs[:-1]'][i], (self.n_features, 1))
-            print "mean_but_last"
-            print mean_but_last
             C = np.dot(b, mean_but_last.T)
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
@@ -320,7 +313,6 @@ class MetastableSwitchingLDS(object):
             self.As_[i] = A
 
     def _Q_update(self, stats):
-        print "IN Q_UPDATE"
         for i in range(self.n_states):
             A = self.As_[i]
             Sigma = self.covars_[i]

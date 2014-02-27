@@ -26,13 +26,13 @@ PLOT = True
 
 n_seq = 1
 NUM_ITERS = 3
-T = 500
+T = 2000
 x_dim = 1
 K = 2
-As = reshape(array([[0.999], [0.999]]), (K, x_dim, x_dim))
-bs = reshape(array([[0.001], [-0.001]]), (K, x_dim))
+As = reshape(array([[0.6], [0.6]]), (K, x_dim, x_dim))
+bs = reshape(array([[0.4], [-0.4]]), (K, x_dim))
 Qs = reshape(array([[0.01], [0.01]]), (K, x_dim, x_dim))
-Z = reshape(array([[0.98, 0.02], [0.02, 0.98]]), (K, K))
+Z = reshape(array([[0.995, 0.005], [0.005, 0.995]]), (K, K))
 pi = reshape(array([0.99, 0.01]), (K,))
 mus = reshape(array([[1], [-1]]), (K, x_dim))
 Sigmas = reshape(array([[0.01], [0.01]]), (K, x_dim, x_dim))
