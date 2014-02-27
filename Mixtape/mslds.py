@@ -81,8 +81,8 @@ class MetastableSwitchingLDS(object):
     """
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
-        init_params='tmcqab', transmat_prior=None, params='tmsqab', n_iter=10,
-        covars_prior=1e-2, covars_weight=1, precision='mixed'):
+        init_params='tmcqab', transmat_prior=None, params='tmcqab',
+        n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed'):
 
         self.n_states = n_states
         self.n_features = n_features
@@ -140,7 +140,7 @@ class MetastableSwitchingLDS(object):
             for i in range(self.n_states):
                 A = randn(self.n_features, self.n_features)
                 u, s, v = np.linalg.svd(A)
-                self.As_[i] = 0.5 * rand() * np.dot(u, v.T)
+                self.As_[i] = rand() * np.dot(u, v.T)
         if 'b' in self.init_params:
             self.bs_ = np.zeros((self.n_states, self.n_features))
             for i in range(self.n_states):
@@ -151,7 +151,7 @@ class MetastableSwitchingLDS(object):
             self.Qs_ = np.zeros((self.n_states, self.n_features,
                 self.n_features))
             for i in range(self.n_states):
-                self.Qs_[i] = 0.5 * self.covars_[i]
+                self.Qs_[i] = 0.1 * self.covars_[i]
 
 
     def sample(self, n_samples, init_state=None, init_obs=None):
@@ -244,6 +244,7 @@ class MetastableSwitchingLDS(object):
         n_obs = sum(len(s) for s in sequences)
 
         for i in range(self.n_iter):
+            print "Iteration %d" % i
             _, stats = self._impl.do_estep()
             if stats['trans'].sum() > 10*n_obs:
                 print('Number of transition counts', stats['trans'].sum())
@@ -253,14 +254,14 @@ class MetastableSwitchingLDS(object):
                 break
 
             # Maximization step
-            self._do_mstep(stats, set(self.params) & set('cmt'))
+            self._do_mstep(stats, set(self.params))
 
-        if len(set(self.params) & set('qab')) > 0:
-            self._do_mstep(stats, self.params)
 
         return self
 
     def _do_mstep(self, stats, params):
+        print "IN M_STEP"
+        print "params = %s" % params
         if 'm' in params:
             self._means_update(stats)
         if 'c' in params:
@@ -311,20 +312,24 @@ class MetastableSwitchingLDS(object):
             self.As_[i] = A
 
     def _Q_update(self, stats):
+        print "IN Q_UPDATE"
         for i in range(self.n_states):
             A = self.As_[i]
             Sigma = self.covars_[i]
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = ((stats['obs[1:]*obs[1:].T'][i]
-                  - np.dot(stats['obs*obs[t-1].T'][i], A.T)
-                  - np.dot(np.reshape(stats['obs[1:]'][i], (self.n_features, 1)),
-                        b.T))
-                 + (-np.dot(A, stats['obs*obs[t-1].T'][i].T) +
-                    np.dot(A, np.dot(stats['obs[:-1]*obs[:-1].T'][i], A.T)) +
-                    np.dot(A, np.dot(np.reshape(stats['obs[:-1]'][i], (self.n_features, 1)),
-                               b.T)))
-                 + (-np.dot(b, np.reshape(stats['obs[1:]'][i], (self.n_features, 1)).T) +
-                    np.dot(b, np.dot(np.reshape(stats['obs[:-1]'][i], (self.n_features, 1)).T,
+                - np.dot(stats['obs*obs[t-1].T'][i], A.T)
+                - np.dot(np.reshape(stats['obs[1:]'][i],
+                    (self.n_features, 1)), b.T))
+                + (-np.dot(A, stats['obs*obs[t-1].T'][i].T) +
+                    np.dot(A, np.dot(stats['obs[:-1]*obs[:-1].T'][i],
+                        A.T)) +
+                    np.dot(A, np.dot(np.reshape(stats['obs[:-1]'][i],
+                        (self.n_features, 1)), b.T)))
+                 + (-np.dot(b, np.reshape(stats['obs[1:]'][i],
+                        (self.n_features, 1)).T) +
+                    np.dot(b, np.dot(np.reshape(stats['obs[:-1]'][i],
+                        (self.n_features, 1)).T,
                                A.T)) +
                     stats['post[1:]'][i] * np.dot(b, b.T)))
             sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma)

@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from numpy import shape
 from sklearn.utils import check_random_state
 from numpy.linalg import norm
 from numpy.random import randint
@@ -58,7 +59,7 @@ def iter_vars(A, Q, N):
 
 def assignment_to_weights(assignments, K):
     (T,) = shape(assignments)
-    W_i_Ts = zeros((T, K))
+    W_i_Ts = np.zeros((T, K))
     for t in range(T):
         ind = assignments[t]
         for k in range(K):
@@ -72,20 +73,21 @@ def assignment_to_weights(assignments, K):
 def empirical_wells(Ys, W_i_Ts):
     (T, y_dim) = shape(Ys)
     (_, K) = shape(W_i_Ts)
-    means = zeros((K, y_dim))
-    covars = zeros((K, y_dim, y_dim))
+    means = np.zeros((K, y_dim))
+    covars = np.zeros((K, y_dim, y_dim))
     for k in range(K):
-        num = zeros(y_dim)
+        num = np.zeros(y_dim)
         denom = 0
         for t in range(T):
             num += W_i_Ts[t, k] * Ys[t]
             denom += W_i_Ts[t, k]
         means[k] = (1.0 / denom) * num
     for k in range(K):
-        num = zeros((y_dim, y_dim))
+        num = np.zeros((y_dim, y_dim))
         denom = 0
         for t in range(T):
-            num += W_i_Ts[t, k] * outer(Ys[t] - means[k], Ys[t] - means[k])
+            num += W_i_Ts[t, k] * np.outer(Ys[t] - means[k],
+                Ys[t] - means[k])
             denom += W_i_Ts[t, k]
         covars[k] = (1.0 / denom) * num
     return means, covars
@@ -93,7 +95,7 @@ def empirical_wells(Ys, W_i_Ts):
 
 def transition_counts(assignments, K):
     (T,) = shape(assignments)
-    Zhat = ones((K, K))
+    Zhat = np.ones((K, K))
     for t in range(1, T):
         i = assignments[t - 1]
         j = assignments[t]
@@ -114,23 +116,23 @@ def kmeans(ys, K):
       means: Learned means
       assigments: Says which mean the t-th datapoint belongs to
     """
-    (T, y_dim) = shape(ys)
-    means = zeros((K, y_dim))
-    old_means = zeros((K, y_dim))
-    assignments = zeros(T)
-    num_each = zeros(K)
+    (T, y_dim) = np.shape(ys)
+    means = np.zeros((K, y_dim))
+    old_means = np.zeros((K, y_dim))
+    assignments = np.zeros(T)
+    num_each = np.zeros(K)
     # Pick random observations as initializations
     for k in range(K):
         r = randint(0, T)
         means[k] = ys[r]
-    Delta = Inf
+    Delta = np.Inf
     Epsilon = 1e-5
     iteration = 0
     while Delta >= Epsilon:
         Delta = 0
         # Perform an Assignment Step
         for t in range(T):
-            dist = Inf
+            dist = np.Inf
             y = ys[t]
             # Find closest means
             for k in range(K):
@@ -158,8 +160,8 @@ def kmeans(ys, K):
 def means_match(base_means, means, assignments):
     (K, y_dim) = shape(means)
     (T,) = shape(assignments)
-    matching = zeros(K)
-    new_assignments = zeros(T)
+    matching = np.zeros(K)
+    new_assignments = np.zeros(T)
     for i in range(K):
         closest = -1
         closest_dist = Inf
