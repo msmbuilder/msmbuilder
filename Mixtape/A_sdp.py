@@ -10,13 +10,11 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # F = Q^{-.5}(C-B) (not(!) symmetric)
     # J = Q^{-.5} (symmetric)
     # H = E^{.5} (symmetric)
-    #g_dim = 7 * x_dim + 1
     g_dim = 7 * x_dim
     G = zeros((g_dim ** 2, 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2))
     J = real(sqrtm(pinv(Q)))
     H = real(sqrtm(E))
     F = dot(J, C - B)
-    # k = x_dim
     # ------------------------------------------
     #|Z+sI-JAF.T -FA.TJ  JAH
     #|    (JAH).T         I
@@ -168,22 +166,13 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
             G[mat_pos, vec_pos] += 1.
 
-    ## s
-    #left = 7 * x_dim
-    #top = 7 * x_dim
-    #prev = 0
-    #mat_pos = left * g_dim + top
-    #vec_pos = 0
-    #G[mat_pos, vec_pos] += 1.
     return G, F, J, H
-
 
 def construct_const_matrix(x_dim, Q, D):
     # --------------------------
     #| 0   0
     #| 0   I
-    #|        D+eps_I-Q    0
-    #|//        D+eps_I    0
+    #|        D+eps_I    0
     #|         0        D^{-1}
     #|                         I
     #|                            I
@@ -196,7 +185,6 @@ def construct_const_matrix(x_dim, Q, D):
     # Construct B2
     eps = 1e-4
     B2 = zeros((2 * x_dim, 2 * x_dim))
-    #B2[:x_dim, :x_dim] = D - Q + eps * eye(x_dim)
     B2[:x_dim, :x_dim] = D - eps * eye(x_dim)
     B2[x_dim:, x_dim:] = pinv(D)
 
@@ -209,11 +197,7 @@ def construct_const_matrix(x_dim, Q, D):
     # Construct B5
     B5 = zeros((x_dim, x_dim))
 
-    ## Construct B6
-    #B6 = zeros((1, 1))
-
     # Construct Block matrix
-    #h = block_diag(B1, B2, B3, B4, B5, B6)
     h = block_diag(B1, B2, B3, B4, B5)
     return h
 
