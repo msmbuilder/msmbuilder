@@ -148,6 +148,9 @@ def construct_const_matrix(x_dim, A, B, D):
 def solve_Q(x_dim, A, B, D):
     # x = [s vec(Z) vec(Q)]
     # MAX_ITERS=30
+    print "Q_SDP:"
+    print "A:"
+    print A
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
     c = zeros(c_dim)
     c[0] = x_dim
@@ -170,7 +173,8 @@ def solve_Q(x_dim, A, B, D):
 
     #solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    # print sol['x']
+    print "Q-solution"
+    print sol['x']
     return sol, c, G, h
 
 

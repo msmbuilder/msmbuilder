@@ -137,10 +137,12 @@ class MetastableSwitchingLDS(object):
             self.populations_ = np.ones(self.n_states) / self.n_states
         if 'a' in self.init_params:
             self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
+            eps = 1e-2
             for i in range(self.n_states):
-                A = randn(self.n_features, self.n_features)
-                u, s, v = np.linalg.svd(A)
-                self.As_[i] = rand() * np.dot(u, v.T)
+                #A = randn(self.n_features, self.n_features)
+                #u, s, v = np.linalg.svd(A)
+                #self.As_[i] = rand() * np.dot(u, v.T)
+                self.As_[i] = np.eye(self.n_features) - eps
         if 'b' in self.init_params:
             self.bs_ = np.zeros((self.n_states, self.n_features))
             for i in range(self.n_states):
@@ -150,8 +152,9 @@ class MetastableSwitchingLDS(object):
         if 'q' in self.init_params:
             self.Qs_ = np.zeros((self.n_states, self.n_features,
                 self.n_features))
+            eps = 1e-2
             for i in range(self.n_states):
-                self.Qs_[i] = 0.1 * self.covars_[i]
+                self.Qs_[i] = eps * self.covars_[i]
 
 
     def sample(self, n_samples, init_state=None, init_obs=None):
@@ -269,10 +272,10 @@ class MetastableSwitchingLDS(object):
         if 't' in params:
             self._transmat_update(stats)
 
-        if 'q' in params:
-            self._Q_update(stats)
         if 'a' in params:
             self._A_update(stats)
+        if 'q' in params:
+            self._Q_update(stats)
         if 'b' in params:
             self._b_update(stats)
 
@@ -299,8 +302,13 @@ class MetastableSwitchingLDS(object):
     def _A_update(self, stats):
         for i in range(self.n_states):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
+            print "A_SDP:"
+            print "b:"
+            print b
             B = stats['obs*obs[t-1].T'][i]
             mean_but_last = np.reshape(stats['obs[:-1]'][i], (self.n_features, 1))
+            print "mean_but_last"
+            print mean_but_last
             C = np.dot(b, mean_but_last.T)
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
