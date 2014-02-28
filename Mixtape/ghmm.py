@@ -46,6 +46,8 @@ try:
 except ImportError:
     pass
 
+EPS = np.finfo(np.float32).eps
+
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
@@ -244,7 +246,12 @@ class GaussianFusionHMM(object):
                                  % self.reversible_type)
 
         difference_cutoff = 1e-10
-        denom = stats['post'][:, np.newaxis]
+        # we don't want denom to be zero, because then the new value of the means
+        # will be nan/inf. so padd it up by a very small constant. This particular
+        # padding is following the sklearn mixture model m_step code from
+        # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/mixture/gmm.py#L496
+        denom = (stats['post'][:, np.newaxis] + 10*EPS)
+
         def getdiff(means):
             diff = np.zeros((self.n_features, self.n_states, self.n_states))
             for i in range(self.n_features):
