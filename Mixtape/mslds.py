@@ -96,6 +96,11 @@ class MetastableSwitchingLDS(object):
         State-to-state Markov jump probabilities
     n_iter : int, optional
         Number of iterations to perform during training
+    reversible_type : str
+        Method by which the reversibility of the transition matrix
+        is enforced. 'mle' uses a maximum likelihood method that is
+        solved by numerical optimization (BFGS) and is the only current
+        option.
     init_params : string, optional, default
         Controls which parameters are initialized prior to training. Can
         contain any combination of 't' for transmat, 'm' for means, and
@@ -115,8 +120,8 @@ class MetastableSwitchingLDS(object):
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
         init_params='tmcqab', transmat_prior=None, params='tmcqab',
-        n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed',
-        eps=2.e-1, platform='cpu'):
+        reversible_type='mle', n_iter=10, covars_prior=1e-2,
+        covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
 
         self.n_states = n_states
         self.n_features = n_features
@@ -124,6 +129,7 @@ class MetastableSwitchingLDS(object):
         self.n_iter = n_iter
         self.init_params = init_params
         self.platform = platform
+        self.reversible_type = reversible_type
         self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
@@ -142,6 +148,10 @@ class MetastableSwitchingLDS(object):
         self._means_ = None
         self._transmat_ = None
         self._populations_ = None
+
+        if not reversible_type in ['mle']:
+            raise ValueError('Invalid value for reversible_type: %s '
+                             'Must be "mle"' % reversible_type)
 
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
