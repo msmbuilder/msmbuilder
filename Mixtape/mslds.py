@@ -5,6 +5,32 @@ The switch posteriors are used in the M-step to update parameter estimates.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
+# Author: Bharath Ramsundar <bharath.ramsundar@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import warnings
 import numpy as np
@@ -16,7 +42,7 @@ from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
 from mdtraj.utils import ensure_type
 
-from mixtape import _reversibility
+from mixtape import _reversibility, _switching_var1
 from mixtape._switching_var1 import SwitchingVAR1CPUImpl
 from mixtape.mslds_solvers.mslds_A_sdp import solve_A
 from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
@@ -90,13 +116,14 @@ class MetastableSwitchingLDS(object):
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
         init_params='tmcqab', transmat_prior=None, params='tmcqab',
         n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed',
-        eps=2.e-1):
+        eps=2.e-1, platform='cpu'):
 
         self.n_states = n_states
         self.n_features = n_features
         self.n_hotstart_sequences = n_hotstart_sequences
         self.n_iter = n_iter
         self.init_params = init_params
+        self.platform = platform
         self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
@@ -118,6 +145,13 @@ class MetastableSwitchingLDS(object):
 
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
+        if self.platform == 'cpu':
+            self._impl = _switching_var1.SwitchingVAR1CPUImpl(
+                            self.n_states, self.n_features, precision)
+        else:
+            raise ValueError(('Invalid platform "%s".'
+                    + 'Available platforms are %s.') % (platform,
+                        ', '.join(_AVAILABLE_PLATFORMS)))
 
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)

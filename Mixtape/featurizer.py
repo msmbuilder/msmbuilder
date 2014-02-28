@@ -43,13 +43,13 @@ class SuperposeFeaturizer(Featurizer):
         self.atom_indices = atom_indices
         self.reference_traj = reference_traj
         self.n_features = len(self.atom_indices)
-        
+
     def featurize(self, traj):
 
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] - self.reference_traj.xyz[0, self.atom_indices])**2
         x = np.sqrt(np.sum(diff2, axis=2))
-        
+
         return x
 
 class AtomPairsFeaturizer(Featurizer):
@@ -59,7 +59,7 @@ class AtomPairsFeaturizer(Featurizer):
         self.reference_traj = reference_traj
         self.n_features = len(self.pair_indices)
         self.periodic = periodic
-        
+
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d
