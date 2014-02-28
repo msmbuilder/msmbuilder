@@ -62,6 +62,9 @@ def iter_vars(A, Q, N):
 
 
 def assignment_to_weights(assignments, K):
+    """Turns a hard assignment into a weights matrix. Useful for
+       experimenting with Viterbi-learning.
+    """
     (T,) = np.shape(assignments)
     W_i_Ts = np.zeros((T, K))
     for t in range(T):
