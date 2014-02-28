@@ -8,7 +8,7 @@ from scipy.linalg import block_diag, sqrtm
 def construct_coeff_matrix(x_dim, B):
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
-    g_dim = 6 * x_dim + 1
+    g_dim = 6 * x_dim
     G = zeros((g_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # -----------------------
     #|Z+sI  F
@@ -17,7 +17,6 @@ def construct_coeff_matrix(x_dim, B):
     #|           A.T D^{-1}
     #|                      Q -epsilon I
     #|                                    Z
-    #|                                      s
     # -----------------------
 
     # First Block Column
@@ -89,13 +88,6 @@ def construct_coeff_matrix(x_dim, B):
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
             G[mat_pos, vec_pos] += 1.
-    # s
-    left = 6 * x_dim
-    top = 6 * x_dim
-    prev = 0
-    mat_pos = left * g_dim + top
-    vec_pos = 0
-    G[mat_pos, vec_pos] += 1.
     return G
 
 
@@ -128,26 +120,15 @@ def construct_const_matrix(x_dim, A, B, D):
     B3 = zeros((x_dim, x_dim))
 
     # Construct B4
-    # Set lower bound on Q norm
-    #Qprop = D - dot(A,dot(D,A.T))
-    #max_eig = max(eig(Qprop)[0])
-    #epsilon = 0.5 * max_eig
-    #epsilon = 0.
-    # print "!!!!!EPSILON = %s" % str(epsilon)
-    #B4 = -epsilon * eye(x_dim)
     B4 = zeros((x_dim, x_dim))
 
-    # Construct B5
-    B5 = zeros((1, 1))
-
     # Construct Block matrix
-    h = block_diag(B1, B2, B3, B4, B5)
+    h = block_diag(B1, B2, B3, B4)
     return h, F
 
 
 def solve_Q(x_dim, A, B, D):
     # x = [s vec(Z) vec(Q)]
-    # MAX_ITERS=30
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
     c = zeros(c_dim)
     c[0] = x_dim
@@ -159,18 +140,12 @@ def solve_Q(x_dim, A, B, D):
 
     G = construct_coeff_matrix(x_dim, B)
     G = -G  # set negative since s = h - Gx in cvxopt's sdp solver
-    # print "G-shape"
-    # print shape(G)
     Gs = [matrix(G)]
 
     h, _ = construct_const_matrix(x_dim, A, B, D)
-    # print "h-shape"
-    # print shape(h)
     hs = [matrix(h)]
 
-    #solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    # print sol['x']
     return sol, c, G, h
 
 

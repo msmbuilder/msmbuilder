@@ -13,6 +13,23 @@ from cython.parallel import prange
 from headers cimport gaussian_loglikelihood_diag, do_estep_single, do_estep_mixed
 
 
+cdef extern from "ghmm_estep.hpp" namespace "Mixtape":
+    void do_estep_single "Mixtape::do_ghmm_estep<float>"(
+        const float* log_transmat, const float* log_transmat_T,
+        const float* log_startprob, const float* means,
+        const float* variances, const float** sequences,
+        const int n_sequences, const int* sequence_lengths,
+        const int n_features, const int n_states,
+        float* transcounts, float* obs, float* obs2,
+        float* post, float* logprob) nogil
+    void do_estep_mixed "Mixtape::do_ghmm_estep<double>"(
+        const float* log_transmat, const float* log_transmat_T,
+        const float* log_startprob, const float* means,
+        const float* variances, const float** sequences,
+        const int n_sequences, const int* sequence_lengths,
+        const int n_features, const int n_states,
+        float* transcounts, float* obs, float* obs2,
+        float* post, float* logprob) nogil
 
 cdef class GaussianHMMCPUImpl:
     cdef list sequences
@@ -112,25 +129,27 @@ cdef class GaussianHMMCPUImpl:
 
         if self.precision == 'single':
             do_estep_single(
-                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
+                <float*> &log_transmat[0,0], 
+                <float*> &log_transmat_T[0,0], 
                 <float*> &log_startprob[0], <float*> &means[0,0],
                 <float*> &vars[0,0], <const float**> seq_pointers,
-                self.n_sequences, &seq_lengths[0],
-                self.n_features, self.n_states, <float*> &transcounts[0,0], <float*> &obs[0,0],
-                <float*> &obs2[0,0], <float*> &post[0], &logprob)
+                self.n_sequences, <int*> &seq_lengths[0], self.n_features,
+                self.n_states, <float*> &transcounts[0,0], 
+                <float*> &obs[0,0], <float*> &obs2[0,0], 
+                <float*> &post[0], &logprob)
         elif self.precision == 'mixed':
             do_estep_mixed(
                 <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
                 <float*> &log_startprob[0], <float*> &means[0,0],
                 <float*> &vars[0,0], <const float**> seq_pointers,
-                self.n_sequences, &seq_lengths[0],
-                self.n_features, self.n_states, <float*> &transcounts[0,0], <float*> &obs[0,0],
+                self.n_sequences, <int*> &seq_lengths[0],
+                self.n_features, self.n_states, 
+                <float*> &transcounts[0,0], <float*> &obs[0,0], 
                 <float*> &obs2[0,0], <float*> &post[0], &logprob)
         else:
             raise RuntimeError('Invalid precision')
 
         free(seq_pointers)
-        #print '(cython) do_estep: elapsed time=%f' % (time.time() - starttime)
         return logprob, {'trans': transcounts, 'obs': obs, 'obs**2': obs2, 'post': post}
 
     def do_viterbi(self):

@@ -53,7 +53,7 @@ cdef class SwitchingVAR1CPUImpl:
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
 
-            cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
+            cdef np.ndarray[ndim=1, dtype=int] seq_lengths = np.zeros(self.n_sequences, dtype=int)
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
                 seq_lengths[i] = len(self.sequences[i])
@@ -169,28 +169,34 @@ cdef class SwitchingVAR1CPUImpl:
 
         if self.precision == 'single':
             do_estep_single(
-                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
-                <float*> &log_startprob[0], <float*> &means[0,0],
-                &covars[0,0,0], <const float**> seq_pointers, self.n_sequences,
-                &seq_lengths[0], self.n_features, self.n_states, <float*>
-                &transcounts[0,0], <float*> &obs[0,0], <float*>
-                &obs_but_first[0,0], <float*> &obs_but_last[0,0], <float*>
-                &obs_obs_T[0,0,0], <float*> &obs_obs_T_offset[0,0,0], <float*>
-                &obs_obs_T_but_first[0,0,0], <float*>
-                &obs_obs_T_but_last[0,0,0], <float*> &post[0], <float*>
-                &post_but_first[0], <float*> &post_but_last[0], &logprob)
+                <float*> &log_transmat[0,0], 
+                <float*> &log_transmat_T[0,0], <float*> &log_startprob[0],
+                <float*> &means[0,0], <float*> &covars[0,0,0], 
+                <const float**> seq_pointers,
+                self.n_sequences, <int*> &seq_lengths[0], self.n_features,
+                self.n_states, <float*> &transcounts[0,0], <float*>
+                &obs[0,0], <float*> &obs_but_first[0,0],
+                <float*> &obs_but_last[0,0], <float*> &obs_obs_T[0,0,0],
+                <float*> &obs_obs_T_offset[0,0,0],
+                <float*> &obs_obs_T_but_first[0,0,0],
+                <float*> &obs_obs_T_but_last[0,0,0], <float*> &post[0],
+                <float*> &post_but_first[0], <float*> &post_but_last[0],
+                &logprob)
         elif self.precision == 'mixed':
             do_estep_mixed(
-                <float*> &log_transmat[0,0], <float*> &log_transmat_T[0,0],
-                <float*> &log_startprob[0], <float*> &means[0,0], <float*>
-                &covars[0,0,0], <const float**> seq_pointers, self.n_sequences,
-                &seq_lengths[0], self.n_features, self.n_states, <float*>
-                &transcounts[0,0], <float*> &obs[0,0], <float*>
-                &obs_but_first[0,0], <float*> &obs_but_last[0,0], <float*>
-                &obs_obs_T[0,0,0], <float*> &obs_obs_T_offset[0,0,0], <float*>
-                &obs_obs_T_but_first[0,0,0], <float*>
-                &obs_obs_T_but_last[0,0,0], <float*> &post[0], <float*>
-                &post_but_first[0], <float*> &post_but_last[0], &logprob)
+                <float*> &log_transmat[0,0], 
+                <float*> &log_transmat_T[0,0], <float*> &log_startprob[0],
+                <float*> &means[0,0], <float*> &covars[0,0,0], 
+                <const float**> seq_pointers, self.n_sequences,
+                <int*> &seq_lengths[0], self.n_features, self.n_states,
+                <float*> &transcounts[0,0], <float*> &obs[0,0],
+                <float*> &obs_but_first[0,0], <float*> &obs_but_last[0,0],
+                <float*> &obs_obs_T[0,0,0], 
+                <float*> &obs_obs_T_offset[0,0,0],
+                <float*> &obs_obs_T_but_first[0,0,0],
+                <float*> &obs_obs_T_but_last[0,0,0], <float*> &post[0],
+                <float*> &post_but_first[0], <float*> &post_but_last[0],
+                &logprob)
         else:
             raise RuntimeError('Invalid precision')
 
@@ -245,4 +251,3 @@ def test_gaussian_loglikelihood_full():
        length, n_states, n_features, &loglikelihoods[0, 0]);
 
     np.testing.assert_array_almost_equal(val, loglikelihoods)
-

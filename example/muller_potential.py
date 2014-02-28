@@ -78,7 +78,7 @@ NUM_TRAJS = 1
 nParticles = 1
 mass = 1.0 * dalton
 # temps  = 200 300 500 750 1000 1250 1500 1750 2000
-temperature = 3000 * kelvin
+temperature = 500 * kelvin
 friction = 100 / picosecond
 timestep = 10.0 * femtosecond
 T = 500
@@ -133,30 +133,14 @@ for traj in range(NUM_TRAJS):
         trajectory[i, :] = x[0, 0:2]
         integrator.step(10)
 if LEARN:
-    # Compute K-means
-    means, assignments = kmeans(xs[0], K)
-    W_i_Ts = assignment_to_weights(assignments, K)
-    emp_means, emp_covars = empirical_wells(xs[0], W_i_Ts)
-    for i in range(K):
-        A = randn(x_dim, x_dim)
-        u, s, v = np.linalg.svd(A)
-        As[i] = 0.5 * rand() * dot(u, v.T)
-        bs[i] = dot(eye(x_dim) - As[i], means[i])
-        mus[i] = emp_means[i]
-        Sigmas[i] = emp_covars[i]
-        Qs[i] = 0.5 * Sigmas[i]
-
     # Learn the MetastableSwitchingLDS
-    bs = means
     l = MetastableSwitchingLDS(K, x_dim, n_iter=NUM_ITERS)
     l.fit(xs)
-    sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=means[0])
+    sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
 
 if PLOT:
     pp.plot(trajectory[start:, 0], trajectory[start:, 1], color='k')
-    # Compute K-means
-    means, assignments = kmeans(xs[0], K)
-    pp.scatter(means[:, 0], means[:, 1], color='r', zorder=10)
+    pp.scatter(l.means_[:, 0], l.means_[:, 1], color='r', zorder=10)
     pp.scatter(xs[0, :, 0], xs[0,:, 1], edgecolor='none', facecolor='k', zorder=1)
     Delta = 0.5
     minx = min(xs[0, :, 0])

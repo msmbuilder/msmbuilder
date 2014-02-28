@@ -299,8 +299,8 @@ extensions.append(
           extra_link_args=lapack_info['extra_link_args'],
           include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
                         'platforms/cpu/kernels/']))
-                            
-                            
+
+
 extensions.append(
     Extension('mixtape._vmhmm',
               sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.pyx',
@@ -348,7 +348,7 @@ setup(name='mixtape',
       url='https://github.com/rmcgibbo/mixtape',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),
-      packages=['mixtape', 'mixtape.commands'],
+      packages=['mixtape', 'mixtape.commands', 'mixtape.mslds_solvers'],
       package_dir={'mixtape':'Mixtape'},
       scripts=['scripts/hmsm'],
       zip_safe=False,
