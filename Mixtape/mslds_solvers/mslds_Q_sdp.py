@@ -3,6 +3,7 @@ from numpy import bmat, zeros, reshape, array, dot, shape, eye, shape, real
 from numpy import ones
 from numpy.linalg import pinv, eig
 from scipy.linalg import block_diag, sqrtm
+import numpy as np
 
 
 def construct_coeff_matrix(x_dim, B):
@@ -10,14 +11,14 @@ def construct_coeff_matrix(x_dim, B):
     # F = B^{.5}
     g_dim = 6 * x_dim
     G = zeros((g_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
-    # -----------------------
+    # ------------------------
     #|Z+sI  F
     #| F    Q
     #|           D-Q   A
     #|           A.T D^{-1}
-    #|                      Q -epsilon I
-    #|                                    Z
-    # -----------------------
+    #|                      Q
+    #|                        Z
+    # ------------------------
 
     # First Block Column
     # Z + sI
@@ -100,16 +101,17 @@ def construct_const_matrix(x_dim, A, B, D):
     #|          A.T D^{-1}
     #|                      0
     #|                        0
-    #|                          0
     # -----------------------
-    F = real(sqrtm(B))
+    # Smallest number epsilon such that 1. + epsilon != 1.
+    epsilon = np.finfo(np.float32).eps
+    # Add a small positive offset to avoid taking sqrt of singular matrix
+    F = real(sqrtm(B+epsilon*eye(x_dim)))
     # Construct B1
     B1 = zeros((2 * x_dim, 2 * x_dim))
     B1[x_dim:, :x_dim] = F
     B1[:x_dim, x_dim:] = F
 
     # Construct B2
-    eps = 1e-3
     B2 = zeros((2 * x_dim, 2 * x_dim))
     B2[:x_dim, :x_dim] = D
     B2[:x_dim, x_dim:] = A

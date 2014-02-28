@@ -3,6 +3,7 @@ from numpy import bmat, zeros, reshape, array, dot, eye, outer, shape
 from numpy import sqrt, real, ones
 from numpy.linalg import pinv, eig, matrix_rank
 from scipy.linalg import block_diag, sqrtm
+import numpy as np
 
 
 def construct_coeff_matrix(x_dim, Q, C, B, E):
@@ -11,14 +12,17 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # J = Q^{-.5} (symmetric)
     # H = E^{.5} (symmetric)
     g_dim = 7 * x_dim
+    # Smallest number epsilon such that 1. + epsilon != 1.
+    epsilon = np.finfo(np.float32).eps
     G = zeros((g_dim ** 2, 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2))
-    J = real(sqrtm(pinv(Q)))
-    H = real(sqrtm(E))
+    # Add a small positive offset to avoid taking sqrt of singular matrix
+    J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
+    H = real(sqrtm(E+epsilon*eye(x_dim)))
     F = dot(J, C - B)
     # ------------------------------------------
     #|Z+sI-JAF.T -FA.TJ  JAH
     #|    (JAH).T         I
-    #|                       D+eps_I    A
+    #|                       D-eps_I    A
     #|                       A.T        D^{-1}
     #|                                         I  A.T
     #|                                         A   I
@@ -172,7 +176,7 @@ def construct_const_matrix(x_dim, Q, D):
     # --------------------------
     #| 0   0
     #| 0   I
-    #|        D+eps_I    0
+    #|        D-eps_I    0
     #|         0        D^{-1}
     #|                         I
     #|                            I
