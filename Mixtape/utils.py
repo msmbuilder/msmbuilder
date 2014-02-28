@@ -51,6 +51,10 @@ def categorical(pvals, size=None, random_state=None):
 
 
 def iter_vars(A, Q, N):
+    """Utility function used to solve fixed point equation
+       Q + A D A.T = D
+       for D
+     """
     V = np.eye(np.shape(A)[0])
     for i in range(N):
         V = Q + np.dot(A, np.dot(V, A.T))
@@ -91,19 +95,6 @@ def empirical_wells(Ys, W_i_Ts):
             denom += W_i_Ts[t, k]
         covars[k] = (1.0 / denom) * num
     return means, covars
-
-
-def transition_counts(assignments, K):
-    (T,) = np.shape(assignments)
-    Zhat = np.ones((K, K))
-    for t in range(1, T):
-        i = assignments[t - 1]
-        j = assignments[t]
-        Zhat[i, j] += 1
-    for i in range(K):
-        s = sum(Zhat[i])
-        Zhat[i] /= s
-    return Zhat
 
 
 def kmeans(ys, K):
@@ -168,8 +159,6 @@ def means_match(base_means, means, assignments):
         for j in range(K):
             if norm(base_means[i] - means[j]) < closest_dist:
                 closest = j
-                # print "base_means[%d] = %s" % (i, str(base_means[i]))
-                # print "means[%d] = %s" % (j, str(means[j]))
                 closest_dist = norm(base_means[i] - means[j])
         matching[i] = closest
     for t in range(T):

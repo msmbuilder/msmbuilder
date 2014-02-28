@@ -63,7 +63,9 @@ class MetastableSwitchingLDS(object):
     bs : np.ndarray, shape=(n_states, n_features)
         Mean of the gaussian noise in each state.
     Qs : np.ndarray, shape=(n_states, n_features, n_features)
-        Covariance matrix for the noise in each state
+        Local Covariance matrix for the noise in each state
+    covars : np.ndarray, shape=(n_states, n_features, n_features)
+        Global Covariance matrix for the noise in each state
     transmat : np.ndarray, shape=(n_states, n_states)
         State-to-state Markov jump probabilities
     n_iter : int, optional
@@ -78,11 +80,17 @@ class MetastableSwitchingLDS(object):
         Can contain any combination of 't' for transmat, 'm' for means,
         and 'c' for covars, 'q' for Q matrices, 'a' for A matrices, and
         'b' for b vectors. Defaults to all parameters.
+    eps: float, optional
+        The transition matrices A[i] are initialized as (1-eps)*I and local
+        covariance matrices Q[i] are initialized as eps*covars[i]. eps
+        encodes the fact that local covariances Q[i] should be small and
+        that A[i] should almost be identity.
     """
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
         init_params='tmcqab', transmat_prior=None, params='tmcqab',
-        n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed'):
+        n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed',
+        eps=2.e-1):
 
         self.n_states = n_states
         self.n_features = n_features
@@ -97,6 +105,7 @@ class MetastableSwitchingLDS(object):
             covars_weight = 0
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
+        self.eps = eps
         self._impl = SwitchingVAR1CPUImpl(n_states, n_features, precision)
 
         self._As_ = None
@@ -137,12 +146,11 @@ class MetastableSwitchingLDS(object):
             self.populations_ = np.ones(self.n_states) / self.n_states
         if 'a' in self.init_params:
             self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
-            eps = 2e-1
             for i in range(self.n_states):
                 #A = randn(self.n_features, self.n_features)
                 #u, s, v = np.linalg.svd(A)
                 #self.As_[i] = rand() * np.dot(u, v.T)
-                self.As_[i] = np.eye(self.n_features) - eps
+                self.As_[i] = np.eye(self.n_features) - self.eps
         if 'b' in self.init_params:
             self.bs_ = np.zeros((self.n_states, self.n_features))
             for i in range(self.n_states):
@@ -152,9 +160,8 @@ class MetastableSwitchingLDS(object):
         if 'q' in self.init_params:
             self.Qs_ = np.zeros((self.n_states, self.n_features,
                 self.n_features))
-            eps = 2e-1
             for i in range(self.n_states):
-                self.Qs_[i] = eps * self.covars_[i]
+                self.Qs_[i] = self.eps * self.covars_[i]
 
 
     def sample(self, n_samples, init_state=None, init_obs=None):
@@ -424,7 +431,10 @@ class MetastableSwitchingLDS(object):
         return wells
 
     def compute_process_covariances(self, N=10000):
-
+        """Compute the emergent complexity D_i of metastable state i by
+          solving the fixed point equation Q_i + A_i D_i A_i.T = D_i
+          for D_i
+        """
         covs = np.zeros((self.n_states, self.n_features, self.n_features))
         for k in range(self.n_states):
             A = self.As_[k]
