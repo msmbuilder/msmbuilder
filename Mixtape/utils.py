@@ -100,57 +100,6 @@ def empirical_wells(Ys, W_i_Ts):
     return means, covars
 
 
-def kmeans(ys, K):
-    """ Takes a dataset and finds the K means through the usual
-    k-means algorithm.
-    Inputs:
-      ys: Dataset of points
-      K: number of means
-    Outputs:
-      means: Learned means
-      assigments: Says which mean the t-th datapoint belongs to
-    """
-    (T, y_dim) = np.shape(ys)
-    means = np.zeros((K, y_dim))
-    old_means = np.zeros((K, y_dim))
-    assignments = np.zeros(T)
-    num_each = np.zeros(K)
-    # Pick random observations as initializations
-    for k in range(K):
-        r = randint(0, T)
-        means[k] = ys[r]
-    Delta = np.Inf
-    Epsilon = 1e-5
-    iteration = 0
-    while Delta >= Epsilon:
-        Delta = 0
-        # Perform an Assignment Step
-        for t in range(T):
-            dist = np.Inf
-            y = ys[t]
-            # Find closest means
-            for k in range(K):
-                if norm(y - means[k]) < dist:
-                    dist = norm(y - means[k])
-                    assignments[t] = k
-        # Perform Mean Update Step
-        old_means[:] = means[:]
-        # Reset means and num_each
-        means[:] = 0
-        num_each[:] = 0
-        for t in range(T):
-            k = assignments[t]
-            num_each[k.__int__()] += 1
-            means[k.__int__()] += ys[t.__int__()]
-        for k in range(K):
-            if num_each[k] > 0:
-                means[k] /= num_each[k]
-            Delta += norm(means[k] - old_means[k])
-        # reset numeach
-        iteration += 1
-    return means, assignments
-
-
 def means_match(base_means, means, assignments):
     (K, y_dim) = np.shape(means)
     (T,) = np.shape(assignments)
