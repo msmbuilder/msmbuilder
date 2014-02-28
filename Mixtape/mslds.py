@@ -18,8 +18,8 @@ from mdtraj.utils import ensure_type
 
 from mixtape import _reversibility
 from mixtape._switching_var1 import SwitchingVAR1CPUImpl
-from mixtape.A_sdp import solve_A
-from mixtape.Q_sdp import solve_Q
+from mixtape.mslds_solvers.mslds_A_sdp import solve_A
+from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
 
 class MetastableSwitchingLDS(object):
