@@ -147,9 +147,6 @@ class MetastableSwitchingLDS(object):
         if 'a' in self.init_params:
             self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
             for i in range(self.n_states):
-                #A = randn(self.n_features, self.n_features)
-                #u, s, v = np.linalg.svd(A)
-                #self.As_[i] = rand() * np.dot(u, v.T)
                 self.As_[i] = np.eye(self.n_features) - self.eps
         if 'b' in self.init_params:
             self.bs_ = np.zeros((self.n_states, self.n_features))
@@ -295,10 +292,11 @@ class MetastableSwitchingLDS(object):
             cvnum[c] = (stats['obs*obs.T'][c]
                         - obsmean - obsmean.T
                         + np.outer(self._means_[c], self._means_[c])
-                        * stats['post'][c])
+                        * stats['post'][c]) \
+                + self.covars_prior * np.eye(self.n_features)
         cvweight = max(self.covars_weight - self.n_features, 0)
-        self.covars_ = ((self.covars_prior + cvnum) /
-                         (cvweight + stats['post'][:, None, None]))
+        self.covars_ = ((cvnum) /
+                 (cvweight + stats['post'][:, None, None]))
 
     def _transmat_update(self, stats):
         counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
@@ -308,7 +306,8 @@ class MetastableSwitchingLDS(object):
         for i in range(self.n_states):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = stats['obs*obs[t-1].T'][i]
-            mean_but_last = np.reshape(stats['obs[:-1]'][i], (self.n_features, 1))
+            mean_but_last = np.reshape(stats['obs[:-1]'][i],
+                    (self.n_features, 1))
             C = np.dot(b, mean_but_last.T)
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
@@ -316,7 +315,8 @@ class MetastableSwitchingLDS(object):
             sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q)
             avec = np.array(sol['x'])
             avec = avec[1 + self.n_features * (self.n_features + 1) / 2:]
-            A = np.reshape(avec, (self.n_features, self.n_features), order='F')
+            A = np.reshape(avec, (self.n_features, self.n_features),
+                    order='F')
             self.As_[i] = A
 
     def _Q_update(self, stats):
