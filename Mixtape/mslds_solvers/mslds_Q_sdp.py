@@ -9,8 +9,6 @@ import numpy as np
 def construct_coeff_matrix(x_dim, B):
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
-    g_dim = 6 * x_dim
-    G = zeros((g_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # ------------------------
     #|Z+sI  F
     #| F    Q
@@ -20,7 +18,10 @@ def construct_coeff_matrix(x_dim, B):
     #|                        Z
     # ------------------------
 
+    # Block Matrix 1
     # First Block Column
+    g1_dim = 2 * x_dim
+    G1 = zeros((g1_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # Z + sI
     left = 0
     top = 0
@@ -28,17 +29,17 @@ def construct_coeff_matrix(x_dim, B):
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g_dim + j * g_dim + top + i
+            mat_pos = left * g1_dim + j * g1_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            G[mat_pos, vec_pos] += 1.
+            G1[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
     for i in range(x_dim):  # row/col on diag
         vec_pos = 0  # pos in param vector
-        mat_pos = left * g_dim + i * g_dim + top + i
-        G[mat_pos, vec_pos] += 1.
+        mat_pos = left * g1_dim + i * g1_dim + top + i
+        G1[mat_pos, vec_pos] += 1.
     # Second Block Column
     # Q
     left = x_dim
@@ -46,50 +47,60 @@ def construct_coeff_matrix(x_dim, B):
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g_dim + j * g_dim + top + i
+            mat_pos = left * g1_dim + j * g1_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            G[mat_pos, vec_pos] += 1.
+            G1[mat_pos, vec_pos] += 1.
+    # Block Matrix 2
+    g2_dim = 2 * x_dim
+    G2 = zeros((g2_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # Third Block Column
     # -Q
-    left = 2 * x_dim
-    top = 2 * x_dim
+    left = 0 * x_dim
+    top = 0 * x_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g_dim + j * g_dim + top + i
+            mat_pos = left * g2_dim + j * g2_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            G[mat_pos, vec_pos] += -1.
+            G2[mat_pos, vec_pos] += -1.
     # Fourth Block Column
     # -------------------
+    # Block Matrix 3
+    g3_dim = x_dim
+    G3 = zeros((g3_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # Fifth Block Column
     # Q
-    left = 4 * x_dim
-    top = 4 * x_dim
+    left = 0 * x_dim
+    top = 0 * x_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g_dim + j * g_dim + top + i
+            mat_pos = left * g3_dim + j * g3_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            G[mat_pos, vec_pos] += 1.
+            G3[mat_pos, vec_pos] += 1.
+    # Block Matrix 4
+    g4_dim = x_dim
+    G4 = zeros((g4_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # Sixth Block Column
     # Z
-    left = 5 * x_dim
-    top = 5 * x_dim
+    left = 0 * x_dim
+    top = 0 * x_dim
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g_dim + j * g_dim + top + i
+            mat_pos = left * g4_dim + j * g4_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            G[mat_pos, vec_pos] += 1.
-    return G
+            G4[mat_pos, vec_pos] += 1.
+    Gs = [G1, G2, G3, G4]
+    return Gs
 
 
 def construct_const_matrix(x_dim, A, B, D):
@@ -107,26 +118,27 @@ def construct_const_matrix(x_dim, A, B, D):
     # Add a small positive offset to avoid taking sqrt of singular matrix
     F = real(sqrtm(B+epsilon*eye(x_dim)))
     # Construct B1
-    B1 = zeros((2 * x_dim, 2 * x_dim))
-    B1[x_dim:, :x_dim] = F
-    B1[:x_dim, x_dim:] = F
+    H1 = zeros((2 * x_dim, 2 * x_dim))
+    H1[x_dim:, :x_dim] = F
+    H1[:x_dim, x_dim:] = F
 
     # Construct B2
-    B2 = zeros((2 * x_dim, 2 * x_dim))
-    B2[:x_dim, :x_dim] = D
-    B2[:x_dim, x_dim:] = A
-    B2[x_dim:, :x_dim] = A.T
-    B2[x_dim:, x_dim:] = pinv(D)
+    H2 = zeros((2 * x_dim, 2 * x_dim))
+    H2[:x_dim, :x_dim] = D
+    H2[:x_dim, x_dim:] = A
+    H2[x_dim:, :x_dim] = A.T
+    H2[x_dim:, x_dim:] = pinv(D)
 
     # Construct B3
-    B3 = zeros((x_dim, x_dim))
+    H3 = zeros((x_dim, x_dim))
 
     # Construct B4
-    B4 = zeros((x_dim, x_dim))
+    H4 = zeros((x_dim, x_dim))
 
     # Construct Block matrix
-    h = block_diag(B1, B2, B3, B4)
-    return h, F
+    #h = block_diag(B1, B2, B3, B4)
+    hs = [H1, H2, H3, H4]
+    return hs, F
 
 
 def solve_Q(x_dim, A, B, D):
@@ -140,15 +152,16 @@ def solve_Q(x_dim, A, B, D):
         c[vec_pos] = 1
     cm = matrix(c)
 
-    G = construct_coeff_matrix(x_dim, B)
-    G = -G  # set negative since s = h - Gx in cvxopt's sdp solver
-    Gs = [matrix(G)]
+    Gs = construct_coeff_matrix(x_dim, B)
+    for i in range(len(Gs)):
+        Gs[i] = matrix(-Gs[i])
 
-    h, _ = construct_const_matrix(x_dim, A, B, D)
-    hs = [matrix(h)]
+    hs, _ = construct_const_matrix(x_dim, A, B, D)
+    for i in range(len(hs)):
+        hs[i] = matrix(hs[i])
 
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    return sol, c, G, h
+    return sol, c, Gs, hs
 
 
 def test_Q_generate_constraints(x_dim):

@@ -94,7 +94,7 @@ class MetastableSwitchingLDS(object):
         Global Covariance matrix for the noise in each state
     transmat : np.ndarray, shape=(n_states, n_states)
         State-to-state Markov jump probabilities
-    n_iter : int, optional
+    n_em_iter : int, optional
         Number of iterations to perform during training
     reversible_type : str
         Method by which the reversibility of the transition matrix
@@ -120,13 +120,13 @@ class MetastableSwitchingLDS(object):
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
         init_params='tmcqab', transmat_prior=None, params='tmcqab',
-        reversible_type='mle', n_iter=10, covars_prior=1e-2,
+        reversible_type='mle', n_em_iter=10, covars_prior=1e-2,
         covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
 
         self.n_states = n_states
         self.n_features = n_features
         self.n_hotstart_sequences = n_hotstart_sequences
-        self.n_iter = n_iter
+        self.n_em_iter = n_em_iter
         self.init_params = init_params
         self.platform = platform
         self.reversible_type = reversible_type
@@ -294,7 +294,7 @@ class MetastableSwitchingLDS(object):
         self._init(sequences)
         n_obs = sum(len(s) for s in sequences)
 
-        for i in range(self.n_iter):
+        for i in range(self.n_em_iter):
             print "Iteration %d" % i
             _, stats = self._impl.do_estep()
             if stats['trans'].sum() > 10*n_obs:
