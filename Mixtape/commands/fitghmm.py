@@ -153,7 +153,7 @@ class FitGHMM(Command, MDTrajInputMixin):
             'train_time': end - start,
             'means': np.real(model.means_).tolist(),
             'vars': np.real(model.vars_).tolist(),
-            'train_logprob': np.real(model.fit_logprob_[-1]),
+            'train_logprob': model.fit_logprob_[-1],
             'n_train_observations': sum(len(t) for t in train),
             'n_test_observations': sum(len(t) for t in test),
             'train_logprobs': model.fit_logprob_,
