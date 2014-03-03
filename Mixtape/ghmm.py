@@ -102,9 +102,9 @@ class GaussianFusionHMM(object):
         If 't' is in params, the transition matrix will be set. If
         'm' is in params, the statemeans will be set. If 'v' is in
         params, the state variances will be set.
-    n_hotstart_sequences : int
+    n_hotstart : {int, 'all'}
         Number of sequences to use when hotstarting the EM with kmeans.
-        Default=50
+        Default='all'
 
     Notes
     -----
@@ -114,7 +114,7 @@ class GaussianFusionHMM(object):
                  transmat_prior=None, vars_prior=1e-3, vars_weight=1,
                  random_state=None, params='tmv', init_params='tmv',
                  platform='cpu', precision='mixed', timing=True,
-                 n_hotstart_sequences=50):
+                 n_hotstart='all'):
         self.n_states = n_states
         self.n_features = n_features
         self.n_em_iter = n_em_iter
@@ -130,7 +130,7 @@ class GaussianFusionHMM(object):
         self.init_params = init_params
         self.platform = platform
         self.timing = timing
-        self.n_hotstart_sequences = n_hotstart_sequences
+        self.n_hotstart = n_hotstart
         self._impl = None
 
         if not reversible_type in ['mle', 'transpose']:
@@ -216,12 +216,18 @@ class GaussianFusionHMM(object):
 	'''
 	self._impl._sequences = sequences
 
-        small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart_sequences)])
+        if self.n_hotstart == 'all':
+            small_dataset = np.vstack(sequences)
+        else:
+            small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
 
         if 'm' in init_params:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
+                self.means_ = cluster.KMeans(
+                    n_clusters=self.n_states, n_init=1, init='random',
+                    n_jobs=-1, random_state=self.random_state).fit(
+                        small_dataset).cluster_centers_
         if 'v' in init_params:
             self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         if 't' in init_params:

@@ -83,10 +83,13 @@ class FitGHMM(Command, MDTrajInputMixin):
         1%% of the counts are lost with --split 100), but can help with speed
         (on gpu + multicore cpu) and numerical instabilities that come when
         trajectories get extremely long.''', default=10000)
+    group_hmm.add_argument('-n-reps', '--n-repetitions', type=int, default=1,
+        help='''Build each model `n-reps` times with different random seeds,
+        saving all of the models to the output file.''')
 
-    group_cv = argument_group('Cross Validation')
-    group_cv.add_argument('--n-cv', type=int, default=1,
-        help='Run N-fold cross validation. default=1')
+    # group_cv = argument_group('Cross Validation')
+    # group_cv.add_argument('--n-cv', type=int, default=1,
+    #     help='Run N-fold cross validation. default=1')
     # We're training and testing at the same lag time for the moment
     # group_cv.add_argument('--test-lag-time', type=int, default=1,
     #     help='Lag time at which to test the models. default=1')
@@ -118,18 +121,20 @@ class FitGHMM(Command, MDTrajInputMixin):
             for lag_time in args.lag_times:
                 subsampled = [d[::lag_time] for d in data]
                 for n_states in args.n_states:
+                    for rep in range(self.args.n_repetitions):
+                        self.fit(subsampled, subsampled, n_states, lag_time, rep, args, outfile)
 
-                    if args.n_cv > 1:
-                        for fold, (train_i, test_i) in enumerate(KFold(n=len(data), n_folds=args.n_cv)):
-                            train = [subsampled[i] for i in train_i]
-                            test = [subsampled[i] for i in test_i]
+                    # if args.n_cv > 1:
+                    # for fold, (train_i, test_i) in enumerate(KFold(n=len(data), n_folds=args.n_cv)):
+                    #        train = [subsampled[i] for i in train_i]
+                    #        test = [subsampled[i] for i in test_i]
+                    #
+                    #        self.fit(train, test, n_states, lag_time, fold, args, outfile)
+                    # else:
+                    #     self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
-                            self.fit(train, test, n_states, lag_time, fold, args, outfile)
-                    else:
-                        self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
-
-    def fit(self, train, test, n_states, train_lag_time, fold, args, outfile):
+    def fit(self, train, test, n_states, train_lag_time, repetition, args, outfile):
         kwargs = dict(n_states=n_states, n_features=self.n_features, n_em_iter=args.n_em_iter,
             n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
             thresh=args.thresh, reversible_type=args.reversible_type,
@@ -153,14 +158,16 @@ class FitGHMM(Command, MDTrajInputMixin):
             'train_time': end - start,
             'means': np.real(model.means_).tolist(),
             'vars': np.real(model.vars_).tolist(),
-            'train_logprob': np.real(model.fit_logprob_[-1]),
+            'train_logprob': model.fit_logprob_[-1],
             'n_train_observations': sum(len(t) for t in train),
             'n_test_observations': sum(len(t) for t in test),
             'train_logprobs': model.fit_logprob_,
             #'test_lag_time': args.test_lag_time,
-            'cross_validation_fold': fold,
-            'cross_validation_nfolds': args.n_cv,
+            'cross_validation_fold': 0,
+            'cross_validation_nfolds': 1,
+            'repetition': repetition,
         }
+        print(result)
 
         # model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
         # Don't do any contraction -- train and test at the same lagtime
