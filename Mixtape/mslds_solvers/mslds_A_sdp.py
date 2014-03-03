@@ -4,6 +4,8 @@ from numpy import sqrt, real, ones
 from numpy.linalg import pinv, eig, matrix_rank
 from scipy.linalg import block_diag, sqrtm, pinv2
 import numpy as np
+import cvxopt.misc as misc
+import math
 
 
 def construct_coeff_matrix(x_dim, Q, C, B, E):
@@ -45,7 +47,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g1_dim + j * g1_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
@@ -58,7 +60,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 0
     for i in range(x_dim):  # row/col on diag
         vec_pos = prev  # pos in param vector
-        mat_pos = left * g1_dim + i * g1_dim + top + i
+        mat_pos = left * g_dim + i * g_dim + top + i
         G[mat_pos, vec_pos] += 1.
         #if (mat_pos, vec_pos) in G1:
         #    G1[(mat_pos, vec_pos)] += 1.
@@ -68,7 +70,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
         for j in range(x_dim):
-            mat_pos = left * g1_dim + j * g1_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             # For (i,j)-th element in matrix M
             # do summation:
             #   M    = -J A F.T
@@ -89,7 +91,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
         for j in range(x_dim):
-            mat_pos = left * g1_dim + j * g1_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             # For (i,j)-th element in matrix M
             # do summation:
             #   M    = F A.T J
@@ -111,7 +113,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
         for j in range(x_dim):
-            mat_pos = left * g1_dim + j * g1_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             # For (i,j)-th element in matrix M
             # do summation:
             #   M    = H A.T J
@@ -134,7 +136,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
         for j in range(x_dim):
-            mat_pos = left * g1_dim + j * g1_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             # For (i,j)-th element in matrix M
             # do summation:
             #   M    = J A H
@@ -167,7 +169,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
-            mat_pos = left * g2_dim + j * g2_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             G[mat_pos, vec_pos] += 1
             #if (mat_pos, vec_pos) in G2:
             #    G2[(mat_pos, vec_pos)] += 1
@@ -181,7 +183,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
-            mat_pos = left * g2_dim + j * g2_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             G[mat_pos, vec_pos] += 1
             #if (mat_pos, vec_pos) in G2:
             #    G2[(mat_pos, vec_pos)] += 1
@@ -194,8 +196,8 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     #G[g_dim:g_dim+g2_dim] = G2_mat
     # Block Matrix 3
     g3_dim = 2 * x_dim
-    G3_size = (g3_dim ** 2, p_dim)
-    G3 = {}
+    #G3_size = (g3_dim ** 2, p_dim)
+    #G3 = {}
     # Fifth Block Column
     # A
     left = 0 * x_dim + g1_dim + g2_dim
@@ -204,7 +206,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
-            mat_pos = left * g3_dim + j * g3_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             G[mat_pos, vec_pos] += 1
             #if (mat_pos, vec_pos) in G3:
             #    G3[(mat_pos, vec_pos)] += 1
@@ -218,7 +220,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
-            mat_pos = left * g3_dim + j * g3_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             G[mat_pos, vec_pos] += 1
             #if (mat_pos, vec_pos) in G3:
             #    G3[(mat_pos, vec_pos)] += 1
@@ -240,7 +242,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            mat_pos = left * g4_dim + j * g4_dim + top + i
+            mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
@@ -266,10 +268,23 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     #print shape(matrix(G4_mat))
     #G = sparse([matrix(G1_mat), matrix(G2_mat), matrix(G3_mat),
     #        matrix(G4_mat)])
+    #Gs = [G]
     Gs = [G]
+    Z = matrix(zeros((p_dim, p_dim)))
+    I = matrix(eye(g_dim**2))
+    D = matrix(sparse([[Z, G], [G.T, -I]]))
+    print "matrix_rank(D)"
+    print matrix_rank(D)
+    #print "A-G"
+    #print G
+    # Some debugging attempts
     Gdense = matrix(G)
     print "matrix_rank(Gdense)"
     print matrix_rank(Gdense)
+    print "matrix_rank(G)"
+    print matrix_rank(G)
+    print "shape(Gdense)"
+    print shape(Gdense)
     return Gs, F, J, H
 
 def construct_const_matrix(x_dim, Q, D):
@@ -305,15 +320,18 @@ def construct_const_matrix(x_dim, Q, D):
     # Construct Block matrix
     #hs = [H1, H2, H3, H4]
     H = spdiag([H1,H2,H3,H4])
+    #print "A-H"
+    #print H
     hs = [H]
     return hs
 
 
 def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
-    MAX_ITERS = 30
+    print "SOLVE_A!"
+    MAX_ITERS = 100
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
-    c = zeros(c_dim)
+    c = zeros((c_dim,1))
     c[0] = x_dim
     prev = 1
     for i in range(x_dim):
@@ -323,11 +341,47 @@ def solve_A(x_dim, B, C, E, D, Q):
 
     Gs, _, _, _ = construct_coeff_matrix(x_dim, Q, C, B, E)
     for i in range(len(Gs)):
-        Gs[i] = -Gs[i]
+        Gs[i] = -Gs[i] + 1e-6
 
     hs = construct_const_matrix(x_dim, Q, D)
-    for i in range(len(hs)):
-        hs[i] = matrix(hs[i])
+    #for i in range(len(hs)):
+    #    hs[i] = matrix(hs[i])
+
+    #ml = 0
+    #ms = [ int(math.sqrt(G.size[0])) for G in Gs ]
+    #dims = {'l': ml, 'q':[], 's': ms}
+    #W = {}
+    #W['d'] = matrix(1.0, (dims['l'], 1))
+    #W['di'] = matrix(1.0, (dims['l'], 1))
+    #W['v'] = [ matrix(0.0, (m,1)) for m in dims['q'] ]
+    #W['beta'] = len(dims['q']) * [ 1.0 ]
+    #for v in W['v']: v[0] = 1.0
+    #W['r'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
+    #W['rti'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
+    #for r in W['r']: r[::r.size[0]+1 ] = 1.0
+    #for rti in W['rti']: rti[::rti.size[0]+1 ] = 1.0
+
+    #kktsolver = 'qr'
+    ##A = spmatrix([], [], [], (0, c.size[0]))
+    #A = spmatrix([], [], [], (0, cm.size[0]))
+    #factor = misc.kkt_qr(G, dims, A)
+    #x = matrix(cm)
+    #x[:] = 0.0
+    #dy = matrix(0.0, (0,1))
+    #s = matrix(0.0, (hs[0].size[0]**2,1))
+    #s[:] = hs[0][:]
+    #print "matrix_rank(matrix(G.T))"
+    #print matrix_rank(matrix(G.T))
+    #print "matrix_rank(matrix([G, cm.T]))"
+    #print matrix_rank(matrix([G, cm.T]))
+    #def kktsolver(W):
+    #    return factor(W)
+    #try:
+    #    f = kktsolver(W)
+    #    f(x,dy,s)
+    #except ArithmeticError:
+    #    raise ValueError("YAY! Rank(A) < p or Rank([G; A]) < n")
+
 
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
