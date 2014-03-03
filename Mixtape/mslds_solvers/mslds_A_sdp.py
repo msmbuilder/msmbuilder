@@ -21,8 +21,8 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # Block Matrix 1
     g1_dim = 2 * x_dim
     #G1 = zeros((g1_dim ** 2, p_dim))
-    G1 = {}
-    G1_size = (g1_dim ** 2, p_dim)
+    #G1 = {}
+    #G1_size = (g1_dim ** 2, p_dim)
     # Add a small positive offset to avoid taking sqrt of singular matrix
     #J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
     J = real(sqrtm(pinv2(Q)+epsilon*eye(x_dim)))
@@ -49,19 +49,21 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            if (mat_pos, vec_pos) in G1:
-                G1[(mat_pos, vec_pos)] += 1.
-            else:
-                G1[(mat_pos, vec_pos)] = 1.
+            G[mat_pos, vec_pos] += 1.
+            #if (mat_pos, vec_pos) in G1:
+            #    G1[(mat_pos, vec_pos)] += 1.
+            #else:
+            #    G1[(mat_pos, vec_pos)] = 1.
     # sI
     prev = 0
     for i in range(x_dim):  # row/col on diag
         vec_pos = prev  # pos in param vector
         mat_pos = left * g1_dim + i * g1_dim + top + i
-        if (mat_pos, vec_pos) in G1:
-            G1[(mat_pos, vec_pos)] += 1.
-        else:
-            G1[(mat_pos, vec_pos)] = 1.
+        G[mat_pos, vec_pos] += 1.
+        #if (mat_pos, vec_pos) in G1:
+        #    G1[(mat_pos, vec_pos)] += 1.
+        #else:
+        #    G1[(mat_pos, vec_pos)] = 1.
     # - J A F.T
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
@@ -78,10 +80,11 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
                 for n in range(x_dim):
                     val = -J[i, n] * F[j, m]
                     vec_pos = prev + n * x_dim + m
-                    if (mat_pos, vec_pos) in G1:
-                        G1[(mat_pos, vec_pos)] += val
-                    else:
-                        G1[(mat_pos, vec_pos)] = val
+                    G[mat_pos, vec_pos] += val
+                    #if (mat_pos, vec_pos) in G1:
+                    #    G1[(mat_pos, vec_pos)] += val
+                    #else:
+                    #    G1[(mat_pos, vec_pos)] = val
     # - F A.T J
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
@@ -97,10 +100,11 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             for m in range(x_dim):
                 for n in range(x_dim):
                     vec_pos = prev + m * x_dim + n
-                    if (mat_pos, vec_pos) in G1:
-                        G1[(mat_pos, vec_pos)] += -F[i, n] * J[m, j]
-                    else:
-                        G1[(mat_pos, vec_pos)] = -F[i, n] * J[m, j]
+                    G[mat_pos, vec_pos] += -F[i, n] * J[m, j]
+                    #if (mat_pos, vec_pos) in G1:
+                    #    G1[(mat_pos, vec_pos)] += -F[i, n] * J[m, j]
+                    #else:
+                    #    G1[(mat_pos, vec_pos)] = -F[i, n] * J[m, j]
     # H A.T J
     left = 0
     top = x_dim
@@ -118,10 +122,11 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             for m in range(x_dim):
                 for n in range(x_dim):
                     vec_pos = prev + m * x_dim + n
-                    if (mat_pos, vec_pos) in G1:
-                        G1[(mat_pos, vec_pos)] += H[i, n] * J[m, j]
-                    else:
-                        G1[(mat_pos, vec_pos)] = H[i, n] * J[m, j]
+                    G[mat_pos, vec_pos] += H[i, n] * J[m, j]
+                    #if (mat_pos, vec_pos) in G1:
+                    #    G1[(mat_pos, vec_pos)] += H[i, n] * J[m, j]
+                    #else:
+                    #    G1[(mat_pos, vec_pos)] = H[i, n] * J[m, j]
     # Second Block Column
     # J A H
     left = x_dim
@@ -140,93 +145,98 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             for m in range(x_dim):
                 for n in range(x_dim):
                     vec_pos = prev + n * x_dim + m
-                    if (mat_pos, vec_pos) in G1:
-                        G1[(mat_pos, vec_pos)] += J[i, n] * H[m, j]
-                    else:
-                        G1[(mat_pos, vec_pos)] = J[i, n] * H[m, j]
-    G1_I = [pair[0] for pair in G1.keys()]
-    G1_J = [pair[1] for pair in G1.keys()]
-    G1_x = G1.values()
-    G1_mat = spmatrix(G1_x, G1_I, G1_J, G1_size)
-    G[:g1_dim] = G1_mat
+                    G[mat_pos, vec_pos] += J[i, n] * H[m, j]
+                    #if (mat_pos, vec_pos) in G1:
+                    #    G1[(mat_pos, vec_pos)] += J[i, n] * H[m, j]
+                    #else:
+                    #    G1[(mat_pos, vec_pos)] = J[i, n] * H[m, j]
+    #G1_I = [pair[0] for pair in G1.keys()]
+    #G1_J = [pair[1] for pair in G1.keys()]
+    #G1_x = G1.values()
+    #G1_mat = spmatrix(G1_x, G1_I, G1_J, G1_size)
+    #G[:g1_dim] = G1_mat
     # Block Matrix 2
     g2_dim = 2 * x_dim
-    G2_size = (g2_dim ** 2, p_dim)
-    G2 = {}
+    #G2_size = (g2_dim ** 2, p_dim)
+    #G2 = {}
     # Third Block Column
     # A.T
-    left = 0 * x_dim
-    top = 1 * x_dim
+    left = 0 * x_dim + g1_dim
+    top = 1 * x_dim + g1_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
             mat_pos = left * g2_dim + j * g2_dim + top + i
-            if (mat_pos, vec_pos) in G2:
-                G2[(mat_pos, vec_pos)] += 1
-            else:
-                G2[(mat_pos, vec_pos)] = 1
+            G[mat_pos, vec_pos] += 1
+            #if (mat_pos, vec_pos) in G2:
+            #    G2[(mat_pos, vec_pos)] += 1
+            #else:
+            #    G2[(mat_pos, vec_pos)] = 1
     # Fourth Block Column
     # A
-    left = 1 * x_dim
-    top = 0 * x_dim
+    left = 1 * x_dim + g1_dim
+    top = 0 * x_dim + g1_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
             mat_pos = left * g2_dim + j * g2_dim + top + i
-            if (mat_pos, vec_pos) in G2:
-                G2[(mat_pos, vec_pos)] += 1
-            else:
-                G2[(mat_pos, vec_pos)] = 1
-    G2_I = [pair[0] for pair in G2.keys()]
-    G2_J = [pair[1] for pair in G2.keys()]
-    G2_x = G2.values()
-    G2_mat = spmatrix(G2_x, G2_I, G2_J, G2_size)
-    G[g_dim:g_dim+g2_dim] = G2_mat
+            G[mat_pos, vec_pos] += 1
+            #if (mat_pos, vec_pos) in G2:
+            #    G2[(mat_pos, vec_pos)] += 1
+            #else:
+            #    G2[(mat_pos, vec_pos)] = 1
+    #G2_I = [pair[0] for pair in G2.keys()]
+    #G2_J = [pair[1] for pair in G2.keys()]
+    #G2_x = G2.values()
+    #G2_mat = spmatrix(G2_x, G2_I, G2_J, G2_size)
+    #G[g_dim:g_dim+g2_dim] = G2_mat
     # Block Matrix 3
     g3_dim = 2 * x_dim
     G3_size = (g3_dim ** 2, p_dim)
     G3 = {}
     # Fifth Block Column
     # A
-    left = 0 * x_dim
-    top = 1 * x_dim
+    left = 0 * x_dim + g1_dim + g2_dim
+    top = 1 * x_dim + g1_dim + g2_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
             mat_pos = left * g3_dim + j * g3_dim + top + i
-            if (mat_pos, vec_pos) in G3:
-                G3[(mat_pos, vec_pos)] += 1
-            else:
-                G3[(mat_pos, vec_pos)] = 1
+            G[mat_pos, vec_pos] += 1
+            #if (mat_pos, vec_pos) in G3:
+            #    G3[(mat_pos, vec_pos)] += 1
+            #else:
+            #    G3[(mat_pos, vec_pos)] = 1
     # Sixth Block Column
     # A.T
-    left = 1 * x_dim
-    top = 0 * x_dim
+    left = 1 * x_dim + g1_dim + g2_dim
+    top = 0 * x_dim + g1_dim + g2_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
             mat_pos = left * g3_dim + j * g3_dim + top + i
-            if (mat_pos, vec_pos) in G3:
-                G3[(mat_pos, vec_pos)] += 1
-            else:
-                G3[(mat_pos, vec_pos)] = 1
-    G3_I = [pair[0] for pair in G3.keys()]
-    G3_J = [pair[1] for pair in G3.keys()]
-    G3_x = G3.values()
-    G3_mat = spmatrix(G3_x, G3_I, G3_J, G3_size)
-    G[2*g_dim:g_dim+g3_dim] = G3_mat
+            G[mat_pos, vec_pos] += 1
+            #if (mat_pos, vec_pos) in G3:
+            #    G3[(mat_pos, vec_pos)] += 1
+            #else:
+            #    G3[(mat_pos, vec_pos)] = 1
+    #G3_I = [pair[0] for pair in G3.keys()]
+    #G3_J = [pair[1] for pair in G3.keys()]
+    #G3_x = G3.values()
+    #G3_mat = spmatrix(G3_x, G3_I, G3_J, G3_size)
+    #G[2*g_dim:g_dim+g3_dim] = G3_mat
     # Block Matrix 4
     g4_dim = 1 * x_dim
-    G4_size = (g4_dim ** 2, p_dim)
-    G4 = {}
+    #G4_size = (g4_dim ** 2, p_dim)
+    #G4 = {}
     # Seventh Block Column
     # Z
-    left = 0 * x_dim
-    top = 0 * x_dim
+    left = 0 * x_dim+g1_dim+g2_dim+g3_dim
+    top = 0 * x_dim+g1_dim+g2_dim+g3_dim
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
@@ -234,27 +244,29 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             if i >= j:
                 (i, j) = (j, i)
             vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            if (mat_pos, vec_pos) in G4:
-                G4[(mat_pos, vec_pos)] += 1
-            else:
-                G4[(mat_pos, vec_pos)] = 1
-    G4_I = [pair[0] for pair in G4.keys()]
-    G4_J = [pair[1] for pair in G4.keys()]
-    G4_x = G4.values()
-    G4_mat = spmatrix(G4_x, G4_I, G4_J, G4_size)
+            G[mat_pos, vec_pos] += 1
+            #if (mat_pos, vec_pos) in G4:
+            #    G4[(mat_pos, vec_pos)] += 1
+            #else:
+            #    G4[(mat_pos, vec_pos)] = 1
+    #G4_I = [pair[0] for pair in G4.keys()]
+    #G4_J = [pair[1] for pair in G4.keys()]
+    #G4_x = G4.values()
+    #G4_mat = spmatrix(G4_x, G4_I, G4_J, G4_size)
 
-    G[3*g_dim:g_dim+g3_dim] = G3_mat
-    Gs = [G1_mat, G2_mat, G3_mat, G4_mat]
-    print "shape(G1_mat)"
-    print shape(matrix(G1_mat))
-    print "shape(G2_mat)"
-    print shape(matrix(G2_mat))
-    print "shape(G3_mat)"
-    print shape(matrix(G3_mat))
-    print "shape(G4_mat)"
-    print shape(matrix(G4_mat))
-    G = sparse([matrix(G1_mat), matrix(G2_mat), matrix(G3_mat),
-            matrix(G4_mat)])
+    #G[3*g_dim:g_dim+g3_dim] = G3_mat
+    #Gs = [G1_mat, G2_mat, G3_mat, G4_mat]
+    #print "shape(G1_mat)"
+    #print shape(matrix(G1_mat))
+    #print "shape(G2_mat)"
+    #print shape(matrix(G2_mat))
+    #print "shape(G3_mat)"
+    #print shape(matrix(G3_mat))
+    #print "shape(G4_mat)"
+    #print shape(matrix(G4_mat))
+    #G = sparse([matrix(G1_mat), matrix(G2_mat), matrix(G3_mat),
+    #        matrix(G4_mat)])
+    Gs = [G]
     Gdense = matrix(G)
     print "matrix_rank(Gdense)"
     print matrix_rank(Gdense)
@@ -273,21 +285,27 @@ def construct_const_matrix(x_dim, Q, D):
     # Construct B1
     H1 = zeros((2 * x_dim, 2 * x_dim))
     H1[x_dim:, x_dim:] = eye(x_dim)
+    H1 = matrix(H1)
 
     # Construct B2
     eps = 1e-4
     H2 = zeros((2 * x_dim, 2 * x_dim))
     H2[:x_dim, :x_dim] = D - eps * eye(x_dim)
     H2[x_dim:, x_dim:] = pinv(D)
+    H2 = matrix(H2)
 
     # Construct B3
     H3 = eye(2*x_dim)
+    H3 = matrix(H3)
 
     # Construct B5
     H4 = zeros((x_dim, x_dim))
+    H4 = matrix(H4)
 
     # Construct Block matrix
-    hs = [H1, H2, H3, H4]
+    #hs = [H1, H2, H3, H4]
+    H = spdiag([H1,H2,H3,H4])
+    hs = [H]
     return hs
 
 
