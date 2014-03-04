@@ -384,7 +384,7 @@ class GaussianFusionHMM(object):
             # retain only eigenvalues > 0. These are the ones that correspond
             # to implied timescales. Eigenvalues below zero are possible (the
             # detailed balance constraint guarentees that the eigenvalues are
-            # in -1 < l < 1, but not that they strictly positive). But
+            # in -1 < l <= 1, but not that they strictly positive). But
             # eigevalues below zero do not have a real interpretation as
             # "implied timescales" because they correspond to sort of
             # damped oscillatory decays.
