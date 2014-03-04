@@ -87,8 +87,11 @@ class PullMeansGHMM(SampleGHMM):
 
             if len(p) > 0:
                 data['index'].extend(sorted_indices[-self.args.n_per_state:])
+                index_length = len(sorted_indices[-self.args.n_per_state:])
                 data['filename'].extend(sorted_filenms[-self.args.n_per_state:])
-                data['state'].extend([k]*self.args.n_per_state)
+                filename_length = len(sorted_filenms[-self.args.n_per_state:])
+                assert len(index_length) == len(filename_length)
+                data['state'].extend([k]*index_length)
             else:
                 print('WARNING: NO STRUCTURES ASSIGNED TO STATE=%d' % k)
 
