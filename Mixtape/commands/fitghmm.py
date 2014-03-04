@@ -139,7 +139,6 @@ class FitGHMM(Command, MDTrajInputMixin):
             n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
             thresh=args.thresh, reversible_type=args.reversible_type,
                     platform=args.platform)
-        print(kwargs)
         model = GaussianFusionHMM(**kwargs)
 
         start = time.time()
@@ -167,7 +166,6 @@ class FitGHMM(Command, MDTrajInputMixin):
             'cross_validation_nfolds': 1,
             'repetition': repetition,
         }
-        print(result)
 
         # model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))
         # Don't do any contraction -- train and test at the same lagtime
