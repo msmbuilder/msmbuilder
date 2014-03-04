@@ -60,8 +60,13 @@ class GaussianFusionHMM(object):
     ----------
     n_states : int
         The number of components (states) in the model
+    n_init : int
+        Number of time the EM algorithm will be run with different
+        random seeds. The final results will be the best output of
+        n_init consecutive runs in terms of log likelihood.
     n_em_iter : int
-        The number of iterations of expectation-maximization to run
+        The maximum number of iterations of expectation-maximization to
+        run during each fitting round.
     n_lqa_iter : int
         The number of iterations of the local quadratic approximation fixed
         point equations to solve when computing the new means with a nonzero
@@ -106,16 +111,25 @@ class GaussianFusionHMM(object):
         Number of sequences to use when hotstarting the EM with kmeans.
         Default='all'
 
+    Attributes
+    ----------
+    means_ :
+    vars_ :
+    transmat_ :
+    populations_ :
+    fit_logprob_ :
+
     Notes
     -----
     """
-    def __init__(self, n_states, n_features, n_em_iter=100, n_lqa_iter=10,
-                 fusion_prior=1e-2, thresh=1e-2, reversible_type='mle',
-                 transmat_prior=None, vars_prior=1e-3, vars_weight=1,
-                 random_state=None, params='tmv', init_params='tmv',
-                 platform='cpu', precision='mixed', timing=True,
-                 n_hotstart='all'):
+    def __init__(self, n_states, n_features, n_init=10, n_em_iter=10,
+                 n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
+                 reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
+                 vars_weight=1, random_state=None, params='tmv',
+                 init_params='tmv', platform='cpu', precision='mixed',
+                 timing=True, n_hotstart='all'):
         self.n_states = n_states
+        self.n_init = n_init
         self.n_features = n_features
         self.n_em_iter = n_em_iter
         self.n_lqa_iter = n_lqa_iter
@@ -170,43 +184,60 @@ class GaussianFusionHMM(object):
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
-        self._init(sequences, self.init_params)
-        self.fit_logprob_ = []
+
         iterations_timing = []
         n_obs = sum(len(s) for s in sequences)
+        best_fit = {'params': {}, 'loglikelihood': -np.inf}
 
-        for i in range(self.n_em_iter):
-            if self.timing:
-                iterations_timing.append(time.time())
+        for _ in range(self.n_init):
+            fit_logprob = []
+            self._init(sequences, self.init_params)
+            for i in range(self.n_em_iter):
+                if self.timing:
+                    iterations_timing.append(time.time())
 
-            # Expectation step
-            curr_logprob, stats = self._impl.do_estep()
-            if stats['trans'].sum() > 10*n_obs:
-                print('Number of transition counts', stats['trans'].sum())
-                print('Total sequence length', n_obs)
-                print("Numerical overflow detected. Try splitting your trajectories")
-                print("into shorter segments or running in double")
-                break
+                # Expectation step
+                curr_logprob, stats = self._impl.do_estep()
+                if stats['trans'].sum() > 10*n_obs:
+                    raise OverflowError((
+                        'Number of transition counts: %s. Total sequence length = %s '
+                        'Numerical overflow detected. Try splitting your trajectories '
+                        'into shorter segments or running in double ' % (
+                            stats['trans'].sum(), n_obs)))
+
+                fit_logprob.append(curr_logprob)
+                # Check for convergence
+                if i > 0 and abs(fit_logprob[-1] - fit_logprob[-2]) < self.thresh:
+                    break
+
+                # Maximization step
+                self._do_mstep(stats, self.params)
+
+                if self.timing:
+                    samples_per_s = sum(len(s) for s in sequences) / np.diff(iterations_timing)
+                    #print('GaussianHMM EM Fitting')
+                    #print('----------------------')
+                    #print('Platform: %s' % self.platform)
+                    #print('EM Iters: %s' % i)
+                    #print('Speed:    %.3f +/- %.3f us/sample' % (np.mean(us_per_sample_per_iter ), np.std(us_per_sample_per_iter )))
+                    self.mean_fit_time_ = np.mean(samples_per_s)
+                    self.std_fit_time_ = np.std(samples_per_s)
+
+            # if this is better than our other iterations, keep it
+            if curr_logprob > best_fit['loglikelihood']:
+                best_fit['loglikelihood'] = curr_logprob
+                best_fit['params'] = {'means': self.means_, 'vars': self.vars_,
+                                      'populations': self.populations_,
+                                      'transmat': self.transmat_,
+                                      'fit_logprob': fit_logprob}
 
 
-            self.fit_logprob_.append(curr_logprob)
-
-            # Check for convergence
-            if i > 0 and abs(self.fit_logprob_[-1] - self.fit_logprob_[-2]) < self.thresh:
-                break
-
-            # Maximization step
-            self._do_mstep(stats, self.params)
-
-        if self.timing:
-            samples_per_s = sum(len(s) for s in sequences) / np.diff(iterations_timing)
-            #print('GaussianHMM EM Fitting')
-            #print('----------------------')
-            #print('Platform: %s' % self.platform)
-            #print('EM Iters: %s' % i)
-            #print('Speed:    %.3f +/- %.3f us/sample' % (np.mean(us_per_sample_per_iter ), np.std(us_per_sample_per_iter )))
-            self.mean_fit_time_ = np.mean(samples_per_s)
-            self.std_fit_time_ = np.std(samples_per_s)
+        if self.n_init > 1:
+            self.means_ = best_fit['params']['means']
+            self.vars_ = best_fit['params']['vars']
+            self.transmat_ = best_fit['params']['transmat']
+            self.populations_ = best_fit['params']['populations']
+            self.fit_logprob_ = best_fit['params']['fit_logprob']
 
         return self
 

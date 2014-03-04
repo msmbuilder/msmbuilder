@@ -169,5 +169,5 @@ def test_fitghmm():
     
     print(samples_csv)
     print(means_csv)
-    means_pdb_xyz = means_pdb.xyz.reshape(4, 3)
-    eq(means_pdb_xyz, np.array(model['means']), decimal=0)
+    means_pdb_xyz = np.array(sorted(means_pdb.xyz.reshape(4, 3), key=lambda e: e[0]))
+    eq(means_pdb_xyz, np.array(sorted(model['means'], key=lambda e:e[0])), decimal=0)
