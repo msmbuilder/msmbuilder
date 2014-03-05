@@ -67,8 +67,14 @@ class FitGHMM(Command, MDTrajInputMixin):
         default='cpu', help='Implementation platform. default="cpu"')
     group_hmm.add_argument('--fusion-prior', type=float, default=1e-2,
         help='Strength of the adaptive fusion prior. default=1e-2')
-    group_hmm.add_argument('--n-em-iter', type=int, default=100,
-        help='Maximum number of iterations of EM. default=100')
+    group_hmm.add_argument('--n-init', type=int, default=10, help='''Number
+        of initialization for each model fit. Each of these "outer iterations"
+        corresponds to a new random initialization of the states from kmeans
+        and then `--n-em-iter`s of expectation-maximization. The best of these
+        models (selected by likelihood) is retained. default=10''')
+    group_hmm.add_argument('--n-em-iter', type=int, default=10,
+        help='''Maximum number of iterations of expectation-maximization steps
+        per fitting round. default=10''')
     group_hmm.add_argument('--thresh', type=float, default=1e-2,
         help='''Convergence criterion for EM. Quit when the log likelihood
         decreases by less than this threshold. default=1e-2''')
@@ -83,10 +89,14 @@ class FitGHMM(Command, MDTrajInputMixin):
         1%% of the counts are lost with --split 100), but can help with speed
         (on gpu + multicore cpu) and numerical instabilities that come when
         trajectories get extremely long.''', default=10000)
+    group_hmm.add_argument('-n-reps', '--n-repetitions', type=int, default=1,
+        help='''Run this many repititions of the *entire experiment*  with
+        different random seeds, saving all of the models to the output file.
+        This is the outer-most iteration. default=1''')
 
-    group_cv = argument_group('Cross Validation')
-    group_cv.add_argument('--n-cv', type=int, default=1,
-        help='Run N-fold cross validation. default=1')
+    # group_cv = argument_group('Cross Validation')
+    # group_cv.add_argument('--n-cv', type=int, default=1,
+    #     help='Run N-fold cross validation. default=1')
     # We're training and testing at the same lag time for the moment
     # group_cv.add_argument('--test-lag-time', type=int, default=1,
     #     help='Lag time at which to test the models. default=1')
@@ -118,23 +128,24 @@ class FitGHMM(Command, MDTrajInputMixin):
             for lag_time in args.lag_times:
                 subsampled = [d[::lag_time] for d in data]
                 for n_states in args.n_states:
+                    for rep in range(self.args.n_repetitions):
+                        self.fit(subsampled, subsampled, n_states, lag_time, rep, args, outfile)
 
-                    if args.n_cv > 1:
-                        for fold, (train_i, test_i) in enumerate(KFold(n=len(data), n_folds=args.n_cv)):
-                            train = [subsampled[i] for i in train_i]
-                            test = [subsampled[i] for i in test_i]
+                    # if args.n_cv > 1:
+                    # for fold, (train_i, test_i) in enumerate(KFold(n=len(data), n_folds=args.n_cv)):
+                    #        train = [subsampled[i] for i in train_i]
+                    #        test = [subsampled[i] for i in test_i]
+                    #
+                    #        self.fit(train, test, n_states, lag_time, fold, args, outfile)
+                    # else:
+                    #     self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
-                            self.fit(train, test, n_states, lag_time, fold, args, outfile)
-                    else:
-                        self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
-
-    def fit(self, train, test, n_states, train_lag_time, fold, args, outfile):
-        kwargs = dict(n_states=n_states, n_features=self.n_features, n_em_iter=args.n_em_iter,
-            n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
-            thresh=args.thresh, reversible_type=args.reversible_type,
-                    platform=args.platform)
-        print(kwargs)
+    def fit(self, train, test, n_states, train_lag_time, repetition, args, outfile):
+        kwargs = dict(n_states=n_states, n_features=self.n_features, n_init=args.n_init,
+                      n_em_iter=args.n_em_iter, n_lqa_iter = args.n_lqa_iter,
+                      fusion_prior=args.fusion_prior, thresh=args.thresh,
+                      reversible_type=args.reversible_type, platform=args.platform)
         model = GaussianFusionHMM(**kwargs)
 
         start = time.time()
@@ -158,8 +169,9 @@ class FitGHMM(Command, MDTrajInputMixin):
             'n_test_observations': sum(len(t) for t in test),
             'train_logprobs': model.fit_logprob_,
             #'test_lag_time': args.test_lag_time,
-            'cross_validation_fold': fold,
-            'cross_validation_nfolds': args.n_cv,
+            'cross_validation_fold': 0,
+            'cross_validation_nfolds': 1,
+            'repetition': repetition,
         }
 
         # model.transmat_ = contraction(model.transmat_, float(train_lag_time) / float(args.test_lag_time))

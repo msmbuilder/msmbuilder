@@ -146,7 +146,7 @@ def test_help():
 def test_fitghmm():
     with tempdir():
         RawPositionsFeaturizer(n_features=3).save('featurizer.pickl')
-        shell('hmsm fit-ghmm --featurizer featurizer.pickl '
+        shell('hmsm fit-ghmm --featurizer featurizer.pickl  --n-init 10  '
                   ' --n-states 4 --dir %s --ext h5 --top %s' % (
                       DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
         shell('hmsm inspect -i hmms.jsonlines --details')
@@ -165,9 +165,10 @@ def test_fitghmm():
         means_pdb = md.load(glob('means-*.pdb'))
 
     means = np.array(sorted(model['means'], key=lambda e: e[0]))
+    print('true\n', HMM.means_)
+    print('learned\n', means)
+
     eq(HMM.means_, means, decimal=0)
-    
-    print(samples_csv)
-    print(means_csv)
-    means_pdb_xyz = means_pdb.xyz.reshape(4, 3)
-    eq(means_pdb_xyz, np.array(model['means']), decimal=0)
+
+    means_pdb_xyz = np.array(sorted(means_pdb.xyz.reshape(4, 3), key=lambda e: e[0]))
+    eq(means_pdb_xyz, np.array(sorted(model['means'], key=lambda e:e[0])), decimal=0)
