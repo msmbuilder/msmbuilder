@@ -169,8 +169,6 @@ def test_fitghmm():
     print('learned\n', means)
 
     eq(HMM.means_, means, decimal=0)
-    
-    # print(samples_csv)
-    # print(means_csv)
+
     means_pdb_xyz = np.array(sorted(means_pdb.xyz.reshape(4, 3), key=lambda e: e[0]))
     eq(means_pdb_xyz, np.array(sorted(model['means'], key=lambda e:e[0])), decimal=0)
