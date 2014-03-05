@@ -107,6 +107,8 @@ class GaussianFusionHMM(object):
         If 't' is in params, the transition matrix will be set. If
         'm' is in params, the statemeans will be set. If 'v' is in
         params, the state variances will be set.
+    timing : bool, default=False
+        Print detailed timing information about the fitting process.
     n_hotstart : {int, 'all'}
         Number of sequences to use when hotstarting the EM with kmeans.
         Default='all'
@@ -127,7 +129,7 @@ class GaussianFusionHMM(object):
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
                  vars_weight=1, random_state=None, params='tmv',
                  init_params='tmv', platform='cpu', precision='mixed',
-                 timing=True, n_hotstart='all'):
+                 timing=False, n_hotstart='all'):
         self.n_states = n_states
         self.n_init = n_init
         self.n_features = n_features
@@ -188,18 +190,17 @@ class GaussianFusionHMM(object):
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
-
-        iterations_timing = []
         n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
+        if self.timing:
+            # counter for the total number of EM iters performed
+            total_em_iters = 0
+            start_time = time.time()
 
         for _ in range(self.n_init):
             fit_logprob = []
             self._init(sequences, self.init_params)
             for i in range(self.n_em_iter):
-                if self.timing:
-                    iterations_timing.append(time.time())
-
                 # Expectation step
                 curr_logprob, stats = self._impl.do_estep()
                 if stats['trans'].sum() > 10*n_obs:
@@ -216,16 +217,7 @@ class GaussianFusionHMM(object):
 
                 # Maximization step
                 self._do_mstep(stats, self.params)
-
-                if self.timing:
-                    samples_per_s = sum(len(s) for s in sequences) / np.diff(iterations_timing)
-                    #print('GaussianHMM EM Fitting')
-                    #print('----------------------')
-                    #print('Platform: %s' % self.platform)
-                    #print('EM Iters: %s' % i)
-                    #print('Speed:    %.3f +/- %.3f us/sample' % (np.mean(us_per_sample_per_iter ), np.std(us_per_sample_per_iter )))
-                    self.mean_fit_time_ = np.mean(samples_per_s)
-                    self.std_fit_time_ = np.std(samples_per_s)
+                total_em_iters += 1
 
             # if this is better than our other iterations, keep it
             if curr_logprob > best_fit['loglikelihood']:
@@ -241,6 +233,17 @@ class GaussianFusionHMM(object):
         self.transmat_ = best_fit['params']['transmat']
         self.populations_ = best_fit['params']['populations']
         self.fit_logprob_ = best_fit['params']['fit_logprob']
+
+        if self.timing:
+            # but only print the timing variables if people really want them
+            s_per_sample_per_em = (time.time() - start_time) / (sum(len(s) for s in sequences) * total_em_iters)
+            print('GaussianFusionHMM EM Fitting')
+            print('----------------------------')
+            print('Platform: %s    n_features: %d' % (self.platform, self.n_features))
+            print('TOTAL EM Iters: %s' % total_em_iters)
+            print('Speed:    %.3f +/- %.3f us/(sample * em-iter)' % (
+                np.mean(s_per_sample_per_em * 10**6),
+                np.std(s_per_sample_per_em * 10**6)))
 
         return self
 
