@@ -67,8 +67,14 @@ class FitGHMM(Command, MDTrajInputMixin):
         default='cpu', help='Implementation platform. default="cpu"')
     group_hmm.add_argument('--fusion-prior', type=float, default=1e-2,
         help='Strength of the adaptive fusion prior. default=1e-2')
-    group_hmm.add_argument('--n-em-iter', type=int, default=100,
-        help='Maximum number of iterations of EM. default=100')
+    group_hmm.add_argument('--n-init', type=int, default=10, help='''Number
+        of initialization for each model fit. Each of these "outer iterations"
+        corresponds to a new random initialization of the states from kmeans
+        and then `--n-em-iter`s of expectation-maximization. The best of these
+        models (selected by likelihood) is retained. default=10''')
+    group_hmm.add_argument('--n-em-iter', type=int, default=10,
+        help='''Maximum number of iterations of expectation-maximization steps
+        per fitting round. default=10''')
     group_hmm.add_argument('--thresh', type=float, default=1e-2,
         help='''Convergence criterion for EM. Quit when the log likelihood
         decreases by less than this threshold. default=1e-2''')
@@ -84,8 +90,9 @@ class FitGHMM(Command, MDTrajInputMixin):
         (on gpu + multicore cpu) and numerical instabilities that come when
         trajectories get extremely long.''', default=10000)
     group_hmm.add_argument('-n-reps', '--n-repetitions', type=int, default=1,
-        help='''Build each model `n-reps` times with different random seeds,
-        saving all of the models to the output file.''')
+        help='''Run this many repititions of the *entire experiment*  with
+        different random seeds, saving all of the models to the output file.
+        This is the outer-most iteration. default=1''')
 
     # group_cv = argument_group('Cross Validation')
     # group_cv.add_argument('--n-cv', type=int, default=1,
@@ -135,10 +142,10 @@ class FitGHMM(Command, MDTrajInputMixin):
 
 
     def fit(self, train, test, n_states, train_lag_time, repetition, args, outfile):
-        kwargs = dict(n_states=n_states, n_features=self.n_features, n_em_iter=args.n_em_iter,
-            n_lqa_iter = args.n_lqa_iter, fusion_prior=args.fusion_prior,
-            thresh=args.thresh, reversible_type=args.reversible_type,
-                    platform=args.platform)
+        kwargs = dict(n_states=n_states, n_features=self.n_features, n_init=args.n_init,
+                      n_em_iter=args.n_em_iter, n_lqa_iter = args.n_lqa_iter,
+                      fusion_prior=args.fusion_prior, thresh=args.thresh,
+                      reversible_type=args.reversible_type, platform=args.platform)
         model = GaussianFusionHMM(**kwargs)
 
         start = time.time()

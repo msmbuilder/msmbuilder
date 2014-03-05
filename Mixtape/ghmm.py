@@ -151,6 +151,10 @@ class GaussianFusionHMM(object):
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % reversible_type)
+        if n_init < 1:
+            raise ValueError('GMM estimation requires at least one run')
+        if n_em_iter < 1:
+            raise ValueError('GMM estimation requires at least one em iter')
 
         if self.platform == 'cpu':
             self._impl = _ghmm.GaussianHMMCPUImpl(self.n_states, self.n_features, precision)
@@ -231,13 +235,12 @@ class GaussianFusionHMM(object):
                                       'transmat': self.transmat_,
                                       'fit_logprob': fit_logprob}
 
-
-        if self.n_init > 1:
-            self.means_ = best_fit['params']['means']
-            self.vars_ = best_fit['params']['vars']
-            self.transmat_ = best_fit['params']['transmat']
-            self.populations_ = best_fit['params']['populations']
-            self.fit_logprob_ = best_fit['params']['fit_logprob']
+        # Set the final values
+        self.means_ = best_fit['params']['means']
+        self.vars_ = best_fit['params']['vars']
+        self.transmat_ = best_fit['params']['transmat']
+        self.populations_ = best_fit['params']['populations']
+        self.fit_logprob_ = best_fit['params']['fit_logprob']
 
         return self
 
