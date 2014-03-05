@@ -356,26 +356,41 @@ class GaussianFusionHMM(object):
         "dynamical mode" of the transition matrix and has a characteristic
         timescale, which gives the timescale on which that mode decays towards
         equilibrium. These timescales are given by :math:`-1/log(u_i)` where
-        :math:`u_i` are the eigenvalues of the transition matrix. In an HMM
-        with N components, the number of non-infinite timescales is N-1. (The
-        -1 comes from the fact that the stationary distribution of the chain
-        is associated with an eigenvalue of 1, and an infinite characteritic
-        timescale).
+        :math:`u_i` are the eigenvalues of the transition matrix. In a
+        reversible HMM with N states, the number of timescales is at most N-1.
+        (The -1 comes from the fact that the stationary distribution of the chain
+        is associated with an eigenvalue of 1, and an infinite characteristic
+        timescale). The number of timescales can be less than N-1 for every
+        eigenvalue of the transition matrix that is negative (which is
+        allowable by detailed balance).
 
         Returns
         -------
-        timescales : array, shape=[n_states-1]
+        timescales : array, shape=[n_timescales]
             The characteristic timescales of the transition matrix. If the model
             has not been fit or does not have a transition matrix, the return
-            value will be None. The timescales are ordered from longest to
-            shortest.
+            value will be None.
         """
         if self.transmat_ is None:
             return None
         try:
             eigvals = np.linalg.eigvals(self.transmat_)
-            eigvals = sorted(eigvals)[::-1]
-            return -1.0 / np.log(eigvals[1:])
+
+            # sort the eigenvalues in descending order (i.e. sort + reverse),
+            # then discard the very first (largest) eigenvalue, which is the
+            # stationary one.
+            eigvals = np.sort(eigvals)[::-1][1:]
+
+            # retain only eigenvalues > 0. These are the ones that correspond
+            # to implied timescales. Eigenvalues below zero are possible (the
+            # detailed balance constraint guarentees that the eigenvalues are
+            # in -1 < l <= 1, but not that they strictly positive). But
+            # eigevalues below zero do not have a real interpretation as
+            # "implied timescales" because they correspond to sort of
+            # damped oscillatory decays.
+
+            eigvals = eigvals[eigvals > 0]
+            return -1.0 / np.log(eigvals)
         except np.linalg.LinAlgError:
             # this can happen if the transition matrix contains Nans
             # or Infs, and possibly for other reasons like convergence
