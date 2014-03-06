@@ -368,6 +368,9 @@ class MetastableSwitchingLDS(object):
             A = self.As_[i]
             Sigma = self.covars_[i]
             b = np.reshape(self.bs_[i], (self.n_features, 1))
+            mean_debug = np.reshape(stats['obs[1:]'][i], (self.n_features, 1))
+            print "mean_debug"
+            print mean_debug
             B = ((stats['obs[1:]*obs[1:].T'][i]
                 - np.dot(stats['obs*obs[t-1].T'][i], A.T)
                 - np.dot(np.reshape(stats['obs[1:]'][i],

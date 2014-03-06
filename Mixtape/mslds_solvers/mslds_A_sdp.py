@@ -3,10 +3,74 @@ from numpy import bmat, zeros, reshape, array, dot, eye, outer, shape
 from numpy import sqrt, real, ones
 from numpy.linalg import pinv, eig, matrix_rank
 from scipy.linalg import block_diag, sqrtm, pinv2
+import scipy
+import scipy.linalg
 import numpy as np
 import cvxopt.misc as misc
 import math
+import IPython
 
+def construct_primal_matrix(x_dim, s, Z, A, Q, F, J, H, D):
+    # x = [s vec(Z) vec(A)]
+    # F = Q^{-.5}(C-B) (not(!) symmetric)
+    # J = Q^{-.5} (symmetric)
+    # H = E^{.5} (symmetric)
+    # ------------------------------------------
+    #|Z+sI-JAF.T -FA.TJ  JAH
+    #|    (JAH).T         I
+    #|                       D-eps D    A
+    #|                       A.T        D^{-1}
+    #|                                         I  A.T
+    #|                                         A   I
+    #|                                                Z
+    # -------------------------------------------
+    # Smallest number epsilon such that 1. + epsilon != 1.
+    # Construct P1
+    P1 = zeros((2 * x_dim, 2 * x_dim))
+    UL = (Z + s * eye(x_dim) - dot(J,dot(A, F.T)) - dot(F, dot(A.T, J)))
+    # Explicitly symmetrize due to numeric issues
+    UL = (UL + UL.T)/2.
+    P1[:x_dim, :x_dim] = UL
+    P1[:x_dim, x_dim:] = dot(J, dot(A, H))
+    P1[x_dim:, :x_dim] = dot(J, dot(A, H)).T
+    P1[x_dim:, x_dim:] = eye(x_dim)
+    print "eig(P1)"
+    print eig(P1)[0]
+    P1 = matrix(P1)
+
+    # Construct P2
+    eps = 1e-4
+    P2 = zeros((2 * x_dim, 2 * x_dim))
+    P2[:x_dim, :x_dim] = (1 - eps) * D
+    P2[:x_dim, x_dim:] = A
+    P2[x_dim:, :x_dim] = A.T
+    Dinv = pinv(D)
+    # Explicitly symmetrize
+    Dinv = (Dinv + Dinv.T)/2.
+    P2[x_dim:, x_dim:] = Dinv
+    P2 = matrix(P2)
+    print "eig(P2)"
+    print eig(P2)[0]
+
+    # Construct P3
+    P3 = eye(2*x_dim)
+    P3[:x_dim, x_dim:] = A.T
+    P3[x_dim:, :x_dim] = A
+    P3 = matrix(P3)
+    print "eig(P3)"
+    print eig(P3)[0]
+
+    # Construct P5
+    P4 = zeros((x_dim, x_dim))
+    P4[:,:] = Z
+    P4 = matrix(P4)
+    print "eig(P4)"
+    print eig(P4)[0]
+
+    #IPython.embed()
+    # Construct Block matrix
+    P = scipy.linalg.block_diag(P1, P2, P3, P4)
+    return P
 
 def construct_coeff_matrix(x_dim, Q, C, B, E):
     # x = [s vec(Z) vec(A)]
@@ -225,7 +289,7 @@ def construct_const_matrix(x_dim, Q, D):
     #H2[:x_dim, :x_dim] = D - eps * eye(x_dim)
     #H2[:x_dim, :x_dim] = D - dot((1-eps) * eye(x_dim), D)
     #H2[:x_dim, :x_dim] = D - eps * D
-    H2[:x_dim, :x_dim] = D - eps * eye(x_dim)
+    H2[:x_dim, :x_dim] = D - eps * D
     H2[x_dim:, x_dim:] = pinv(D)
     H2 = matrix(H2)
 
@@ -251,7 +315,7 @@ def solve_A(x_dim, B, C, E, D, Q):
     print "SOLVE_A!"
     print "eig(D)"
     print eig(D)[0]
-    MAX_ITERS = 100
+    MAX_ITERS = 200
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     c = zeros((c_dim,1))
     c[0] = x_dim
@@ -303,9 +367,46 @@ def solve_A(x_dim, B, C, E, D, Q):
     #    f(x,dy,s)
     #except ArithmeticError:
     #    raise ValueError("YAY! Rank(A) < p or Rank([G; A]) < n")
+    epsilon = np.finfo(np.float32).eps
+    # Add a small positive offset to avoid taking sqrt of singular matrix
+    #J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
+    eps = 1e-4
+    J = real(sqrtm(pinv2(Q)+epsilon*eye(x_dim)))
+    H = real(sqrtm(E+epsilon*eye(x_dim)))
+    F = dot(J, C - B)
+    Aprim = 0.9 * (1 - eps) * eye(x_dim)
+    Zprim = (dot(J, dot(Aprim, F.T)) + dot(F, dot(Aprim.T, J))
+                + dot(dot(J, dot(Aprim, H)),dot(J, dot(Aprim, H)).T))
+    min_eig = abs(min(eig(Zprim)[0]))
+    Zprim += 2 * min_eig * eye(x_dim)
+    # Explicitly symmetrize the matrix
+    # (due to numerical issues)
+    Zprim = (Zprim + Zprim.T)/2.
+    sprim = 10
+    P = construct_primal_matrix(x_dim, sprim, Zprim, Aprim, Q, F, J, H, D)
+    primalstart = {}
+    print "shape(P)"
+    print shape(P)
+    print "eig(P)"
+    print eig(P)[0]
 
+    x = zeros((c_dim,1))
+    x[0] = sprim
+    count = 1
+    for i in range(x_dim):
+        for j in range(i+1):
+            x[count] = Zprim[i,j]
+            count += 1
+    for i in range(x_dim):
+        for j in range(x_dim):
+            x[count] = Aprim[i,j]
+            count += 1
+    x = matrix(x)
+    primalstart['x'] = x
+    primalstart['ss'] = [matrix(P)]
     solvers.options['maxiters'] = MAX_ITERS
-    sol = solvers.sdp(cm, Gs=Gs, hs=hs)
+    sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
+    print sol
     return sol, c, Gs, hs
 
 
