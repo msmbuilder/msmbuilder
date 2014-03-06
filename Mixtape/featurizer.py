@@ -64,7 +64,7 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
     filenames = []
     for file in filenames:
         kwargs = {}  if file.endswith('.h5') else {'top': topology}
-        for t in md.iterload(file, **kwargs):
+        for t in md.iterload(file, chunk=chunk, **kwargs):
             x = featurizer.featurize(t)
 
             data.append(x)
