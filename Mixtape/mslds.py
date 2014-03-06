@@ -6,6 +6,7 @@ The switch posteriors are used in the M-step to update parameter estimates.
 @email: bharath.ramsundar@gmail.com
 """
 
+from __future__ import print_function, division
 import warnings
 import numpy as np
 from numpy.random import multivariate_normal, randn, rand
@@ -251,7 +252,7 @@ class MetastableSwitchingLDS(object):
         n_obs = sum(len(s) for s in sequences)
 
         for i in range(self.n_iter):
-            print "Iteration %d" % i
+            # print("Iteration %d" % i)
             _, stats = self._impl.do_estep()
             if stats['trans'].sum() > 10*n_obs:
                 print('Number of transition counts', stats['trans'].sum())

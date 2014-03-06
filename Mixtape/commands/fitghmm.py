@@ -124,7 +124,7 @@ class FitGHMM(Command, MDTrajInputMixin):
         args = self.args
         data = self.load_data()
 
-        with open(args.out, 'a', 0) as outfile:
+        with open(args.out, 'a', 1) as outfile:
             outfile.write('# %s\n' % ' '.join(sys.argv))
 
             for lag_time in args.lag_times:
