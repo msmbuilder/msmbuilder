@@ -1,22 +1,77 @@
+# Author: Kyle A. Beauchamp <kyleabeauchamp@gmail.com>
+# Contributors: Robert McGibbon <rmcgibbo@gmail.com>
+# Copyright (c) 2014, Stanford University and the Authors
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or
+# without modification, are permitted provided that the following
+# conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation 
+#   and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
 import cPickle
 import numpy as np
 import mdtraj as md
 
-def featurize_all(filenames, featurizer, topology):
-    """Iterate over filenames, load trajectories, and featurize."""
-    X = []
-    i = []
-    f = []
+
+def featurize_all(filenames, featurizer, topology, chunk=1000):
+    """Load and featurize many trajectory files.
+
+    Parameters
+    ----------
+    filenames : list of strings
+        List of paths to MD trajectory files
+    featurizer : Featurizer
+        The featurizer to be invoked on each trajectory trajectory as
+        it is loaded
+    topology : str, Topology, Trajectory
+        Topology or path to a topology file, used to load trajectories with
+        MDTraj
+    chunk : {int, None}
+        If chunk is an int, load the trajectories up in chunks using
+        md.iterload for better memory efficiency (less trajectory data needs
+        to be in memory at once)
+
+    Returns
+    -------
+    data : np.ndarray, shape=(total_length_of_all_trajectories, n_features)
+    indices : np.ndarray, shape=(total_length_of_all_trajectories)
+    filenames : np.ndarray shape=(total_length_of_all_trajectories)
+        These three arrays all share the same indexing, such that data[i] is
+        the featurized version of indices[i]-th frame in the MD trajectory
+        with filename filenames[i].
+    """
+    data = []
+    indices = []
+    filenames = []
     for file in filenames:
         kwargs = {}  if file.endswith('.h5') else {'top': topology}
-        t = md.load(file, **kwargs)
-        x = featurizer.featurize(t)
+        for t in md.iterload(file, chunk=chunk, **kwargs):
+            x = featurizer.featurize(t)
 
-        X.append(x)
-        i.append(np.arange(len(x)))
-        f.extend([file]*len(x))
+            data.append(x)
+            indices.append(np.arange(len(x)))
+            filenames.extend([file]*len(x))
 
-    return np.concatenate(X), np.concatenate(i), np.array(f)
+    return np.concatenate(data), np.concatenate(indices), np.array(filenames)
 
 
 def load(filename):
@@ -43,13 +98,13 @@ class SuperposeFeaturizer(Featurizer):
         self.atom_indices = atom_indices
         self.reference_traj = reference_traj
         self.n_features = len(self.atom_indices)
-        
+
     def featurize(self, traj):
 
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] - self.reference_traj.xyz[0, self.atom_indices])**2
         x = np.sqrt(np.sum(diff2, axis=2))
-        
+
         return x
 
 class AtomPairsFeaturizer(Featurizer):
@@ -59,7 +114,7 @@ class AtomPairsFeaturizer(Featurizer):
         self.reference_traj = reference_traj
         self.n_features = len(self.pair_indices)
         self.periodic = periodic
-        
+
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d
