@@ -70,6 +70,9 @@ def construct_primal_matrix(x_dim, s, Z, A, Q, F, J, H, D):
     #IPython.embed()
     # Construct Block matrix
     P = scipy.linalg.block_diag(P1, P2, P3, P4)
+    if min(np.linalg.eig(P)[0]) < 0:
+        print "ERROR: P not PD in A Solver!"
+        IPython.embed()
     return P
 
 def construct_coeff_matrix(x_dim, Q, C, B, E):

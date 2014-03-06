@@ -11,6 +11,7 @@ import IPython
 def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
+    # min c = s*dim + Tr Z
     # ------------------------
     #|Z+sI   F
     #|F.T    Q
@@ -49,7 +50,9 @@ def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     print eig(P4)[0]
 
     P = scipy.linalg.block_diag(P1, P2, P3, P4)
-    #IPython.embed()
+    if min(np.linalg.eig(P)[0]) < 0:
+        print "ERROR: P not PD in Q Solver!"
+        IPython.embed()
     return P
 
 def construct_coeff_matrix(x_dim, B):
@@ -236,20 +239,23 @@ def solve_Q(x_dim, A, B, D):
         c[vec_pos] = 1.
     cm = matrix(c)
 
-    Gs = construct_coeff_matrix(x_dim, B)
+    # Scale down by T for numerical stability
+    T = max(eig(B)[0])
+    Bdown = B / T
+    Gs = construct_coeff_matrix(x_dim, Bdown)
     for i in range(len(Gs)):
         Gs[i] = -Gs[i]
     G = np.copy(matrix(Gs[0]))
 
-    hs, _ = construct_const_matrix(x_dim, A, B, D)
+    hs, _ = construct_const_matrix(x_dim, A, Bdown, D)
     for i in range(len(hs)):
         hs[i] = matrix(hs[i])
-
-    # Construct primalstart
     # Smallest number epsilon such that 1. + epsilon != 1.
     epsilon = np.finfo(np.float32).eps
     # Add a small positive offset to avoid taking sqrt of singular matrix
-    F = real(sqrtm(B+epsilon*eye(x_dim)))
+    F = real(sqrtm(Bdown+epsilon*eye(x_dim)))
+
+    # Construct primalstart
     Qprim = 0.99*(D - dot(A, dot(D, A.T)))
     Qpriminv = pinv(Qprim)
     Qpriminv = (Qpriminv + Qpriminv.T)/2.
@@ -274,35 +280,12 @@ def solve_Q(x_dim, A, B, D):
     x = matrix(x)
     primalstart['x'] = x
     primalstart['ss'] = [matrix(P)]
-    print "eig(D)"
-    print eig(D)[0]
-    print "eig(F)"
-    print eig(F)[0]
-    print "eig(Qprim)"
-    print eig(Qprim)[0]
-    print "eig(Zprim)"
-    print eig(Zprim)[0]
-    print "shape(P)"
-    print shape(P)
-    print "eig(P)"
-    print eig(P)[0]
-    print "min eig(P)"
-    print min(eig(P)[0])
     #IPython.embed()
 
     solvers.options['maxiters'] = MAX_ITERS
     solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
     print sol
-    if sol['status'] == 'primal infeasible':
-        print 'z'
-        print sol['zs'][0]
-        print "shape(G)"
-        print shape(G)
-        print "shape(sol['zs'][0])"
-        print shape(sol['zs'][0])
-        print "G'*z"
-        print array(dot(G.T, sol['zs'][0][:]))
     return sol, c, Gs, hs
 
 
