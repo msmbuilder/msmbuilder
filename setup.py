@@ -31,7 +31,9 @@ except ImportError:
     sys.exit(1)
 
 ##########################
-__version__ = 0.1
+VERSION = '0.2'
+ISRELEASED = False
+__version__ = VERSION
 ##########################
 
 CLASSIFIERS = """\
@@ -53,8 +55,75 @@ Programming Language :: Python :: 3
 Programming Language :: Python :: 3.3
 """
 
+################################################################################
+# Writing version control information to the module
+################################################################################
+
+def git_version():
+    # Return the git revision as a string
+    # copied from numpy setup.py
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for k in ['SYSTEMROOT', 'PATH']:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        # LANGUAGE is used on win32
+        env['LANGUAGE'] = 'C'
+        env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
+        out = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, env=env).communicate()[0]
+        return out
+
+    try:
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        GIT_REVISION = out.strip().decode('ascii')
+    except OSError:
+        GIT_REVISION = 'Unknown'
+
+    return GIT_REVISION
+
+
+def write_version_py(filename='Mixtape/version.py'):
+    cnt = """
+# THIS FILE IS GENERATED FROM MIXTAPE SETUP.PY
+short_version = '%(version)s'
+version = '%(version)s'
+full_version = '%(full_version)s'
+git_revision = '%(git_revision)s'
+release = %(isrelease)s
+
+if not release:
+    version = full_version
+"""
+    # Adding the git rev number needs to be done inside write_version_py(),
+    # otherwise the import of numpy.version messes up the build under Python 3.
+    FULLVERSION = VERSION
+    if os.path.exists('.git'):
+        GIT_REVISION = git_version()
+    else:
+        GIT_REVISION = 'Unknown'
+
+    if not ISRELEASED:
+        FULLVERSION += '.dev-' + GIT_REVISION[:7]
+
+    a = open(filename, 'w')
+    try:
+        a.write(cnt % {'version': VERSION,
+                       'full_version': FULLVERSION,
+                       'git_revision': GIT_REVISION,
+                       'isrelease': str(ISRELEASED)})
+    finally:
+        a.close()
+
+
 ###############################################################################
+# CUDA stuff
 ###############################################################################
+
+
 def customize_compiler_for_nvcc(self):
     """inject deep into distutils to customize how the dispatch
     to gcc/nvcc works.
@@ -211,6 +280,7 @@ def write_spline_data():
     if not os.path.exists('src/vonmises/data/inv_mbessel_deriv.dat'):
         np.savetxt('src/vonmises/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
 
+
 def hasfunction(cc, funcname, include=None, extra_postargs=None):
     # From http://stackoverflow.com/questions/
     #            7018879/disabling-output-when-compiling-with-distutils
@@ -338,6 +408,7 @@ except EnvironmentError as e:
     print('#'*60, '\033[0m\n')
 
 
+write_version_py()
 write_spline_data()
 setup(name='mixtape',
       author='Robert McGibbon',
