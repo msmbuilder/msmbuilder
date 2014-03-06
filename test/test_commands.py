@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import os
 from glob import glob
 import itertools
@@ -79,7 +79,7 @@ def test_atomindices():
         atoms = np.loadtxt('all.dat', int)
         pairs =  np.loadtxt('all-pairs.dat', int)
         eq(t.n_atoms, len(atoms))
-        eq(t.n_atoms * (t.n_atoms-1) / 2, len(pairs))
+        eq(int(t.n_atoms * (t.n_atoms-1) / 2), len(pairs))
 
     with tempdir():
         shell('hmsm atomindices -o heavy.dat --heavy -a -p %s' % fn)

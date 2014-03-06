@@ -71,7 +71,7 @@ class Structures(Command):
             if not line.startswith('#'):
                 f.seek(0, 0)
             df = pd.read_csv(f)
-                
+
         if not all(e in df.columns for e in ('filename', 'index', 'state')):
             self.error('CSV file not read properly')
 

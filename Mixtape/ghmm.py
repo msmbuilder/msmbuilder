@@ -192,9 +192,9 @@ class GaussianFusionHMM(object):
         """
         n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
+        # counter for the total number of EM iters performed
+        total_em_iters = 0
         if self.timing:
-            # counter for the total number of EM iters performed
-            total_em_iters = 0
             start_time = time.time()
 
         for _ in range(self.n_init):
@@ -249,9 +249,9 @@ class GaussianFusionHMM(object):
 
     def _init(self, sequences, init_params):
         '''
-	Find initial means(hot start)
-	'''
-	self._impl._sequences = sequences
+        Find initial means(hot start)
+        '''
+        self._impl._sequences = sequences
 
         if self.n_hotstart == 'all':
             small_dataset = np.vstack(sequences)

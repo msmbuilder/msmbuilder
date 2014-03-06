@@ -30,7 +30,7 @@
 # Imports
 #-----------------------------------------------------------------------------
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import os
 import sys
@@ -141,7 +141,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
 
             cumsum = np.cumsum(weights)
             for i in range(self.args.n_per_state):
-                index = np.sum(cumsum < np.random.rand())
+                index = int(np.sum(cumsum < np.random.rand()))
                 data['filename'].append(ff[index])
                 data['index'].append(ii[index])
                 data['state'].append(k)

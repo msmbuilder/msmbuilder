@@ -26,8 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-import cPickle
+from six.moves import cPickle
 import numpy as np
 import mdtraj as md
 
@@ -54,14 +53,15 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
     -------
     data : np.ndarray, shape=(total_length_of_all_trajectories, n_features)
     indices : np.ndarray, shape=(total_length_of_all_trajectories)
-    filenames : np.ndarray shape=(total_length_of_all_trajectories)
+    fns : np.ndarray shape=(total_length_of_all_trajectories)
         These three arrays all share the same indexing, such that data[i] is
         the featurized version of indices[i]-th frame in the MD trajectory
-        with filename filenames[i].
+        with filename fns[i].
     """
     data = []
     indices = []
-    filenames = []
+    fns = []
+
     for file in filenames:
         kwargs = {}  if file.endswith('.h5') else {'top': topology}
         for t in md.iterload(file, chunk=chunk, **kwargs):
@@ -69,14 +69,17 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
 
             data.append(x)
             indices.append(np.arange(len(x)))
-            filenames.extend([file]*len(x))
+            fns.extend([file]*len(x))
+    if len(data) == 0:
+        raise ValueError("None!")
 
-    return np.concatenate(data), np.concatenate(indices), np.array(filenames)
+    return np.concatenate(data), np.concatenate(indices), np.array(fns)
 
 
 def load(filename):
     """Load a featurizer from a cPickle file."""
-    featurizer = cPickle.load(open(filename))
+    with open(filename, 'rb') as f:
+        featurizer = cPickle.load(f)
     return featurizer
 
 
@@ -89,7 +92,8 @@ class Featurizer(object):
         pass
 
     def save(self, filename):
-        cPickle.dump(self, open(filename, 'w'))
+        with open(filename, 'wb') as f:
+            cPickle.dump(self, f)
 
 
 class SuperposeFeaturizer(Featurizer):
