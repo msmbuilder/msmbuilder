@@ -1,7 +1,7 @@
 from __future__ import print_function, absolute_import
 import os as _os
 
-_exclude = ['__init__.py']
+_exclude = ['__init__.py', 'templates']
 __all__ = []
 
 for _fn in _os.listdir(_os.path.dirname(_os.path.abspath(__file__))):

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<link href="novus-nvd3-0c03b27/src/nv.d3.css" rel="stylesheet" type="text/css">
+<style>
+
+#test1 svg {
+  height: 500px;
+}
+
+body {
+  overflow-y:scroll;
+}
+
+</style>
+<body>
+<div id="test1">
+    <svg></svg>
+</div>
+
+<script src="novus-nvd3-0c03b27/lib/d3.v3.js"></script>
+<script src="novus-nvd3-0c03b27/lib/fisheye.js"></script>
+<script src="novus-nvd3-0c03b27/nv.d3.js"></script>
+<script src="novus-nvd3-0c03b27/src/utils.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/legend.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/axis.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/distribution.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/scatter.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/scatterChart.js"></script>
+<script>
+
+var chart;
+nv.addGraph(function() {
+  chart = nv.models.scatterChart()
+                .useVoronoi(true)
+//                .showDistX(true)
+//                .showDistY(true)
+                .color(d3.scale.category10().range())
+                .x(function(d) { return d['n_states'] })
+                .y(function(d) { return d['timescales'][0] })
+                .size(function(d) { return d['populations'][0] })
+                .transitionDuration(300)
+                ;
+  chart.xAxis
+    .tickFormat(d3.format('.02f'))
+    .axisLabel("Lag Time");
+  chart.yAxis
+    .tickFormat(d3.format('.02f'))
+    .axisLabel("Timescales");
+
+
+   modelByNStates(function(data) {
+     console.log(data);
+     d3.select('#test1 svg')
+        .datum(data)
+        .call(chart);
+   });
+
+
+  nv.utils.windowResize(chart.update);
+  chart.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
+  return chart;
+});
+
+
+
+modelByNStates = function(fn) {
+  d3.json("/models?groupby=n_states", function(error, json) {
+    if (error) return console.warn(error);
+    fn(json);
+  });
+}
+
+
+</script>
+</body>
+
+
+
