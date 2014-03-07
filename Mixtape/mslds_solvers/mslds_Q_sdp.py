@@ -7,6 +7,7 @@ import scipy
 import scipy.linalg
 import numpy as np
 import IPython
+import pdb
 
 def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     # x = [s vec(Z) vec(Q)]
@@ -38,8 +39,12 @@ def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     P2[x_dim:, x_dim:] = Dinv
     # Add this small offset in hope of correcting for the numerical
     # errors in pinv
-    eps = 1e-4
-    P2 += eps * eye(2*x_dim)
+    # P2 might have small negative eigenvalues due to numerical
+    # issues.
+    min_eig = min(eig(P2)[0])
+    if min_eig < 0:
+        # assume min_eig << 1
+        P2 += 2 * abs(min_eig) * eye(2*x_dim)
     print "eig(P2)"
     print eig(P2)[0]
 
@@ -172,17 +177,6 @@ def construct_const_matrix(x_dim, A, B, D):
     H1 = zeros((2 * x_dim, 2 * x_dim))
     H1[:x_dim, x_dim:] = F
     H1[x_dim:, :x_dim] = F.T
-    #eps = 1e-4
-    #H1[x_dim:,x_dim:] = eps * eye(x_dim)
-
-    #H1[:x_dim, :x_dim] = dot(F, dot(pinv(D - dot(A, dot(D, A.T))), F)) + 10 * eye(x_dim)
-    #H1[x_dim:, x_dim:] = D - dot(A, dot(D, A.T))
-    #print "eig(H1)+10K eye(x_dim)"
-    #print eig(H1)[0]
-    #print "eig(dot(F, dot(pinv(D), F)) + 10 * eye(x_dim))"
-    #print eig(dot(F, dot(pinv(D), F)) + 10 * eye(x_dim))[0]
-    #H1[:x_dim, :x_dim] = 0.
-    #H1[x_dim:, x_dim:] = 0.
     H1 = matrix(H1)
 
     # Construct B2
@@ -201,12 +195,7 @@ def construct_const_matrix(x_dim, A, B, D):
     H2 = matrix(H2)
 
     # Construct B3
-    #min_epsilon = np.finfo(np.float32).eps
-    #eps = max(0.1*min(eig(D)[0]), min_epsilon) # 0.5 should be param
     H3 = zeros((x_dim, x_dim))
-    #H3 = -eps * eye(x_dim)
-    #H3[:,:] = D[:,:]
-    #H3 *= -eps
     H3 = matrix(H3)
 
     # Construct B4
@@ -222,21 +211,9 @@ def construct_const_matrix(x_dim, A, B, D):
 def solve_Q(x_dim, A, B, D):
     # x = [s vec(Z) vec(Q)]
     print "SOLVE_Q!"
-    print "eig(D)"
-    print eig(D)[0]
-    print "eig(dot(A, dot(D, A.T)))"
-    print eig(dot(A, dot(D, A.T)))[0]
-    print "eig(D - dot(A, dot(D, A.T)))"
-    print eig(D- dot(A, dot(D, A.T)))[0]
     epsilon = np.finfo(np.float32).eps
     F = real(sqrtm(B+epsilon*eye(x_dim)))
-    print "eig(F)"
-    print eig(F)[0]
-    print "F == F.T"
-    print (abs(F - F.T) < 1e-3).all()
-    print "max eig(A)"
-    print max([np.linalg.norm(el) for el in eig(A)[0]])
-    MAX_ITERS=400
+    MAX_ITERS=200
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
     c = zeros((c_dim,1))
     # c = s*dim + Tr Z
@@ -257,6 +234,16 @@ def solve_Q(x_dim, A, B, D):
     if min_D_eig < 0:
         # assume abs(min_D_eig) << 1
         D = D + 2 * abs(min_D_eig) * eye(x_dim)
+    # Ensure that D - A D A.T is PSD. Otherwise, the problem is
+    # unsolvable and weird numerical artifacts can occur.
+    min_Q_eig = min(eig(D - dot(A, dot(D, A.T)))[0])
+    if min_Q_eig < 0:
+        eta = 0.99
+        power = 1
+        while (min(eig(D - dot((eta**power)*A,
+            dot(D, (eta**power)*A.T)))[0]) < 0):
+            power += 1
+        A = (eta ** power)*A
     Gs = construct_coeff_matrix(x_dim, Bdown)
     for i in range(len(Gs)):
         Gs[i] = -Gs[i]
@@ -307,6 +294,17 @@ def solve_Q(x_dim, A, B, D):
     #solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
     print sol
+    qvec = np.array(sol['x'])
+    qvec = qvec[1 + x_dim * (x_dim + 1) / 2:]
+    Q = np.zeros((x_dim, x_dim))
+    for j in range(x_dim):
+        for k in range(j + 1):
+            vec_pos = j * (j + 1) / 2 + k
+            Q[j, k] = qvec[vec_pos]
+            Q[k, j] = Q[j, k]
+    if min(eig(D - Q)[0]) < 0:
+        print "Q >= D!"
+        pdb.set_trace()
     return sol, c, Gs, hs
 
 

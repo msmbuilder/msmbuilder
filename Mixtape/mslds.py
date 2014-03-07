@@ -306,6 +306,27 @@ class MetastableSwitchingLDS(object):
 
             # Maximization step
             self._do_mstep(stats, set(self.params))
+        print "OMG, FINISHED FIT!"
+        print "As"
+        for i in range(self.n_states):
+            print "State %d" % i
+            print self.As_[i]
+            print "Eig:"
+            print np.linalg.eig(self.As_[i])[0]
+        print "Qs"
+        for i in range(self.n_states):
+            print "State %d" % i
+            print self.Qs_[i]
+            print "Eig:"
+            print np.linalg.eig(self.Qs_[i])[0]
+        print "Ds"
+        print self.covars_
+        for i in range(self.n_states):
+            print "State %d" % i
+            print self.covars_[i]
+            print "Eig:"
+            print np.linalg.eig(self.covars_[i])[0]
+        print "OMG AGAIN, FINISHED FIT!"
 
 
         return self
@@ -341,6 +362,13 @@ class MetastableSwitchingLDS(object):
         cvweight = max(self.covars_weight - self.n_features, 0)
         self.covars_ = ((cvnum) /
                  (cvweight + stats['post'][:, None, None]))
+        for c in range(self.n_states):
+            # Might be slightly negative due to numerical issues
+            min_eig = min(np.linalg.eig(self.covars_[c])[0])
+            if min_eig < 0:
+                # Assume min_eig << 1
+                self.covars_[c] += (2 * abs(min_eig) *
+                        np.eye(self.n_features))
 
     def _transmat_update(self, stats):
         counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)

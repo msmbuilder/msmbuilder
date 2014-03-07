@@ -9,6 +9,7 @@ import numpy as np
 import cvxopt.misc as misc
 import math
 import IPython
+import pdb
 
 def construct_primal_matrix(x_dim, s, Z, A, Q, F, J, H, D):
     # x = [s vec(Z) vec(A)]
@@ -318,7 +319,7 @@ def solve_A(x_dim, B, C, E, D, Q):
     print "SOLVE_A!"
     print "eig(D)"
     print eig(D)[0]
-    MAX_ITERS = 400
+    MAX_ITERS = 200
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     c = zeros((c_dim,1))
     c[0] = x_dim
@@ -403,10 +404,6 @@ def solve_A(x_dim, B, C, E, D, Q):
     sprim = 10
     P = construct_primal_matrix(x_dim, sprim, Zprim, Aprim, Qdown, F, J, H, D)
     primalstart = {}
-    print "shape(P)"
-    print shape(P)
-    print "eig(P)"
-    print eig(P)[0]
 
     x = zeros((c_dim,1))
     x[0] = sprim
@@ -425,6 +422,14 @@ def solve_A(x_dim, B, C, E, D, Q):
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
     print sol
+    # check norm of A:
+    avec = np.array(sol['x'])
+    avec = avec[1 + x_dim * (x_dim + 1) / 2:]
+    A = np.reshape(avec, (x_dim, x_dim), order='F')
+    if max(eig(A)[0]) > 1:
+        print "A NORM > 1!"
+        pdb.set_trace()
+
     return sol, c, Gs, hs
 
 
