@@ -337,6 +337,12 @@ def solve_A(x_dim, B, C, E, D, Q):
     Edown = E / S
     Cdown = C / S
     Bdown = B / S
+    # Ensure that D doesn't have negative eigenvals
+    # due to numerical issues
+    min_D_eig = min(eig(D)[0])
+    if min_D_eig < 0:
+        # assume abs(min_D_eig) << 1
+        D = D + 2 * abs(min_D_eig) * eye(x_dim)
     Gs, _, _, _ = construct_coeff_matrix(x_dim, Qdown, Cdown, Bdown, Edown)
     for i in range(len(Gs)):
         Gs[i] = -Gs[i] + 1e-6

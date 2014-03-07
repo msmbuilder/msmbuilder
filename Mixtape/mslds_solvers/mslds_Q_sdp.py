@@ -251,6 +251,12 @@ def solve_Q(x_dim, A, B, D):
     eigs = eig(B)[0]
     T = max(abs(max(eigs)), abs(min(eigs)))
     Bdown = B / T
+    # Ensure that D doesn't have negative eigenvals
+    # due to numerical issues
+    min_D_eig = min(eig(D)[0])
+    if min_D_eig < 0:
+        # assume abs(min_D_eig) << 1
+        D = D + 2 * abs(min_D_eig) * eye(x_dim)
     Gs = construct_coeff_matrix(x_dim, Bdown)
     for i in range(len(Gs)):
         Gs[i] = -Gs[i]
@@ -265,7 +271,13 @@ def solve_Q(x_dim, A, B, D):
     F = real(sqrtm(Bdown+epsilon*eye(x_dim)))
 
     # Construct primalstart
-    Qprim = 0.99*(D - dot(A, dot(D, A.T)))
+    Qprim = (D - dot(A, dot(D, A.T)))
+    # min_eig can be slightly negative due to numerical errors.
+    # ensure that Qprim is PSD before taking pseudoinverse
+    min_eig = min(eig(Qprim)[0])
+    if min_eig < 0:
+        # assume abs(min_eig) << 1
+        Qprim = Qprim + 2 * abs(min_eig) * eye(x_dim)
     Qpriminv = pinv(Qprim)
     Qpriminv = (Qpriminv + Qpriminv.T)/2.
     Zprim = dot(F, dot(Qpriminv, F.T)) + eye(x_dim)
