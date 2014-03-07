@@ -269,7 +269,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     print shape(Gdense)
     return Gs, F, J, H
 
-def construct_const_matrix(x_dim, Q, D):
+def construct_const_matrix(x_dim, D):
     # --------------------------
     #| 0   0
     #| 0   I
@@ -318,7 +318,7 @@ def solve_A(x_dim, B, C, E, D, Q):
     print "SOLVE_A!"
     print "eig(D)"
     print eig(D)[0]
-    MAX_ITERS = 200
+    MAX_ITERS = 400
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     c = zeros((c_dim,1))
     c[0] = x_dim
@@ -328,11 +328,20 @@ def solve_A(x_dim, B, C, E, D, Q):
         c[vec_pos] = 1.
     cm = matrix(c)
 
-    Gs, _, _, _ = construct_coeff_matrix(x_dim, Q, C, B, E)
+    # Scale objective down by T for numerical stability
+    eigsQinv = max([abs(1./q) for q in eig(Q)[0]])
+    eigsE = max([abs(e) for e in eig(E)[0]])
+    eigsCB = max([abs(cb) for cb in eig(C-B)[0]])
+    S = max(eigsQinv, eigsE, eigsCB)
+    Qdown = Q / S
+    Edown = E / S
+    Cdown = C / S
+    Bdown = B / S
+    Gs, _, _, _ = construct_coeff_matrix(x_dim, Qdown, Cdown, Bdown, Edown)
     for i in range(len(Gs)):
         Gs[i] = -Gs[i] + 1e-6
 
-    hs = construct_const_matrix(x_dim, Q, D)
+    hs = construct_const_matrix(x_dim, D)
     #for i in range(len(hs)):
     #    hs[i] = matrix(hs[i])
 
@@ -374,9 +383,9 @@ def solve_A(x_dim, B, C, E, D, Q):
     # Add a small positive offset to avoid taking sqrt of singular matrix
     #J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
     eps = 1e-4
-    J = real(sqrtm(pinv2(Q)+epsilon*eye(x_dim)))
-    H = real(sqrtm(E+epsilon*eye(x_dim)))
-    F = dot(J, C - B)
+    J = real(sqrtm(pinv2(Qdown)+epsilon*eye(x_dim)))
+    H = real(sqrtm(Edown+epsilon*eye(x_dim)))
+    F = dot(J, Cdown - Bdown)
     Aprim = 0.9 * (1 - eps) * eye(x_dim)
     Zprim = (dot(J, dot(Aprim, F.T)) + dot(F, dot(Aprim.T, J))
                 + dot(dot(J, dot(Aprim, H)),dot(J, dot(Aprim, H)).T))
@@ -386,7 +395,7 @@ def solve_A(x_dim, B, C, E, D, Q):
     # (due to numerical issues)
     Zprim = (Zprim + Zprim.T)/2.
     sprim = 10
-    P = construct_primal_matrix(x_dim, sprim, Zprim, Aprim, Q, F, J, H, D)
+    P = construct_primal_matrix(x_dim, sprim, Zprim, Aprim, Qdown, F, J, H, D)
     primalstart = {}
     print "shape(P)"
     print shape(P)

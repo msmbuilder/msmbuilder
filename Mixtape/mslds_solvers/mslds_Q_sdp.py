@@ -36,6 +36,10 @@ def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     # To preserve symmetricity
     Dinv = (Dinv + Dinv.T)/2.
     P2[x_dim:, x_dim:] = Dinv
+    # Add this small offset in hope of correcting for the numerical
+    # errors in pinv
+    eps = 1e-4
+    P2 += eps * eye(2*x_dim)
     print "eig(P2)"
     print eig(P2)[0]
 
@@ -190,6 +194,10 @@ def construct_const_matrix(x_dim, A, B, D):
     # For symmmetricity
     Dinv = (Dinv + Dinv.T)/2.
     H2[x_dim:, x_dim:] = Dinv
+    # Add this small offset in hope of correcting for the numerical
+    # errors in pinv
+    eps = 1e-4
+    H2 += eps * eye(2*x_dim)
     H2 = matrix(H2)
 
     # Construct B3
@@ -228,7 +236,7 @@ def solve_Q(x_dim, A, B, D):
     print (abs(F - F.T) < 1e-3).all()
     print "max eig(A)"
     print max([np.linalg.norm(el) for el in eig(A)[0]])
-    MAX_ITERS=200
+    MAX_ITERS=400
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
     c = zeros((c_dim,1))
     # c = s*dim + Tr Z
@@ -239,8 +247,9 @@ def solve_Q(x_dim, A, B, D):
         c[vec_pos] = 1.
     cm = matrix(c)
 
-    # Scale down by T for numerical stability
-    T = max(eig(B)[0])
+    # Scale objective down by T for numerical stability
+    eigs = eig(B)[0]
+    T = max(abs(max(eigs)), abs(min(eigs)))
     Bdown = B / T
     Gs = construct_coeff_matrix(x_dim, Bdown)
     for i in range(len(Gs)):
@@ -283,7 +292,7 @@ def solve_Q(x_dim, A, B, D):
     #IPython.embed()
 
     solvers.options['maxiters'] = MAX_ITERS
-    solvers.options['debug'] = True
+    #solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
     print sol
     return sol, c, Gs, hs
