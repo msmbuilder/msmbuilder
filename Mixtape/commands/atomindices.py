@@ -37,7 +37,7 @@ import os
 import itertools
 import mdtraj as md
 import numpy as np
-from mdtraj.pdb import element
+from mdtraj.core import element
 
 from mixtape.cmdline import Command, argument, argument_group
 
