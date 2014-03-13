@@ -52,7 +52,6 @@ nv.addGraph(function() {
                 .x(function(d) { return d['train_lag_time'] })
                 .y(function(d) { return d['timescales'][0] })
                 .size(function(d) { return d['train_logprob'] / d['n_train_observations']})
-//                .transitionDuration(300)
                 ;
   chart1.xAxis
     .tickFormat(d3.format('d'))
@@ -87,7 +86,6 @@ nv.addGraph(function() {
                 .x(function(d) { return d['n_states'] })
                 .y(function(d) { return d['timescales'][0] })
                 .size(function(d) { return d['train_logprob'] / d['n_train_observations']})
-//                .transitionDuration(300)
                 ;
   chart2.xAxis
     .tickFormat(d3.format('d'))
