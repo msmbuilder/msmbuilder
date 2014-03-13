@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- jQuery -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+
+<!-- DataTables -->
+<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
+<script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+
+<!-- D3 and NVD3 -->
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.2/d3.min.js"></script>
+<script src="novus-nvd3-0c03b27/lib/fisheye.js"></script>
+<script src="novus-nvd3-0c03b27/nv.d3.js"></script>
+<script src="novus-nvd3-0c03b27/src/utils.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/legend.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/axis.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/distribution.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/scatter.js"></script>
+<script src="novus-nvd3-0c03b27/src/models/scatterChart.js"></script>
+<link href="novus-nvd3-0c03b27/src/nv.d3.css" rel="stylesheet" type="text/css">
+<style>
+
+svg {
+  height: 500px;
+}
+
+body {
+  overflow-y:scroll;
+}
+
+</style>
+<body>
+<div id="chart1">
+    <h2> timescale-0 vs. lag time </h2>
+    <svg></svg>
+</div>
+
+<div id="chart2">
+    <h2> timescale-0 vs. n states </h2>
+    <svg></svg>
+</div>
+
+<script>
+var chart1, chart2;
+
+
+// Build chart1: timescales vs. lag time
+nv.addGraph(function() {
+  chart1 = nv.models.scatterChart()
+                .useVoronoi(true)
+                .color(d3.scale.category10().range())
+                .x(function(d) { return d['train_lag_time'] })
+                .y(function(d) { return d['timescales'][0] })
+                .size(function(d) { return d['train_logprob'] / d['n_train_observations']})
+                ;
+  chart1.xAxis
+    .tickFormat(d3.format('d'))
+    .axisLabel("Lag Time");
+  chart1.yAxis
+    .tickFormat(d3.format('.02f'))
+    .axisLabel("Timescales");
+  chart1.tooltipContent(function(key, x, y, graph) {
+      return '<h3>' + graph['point']['timescales'] + '</h3>';
+
+  });
+
+   getModels(function(data) {
+     d3.select('#chart1 svg')
+        .datum(data)
+        .call(chart1);
+   }, "n_states");
+
+
+  nv.utils.windowResize(chart1.update);
+//  chart1.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
+  return chart1;
+});
+
+
+
+// Build plot of Timescale vs n_states
+nv.addGraph(function() {
+  chart2 = nv.models.scatterChart()
+                .useVoronoi(true)
+                .color(d3.scale.category10().range())
+                .x(function(d) { return d['n_states'] })
+                .y(function(d) { return d['timescales'][0] })
+                .size(function(d) { return d['train_logprob'] / d['n_train_observations']})
+                ;
+  chart2.xAxis
+    .tickFormat(d3.format('d'))
+    .axisLabel("Number of States");
+  chart2.yAxis
+    .tickFormat(d3.format('.02f'))
+    .axisLabel("Timescales");
+  chart2.tooltipContent(function(key, x, y, graph) {
+      return '<h3>' + graph['point']['timescales'] + '</h3>';
+
+  });
+   getModels(function(data) {
+     d3.select('#chart2 svg')
+        .datum(data)
+        .call(chart2);
+   }, "train_lag_time");
+
+
+  nv.utils.windowResize(chart2.update);
+  chart2.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
+  return chart2;
+});
+
+
+
+getModels = function(fn, groupby) {
+  d3.json("/models?groupby=" + groupby, function(error, json) {
+    if (error) return console.warn(error);
+    fn(json);
+  });
+}
+
+
+</script>
+</body>
+
+
+
