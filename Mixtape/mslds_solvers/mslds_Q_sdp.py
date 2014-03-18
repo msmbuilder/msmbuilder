@@ -81,10 +81,15 @@ def construct_coeff_matrix(x_dim, B):
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
+            print "Z[%d,%d]" % (i, j)
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            print "\tmat_pos = %d" % mat_pos
+            print "\tvec_pos = %d" % vec_pos
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
@@ -101,8 +106,10 @@ def construct_coeff_matrix(x_dim, B):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i,j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     # Block Matrix 2
     g2_dim = 2 * x_dim
@@ -114,8 +121,10 @@ def construct_coeff_matrix(x_dim, B):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += -1.
     # Fourth Block Column
     # -------------------
@@ -130,8 +139,10 @@ def construct_coeff_matrix(x_dim, B):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     # Block Matrix 4
     g4_dim = x_dim
@@ -144,8 +155,10 @@ def construct_coeff_matrix(x_dim, B):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     Gs = [G]
     return Gs
@@ -269,9 +282,10 @@ def solve_Q(x_dim, A, B, D):
             Q[j, k] = qvec[vec_pos]
             Q[k, j] = Q[j, k]
     # Set this for debugging purposes
-    #if min(eig(D - Q)[0]) < 0:
-    #    print "Q >= D!"
-    #    pdb.set_trace()
+    eps = -1e-3
+    if min(eig(D - Q)[0]) < eps:
+        print "Q >= D!"
+        pdb.set_trace()
     return sol, c, Gs, hs
 
 

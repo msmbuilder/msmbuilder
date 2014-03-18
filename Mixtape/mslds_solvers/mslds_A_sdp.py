@@ -104,8 +104,10 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
@@ -238,8 +240,10 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1
 
     Gs = [G]
