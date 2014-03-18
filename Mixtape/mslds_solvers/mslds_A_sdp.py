@@ -35,8 +35,6 @@ def construct_primal_matrix(x_dim, s, Z, A, Q, F, J, H, D):
     P1[:x_dim, x_dim:] = dot(J, dot(A, H))
     P1[x_dim:, :x_dim] = dot(J, dot(A, H)).T
     P1[x_dim:, x_dim:] = eye(x_dim)
-    print "eig(P1)"
-    print eig(P1)[0]
     P1 = matrix(P1)
 
     # Construct P2
@@ -50,23 +48,17 @@ def construct_primal_matrix(x_dim, s, Z, A, Q, F, J, H, D):
     Dinv = (Dinv + Dinv.T)/2.
     P2[x_dim:, x_dim:] = Dinv
     P2 = matrix(P2)
-    print "eig(P2)"
-    print eig(P2)[0]
 
     # Construct P3
     P3 = eye(2*x_dim)
     P3[:x_dim, x_dim:] = A.T
     P3[x_dim:, :x_dim] = A
     P3 = matrix(P3)
-    print "eig(P3)"
-    print eig(P3)[0]
 
     # Construct P5
     P4 = zeros((x_dim, x_dim))
     P4[:,:] = Z
     P4 = matrix(P4)
-    print "eig(P4)"
-    print eig(P4)[0]
 
     #IPython.embed()
     # Construct Block matrix
@@ -91,10 +83,8 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     #|                                                Z
     # -------------------------------------------
     # Smallest number epsilon such that 1. + epsilon != 1.
-    print "x_dim = %d" % x_dim
     epsilon = np.finfo(np.float32).eps
     p_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
-    print "p_dim = %d" % p_dim
     g_dim = 7 * x_dim
     G = spmatrix([], [], [], (g_dim**2, p_dim), 'd')
     # Block Matrix 1
@@ -256,18 +246,6 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     Z = matrix(zeros((p_dim, p_dim)))
     I = matrix(eye(g_dim**2))
     D = matrix(sparse([[Z, G], [G.T, -I]]))
-    print "matrix_rank(D)"
-    print matrix_rank(D)
-    #print "A-G"
-    #print G
-    # Some debugging attempts
-    Gdense = matrix(G)
-    print "matrix_rank(Gdense)"
-    print matrix_rank(Gdense)
-    print "matrix_rank(G)"
-    print matrix_rank(G)
-    print "shape(Gdense)"
-    print shape(Gdense)
     return Gs, F, J, H
 
 def construct_const_matrix(x_dim, D):
@@ -287,12 +265,7 @@ def construct_const_matrix(x_dim, D):
 
     # Construct B2
     eps = 1e-4
-    #min_epsilon = np.finfo(np.float32).eps
-    #eps = max(0.5*min(eig(D)[0]), min_epsilon) # 0.5 should be param
     H2 = zeros((2 * x_dim, 2 * x_dim))
-    #H2[:x_dim, :x_dim] = D - eps * eye(x_dim)
-    #H2[:x_dim, :x_dim] = D - dot((1-eps) * eye(x_dim), D)
-    #H2[:x_dim, :x_dim] = D - eps * D
     H2[:x_dim, :x_dim] = D - eps * D
     H2[x_dim:, x_dim:] = pinv(D)
     H2 = matrix(H2)
@@ -306,10 +279,7 @@ def construct_const_matrix(x_dim, D):
     H4 = matrix(H4)
 
     # Construct Block matrix
-    #hs = [H1, H2, H3, H4]
     H = spdiag([H1,H2,H3,H4])
-    #print "A-H"
-    #print H
     hs = [H]
     return hs
 
@@ -317,9 +287,7 @@ def construct_const_matrix(x_dim, D):
 def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
     print "SOLVE_A!"
-    print "eig(D)"
-    print eig(D)[0]
-    MAX_ITERS = 200
+    MAX_ITERS = 100
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     c = zeros((c_dim,1))
     c[0] = x_dim
@@ -349,47 +317,10 @@ def solve_A(x_dim, B, C, E, D, Q):
         Gs[i] = -Gs[i] + 1e-6
 
     hs = construct_const_matrix(x_dim, D)
-    #for i in range(len(hs)):
-    #    hs[i] = matrix(hs[i])
 
-    #ml = 0
-    #ms = [ int(math.sqrt(G.size[0])) for G in Gs ]
-    #dims = {'l': ml, 'q':[], 's': ms}
-    #W = {}
-    #W['d'] = matrix(1.0, (dims['l'], 1))
-    #W['di'] = matrix(1.0, (dims['l'], 1))
-    #W['v'] = [ matrix(0.0, (m,1)) for m in dims['q'] ]
-    #W['beta'] = len(dims['q']) * [ 1.0 ]
-    #for v in W['v']: v[0] = 1.0
-    #W['r'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
-    #W['rti'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
-    #for r in W['r']: r[::r.size[0]+1 ] = 1.0
-    #for rti in W['rti']: rti[::rti.size[0]+1 ] = 1.0
-
-    #kktsolver = 'qr'
-    ##A = spmatrix([], [], [], (0, c.size[0]))
-    #A = spmatrix([], [], [], (0, cm.size[0]))
-    #factor = misc.kkt_qr(G, dims, A)
-    #x = matrix(cm)
-    #x[:] = 0.0
-    #dy = matrix(0.0, (0,1))
-    #s = matrix(0.0, (hs[0].size[0]**2,1))
-    #s[:] = hs[0][:]
-    #print "matrix_rank(matrix(G.T))"
-    #print matrix_rank(matrix(G.T))
-    #print "matrix_rank(matrix([G, cm.T]))"
-    #print matrix_rank(matrix([G, cm.T]))
-    #def kktsolver(W):
-    #    return factor(W)
-    #try:
-    #    f = kktsolver(W)
-    #    f(x,dy,s)
-    #except ArithmeticError:
-    #    raise ValueError("YAY! Rank(A) < p or Rank([G; A]) < n")
     epsilon = np.finfo(np.float32).eps
-    # Add a small positive offset to avoid taking sqrt of singular matrix
-    #J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
     eps = 1e-4
+    # Add a small positive offset to avoid taking sqrt of singular matrix
     J = real(sqrtm(pinv2(Qdown)+epsilon*eye(x_dim)))
     H = real(sqrtm(Edown+epsilon*eye(x_dim)))
     F = dot(J, Cdown - Bdown)
@@ -426,10 +357,10 @@ def solve_A(x_dim, B, C, E, D, Q):
     avec = np.array(sol['x'])
     avec = avec[1 + x_dim * (x_dim + 1) / 2:]
     A = np.reshape(avec, (x_dim, x_dim), order='F')
-    if max(eig(A)[0]) > 1:
-        print "A NORM > 1!"
-        pdb.set_trace()
-
+    # Set this for debugging purposes
+    #if max(eig(A)[0]) > 1:
+    #    print "A NORM > 1!"
+    #    pdb.set_trace()
     return sol, c, Gs, hs
 
 

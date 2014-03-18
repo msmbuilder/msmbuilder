@@ -26,8 +26,6 @@ def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     P1[:x_dim, x_dim:] = F
     P1[x_dim:, :x_dim] = F.T
     P1[x_dim:, x_dim:] = Q
-    print "eig(P1)"
-    print eig(P1)[0]
 
     P2 = zeros((2*x_dim, 2*x_dim))
     P2[:x_dim, :x_dim] = D - Q
@@ -45,18 +43,12 @@ def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
     if min_eig < 0:
         # assume min_eig << 1
         P2 += 2 * abs(min_eig) * eye(2*x_dim)
-    print "eig(P2)"
-    print eig(P2)[0]
 
     P3 = zeros((x_dim, x_dim))
     P3[:,:] = Q
-    print "eig(P3)"
-    print eig(P3)[0]
 
     P4 = zeros((x_dim, x_dim))
     P4[:,:] = Z
-    print "eig(P4)"
-    print eig(P4)[0]
 
     P = scipy.linalg.block_diag(P1, P2, P3, P4)
     if min(np.linalg.eig(P)[0]) < 0:
@@ -213,7 +205,7 @@ def solve_Q(x_dim, A, B, D):
     print "SOLVE_Q!"
     epsilon = np.finfo(np.float32).eps
     F = real(sqrtm(B+epsilon*eye(x_dim)))
-    MAX_ITERS=200
+    MAX_ITERS=100
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
     c = zeros((c_dim,1))
     # c = s*dim + Tr Z
@@ -226,8 +218,12 @@ def solve_Q(x_dim, A, B, D):
 
     # Scale objective down by T for numerical stability
     eigs = eig(B)[0]
+    # B may be a zero matrix (if no datapoints were associated here).
     T = max(abs(max(eigs)), abs(min(eigs)))
-    Bdown = B / T
+    if T != 0.:
+        Bdown = B / T
+    else:
+        Bdown = B
     # Ensure that D doesn't have negative eigenvals
     # due to numerical issues
     min_D_eig = min(eig(D)[0])
@@ -249,6 +245,9 @@ def solve_Q(x_dim, A, B, D):
         Gs[i] = -Gs[i]
     G = np.copy(matrix(Gs[0]))
 
+    # Now scale D upwards for stability
+    max_D_eig = max(eig(D)[0])
+
     hs, _ = construct_const_matrix(x_dim, A, Bdown, D)
     for i in range(len(hs)):
         hs[i] = matrix(hs[i])
@@ -257,42 +256,9 @@ def solve_Q(x_dim, A, B, D):
     # Add a small positive offset to avoid taking sqrt of singular matrix
     F = real(sqrtm(Bdown+epsilon*eye(x_dim)))
 
-    # Construct primalstart
-    Qprim = (D - dot(A, dot(D, A.T)))
-    # min_eig can be slightly negative due to numerical errors.
-    # ensure that Qprim is PSD before taking pseudoinverse
-    min_eig = min(eig(Qprim)[0])
-    if min_eig < 0:
-        # assume abs(min_eig) << 1
-        Qprim = Qprim + 2 * abs(min_eig) * eye(x_dim)
-    Qpriminv = pinv(Qprim)
-    Qpriminv = (Qpriminv + Qpriminv.T)/2.
-    Zprim = dot(F, dot(Qpriminv, F.T)) + eye(x_dim)
-    # pinv doesn't explicitly preserve symmetric matrices
-    Zprim = (Zprim + Zprim.T)/2.
-    sprim = max(eig(Zprim)[0])
-    #IPython.embed()
-    P = construct_primal_matrix(x_dim, sprim, Zprim, F, Qprim, D, A)
-    primalstart = {}
-    x = zeros((c_dim,1))
-    x[0] = sprim
-    count = 1
-    for i in range(x_dim):
-        for j in range(i+1):
-            x[count] = Zprim[i,j]
-            count += 1
-    for i in range(x_dim):
-        for j in range(i+1):
-            x[count] = Qprim[i,j]
-            count += 1
-    x = matrix(x)
-    primalstart['x'] = x
-    primalstart['ss'] = [matrix(P)]
-    #IPython.embed()
-
     solvers.options['maxiters'] = MAX_ITERS
     #solvers.options['debug'] = True
-    sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
+    sol = solvers.sdp(cm, Gs=Gs, hs=hs)
     print sol
     qvec = np.array(sol['x'])
     qvec = qvec[1 + x_dim * (x_dim + 1) / 2:]
@@ -302,9 +268,10 @@ def solve_Q(x_dim, A, B, D):
             vec_pos = j * (j + 1) / 2 + k
             Q[j, k] = qvec[vec_pos]
             Q[k, j] = Q[j, k]
-    if min(eig(D - Q)[0]) < 0:
-        print "Q >= D!"
-        pdb.set_trace()
+    # Set this for debugging purposes
+    #if min(eig(D - Q)[0]) < 0:
+    #    print "Q >= D!"
+    #    pdb.set_trace()
     return sol, c, Gs, hs
 
 

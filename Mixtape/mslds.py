@@ -306,27 +306,27 @@ class MetastableSwitchingLDS(object):
 
             # Maximization step
             self._do_mstep(stats, set(self.params))
-        print "OMG, FINISHED FIT!"
+        # Debugging Aids
         print "As"
         for i in range(self.n_states):
-            print "State %d" % i
+            print "\tState %d" % i
             print self.As_[i]
-            print "Eig:"
+            print "\tEig:"
             print np.linalg.eig(self.As_[i])[0]
         print "Qs"
         for i in range(self.n_states):
-            print "State %d" % i
+            print "\tState %d" % i
             print self.Qs_[i]
-            print "Eig:"
+            print "\tEig:"
             print np.linalg.eig(self.Qs_[i])[0]
         print "Ds"
         print self.covars_
         for i in range(self.n_states):
-            print "State %d" % i
+            print "\tState %d" % i
             print self.covars_[i]
-            print "Eig:"
+            print "\tEig:"
             print np.linalg.eig(self.covars_[i])[0]
-        print "OMG AGAIN, FINISHED FIT!"
+        print "FINISHED FIT!"
 
 
         return self
@@ -396,9 +396,6 @@ class MetastableSwitchingLDS(object):
             A = self.As_[i]
             Sigma = self.covars_[i]
             b = np.reshape(self.bs_[i], (self.n_features, 1))
-            mean_debug = np.reshape(stats['obs[1:]'][i], (self.n_features, 1))
-            print "mean_debug"
-            print mean_debug
             B = ((stats['obs[1:]*obs[1:].T'][i]
                 - np.dot(stats['obs*obs[t-1].T'][i], A.T)
                 - np.dot(np.reshape(stats['obs[1:]'][i],
