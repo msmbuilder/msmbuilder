@@ -1,26 +1,32 @@
-from cvxopt import matrix, solvers
+from cvxopt import matrix, solvers, spmatrix, spdiag
 from numpy import bmat, zeros, reshape, array, dot, shape, eye, shape, real
 from numpy import ones
 from numpy.linalg import pinv, eig
 from scipy.linalg import block_diag, sqrtm
+import scipy
+import scipy.linalg
 import numpy as np
-
+import IPython
+import pdb
 
 def construct_coeff_matrix(x_dim, B):
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
-    g_dim = 6 * x_dim
-    G = zeros((g_dim ** 2, 1 + 2 * x_dim * (x_dim + 1) / 2))
     # ------------------------
-    #|Z+sI  F
-    #| F    Q
+    #|Z+sI   F
+    #|F.T    Q
     #|           D-Q   A
     #|           A.T D^{-1}
     #|                      Q
     #|                        Z
     # ------------------------
 
+    g_dim = 6 * x_dim
+    p_dim = 1 + 2* x_dim * (x_dim + 1) / 2
+    G = spmatrix([], [], [], (g_dim**2, p_dim), 'd')
+    # Block Matrix 1
     # First Block Column
+    g1_dim = 2 * x_dim
     # Z + sI
     left = 0
     top = 0
@@ -30,8 +36,10 @@ def construct_coeff_matrix(x_dim, B):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
@@ -48,107 +56,187 @@ def construct_coeff_matrix(x_dim, B):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i,j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
+    # Block Matrix 2
+    g2_dim = 2 * x_dim
     # Third Block Column
-    # -Q
-    left = 2 * x_dim
-    top = 2 * x_dim
+    left = 0 * x_dim+g1_dim
+    top = 0 * x_dim+g1_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += -1.
     # Fourth Block Column
     # -------------------
+    # Block Matrix 3
+    g3_dim = x_dim
     # Fifth Block Column
     # Q
-    left = 4 * x_dim
-    top = 4 * x_dim
+    left = 0 * x_dim+g1_dim+g2_dim
+    top = 0 * x_dim+g1_dim+g2_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
+    # Block Matrix 4
+    g4_dim = x_dim
     # Sixth Block Column
     # Z
-    left = 5 * x_dim
-    top = 5 * x_dim
+    left = 0 * x_dim+g1_dim+g2_dim+g3_dim
+    top = 0 * x_dim+g1_dim+g2_dim+g3_dim
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
-    return G
+    Gs = [G]
+    return Gs
 
 
 def construct_const_matrix(x_dim, A, B, D):
     # F = B^{.5}
     # -----------------------
-    #| 0    F
-    #| F    0
-    #|           D    A
-    #|          A.T D^{-1}
-    #|                      0
-    #|                        0
+    #| 0      F
+    #| F.T    0
+    #|            D    A
+    #|           A.T D^{-1}
+    #|                       0
+    #|                         0
     # -----------------------
     # Smallest number epsilon such that 1. + epsilon != 1.
     epsilon = np.finfo(np.float32).eps
     # Add a small positive offset to avoid taking sqrt of singular matrix
     F = real(sqrtm(B+epsilon*eye(x_dim)))
     # Construct B1
-    B1 = zeros((2 * x_dim, 2 * x_dim))
-    B1[x_dim:, :x_dim] = F
-    B1[:x_dim, x_dim:] = F
+    H1 = zeros((2 * x_dim, 2 * x_dim))
+    H1[:x_dim, x_dim:] = F
+    H1[x_dim:, :x_dim] = F.T
+    H1 = matrix(H1)
 
     # Construct B2
-    B2 = zeros((2 * x_dim, 2 * x_dim))
-    B2[:x_dim, :x_dim] = D
-    B2[:x_dim, x_dim:] = A
-    B2[x_dim:, :x_dim] = A.T
-    B2[x_dim:, x_dim:] = pinv(D)
+    H2 = zeros((2 * x_dim, 2 * x_dim))
+    H2[:x_dim, :x_dim] = D
+    H2[:x_dim, x_dim:] = A
+    H2[x_dim:, :x_dim] = A.T
+    Dinv = pinv(D)
+    # For symmmetricity
+    Dinv = (Dinv + Dinv.T)/2.
+    H2[x_dim:, x_dim:] = Dinv
+    # Add this small offset in hope of correcting for the numerical
+    # errors in pinv
+    eps = 1e-4
+    H2 += eps * eye(2*x_dim)
+    H2 = matrix(H2)
 
     # Construct B3
-    B3 = zeros((x_dim, x_dim))
+    H3 = zeros((x_dim, x_dim))
+    H3 = matrix(H3)
 
     # Construct B4
-    B4 = zeros((x_dim, x_dim))
+    H4 = zeros((x_dim, x_dim))
+    H4 = matrix(H4)
 
     # Construct Block matrix
-    h = block_diag(B1, B2, B3, B4)
-    return h, F
+    H = spdiag([H1,H2,H3,H4])
+    hs = [H]
+    return hs, F
 
 
 def solve_Q(x_dim, A, B, D):
     # x = [s vec(Z) vec(Q)]
+    print "SOLVE_Q!"
+    epsilon = np.finfo(np.float32).eps
+    F = real(sqrtm(B+epsilon*eye(x_dim)))
+    MAX_ITERS=100
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
-    c = zeros(c_dim)
+    c = zeros((c_dim,1))
+    # c = s*dim + Tr Z
     c[0] = x_dim
     prev = 1
     for i in range(x_dim):
         vec_pos = prev + i * (i + 1) / 2 + i
-        c[vec_pos] = 1
+        c[vec_pos] = 1.
     cm = matrix(c)
 
-    G = construct_coeff_matrix(x_dim, B)
-    G = -G  # set negative since s = h - Gx in cvxopt's sdp solver
-    Gs = [matrix(G)]
+    # Scale objective down by T for numerical stability
+    eigs = eig(B)[0]
+    # B may be a zero matrix (if no datapoints were associated here).
+    T = max(abs(max(eigs)), abs(min(eigs)))
+    if T != 0.:
+        Bdown = B / T
+    else:
+        Bdown = B
+    # Ensure that D doesn't have negative eigenvals
+    # due to numerical issues
+    min_D_eig = min(eig(D)[0])
+    if min_D_eig < 0:
+        # assume abs(min_D_eig) << 1
+        D = D + 2 * abs(min_D_eig) * eye(x_dim)
+    # Ensure that D - A D A.T is PSD. Otherwise, the problem is
+    # unsolvable and weird numerical artifacts can occur.
+    min_Q_eig = min(eig(D - dot(A, dot(D, A.T)))[0])
+    if min_Q_eig < 0:
+        eta = 0.99
+        power = 1
+        while (min(eig(D - dot((eta**power)*A,
+            dot(D, (eta**power)*A.T)))[0]) < 0):
+            power += 1
+        A = (eta ** power)*A
+    Gs = construct_coeff_matrix(x_dim, Bdown)
+    for i in range(len(Gs)):
+        Gs[i] = -Gs[i]
+    G = np.copy(matrix(Gs[0]))
 
-    h, _ = construct_const_matrix(x_dim, A, B, D)
-    hs = [matrix(h)]
+    # Now scale D upwards for stability
+    max_D_eig = max(eig(D)[0])
 
+    hs, _ = construct_const_matrix(x_dim, A, Bdown, D)
+    for i in range(len(hs)):
+        hs[i] = matrix(hs[i])
+    # Smallest number epsilon such that 1. + epsilon != 1.
+    epsilon = np.finfo(np.float32).eps
+    # Add a small positive offset to avoid taking sqrt of singular matrix
+    F = real(sqrtm(Bdown+epsilon*eye(x_dim)))
+
+    solvers.options['maxiters'] = MAX_ITERS
+    #solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    return sol, c, G, h
+    print sol
+    qvec = np.array(sol['x'])
+    qvec = qvec[1 + x_dim * (x_dim + 1) / 2:]
+    Q = np.zeros((x_dim, x_dim))
+    for j in range(x_dim):
+        for k in range(j + 1):
+            vec_pos = j * (j + 1) / 2 + k
+            Q[j, k] = qvec[vec_pos]
+            Q[k, j] = Q[j, k]
+    # Set this for debugging purposes
+    eps = -1e-3
+    if min(eig(D - Q)[0]) < eps:
+        print "Q >= D!"
+        pdb.set_trace()
+    return sol, c, Gs, hs
 
 
 def test_Q_generate_constraints(x_dim):

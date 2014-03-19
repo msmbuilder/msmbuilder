@@ -58,7 +58,7 @@ else:
 
 if LEARN:
     # Fit Metastable Switcher
-    l = MetastableSwitchingLDS(K, x_dim, n_iter=NUM_ITERS)
+    l = MetastableSwitchingLDS(K, x_dim, n_em_iter=NUM_ITERS)
     l.fit(xs)
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(K, x_dim)

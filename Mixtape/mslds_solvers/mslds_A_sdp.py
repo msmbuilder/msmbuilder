@@ -1,24 +1,21 @@
-from cvxopt import matrix, solvers
+from cvxopt import matrix, solvers, spmatrix, spdiag, sparse
 from numpy import bmat, zeros, reshape, array, dot, eye, outer, shape
 from numpy import sqrt, real, ones
 from numpy.linalg import pinv, eig, matrix_rank
-from scipy.linalg import block_diag, sqrtm
+from scipy.linalg import block_diag, sqrtm, pinv2
+import scipy
+import scipy.linalg
 import numpy as np
-
+import cvxopt.misc as misc
+import math
+import IPython
+import pdb
 
 def construct_coeff_matrix(x_dim, Q, C, B, E):
     # x = [s vec(Z) vec(A)]
     # F = Q^{-.5}(C-B) (not(!) symmetric)
     # J = Q^{-.5} (symmetric)
     # H = E^{.5} (symmetric)
-    g_dim = 7 * x_dim
-    # Smallest number epsilon such that 1. + epsilon != 1.
-    epsilon = np.finfo(np.float32).eps
-    G = zeros((g_dim ** 2, 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2))
-    # Add a small positive offset to avoid taking sqrt of singular matrix
-    J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
-    H = real(sqrtm(E+epsilon*eye(x_dim)))
-    F = dot(J, C - B)
     # ------------------------------------------
     #|Z+sI-JAF.T -FA.TJ  JAH
     #|    (JAH).T         I
@@ -28,6 +25,18 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     #|                                         A   I
     #|                                                Z
     # -------------------------------------------
+    # Smallest number epsilon such that 1. + epsilon != 1.
+    epsilon = np.finfo(np.float32).eps
+    p_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
+    g_dim = 7 * x_dim
+    G = spmatrix([], [], [], (g_dim**2, p_dim), 'd')
+    # Block Matrix 1
+    g1_dim = 2 * x_dim
+    # Add a small positive offset to avoid taking sqrt of singular matrix
+    #J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
+    J = real(sqrtm(pinv2(Q)+epsilon*eye(x_dim)))
+    H = real(sqrtm(E+epsilon*eye(x_dim)))
+    F = dot(J, C - B)
     # First Block Column
     # Z+sI-JAF.T -FA.TJ
     left = 0
@@ -38,8 +47,10 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
@@ -54,15 +65,16 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
             mat_pos = left * g_dim + j * g_dim + top + i
             # For (i,j)-th element in matrix M
             # do summation:
-            #   M    = J A F.T
-            #   M_ij = sum_m (JA)_im (F.T)_mj
-            #        = sum_m (JA)_im F_jm
-            #        = sum_m (sum_n J_in A_nm) F_jm
-            #        = sum_m sum_n J_in A_nm F_jm
+            #   M    = -J A F.T
+            #   M_ij = -sum_m (JA)_im (F.T)_mj
+            #        = -sum_m (JA)_im F_jm
+            #        = -sum_m (sum_n J_in A_nm) F_jm
+            #        = -sum_m sum_n J_in A_nm F_jm
             for m in range(x_dim):
                 for n in range(x_dim):
+                    val = -J[i, n] * F[j, m]
                     vec_pos = prev + n * x_dim + m
-                    G[mat_pos, vec_pos] += -J[i, n] * F[j, m]
+                    G[mat_pos, vec_pos] += val
     # - F A.T J
     prev = 1 + x_dim * (x_dim + 1) / 2
     for i in range(x_dim):
@@ -116,101 +128,115 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
                 for n in range(x_dim):
                     vec_pos = prev + n * x_dim + m
                     G[mat_pos, vec_pos] += J[i, n] * H[m, j]
+    # Block Matrix 2
+    g2_dim = 2 * x_dim
     # Third Block Column
     # A.T
-    left = 2 * x_dim
-    top = 3 * x_dim
+    left = 0 * x_dim + g1_dim
+    top = 1 * x_dim + g1_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
             mat_pos = left * g_dim + j * g_dim + top + i
-            G[mat_pos, vec_pos] += 1.
+            G[mat_pos, vec_pos] += 1
     # Fourth Block Column
     # A
-    left = 3 * x_dim
-    top = 2 * x_dim
+    left = 1 * x_dim + g1_dim
+    top = 0 * x_dim + g1_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
             mat_pos = left * g_dim + j * g_dim + top + i
-            G[mat_pos, vec_pos] += 1.
-    # ------------------
+            G[mat_pos, vec_pos] += 1
+    # Block Matrix 3
+    g3_dim = 2 * x_dim
     # Fifth Block Column
     # A
-    left = 4 * x_dim
-    top = 5 * x_dim
+    left = 0 * x_dim + g1_dim + g2_dim
+    top = 1 * x_dim + g1_dim + g2_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
             mat_pos = left * g_dim + j * g_dim + top + i
-            G[mat_pos, vec_pos] += 1.
+            G[mat_pos, vec_pos] += 1
     # Sixth Block Column
     # A.T
-    left = 5 * x_dim
-    top = 4 * x_dim
+    left = 1 * x_dim + g1_dim + g2_dim
+    top = 0 * x_dim + g1_dim + g2_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
             mat_pos = left * g_dim + j * g_dim + top + i
-            G[mat_pos, vec_pos] += 1.
+            G[mat_pos, vec_pos] += 1
+    # Block Matrix 4
+    g4_dim = 1 * x_dim
     # Seventh Block Column
     # Z
-    left = 6 * x_dim
-    top = 6 * x_dim
+    left = 0 * x_dim+g1_dim+g2_dim+g3_dim
+    top = 0 * x_dim+g1_dim+g2_dim+g3_dim
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
-                (i, j) = (j, i)
-            vec_pos = prev + j * (j + 1) / 2 + i  # pos in param vector
-            G[mat_pos, vec_pos] += 1.
+                (it, jt) = (j, i)
+            else:
+                (it, jt) = (i, j)
+            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            G[mat_pos, vec_pos] += 1
 
-    return G, F, J, H
+    Gs = [G]
+    Z = matrix(zeros((p_dim, p_dim)))
+    I = matrix(eye(g_dim**2))
+    D = matrix(sparse([[Z, G], [G.T, -I]]))
+    return Gs, F, J, H
 
-def construct_const_matrix(x_dim, Q, D):
+def construct_const_matrix(x_dim, D):
     # --------------------------
     #| 0   0
     #| 0   I
     #|        D-eps_I    0
     #|         0        D^{-1}
-    #|                         I
-    #|                            I
+    #|                         I  0
+    #|                         0  I
     #|                              0
     # --------------------------
     # Construct B1
-    B1 = zeros((2 * x_dim, 2 * x_dim))
-    B1[x_dim:, x_dim:] = eye(x_dim)
+    H1 = zeros((2 * x_dim, 2 * x_dim))
+    H1[x_dim:, x_dim:] = eye(x_dim)
+    H1 = matrix(H1)
 
     # Construct B2
     eps = 1e-4
-    B2 = zeros((2 * x_dim, 2 * x_dim))
-    B2[:x_dim, :x_dim] = D - eps * eye(x_dim)
-    B2[x_dim:, x_dim:] = pinv(D)
+    H2 = zeros((2 * x_dim, 2 * x_dim))
+    H2[:x_dim, :x_dim] = D - eps * D
+    H2[x_dim:, x_dim:] = pinv(D)
+    H2 = matrix(H2)
 
     # Construct B3
-    B3 = eye(x_dim)
-
-    # Construct B4
-    B4 = eye(x_dim)
+    H3 = eye(2*x_dim)
+    H3 = matrix(H3)
 
     # Construct B5
-    B5 = zeros((x_dim, x_dim))
+    H4 = zeros((x_dim, x_dim))
+    H4 = matrix(H4)
 
     # Construct Block matrix
-    h = block_diag(B1, B2, B3, B4, B5)
-    return h
+    H = spdiag([H1,H2,H3,H4])
+    hs = [H]
+    return hs
 
 
 def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
-    MAX_ITERS = 30
+    print "SOLVE_A!"
+    MAX_ITERS = 100
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
-    c = zeros(c_dim)
+    c = zeros((c_dim,1))
     c[0] = x_dim
     prev = 1
     for i in range(x_dim):
@@ -218,16 +244,35 @@ def solve_A(x_dim, B, C, E, D, Q):
         c[vec_pos] = 1.
     cm = matrix(c)
 
-    G, _, _, _ = construct_coeff_matrix(x_dim, Q, C, B, E)
-    G = -G  # set negative since s = h - Gx in cvxopt's sdp solver
-    Gs = [matrix(G)]
+    # Scale objective down by T for numerical stability
+    eigsQinv = max([abs(1./q) for q in eig(Q)[0]])
+    eigsE = max([abs(e) for e in eig(E)[0]])
+    eigsCB = max([abs(cb) for cb in eig(C-B)[0]])
+    S = max(eigsQinv, eigsE, eigsCB)
+    Qdown = Q / S
+    Edown = E / S
+    Cdown = C / S
+    Bdown = B / S
+    # Ensure that D doesn't have negative eigenvals
+    # due to numerical issues
+    min_D_eig = min(eig(D)[0])
+    if min_D_eig < 0:
+        # assume abs(min_D_eig) << 1
+        D = D + 2 * abs(min_D_eig) * eye(x_dim)
+    Gs, _, _, _ = construct_coeff_matrix(x_dim, Qdown, Cdown, Bdown, Edown)
+    for i in range(len(Gs)):
+        Gs[i] = -Gs[i] + 1e-6
 
-    h = construct_const_matrix(x_dim, Q, D)
-    hs = [matrix(h)]
+    hs = construct_const_matrix(x_dim, D)
 
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    return sol, c, G, h
+    print sol
+    # check norm of A:
+    avec = np.array(sol['x'])
+    avec = avec[1 + x_dim * (x_dim + 1) / 2:]
+    A = np.reshape(avec, (x_dim, x_dim), order='F')
+    return sol, c, Gs, hs
 
 
 def test_A_generate_constraints(x_dim):

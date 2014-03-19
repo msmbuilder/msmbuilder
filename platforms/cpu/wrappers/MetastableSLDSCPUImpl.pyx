@@ -31,7 +31,7 @@ cdef extern from "mslds_estep.hpp" namespace "Mixtape":
         float* logprob) nogil
 
 
-cdef class SwitchingVAR1CPUImpl:
+cdef class MetastableSLDSCPUImpl:
     cdef list sequences
     cdef int n_sequences
     cdef np.ndarray seq_lengths

@@ -5,6 +5,32 @@ The switch posteriors are used in the M-step to update parameter estimates.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
+# Author: Bharath Ramsundar <bharath.ramsundar@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import print_function, division
 import warnings
@@ -17,8 +43,8 @@ from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
 from mdtraj.utils import ensure_type
 
-from mixtape import _reversibility
-from mixtape._switching_var1 import SwitchingVAR1CPUImpl
+from mixtape import _reversibility, _mslds
+from mixtape._mslds import MetastableSLDSCPUImpl
 from mixtape.mslds_solvers.mslds_A_sdp import solve_A
 from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
@@ -69,8 +95,13 @@ class MetastableSwitchingLDS(object):
         Global Covariance matrix for the noise in each state
     transmat : np.ndarray, shape=(n_states, n_states)
         State-to-state Markov jump probabilities
-    n_iter : int, optional
+    n_em_iter : int, optional
         Number of iterations to perform during training
+    reversible_type : str
+        Method by which the reversibility of the transition matrix
+        is enforced. 'mle' uses a maximum likelihood method that is
+        solved by numerical optimization (BFGS) and is the only current
+        option.
     init_params : string, optional, default
         Controls which parameters are initialized prior to training. Can
         contain any combination of 't' for transmat, 'm' for means, and
@@ -90,14 +121,16 @@ class MetastableSwitchingLDS(object):
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
         init_params='tmcqab', transmat_prior=None, params='tmcqab',
-        n_iter=10, covars_prior=1e-2, covars_weight=1, precision='mixed',
-        eps=2.e-1):
+        reversible_type='mle', n_em_iter=10, covars_prior=1e-2,
+        covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
 
         self.n_states = n_states
         self.n_features = n_features
         self.n_hotstart_sequences = n_hotstart_sequences
-        self.n_iter = n_iter
+        self.n_em_iter = n_em_iter
         self.init_params = init_params
+        self.platform = platform
+        self.reversible_type = reversible_type
         self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
@@ -107,7 +140,7 @@ class MetastableSwitchingLDS(object):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
         self.eps = eps
-        self._impl = SwitchingVAR1CPUImpl(n_states, n_features, precision)
+        self._impl = MetastableSLDSCPUImpl(n_states, n_features, precision)
 
         self._As_ = None
         self._bs_ = None
@@ -117,8 +150,19 @@ class MetastableSwitchingLDS(object):
         self._transmat_ = None
         self._populations_ = None
 
+        if not reversible_type in ['mle']:
+            raise ValueError('Invalid value for reversible_type: %s '
+                             'Must be "mle"' % reversible_type)
+
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
+        if self.platform == 'cpu':
+            self._impl = _mslds.MetastableSLDSCPUImpl(
+                            self.n_states, self.n_features, precision)
+        else:
+            raise ValueError(('Invalid platform "%s".'
+                    + 'Available platforms are %s.') % (platform,
+                        ', '.join(_AVAILABLE_PLATFORMS)))
 
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)
@@ -251,8 +295,8 @@ class MetastableSwitchingLDS(object):
         self._init(sequences)
         n_obs = sum(len(s) for s in sequences)
 
-        for i in range(self.n_iter):
-            # print("Iteration %d" % i)
+        for i in range(self.n_em_iter):
+            print("Iteration %d" % i)
             _, stats = self._impl.do_estep()
             if stats['trans'].sum() > 10*n_obs:
                 print('Number of transition counts', stats['trans'].sum())
@@ -263,6 +307,27 @@ class MetastableSwitchingLDS(object):
 
             # Maximization step
             self._do_mstep(stats, set(self.params))
+        # Debugging Aids. Remove once code becomes more stable.
+        print("As")
+        for i in range(self.n_states):
+            print("\tState %d" % i)
+            print(self.As_[i])
+            print("\tEig:")
+            print(np.linalg.eig(self.As_[i])[0])
+        print("Qs")
+        for i in range(self.n_states):
+            print("\tState %d" % i)
+            print(self.Qs_[i])
+            print("\tEig:")
+            print(np.linalg.eig(self.Qs_[i])[0])
+        print("Ds")
+        print(self.covars_)
+        for i in range(self.n_states):
+            print("\tState %d" % i)
+            print(self.covars_[i])
+            print("\tEig:")
+            print(np.linalg.eig(self.covars_[i])[0])
+        print("FINISHED FIT!")
 
 
         return self
@@ -298,6 +363,13 @@ class MetastableSwitchingLDS(object):
         cvweight = max(self.covars_weight - self.n_features, 0)
         self.covars_ = ((cvnum) /
                  (cvweight + stats['post'][:, None, None]))
+        for c in range(self.n_states):
+            # Might be slightly negative due to numerical issues
+            min_eig = min(np.linalg.eig(self.covars_[c])[0])
+            if min_eig < 0:
+                # Assume min_eig << 1
+                self.covars_[c] += (2 * abs(min_eig) *
+                        np.eye(self.n_features))
 
     def _transmat_update(self, stats):
         counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)

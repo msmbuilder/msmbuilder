@@ -359,17 +359,16 @@ extensions.append(
                             'platforms/cpu/kernels/']))
 
 extensions.append(
-    Extension('mixtape._switching_var1',
-          language='c++',
-          sources=['platforms/cpu/wrappers/SwitchingVAR1CPUImpl.pyx'] +
-                    glob.glob('platforms/cpu/kernels/*.c') +
-                    glob.glob('platforms/cpu/kernels/*.cpp'),
-          libraries=libraries + lapack_info['libraries'],
-          extra_compile_args=extra_compile_args,
-          extra_link_args=lapack_info['extra_link_args'],
-          include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
-                        'platforms/cpu/kernels/']))
-
+    Extension('mixtape._mslds',
+              language='c++',
+              sources=['platforms/cpu/wrappers/MetastableSLDSCPUImpl.pyx'] +
+                        glob.glob('platforms/cpu/kernels/*.c') +
+                        glob.glob('platforms/cpu/kernels/*.cpp'),
+              libraries=libraries + lapack_info['libraries'],
+              extra_compile_args=extra_compile_args,
+              extra_link_args=lapack_info['extra_link_args'],
+              include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
+                            'platforms/cpu/kernels/']))
 
 extensions.append(
     Extension('mixtape._vmhmm',

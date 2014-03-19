@@ -134,7 +134,7 @@ for traj in range(NUM_TRAJS):
         integrator.step(10)
 if LEARN:
     # Learn the MetastableSwitchingLDS
-    l = MetastableSwitchingLDS(K, x_dim, n_iter=NUM_ITERS)
+    l = MetastableSwitchingLDS(K, x_dim, n_em_iter=NUM_ITERS)
     l.fit(xs)
     sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
 
