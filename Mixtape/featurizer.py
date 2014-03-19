@@ -11,7 +11,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -63,13 +63,13 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
     fns = []
 
     for file in filenames:
-        kwargs = {}  if file.endswith('.h5') else {'top': topology}
+        kwargs = {} if file.endswith('.h5') else {'top': topology}
         for t in md.iterload(file, chunk=chunk, **kwargs):
             x = featurizer.featurize(t)
 
             data.append(x)
             indices.append(np.arange(len(x)))
-            fns.extend([file]*len(x))
+            fns.extend([file] * len(x))
     if len(data) == 0:
         raise ValueError("None!")
 
@@ -84,7 +84,9 @@ def load(filename):
 
 
 class Featurizer(object):
+
     """Base class for Featurizer objects."""
+
     def __init__(self):
         pass
 
@@ -97,7 +99,9 @@ class Featurizer(object):
 
 
 class SuperposeFeaturizer(Featurizer):
+
     """Featurizer based on euclidian atom distances to reference structure."""
+
     def __init__(self, atom_indices, reference_traj):
         self.atom_indices = atom_indices
         self.reference_traj = reference_traj
@@ -106,13 +110,17 @@ class SuperposeFeaturizer(Featurizer):
     def featurize(self, traj):
 
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
-        diff2 = (traj.xyz[:, self.atom_indices] - self.reference_traj.xyz[0, self.atom_indices])**2
+        diff2 = (traj.xyz[:, self.atom_indices] -
+                 self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
 
         return x
 
+
 class AtomPairsFeaturizer(Featurizer):
+
     """Featurizer based on atom pair distances."""
+
     def __init__(self, pair_indices, reference_traj, periodic=False):
         self.pair_indices = pair_indices
         self.reference_traj = reference_traj
@@ -125,6 +133,7 @@ class AtomPairsFeaturizer(Featurizer):
 
 
 class RawPositionsFeaturizer(Featurizer):
+
     def __init__(self, n_features):
         self.n_features = n_features
 

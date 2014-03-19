@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -47,16 +47,16 @@ __all__ = ['SaveFeaturizer']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class SaveFeaturizer(Command, GaussianFeaturizationMixin):
     name = 'featurizer'
     description = '''Create and save a featurizer for later use.'''
 
     group_feature = argument_group('Featurizer Loading')
     group_feature.add_argument('--top', type=str, help='''Topology file for
-        loading trajectories''', required=True)    
-    group_feature.add_argument('-o', '--filename', type=str,
-        help='''Output featurizer to this filename. default='featurizer.pickl' ''',
-        default='featurizer.pickl')
+        loading trajectories''', required=True)
+    group_feature.add_argument('-o', '--filename', default='featurizer.pickl', help='''
+        Output featurizer to this filename. default="featurizer.pickl"''')
 
     def __init__(self, args):
         self.args = args
@@ -68,19 +68,19 @@ class SaveFeaturizer(Command, GaussianFeaturizationMixin):
         if args.distance_pairs is not None:
             self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
             if self.indices.shape[1] != 2:
-                self.error('distance-pairs must have shape (N, 2). %s had shape %s' % (args.distance_pairs, self.indices.shape))
-            featurizer = AtomPairsFeaturizer(self.indices, self.top)                
+                self.error('distance-pairs must have shape (N, 2). %s had shape %s' %
+                           (args.distance_pairs, self.indices.shape))
+            featurizer = AtomPairsFeaturizer(self.indices, self.top)
         else:
             self.indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=2)
             if self.indices.shape[1] != 1:
-                self.error('atom-indices must have shape (N, 1). %s had shape %s' % (args.atom_indices, self.indices.shape))
+                self.error('atom-indices must have shape (N, 1). %s had shape %s' %
+                           (args.atom_indices, self.indices.shape))
             self.indices = self.indices.reshape(-1)
-            
+
             featurizer = SuperposeFeaturizer(self.indices, self.top)
-            
+
         featurizer.save(args.filename)
-        
 
     def start(self):
         args = self.args
-

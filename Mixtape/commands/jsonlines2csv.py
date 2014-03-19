@@ -8,7 +8,7 @@ from textwrap import wrap
 from mixtape.utils import iterobjects
 from mixtape.cmdline import Command, argument, argument_group
 
-__all__= ['Jsonlines2CSV']
+__all__ = ['Jsonlines2CSV']
 
 
 class Jsonlines2CSV(Command):
@@ -16,8 +16,8 @@ class Jsonlines2CSV(Command):
     description = '''Save a small CSV summary of one or more jsonlines files.
 
     Optionally, we can also make some small plots'''
-    filename = argument('filename', nargs="+", metavar='JSONLINES_FILE',
-                     help='Path to .jsonlines file')
+    filename = argument('filename', nargs="+", metavar='JSONLINES_FILE', help='''
+        Path to .jsonlines file''')
     out = argument('out_csv', metavar='OUT_CSV_FILE', help='')
 
     g = argument_group("optional plotting options (if supplied, a plot is displayed too)")
@@ -34,7 +34,8 @@ class Jsonlines2CSV(Command):
             'test_logprob', 'n_test_observations', 'fusion_prior',
             'test_lag_time', 'cross_validation_fold', 'train_time',
             'cross_validation_nfolds'])
-        models = [{k: v for k, v in m.items() if k not in exclude} for f in self.args.filename for m in iterobjects(f)]
+        models = [{k: v for k, v in m.items() if k not in exclude}
+                  for f in self.args.filename for m in iterobjects(f)]
 
         explode_key_in_listofdicts('timescales', models)
         explode_key_in_listofdicts('populations', models)
@@ -58,7 +59,8 @@ class Jsonlines2CSV(Command):
         import matplotlib.pyplot as pp
         if self.args.color is not None:
             for key, group in self.models.groupby(self.args.color):
-                pp.plot(group[self.args.x], group[self.args.y], 'x', label='%s=%s' % (self.args.color, key))
+                pp.plot(group[self.args.x], group[self.args.y], 'x', label='%s=%s' %
+                        (self.args.color, key))
             pp.legend(loc=2)
         else:
             pp.plot(self.models[self.args.x], self.models[self.args.y], marker='x')

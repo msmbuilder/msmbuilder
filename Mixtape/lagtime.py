@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg
 
+
 def contraction(transmat, lag_time, pi=None):
     """Contract a row-stochastic transition matrix from a time-discretization
     `lag_time` to a time-discretization of 1.
@@ -70,8 +71,8 @@ def contraction(transmat, lag_time, pi=None):
     D_inv = np.diag(pi ** -0.5)
     tsym = D.dot(transmat).dot(D_inv)
     eigvals, eigvecs = scipy.linalg.eigh(tsym)
-    
-    contracted_eigvals = np.diag(np.maximum(eigvals, 0)**(1.0 / float(lag_time)))
+
+    contracted_eigvals = np.diag(np.maximum(eigvals, 0) ** (1.0 / float(lag_time)))
     result = D_inv.dot(eigvecs.dot(contracted_eigvals).dot(eigvecs.T)).dot(D)
 
     # this is a hack. we really need to constrain transmat to have positive

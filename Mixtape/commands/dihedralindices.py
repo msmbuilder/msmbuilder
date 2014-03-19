@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -38,7 +38,8 @@ import os
 import numpy as np
 import mdtraj as md
 from mdtraj.geometry.dihedral import (_atom_sequence, PHI_ATOMS, PSI_ATOMS,
-    OMEGA_ATOMS, CHI1_ATOMS, CHI2_ATOMS, CHI3_ATOMS, CHI4_ATOMS)
+                                      OMEGA_ATOMS, CHI1_ATOMS, CHI2_ATOMS,
+                                      CHI3_ATOMS, CHI4_ATOMS)
 
 from mixtape.cmdline import Command, argument, argument_group
 
@@ -48,11 +49,12 @@ __all__ = ['DihedralIndices']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class DihedralIndices(Command):
-    description="Create index file for dihedral angles."
+    description = "Create index file for dihedral angles."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
     out = argument('-o', '--out', required=True, help='Path to output file')
-    
+
     section2 = argument_group(description='Selection Criteria: Choose One or More')
     section2.add_argument('--phi', action='store_true', help='''Backbone phi
         (C-N-CA-C) angles''')
@@ -74,16 +76,16 @@ class DihedralIndices(Command):
         fourth side chain torsion angle formed between the corresponding 4
         atoms over the CD-CE or CD-NE axis (only ARG & LYS residues have these
         atoms)''')
-    
+
     def __init__(self, args):
         self.args = args
         if os.path.exists(args.out):
             self.error('IOError: file exists: %s' % args.out)
         self.pdb = md.load(args.pdb)
         print('Loaded pdb containing (%d) chains, (%d) residues, (%d) atoms.' %
-            (self.pdb.topology.n_chains, self.pdb.topology.n_residues,
-             self.pdb.topology.n_atoms))
-    
+              (self.pdb.topology.n_chains, self.pdb.topology.n_residues,
+               self.pdb.topology.n_atoms))
+
     def start(self):
         dihedral_atom_types = []
         if self.args.phi:
@@ -107,6 +109,7 @@ class DihedralIndices(Command):
         if not any(x.size for x in indices):
             self.error('No dihedral angles matched.')
         indices = np.vstack(x for x in indices if x.size)[id_sort]
-        print('Selected (%d) dihedrals from (%d) unique residues.' % (len(indices),
-            len(np.unique(rids))))
+
+        print('Selected (%d) dihedrals from (%d) unique residues.' % (
+            len(indices), len(np.unique(rids))))
         np.savetxt(self.args.out, indices, '%d')

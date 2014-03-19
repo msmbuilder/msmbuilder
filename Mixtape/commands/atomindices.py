@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -43,27 +43,28 @@ from mixtape.cmdline import Command, argument, argument_group
 
 __all__ = ['AtomIndices']
 PROTEIN_RESIDUES = set([
- 'ACE', 'AIB', 'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'FOR', 'GLN', 'GLU',
- 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'NH2', 'NME', 'ORN', 'PCA',
- 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'UNK', 'VAL'])
+    'ACE', 'AIB', 'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'FOR', 'GLN', 'GLU',
+    'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'NH2', 'NME', 'ORN', 'PCA',
+    'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'UNK', 'VAL'])
 
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
 
+
 class AtomIndices(Command):
-    description="Create index file for atoms or distance pairs."
+    description = "Create index file for atoms or distance pairs."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
     out = argument('-o', '--out', required=True, help='Path to output file')
 
     section1 = argument_group(description='Mode: Choose One')
     group1 = section1.add_mutually_exclusive_group(required=True)
-    group1.add_argument('-d', '--distance-pairs', action='store_true',
-        help='''Create a 2-dimensional index file with (N choose 2) rows and 2
+    group1.add_argument('-d', '--distance-pairs', action='store_true', help='''
+        Create a 2-dimensional index file with (N choose 2) rows and 2
         columns, where each row specifies a pair of indices. All (N choose 2)
         pairs of the selected atoms will be written.''')
-    group1.add_argument('-a', '--atoms', action='store_true',
-        help='''Create a 1-dimensional index file containing the indices of the
+    group1.add_argument('-a', '--atoms', action='store_true', help='''
+        Create a 1-dimensional index file containing the indices of the
         selected atoms.''')
 
     section2 = argument_group(description='Selection Criteria: Choose One')
@@ -86,8 +87,8 @@ class AtomIndices(Command):
             self.error('IOError: file exists: %s' % args.out)
         self.pdb = md.load(os.path.expanduser(args.pdb))
         print('Loaded pdb containing (%d) chains, (%d) residues, (%d) atoms.' %
-            (self.pdb.topology.n_chains, self.pdb.topology.n_residues,
-             self.pdb.topology.n_atoms))
+              (self.pdb.topology.n_chains, self.pdb.topology.n_residues,
+               self.pdb.topology.n_atoms))
 
     def start(self):
         if self.args.all:
@@ -96,15 +97,16 @@ class AtomIndices(Command):
             atom_indices = [a.index for a in self.pdb.topology.atoms if a.name == 'CA']
         elif self.args.minimal:
             atom_indices = [a.index for a in self.pdb.topology.atoms if a.name in
-                ['CA', 'CB', 'C', 'N', 'O'] and a.residue.name in PROTEIN_RESIDUES]
+                            ['CA', 'CB', 'C', 'N', 'O'] and a.residue.name in PROTEIN_RESIDUES]
         elif self.args.heavy:
             atom_indices = [a.index for a in self.pdb.topology.atoms if a.element != element.hydrogen
-                and a.residue.name in PROTEIN_RESIDUES]
+                            and a.residue.name in PROTEIN_RESIDUES]
         else:
             raise RuntimeError
 
-        print('Selected (%d) atoms from (%d) unique residues.' % (len(atom_indices),
-            len(np.unique([self.pdb.topology.atom(i).residue.index for i in atom_indices]))))
+        n_atoms = len(atom_indices)
+        n_residues = len(np.unique([self.pdb.topology.atom(i).residue.index for i in atom_indices]))))
+        print('Selected (%d) atoms from (%d) unique residues.' % (n_atoms, n_residues))
 
         if self.args.distance_pairs:
             out = np.array(list(itertools.combinations(atom_indices, 2)))

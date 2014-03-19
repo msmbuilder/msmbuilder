@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -43,19 +43,18 @@ from mixtape.cmdline import Command, argument
 
 __all__ = ['Structures']
 
+
 class Structures(Command):
     name = 'structures'
     description = 'Extract protein structures (.pdb/.xtc/etc) from a CSV file.'
-    filename = argument('filename', metavar='CSV_PATH',
-        help='Path to csv file.')
+    filename = argument('filename', metavar='CSV_PATH', help='Path to csv file.')
     ext = argument('--ext', help='Output file format', default='pdb',
         choices=[e[1:] for e in md._FormatRegistry.loaders.keys()])
     top = argument('--top', type=str, help='''Topology file for
         loading trajectories''', required=True)
-    prefix = argument('--prefix', help='''Prefix for the output files.
-        One trajectory file in the specified format will be saved with
-        the name <prefix>-<state-index>.<extension>. default="state"''',
-        default='state')
+    prefix = argument('--prefix', default='state', help='''Prefix for the output
+        files. One trajectory file in the specified format will be saved with
+        the name <prefix>-<state-index>.<extension>. default="state"''')
 
     def outfn(self, state):
         return '%s-%d.%s' % (self.prefix, state, self.ext)

@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -47,13 +47,17 @@ __all__ = ['Inspect']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class Inspect(Command):
     description = "Inspect the content of a '.jsonlines' output file"
-    input = argument('-i', '--filename', metavar='JSONLINES_FILE',
-        required=True, help='Path to .jsonlines file')
-    details = argument('--details', action='store_true', help='Print all of the details of each model to stdout')
-    n_states = argument('--n-states', type=int, help='Filter the output, only showing models with the specified n_states')
-    lag_time = argument('--lag-time', type=int, help='Filter the output, only showing models with the specified lag_time')
+    input = argument('-i', '--filename', metavar='JSONLINES_FILE', required=True, help='''
+        Path to .jsonlines file''')
+    details = argument('--details', action='store_true', help='''Print all
+        of the details of each model to stdout''')
+    n_states = argument('--n-states', type=int, help='''Filter the output,
+        only showing models with the specified n_states''')
+    lag_time = argument('--lag-time', type=int, help='''Filter the output, only
+        showing models with the specified lag_time''')
 
     def __init__(self, args):
         self.args = args
@@ -67,18 +71,18 @@ class Inspect(Command):
             df = df[df['n_states'] == self.args.n_states]
         if self.args.lag_time:
             df = df[df['train_lag_time'] == self.args.lag_time]
-            
+
         # print csv to stdout
-        print('-'*80)
+        print('-' * 80)
         print('Overview')
-        print('-'*80)
+        print('-' * 80)
 
         df[['train_lag_time', 'n_states', 'timescales']].to_csv(sys.stdout, sep='\t', index=False)
 
         if self.details:
-            print('-'*80)
+            print('-' * 80)
             print('Details')
-            print('-'*80)
+            print('-' * 80)
             for i in range(len(df)):
                 print('N training observations:', df['n_train_observations'][i])
                 print('\nTrain Lag Time:', df['train_lag_time'][i])
@@ -103,5 +107,5 @@ class Inspect(Command):
                 print('\nTraining Logprobs (each EM iteration)')
                 print(np.array(df['train_logprobs'][i]))
 
-                if i < len(df)-1:
-                    print('\n' + ('~'*70) + '\n')
+                if i < len(df) - 1:
+                    print('\n' + ('~' * 70) + '\n')

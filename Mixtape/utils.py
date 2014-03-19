@@ -94,7 +94,7 @@ def empirical_wells(Ys, W_i_Ts):
         denom = 0
         for t in range(T):
             num += W_i_Ts[t, k] * np.outer(Ys[t] - means[k],
-                Ys[t] - means[k])
+                                           Ys[t] - means[k])
             denom += W_i_Ts[t, k]
         covars[k] = (1.0 / denom) * num
     return means, covars

@@ -1,7 +1,9 @@
 import mdtraj as md
 from mixtape.cmdline import argument_group
 
+
 class MDTrajInputMixin(object):
+
     """Mixin for a command to accept trajectory input files"""
     group_mdtraj = argument_group('MDTraj Options')
     group_mdtraj.add_argument('--dir', type=str, help='''Directory containing

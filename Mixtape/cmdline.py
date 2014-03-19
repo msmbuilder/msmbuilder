@@ -42,7 +42,7 @@ if __name__ == '__main__':
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -74,11 +74,14 @@ __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
 # argparse types
 #-----------------------------------------------------------------------------
 
+
 class MultipleIntAction(argparse.Action):
+
     """An argparse Action to be used as an alternative to `nargs='+', type=int`
     (instead, you use `nargs='+', action=MultipleIntAction`. This allows the user
     to specify either a space separated list of ints (ala the former solution)
     _or_ a comma separated list"""
+
     def __call__(self, parser, namespace, values, option_string=None):
         if isinstance(values, list):
             values = ' '.join(values)
@@ -91,6 +94,7 @@ class MultipleIntAction(argparse.Action):
 
 class FlagAction(argparse.Action):
     # From http://bugs.python.org/issue8538
+
     def __init__(self, option_strings, dest, default=None,
                  required=False, help=None, metavar=None,
                  positive_prefixes=['--'], negative_prefixes=['--no-']):
@@ -105,13 +109,14 @@ class FlagAction(argparse.Action):
                 self.negative_strings.add(negative_prefix + suffix)
         strings = list(self.positive_strings | self.negative_strings)
         super(FlagAction, self).__init__(option_strings=strings, dest=dest,
-                nargs=0, const=None, default=default, type=bool, choices=None,
-                required=required, help=help, metavar=metavar)
+                                         nargs=0, const=None, default=default, type=bool, choices=None,
+                                         required=required, help=help, metavar=metavar)
+
     def __call__(self, parser, namespace, values, option_string=None):
         if option_string in self.positive_strings:
             setattr(namespace, self.dest, True)
         else:
-           setattr(namespace, self.dest, False)
+            setattr(namespace, self.dest, False)
 
 #-----------------------------------------------------------------------------
 # Argument Declaration Class Attibutes
@@ -119,19 +124,23 @@ class FlagAction(argparse.Action):
 
 
 class argument(object):
+
     """Wrapper for parser.add_argument"""
+
     def __init__(self, *args, **kwargs):
         self.parent = None
         self.args = args
         self.kwargs = kwargs
         self.registered = False
-        
+
     def register(self, root):
         root.add_argument(*self.args, **self.kwargs)
 
 
 class argument_group(object):
+
     """Wrapper for parser.add_argument_group"""
+
     def __init__(self, *args, **kwargs):
         self.parent = None
         self.args = args
@@ -156,7 +165,9 @@ class argument_group(object):
 
 
 class mutually_exclusive_group(object):
+
     """Wrapper parser.add_mutually_exclusive_group"""
+
     def __init__(self, *args, **kwargs):
         self.parent = None
         self.args = args
@@ -191,7 +202,7 @@ class Command(object):
     @abc.abstractproperty
     def description(self):
         pass
-        
+
     def error(self, msg):
         print(msg, file=sys.stderr)
         exit(1)
@@ -227,14 +238,15 @@ class App(object):
         # do this, you need to increase the "action_max_length" argument which
         # puts more whitespace between the end of the action name and the start
         # of the helptext.
-        parser = argparse.ArgumentParser(description=self.description,
-            formatter_class=lambda prog: MyHelpFormatter(prog,
+        parser = argparse.ArgumentParser(
+            description=self.description, formatter_class=lambda prog: MyHelpFormatter(prog,
             indent_increment=1, width=88, action_max_length=17))
 
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
         for klass in self._subcommands():
             # http://stackoverflow.com/a/17124446/1079728
-            first_sentence = ' '.join(' '.join(re.split(r'(?<=[.:;])\s', klass.description)[:1]).split())
+            first_sentence = ' '.join(
+                ' '.join(re.split(r'(?<=[.:;])\s', klass.description)[:1]).split())
             description = '\n\n'.join(wrap_paragraphs(klass.description))
             subparser = subparsers.add_parser(
                 klass._get_name(), help=first_sentence, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -251,12 +263,14 @@ class App(object):
             if subclass != cls:
                 yield subclass
 
+
 def all_subclasses(cls):
     return cls.__subclasses__() + [g for s in cls.__subclasses__()
                                    for g in all_subclasses(s)]
 
 
 class MyHelpFormatter(argparse.HelpFormatter):
+
     def __init__(self, *args, **kwargs):
         # to see what's going on here, you really have to look in the argparse source.
         # e.g. line 487 in argparse.py, where _action_max_length is used to set the

@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -50,30 +50,32 @@ __all__ = ['PullMeansGHMM']
 # Imports
 #-----------------------------------------------------------------------------
 
+
 class PullMeansGHMM(SampleGHMM):
-    name='means-ghmm'
-    description='''Draw samples at the center of each state in a Gaussian HMM.'''
+    name = 'means-ghmm'
+    description = '''Draw samples at the center of each state in a Gaussian HMM.'''
 
     group = argument_group('I/O Arguments')
-    group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE',
-        help='''Path to the jsonlines output file containg the HMMs''')
-    group.add_argument('--featurizer', type=str, required=True,
-        help='Path to saved featurizer object')
+    group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE', help='''
+        Path to the jsonlines output file containg the HMMs''')
+    group.add_argument('--featurizer', type=str, required=True, help='''
+        Path to saved featurizer object''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
     group.add_argument('--n-per-state', type=int, default=1, help='''Select the
         `n-per-state` most representative structures from each state. default=1''')
     group.add_argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
-    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE',
-        help='File to which to save the output, in CSV format. default="means.csv',
-        default='means.csv')
+    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE', default='means.csv', help='''
+        File to which to save the output, in CSV format. default="means.csv''')
 
     def start(self):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
 
-        features, ii, ff = mixtape.featurizer.featurize_all(self.filenames, featurizer, self.topology)
-        logprob = log_multivariate_normal_density(features, np.array(self.model['means']),
+        features, ii, ff = mixtape.featurizer.featurize_all(
+            self.filenames, featurizer, self.topology)
+        logprob = log_multivariate_normal_density(
+            features, np.array(self.model['means']),
             np.array(self.model['vars']), covariance_type='diag')
 
         assignments = np.argmax(logprob, axis=1)
@@ -81,11 +83,11 @@ class PullMeansGHMM(SampleGHMM):
 
         data = {'filename': [], 'index': [], 'state': []}
         for k in range(self.model['n_states']):
-            # pick the structures that have the highest log 
+            # pick the structures that have the highest log
             # probability in the state
-            p = probs[assignments==k]
-            sorted_filenms = ff[assignments==k][p.argsort()]
-            sorted_indices = ii[assignments==k][p.argsort()]
+            p = probs[assignments == k]
+            sorted_filenms = ff[assignments == k][p.argsort()]
+            sorted_indices = ii[assignments == k][p.argsort()]
 
             if len(p) > 0:
                 data['index'].extend(sorted_indices[-self.args.n_per_state:])
@@ -93,7 +95,7 @@ class PullMeansGHMM(SampleGHMM):
                 data['filename'].extend(sorted_filenms[-self.args.n_per_state:])
                 filename_length = len(sorted_filenms[-self.args.n_per_state:])
                 assert index_length == filename_length
-                data['state'].extend([k]*index_length)
+                data['state'].extend([k] * index_length)
             else:
                 print('WARNING: NO STRUCTURES ASSIGNED TO STATE=%d' % k)
 

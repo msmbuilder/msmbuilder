@@ -9,6 +9,7 @@ import numpy as np
 import IPython
 import pdb
 
+
 def construct_coeff_matrix(x_dim, B):
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
@@ -22,8 +23,8 @@ def construct_coeff_matrix(x_dim, B):
     # ------------------------
 
     g_dim = 6 * x_dim
-    p_dim = 1 + 2* x_dim * (x_dim + 1) / 2
-    G = spmatrix([], [], [], (g_dim**2, p_dim), 'd')
+    p_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
+    G = spmatrix([], [], [], (g_dim ** 2, p_dim), 'd')
     # Block Matrix 1
     # First Block Column
     g1_dim = 2 * x_dim
@@ -58,14 +59,14 @@ def construct_coeff_matrix(x_dim, B):
             if i >= j:
                 (it, jt) = (j, i)
             else:
-                (it, jt) = (i,j)
+                (it, jt) = (i, j)
             vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
             G[mat_pos, vec_pos] += 1.
     # Block Matrix 2
     g2_dim = 2 * x_dim
     # Third Block Column
-    left = 0 * x_dim+g1_dim
-    top = 0 * x_dim+g1_dim
+    left = 0 * x_dim + g1_dim
+    top = 0 * x_dim + g1_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
@@ -82,8 +83,8 @@ def construct_coeff_matrix(x_dim, B):
     g3_dim = x_dim
     # Fifth Block Column
     # Q
-    left = 0 * x_dim+g1_dim+g2_dim
-    top = 0 * x_dim+g1_dim+g2_dim
+    left = 0 * x_dim + g1_dim + g2_dim
+    top = 0 * x_dim + g1_dim + g2_dim
     prev = 1 + x_dim * (x_dim + 1) / 2
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
@@ -98,8 +99,8 @@ def construct_coeff_matrix(x_dim, B):
     g4_dim = x_dim
     # Sixth Block Column
     # Z
-    left = 0 * x_dim+g1_dim+g2_dim+g3_dim
-    top = 0 * x_dim+g1_dim+g2_dim+g3_dim
+    left = 0 * x_dim + g1_dim + g2_dim + g3_dim
+    top = 0 * x_dim + g1_dim + g2_dim + g3_dim
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
@@ -127,7 +128,7 @@ def construct_const_matrix(x_dim, A, B, D):
     # Smallest number epsilon such that 1. + epsilon != 1.
     epsilon = np.finfo(np.float32).eps
     # Add a small positive offset to avoid taking sqrt of singular matrix
-    F = real(sqrtm(B+epsilon*eye(x_dim)))
+    F = real(sqrtm(B + epsilon * eye(x_dim)))
     # Construct B1
     H1 = zeros((2 * x_dim, 2 * x_dim))
     H1[:x_dim, x_dim:] = F
@@ -141,12 +142,12 @@ def construct_const_matrix(x_dim, A, B, D):
     H2[x_dim:, :x_dim] = A.T
     Dinv = pinv(D)
     # For symmmetricity
-    Dinv = (Dinv + Dinv.T)/2.
+    Dinv = (Dinv + Dinv.T) / 2.
     H2[x_dim:, x_dim:] = Dinv
     # Add this small offset in hope of correcting for the numerical
     # errors in pinv
     eps = 1e-4
-    H2 += eps * eye(2*x_dim)
+    H2 += eps * eye(2 * x_dim)
     H2 = matrix(H2)
 
     # Construct B3
@@ -158,7 +159,7 @@ def construct_const_matrix(x_dim, A, B, D):
     H4 = matrix(H4)
 
     # Construct Block matrix
-    H = spdiag([H1,H2,H3,H4])
+    H = spdiag([H1, H2, H3, H4])
     hs = [H]
     return hs, F
 
@@ -167,10 +168,10 @@ def solve_Q(x_dim, A, B, D):
     # x = [s vec(Z) vec(Q)]
     print "SOLVE_Q!"
     epsilon = np.finfo(np.float32).eps
-    F = real(sqrtm(B+epsilon*eye(x_dim)))
-    MAX_ITERS=100
+    F = real(sqrtm(B + epsilon * eye(x_dim)))
+    MAX_ITERS = 100
     c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
-    c = zeros((c_dim,1))
+    c = zeros((c_dim, 1))
     # c = s*dim + Tr Z
     c[0] = x_dim
     prev = 1
@@ -199,10 +200,10 @@ def solve_Q(x_dim, A, B, D):
     if min_Q_eig < 0:
         eta = 0.99
         power = 1
-        while (min(eig(D - dot((eta**power)*A,
-            dot(D, (eta**power)*A.T)))[0]) < 0):
+        while (min(eig(D - dot((eta ** power) * A,
+                               dot(D, (eta ** power) * A.T)))[0]) < 0):
             power += 1
-        A = (eta ** power)*A
+        A = (eta ** power) * A
     Gs = construct_coeff_matrix(x_dim, Bdown)
     for i in range(len(Gs)):
         Gs[i] = -Gs[i]
@@ -217,7 +218,7 @@ def solve_Q(x_dim, A, B, D):
     # Smallest number epsilon such that 1. + epsilon != 1.
     epsilon = np.finfo(np.float32).eps
     # Add a small positive offset to avoid taking sqrt of singular matrix
-    F = real(sqrtm(Bdown+epsilon*eye(x_dim)))
+    F = real(sqrtm(Bdown + epsilon * eye(x_dim)))
 
     solvers.options['maxiters'] = MAX_ITERS
     #solvers.options['debug'] = True

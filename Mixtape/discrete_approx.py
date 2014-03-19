@@ -13,7 +13,7 @@
 #   list of conditions and the following disclaimer.
 #
 #   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -42,6 +42,7 @@ __all__ = ['discrete_approx_mvn', 'NotSatisfiableError']
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
+
 
 class NotSatisfiableError(Exception):
     pass
@@ -123,7 +124,7 @@ def discrete_approx_mvn(X, means, covars, match_variances=True):
         # diagonal covariance case
         if not len(covars) == len(means):
             raise ValueError('Shape Error: covars and means musth have the same length')
-        prob = np.exp(-0.5 * np.sum(1./np.sqrt(covars) * (X - means)**2, axis=1))
+        prob = np.exp(-0.5 * np.sum(1. / np.sqrt(covars) * (X - means) ** 2, axis=1))
         moments = np.concatenate((means, covars)) if match_variances else means
 
     elif covars.ndim == 2:
@@ -139,7 +140,7 @@ def discrete_approx_mvn(X, means, covars, match_variances=True):
         raise ValueError('covars must be 1D or 2D')
 
     # this is T(x_i) for each X_i
-    moment_contributions = np.hstack((X, (X-means)**2)) if match_variances else X
+    moment_contributions = np.hstack((X, (X - means) ** 2)) if match_variances else X
 
     def objective_and_grad(l):
         dot = np.dot(moment_contributions, l)
@@ -149,13 +150,15 @@ def discrete_approx_mvn(X, means, covars, match_variances=True):
 
         # gradient of objective function
         dot_max = dot.max(axis=0)
-        log_numerator = np.log(np.sum(moment_contributions * (prob * np.exp(dot -
-                            dot_max)).reshape(-1,1), axis=0)) + dot_max
+        
+        exp_term = np.sum(moment_contributions * (prob * np.exp(dot - dot_max)).reshape(-1, 1), axis=0)        
+        log_numerator = np.log(exp_term) + dot_max
         grad_value = np.exp(log_numerator - lse) - moments
 
         return obj_value, grad_value
 
-    result = scipy.optimize.minimize(objective_and_grad, jac=True, x0=np.ones_like(moments), method='BFGS')
+    result = scipy.optimize.minimize(
+        objective_and_grad, jac=True, x0=np.ones_like(moments), method='BFGS')
     if not result['success']:
         raise NotSatisfiableError()
 
@@ -167,24 +170,25 @@ def discrete_approx_mvn(X, means, covars, match_variances=True):
     weights = weights / np.sum(weights)
     return weights
 
+
 if __name__ == '__main__':
     np.random.seed(10)
     import matplotlib.pyplot as pp
     length = 100
 
-
-    X = np.random.uniform(low=-5, high=5, size=(length,1))
+    X = np.random.uniform(low=-5, high=5, size=(length, 1))
     weights = discrete_approx_mvn(X, [0], [2])
-    pp.title('dot(weights, X) = %.5f, dot(weights, X**2)=%f' % (np.dot(weights, X), np.dot(weights, X**2)))
+    pp.title('dot(weights, X) = %.5f, dot(weights, X**2)=%f' %
+             (np.dot(weights, X), np.dot(weights, X ** 2)))
     for i in range(length):
         pp.plot([X[i, 0], X[i, 0]], [0, weights[i]])
 
     pp.figure()
-    X = np.random.uniform(low=-2, high=2, size=(length,1))
+    X = np.random.uniform(low=-2, high=2, size=(length, 1))
     weights = discrete_approx_mvn(X, [0], [1])
-    pp.title('dot(weights, X) = %.5f, dot(weights, X**2)=%f' % (np.dot(weights, X), np.dot(weights, X**2)))
+    pp.title('dot(weights, X) = %.5f, dot(weights, X**2)=%f' %
+             (np.dot(weights, X), np.dot(weights, X ** 2)))
     for i in range(length):
         pp.plot([X[i, 0], X[i, 0]], [0, weights[i]])
-
 
     pp.show()
