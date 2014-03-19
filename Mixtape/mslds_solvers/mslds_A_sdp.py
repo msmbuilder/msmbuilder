@@ -11,63 +11,6 @@ import math
 import IPython
 import pdb
 
-def construct_primal_matrix(x_dim, s, Z, A, Q, F, J, H, D):
-    # x = [s vec(Z) vec(A)]
-    # F = Q^{-.5}(C-B) (not(!) symmetric)
-    # J = Q^{-.5} (symmetric)
-    # H = E^{.5} (symmetric)
-    # ------------------------------------------
-    #|Z+sI-JAF.T -FA.TJ  JAH
-    #|    (JAH).T         I
-    #|                       D-eps D    A
-    #|                       A.T        D^{-1}
-    #|                                         I  A.T
-    #|                                         A   I
-    #|                                                Z
-    # -------------------------------------------
-    # Smallest number epsilon such that 1. + epsilon != 1.
-    # Construct P1
-    P1 = zeros((2 * x_dim, 2 * x_dim))
-    UL = (Z + s * eye(x_dim) - dot(J,dot(A, F.T)) - dot(F, dot(A.T, J)))
-    # Explicitly symmetrize due to numeric issues
-    UL = (UL + UL.T)/2.
-    P1[:x_dim, :x_dim] = UL
-    P1[:x_dim, x_dim:] = dot(J, dot(A, H))
-    P1[x_dim:, :x_dim] = dot(J, dot(A, H)).T
-    P1[x_dim:, x_dim:] = eye(x_dim)
-    P1 = matrix(P1)
-
-    # Construct P2
-    eps = 1e-4
-    P2 = zeros((2 * x_dim, 2 * x_dim))
-    P2[:x_dim, :x_dim] = (1 - eps) * D
-    P2[:x_dim, x_dim:] = A
-    P2[x_dim:, :x_dim] = A.T
-    Dinv = pinv(D)
-    # Explicitly symmetrize
-    Dinv = (Dinv + Dinv.T)/2.
-    P2[x_dim:, x_dim:] = Dinv
-    P2 = matrix(P2)
-
-    # Construct P3
-    P3 = eye(2*x_dim)
-    P3[:x_dim, x_dim:] = A.T
-    P3[x_dim:, :x_dim] = A
-    P3 = matrix(P3)
-
-    # Construct P5
-    P4 = zeros((x_dim, x_dim))
-    P4[:,:] = Z
-    P4 = matrix(P4)
-
-    #IPython.embed()
-    # Construct Block matrix
-    P = scipy.linalg.block_diag(P1, P2, P3, P4)
-    if min(np.linalg.eig(P)[0]) < 0:
-        print "ERROR: P not PD in A Solver!"
-        IPython.embed()
-    return P
-
 def construct_coeff_matrix(x_dim, Q, C, B, E):
     # x = [s vec(Z) vec(A)]
     # F = Q^{-.5}(C-B) (not(!) symmetric)
@@ -322,49 +265,13 @@ def solve_A(x_dim, B, C, E, D, Q):
 
     hs = construct_const_matrix(x_dim, D)
 
-    epsilon = np.finfo(np.float32).eps
-    eps = 1e-4
-    # Add a small positive offset to avoid taking sqrt of singular matrix
-    J = real(sqrtm(pinv2(Qdown)+epsilon*eye(x_dim)))
-    H = real(sqrtm(Edown+epsilon*eye(x_dim)))
-    F = dot(J, Cdown - Bdown)
-    Aprim = 0.9 * (1 - eps) * eye(x_dim)
-    Zprim = (dot(J, dot(Aprim, F.T)) + dot(F, dot(Aprim.T, J))
-                + dot(dot(J, dot(Aprim, H)),dot(J, dot(Aprim, H)).T))
-    min_eig = abs(min(eig(Zprim)[0]))
-    Zprim += 2 * min_eig * eye(x_dim)
-    # Explicitly symmetrize the matrix
-    # (due to numerical issues)
-    Zprim = (Zprim + Zprim.T)/2.
-    sprim = 10
-    P = construct_primal_matrix(x_dim, sprim, Zprim, Aprim, Qdown, F, J, H, D)
-    primalstart = {}
-
-    x = zeros((c_dim,1))
-    x[0] = sprim
-    count = 1
-    for i in range(x_dim):
-        for j in range(i+1):
-            x[count] = Zprim[i,j]
-            count += 1
-    for i in range(x_dim):
-        for j in range(x_dim):
-            x[count] = Aprim[i,j]
-            count += 1
-    x = matrix(x)
-    primalstart['x'] = x
-    primalstart['ss'] = [matrix(P)]
     solvers.options['maxiters'] = MAX_ITERS
-    sol = solvers.sdp(cm, Gs=Gs, hs=hs, primalstart=primalstart)
+    sol = solvers.sdp(cm, Gs=Gs, hs=hs)
     print sol
     # check norm of A:
     avec = np.array(sol['x'])
     avec = avec[1 + x_dim * (x_dim + 1) / 2:]
     A = np.reshape(avec, (x_dim, x_dim), order='F')
-    # Set this for debugging purposes
-    #if max(eig(A)[0]) > 1:
-    #    print "A NORM > 1!"
-    #    pdb.set_trace()
     return sol, c, Gs, hs
 
 

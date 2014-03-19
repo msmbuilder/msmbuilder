@@ -295,7 +295,7 @@ class MetastableSwitchingLDS(object):
         n_obs = sum(len(s) for s in sequences)
 
         for i in range(self.n_em_iter):
-            print "Iteration %d" % i
+            print("Iteration %d" % i)
             _, stats = self._impl.do_estep()
             if stats['trans'].sum() > 10*n_obs:
                 print('Number of transition counts', stats['trans'].sum())
@@ -306,27 +306,27 @@ class MetastableSwitchingLDS(object):
 
             # Maximization step
             self._do_mstep(stats, set(self.params))
-        # Debugging Aids
-        print "As"
+        # Debugging Aids. Remove once code becomes more stable.
+        print("As")
         for i in range(self.n_states):
-            print "\tState %d" % i
-            print self.As_[i]
-            print "\tEig:"
-            print np.linalg.eig(self.As_[i])[0]
-        print "Qs"
+            print("\tState %d" % i)
+            print(self.As_[i])
+            print("\tEig:")
+            print(np.linalg.eig(self.As_[i])[0])
+        print("Qs")
         for i in range(self.n_states):
-            print "\tState %d" % i
-            print self.Qs_[i]
-            print "\tEig:"
-            print np.linalg.eig(self.Qs_[i])[0]
-        print "Ds"
-        print self.covars_
+            print("\tState %d" % i)
+            print(self.Qs_[i])
+            print("\tEig:")
+            print(np.linalg.eig(self.Qs_[i])[0])
+        print("Ds")
+        print(self.covars_)
         for i in range(self.n_states):
-            print "\tState %d" % i
-            print self.covars_[i]
-            print "\tEig:"
-            print np.linalg.eig(self.covars_[i])[0]
-        print "FINISHED FIT!"
+            print("\tState %d" % i)
+            print(self.covars_[i])
+            print("\tEig:")
+            print(np.linalg.eig(self.covars_[i])[0])
+        print("FINISHED FIT!")
 
 
         return self

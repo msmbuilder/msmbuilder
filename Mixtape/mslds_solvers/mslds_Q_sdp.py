@@ -9,53 +9,6 @@ import numpy as np
 import IPython
 import pdb
 
-def construct_primal_matrix(x_dim, s, Z, F, Q, D, A):
-    # x = [s vec(Z) vec(Q)]
-    # F = B^{.5}
-    # min c = s*dim + Tr Z
-    # ------------------------
-    #|Z+sI   F
-    #|F.T    Q
-    #|           D-Q   A
-    #|           A.T D^{-1}
-    #|                      Q
-    #|                        Z
-    # ------------------------
-    P1 = zeros((2*x_dim, 2*x_dim))
-    P1[:x_dim, :x_dim] = Z + s * eye(x_dim)
-    P1[:x_dim, x_dim:] = F
-    P1[x_dim:, :x_dim] = F.T
-    P1[x_dim:, x_dim:] = Q
-
-    P2 = zeros((2*x_dim, 2*x_dim))
-    P2[:x_dim, :x_dim] = D - Q
-    P2[:x_dim, x_dim:] = A
-    P2[x_dim:, :x_dim] = A.T
-    Dinv = pinv(D)
-    # To preserve symmetricity
-    Dinv = (Dinv + Dinv.T)/2.
-    P2[x_dim:, x_dim:] = Dinv
-    # Add this small offset in hope of correcting for the numerical
-    # errors in pinv
-    # P2 might have small negative eigenvalues due to numerical
-    # issues.
-    min_eig = min(eig(P2)[0])
-    if min_eig < 0:
-        # assume min_eig << 1
-        P2 += 2 * abs(min_eig) * eye(2*x_dim)
-
-    P3 = zeros((x_dim, x_dim))
-    P3[:,:] = Q
-
-    P4 = zeros((x_dim, x_dim))
-    P4[:,:] = Z
-
-    P = scipy.linalg.block_diag(P1, P2, P3, P4)
-    if min(np.linalg.eig(P)[0]) < 0:
-        print "ERROR: P not PD in Q Solver!"
-        IPython.embed()
-    return P
-
 def construct_coeff_matrix(x_dim, B):
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
@@ -81,15 +34,12 @@ def construct_coeff_matrix(x_dim, B):
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
-            print "Z[%d,%d]" % (i, j)
             mat_pos = left * g_dim + j * g_dim + top + i
             if i >= j:
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
             vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
-            print "\tmat_pos = %d" % mat_pos
-            print "\tvec_pos = %d" % vec_pos
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
