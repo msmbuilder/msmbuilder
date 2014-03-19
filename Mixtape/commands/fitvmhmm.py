@@ -62,7 +62,7 @@ class FitVMHMM(Command, MDTrajInputMixin):
     distribution implemented by this model is a product of univariate
     von Mises distributions -- analogous to the multivariate Gaussian
     distribution with a diagonal covariance matrix.
-    
+
     Because the support of the base 1D distribution is on [-pi, pi), this
     model makes a suitable emission distribution for timeseries of angles
     (e.g. protein dihedral angles).
@@ -162,4 +162,10 @@ class FitVMHMM(Command, MDTrajInputMixin):
             for t in md.iterload(tfn, chunk=self.args.split, **kwargs):
                 item = np.asarray(md.compute_dihedrals(t, self.indices), np.double)
                 data.append(item)
+
+        print('Loading data into memory + vectorization: %f s' %
+              (time.time() - load_time_start))
+        print('''Fitting with %s timeseries from %d trajectories with %d
+                total observations''' % (len(data), len(self.filenames),
+                                         sum(len(e) for e in data)))
         return data

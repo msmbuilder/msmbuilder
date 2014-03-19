@@ -469,7 +469,6 @@ class inverse_mbessel_ratio(object):
 
     @staticmethod
     def bessel_ratio(x):
-        import scipy.special
         numerator = scipy.special.iv(1, x)
         denominator = scipy.special.iv(0, x)
         return numerator / denominator

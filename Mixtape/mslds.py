@@ -35,9 +35,8 @@ The switch posteriors are used in the M-step to update parameter estimates.
 from __future__ import print_function, division
 import warnings
 import numpy as np
-from numpy.random import multivariate_normal, randn, rand
+from numpy.random import multivariate_normal
 import scipy.linalg
-import numpy.linalg
 from sklearn import cluster
 from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type

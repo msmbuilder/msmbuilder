@@ -37,7 +37,6 @@ from __future__ import print_function, division
 import sys
 import numpy as np
 import pandas as pd
-import mdtraj as md
 from sklearn.mixture.gmm import log_multivariate_normal_density
 
 from mixtape.cmdline import argument_group

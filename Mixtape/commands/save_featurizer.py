@@ -60,6 +60,9 @@ class SaveFeaturizer(Command, GaussianFeaturizationMixin):
 
     def __init__(self, args):
         self.args = args
+
+    def start(self):
+        args = self.args
         if args.top is not None:
             self.top = md.load(os.path.expanduser(args.top))
         else:
@@ -81,6 +84,3 @@ class SaveFeaturizer(Command, GaussianFeaturizationMixin):
             featurizer = SuperposeFeaturizer(self.indices, self.top)
 
         featurizer.save(args.filename)
-
-    def start(self):
-        args = self.args

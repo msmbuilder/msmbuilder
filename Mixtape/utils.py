@@ -1,10 +1,7 @@
 import json
 import numpy as np
-from numpy import shape
 from sklearn.utils import check_random_state
 from numpy.linalg import norm
-from numpy.random import randint
-import mdtraj as md
 
 
 def iterobjects(fn):
@@ -107,7 +104,7 @@ def means_match(base_means, means, assignments):
     new_assignments = np.zeros(T)
     for i in range(K):
         closest = -1
-        closest_dist = Inf
+        closest_dist = np.inf
         for j in range(K):
             if norm(base_means[i] - means[j]) < closest_dist:
                 closest = j

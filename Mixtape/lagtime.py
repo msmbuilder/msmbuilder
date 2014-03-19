@@ -35,7 +35,7 @@ def contraction(transmat, lag_time, pi=None):
     transmat should both be 0 < lambda_i <= 1. With these constraints then,
     there is only 1 n-th root of transmat satisfying this property, which
     is computed by eigendecomposition transmat (here represented with `T_n`)
-    as 
+    as
 
     .. math::
 

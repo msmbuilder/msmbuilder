@@ -40,11 +40,11 @@ import json
 import time
 import numpy as np
 import mdtraj as md
-import pdb
+# import pdb
 
 from mixtape.mslds import MetastableSwitchingLDS
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape.commands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['FitMSLDS']

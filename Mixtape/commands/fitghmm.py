@@ -41,11 +41,11 @@ import time
 import numpy as np
 import mdtraj as md
 
-from sklearn.cross_validation import KFold
+# from sklearn.cross_validation import KFold
 from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape.commands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['FitGHMM']
@@ -60,7 +60,7 @@ class FitGHMM(Command, MDTrajInputMixin):
     description = '''Fit L1-Regularized Reversible Gaussian hidden Markov models with EM.'''
 
     group_hmm = argument_group('HMM Options')
-    group_hmm.add_argument('--featurizer', type=str, required=True,  help='''
+    group_hmm.add_argument('--featurizer', type=str, required=True, help='''
         Path to saved featurizer object''')
     group_hmm.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2], help='''
         Number of states in the models. Default = [2,]''', nargs='+')

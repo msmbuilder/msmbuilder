@@ -19,7 +19,7 @@ class Fetch(Command):
         # args is an argparse.Namespace, basically what gets returned
         # by ArgumentParser.parse_args() in a standard argparse application
         self.args = args
-    
+
     def start(self):
         # the framework call this method as the entry point to the subcommand
         # after the user's invoked it.

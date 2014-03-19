@@ -150,8 +150,8 @@ def discrete_approx_mvn(X, means, covars, match_variances=True):
 
         # gradient of objective function
         dot_max = dot.max(axis=0)
-        
-        exp_term = np.sum(moment_contributions * (prob * np.exp(dot - dot_max)).reshape(-1, 1), axis=0)        
+
+        exp_term = np.sum(moment_contributions * (prob * np.exp(dot - dot_max)).reshape(-1, 1), axis=0)
         log_numerator = np.log(exp_term) + dot_max
         grad_value = np.exp(log_numerator - lse) - moments
 
