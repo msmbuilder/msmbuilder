@@ -11,7 +11,8 @@ The switch posteriors are used in the M-step to update parameter estimates.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# modification, are permitted provided that the following conditions are
+# met:
 #
 #   Redistributions of source code must retain the above copyright notice,
 #   this list of conditions and the following disclaimer.
@@ -32,7 +33,12 @@ The switch posteriors are used in the M-step to update parameter estimates.
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function, division
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
+from __future__ import print_function, division, absolute_import
+
 import warnings
 import numpy as np
 from numpy.random import multivariate_normal
@@ -48,6 +54,9 @@ from mixtape.mslds_solvers.mslds_A_sdp import solve_A
 from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
 
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
 
 class MetastableSwitchingLDS(object):
 
