@@ -108,11 +108,11 @@ class FitMSLDS(Command, MDTrajInputMixin):
             for lag_time in args.lag_times:
                 subsampled = [d[::lag_time] for d in data]
                 for n_states in args.n_states:
-                    self.fit(subsampled, subsampled, n_states,
+                    self.fit(subsampled, n_states,
                             lag_time, 0, args, outfile)
 
 
-    def fit(self, train, test, n_states, train_lag_time, fold, args, outfile):
+    def fit(self, train, n_states, train_lag_time, fold, args, outfile):
         kwargs = dict(n_states=n_states, n_features=self.n_features,
                 n_em_iter=args.n_em_iter,
                 reversible_type=args.reversible_type,
@@ -125,7 +125,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
         end = time.time()
 
         result = {
-            'model': 'GaussianFusionHMM',
+            'model': 'MetastableSwitchingLinearDynamicalSystem',
             'n_states': model.n_states,
             'n_features': model.n_features,
             'means': model.means_.tolist(),
@@ -140,7 +140,6 @@ class FitMSLDS(Command, MDTrajInputMixin):
             'train_time': end - start,
             #'train_logprob': model.fit_logprob_[-1],
             'n_train_observations': sum(len(t) for t in train),
-            'n_test_observations': sum(len(t) for t in test),
             #'train_logprobs': model.fit_logprob_,
         }
 

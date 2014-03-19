@@ -42,8 +42,8 @@ from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
 from mdtraj.utils import ensure_type
 
-from mixtape import _reversibility, _switching_var1
-from mixtape._switching_var1 import SwitchingVAR1CPUImpl
+from mixtape import _reversibility, _mslds
+from mixtape._mslds import MetastableSLDSCPUImpl
 from mixtape.mslds_solvers.mslds_A_sdp import solve_A
 from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
@@ -139,7 +139,7 @@ class MetastableSwitchingLDS(object):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
         self.eps = eps
-        self._impl = SwitchingVAR1CPUImpl(n_states, n_features, precision)
+        self._impl = MetastableSLDSCPUImpl(n_states, n_features, precision)
 
         self._As_ = None
         self._bs_ = None
@@ -156,7 +156,7 @@ class MetastableSwitchingLDS(object):
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
         if self.platform == 'cpu':
-            self._impl = _switching_var1.SwitchingVAR1CPUImpl(
+            self._impl = _mslds.MetastableSLDSCPUImpl(
                             self.n_states, self.n_features, precision)
         else:
             raise ValueError(('Invalid platform "%s".'

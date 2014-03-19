@@ -291,7 +291,7 @@ extensions.append(
 extensions.append(
     Extension('mixtape._mslds',
               language='c++',
-              sources=['platforms/cpu/wrappers/SwitchingVAR1CPUImpl.pyx'] +
+              sources=['platforms/cpu/wrappers/MetastableSLDSCPUImpl.pyx'] +
                         glob.glob('platforms/cpu/kernels/*.c') +
                         glob.glob('platforms/cpu/kernels/*.cpp'),
               libraries=libraries + lapack_info['libraries'],
