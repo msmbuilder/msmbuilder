@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.hmm import GaussianHMM
 from sklearn.utils.extmath import logsumexp
 from mixtape.mslds import MetastableSwitchingLDS
-from mixtape import _switching_var1
+from mixtape import _mslds
 
 N_STATES = 2
 data = [np.random.randn(100, 3), np.random.randn(100, 3)]
@@ -89,4 +89,4 @@ def test_sufficient_statistics():
     yield lambda: np.testing.assert_array_almost_equal(stats['trans'], rstats['trans'], decimal=3)
 
 def test_gaussian_loglikelihood_full():
-    _switching_var1.test_gaussian_loglikelihood_full()
+    _mslds.test_gaussian_loglikelihood_full()
