@@ -5,34 +5,34 @@
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
-# Redistribution and use in source and binary forms, with or
-# without modification, are permitted provided that the following
-# conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
 #
-#   Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
 #
-#   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
-#   and/or other materials provided with the distribution.
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 
 import os
 import sys
@@ -52,6 +52,7 @@ __all__ = ['SampleGHMM']
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
+
 
 class SampleGHMM(Command, MDTrajInputMixin):
     name = 'sample-ghmm'
@@ -85,23 +86,22 @@ class SampleGHMM(Command, MDTrajInputMixin):
     '''
 
     group = argument_group('I/O Arguments')
-    group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE',
-        help='''Path to the jsonlines output file containg the HMMs''')
-    group.add_argument('--featurizer', type=str, required=True,
-        help='Path to saved featurizer object')
+    group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE', help='''
+        Path to the jsonlines output file containg the HMMs''')
+    group.add_argument('--featurizer', type=str, required=True, help='''
+        Path to saved featurizer object''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
     group.add_argument('--n-per-state', type=int, default=3, help='''Number of
         structures to pull from each state''')
     group.add_argument('--lag-time', type=int, required=True, help='''Training lag
         time of the model to select from''')
-    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE',
-        help='File to which to save the output, in CSV format. default="samples.csv"',
-        default='samples.csv')
+    group.add_argument('-o', '--out', metavar='OUTPUT_CSV_FILE', default='samples.csv', help='''
+        File to which to save the output, in CSV format. default="samples.csv"''')
 
-    match_vars = argument('--match-vars', action=FlagAction, default=True,
-         help='''Constrain the discrete distribution to match the
-         variances of the continuous distribution. default=enabled''')
+    match_vars = argument('--match-vars', action=FlagAction, default=True, help='''
+        Constrain the discrete distribution to match the variances of the
+        continuous distribution. default=enabled''')
 
     def __init__(self, args):
         if os.path.exists(args.out):
@@ -124,10 +124,10 @@ class SampleGHMM(Command, MDTrajInputMixin):
         if len(self.filenames) == 0:
             self.error('No files matched.')
 
-
     def start(self):
         print('loading all data...')
-        xx, ii, ff = mixtape.featurizer.featurize_all(self.filenames, self.featurizer, self.topology)
+        xx, ii, ff = mixtape.featurizer.featurize_all(
+            self.filenames, self.featurizer, self.topology)
         print('done loading')
 
         data = {'filename': [], 'index': [], 'state': []}
@@ -135,7 +135,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
             print('computing weights for k=%d...' % k)
             try:
                 weights = discrete_approx_mvn(xx, self.model['means'][k],
-                    self.model['vars'][k], self.match_vars)
+                                              self.model['vars'][k], self.match_vars)
             except NotSatisfiableError:
                 self.error('Satisfiability failure. Could not match the means & '
                            'variances w/ discrete distribution. Try removing the '

@@ -1,5 +1,45 @@
+"""Attempts to take a MSM/HMM at one long lag time and 'contract' it to be
+at a shorted lag time. This code is currently not used and probably doesn't
+work. This is a somewhat dormant work-in-progress, and is not recommended
+for production.
+"""
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2013, Stanford University
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
+from __future__ import print_function, division, absolute_import
+
 import numpy as np
 import scipy.linalg
+
 
 def contraction(transmat, lag_time, pi=None):
     """Contract a row-stochastic transition matrix from a time-discretization
@@ -34,7 +74,7 @@ def contraction(transmat, lag_time, pi=None):
     transmat should both be 0 < lambda_i <= 1. With these constraints then,
     there is only 1 n-th root of transmat satisfying this property, which
     is computed by eigendecomposition transmat (here represented with `T_n`)
-    as 
+    as
 
     .. math::
 
@@ -70,8 +110,8 @@ def contraction(transmat, lag_time, pi=None):
     D_inv = np.diag(pi ** -0.5)
     tsym = D.dot(transmat).dot(D_inv)
     eigvals, eigvecs = scipy.linalg.eigh(tsym)
-    
-    contracted_eigvals = np.diag(np.maximum(eigvals, 0)**(1.0 / float(lag_time)))
+
+    contracted_eigvals = np.diag(np.maximum(eigvals, 0) ** (1.0 / float(lag_time)))
     result = D_inv.dot(eigvecs.dot(contracted_eigvals).dot(eigvecs.T)).dot(D)
 
     # this is a hack. we really need to constrain transmat to have positive

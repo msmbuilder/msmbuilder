@@ -6,35 +6,35 @@
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
-# Redistribution and use in source and binary forms, with or
-# without modification, are permitted provided that the following
-# conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
 #
-#   Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
 #
-#   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
-#   and/or other materials provided with the distribution.
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
 
-from __future__ import print_function, division
-
+from __future__ import print_function, division, absolute_import
+from six import PY3
 import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
@@ -55,6 +55,7 @@ __all__ = ['VonMisesHMM']
 
 
 class VonMisesHMM(_BaseHMM):
+
     """Hidden Markov Model with von Mises Emissions
 
     The von Mises distribution, (also known as the circular normal
@@ -121,6 +122,7 @@ class VonMisesHMM(_BaseHMM):
     .. [2] Murray, Richard F., and Yaniv Morgenstern. "Cue combination on the
     circle and the sphere." Journal of vision 10.11 (2010).
     """
+
     def __init__(self, n_states=1, transmat=None, transmat_prior=None,
                  reversible_type='mle', random_state=None, n_iter=10,
                  thresh=1e-2, params='tmk', init_params='tmk'):
@@ -141,7 +143,7 @@ class VonMisesHMM(_BaseHMM):
             self.transmat_ = np.ones((self.n_states, self.n_states)) * (1.0 / self.n_components)
             self.populations_ = np.ones(self.n_states) / self.n_states
             self.startprob_ = self.populations_
-            
+
         if (hasattr(self, 'n_features')
                 and self.n_features != obs[0].shape[1]):
             raise ValueError('Unexpected number of dimensions, got %s but '
@@ -217,7 +219,9 @@ class VonMisesHMM(_BaseHMM):
         return _vmhmm._compute_log_likelihood(obs, self._means_, self._kappas_)
 
     def _initialize_sufficient_statistics(self):
-        stats = super(VonMisesHMM, self)._initialize_sufficient_statistics()
+        s = super(VonMisesHMM, self) if PY3 else super()
+        stats = s._initialize_sufficient_statistics()
+
         stats['posteriors'] = []
         stats['obs'] = []
         return stats
@@ -225,7 +229,8 @@ class VonMisesHMM(_BaseHMM):
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                           posteriors, fwdlattice, bwdlattice,
                                           params):
-        super(VonMisesHMM, self)._accumulate_sufficient_statistics(
+        s = super(VonMisesHMM, self) if PY3 else super()
+        s._accumulate_sufficient_statistics(
             stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice,
             params)
         # Unfortunately, I'm not quite sure how to accumulate sufficient
@@ -263,10 +268,12 @@ class VonMisesHMM(_BaseHMM):
 
         if 't' in params:
             if self.reversible_type == 'mle':
-                counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
+                counts = np.maximum(
+                    stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
                 self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
             elif self.reversible_type == 'transpose':
-                revcounts = np.maximum(self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
+                revcounts = np.maximum(
+                    self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
                 populations = np.sum(revcounts, axis=0)
                 self.populations_ = populations / np.sum(populations)
                 self.transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
@@ -329,10 +336,10 @@ class VonMisesHMM(_BaseHMM):
 
             # Maximization step
             self._do_mstep(stats, self.params)
-        
+
         self.fit_logprob_ = logprob
         return self
-        
+
     def overlap_(self):
         """
         Compute the matrix of normalized log overlap integrals between the hidden state distributions
@@ -349,25 +356,25 @@ class VonMisesHMM(_BaseHMM):
             / sqrt[integral(f(i)*f(i)) * integral(f(j)*f(j))]
         """
         logi0 = lambda x: np.log(scipy.special.i0(x))
-        log2pi = np.log(2*np.pi)
+        log2pi = np.log(2 * np.pi)
 
         log_overlap = np.zeros((self.n_components, self.n_components))
         for i in range(self.n_components):
             for j in range(self.n_components):
                 for s in range(self.n_features):
-                    kij = np.sqrt(self._kappas_[i,s]**2+self._kappas_[j,s]**2 +
-                                  2*self._kappas_[i,s]*self._kappas_[j,s] *
-                                  np.cos(self._means_[i,s]-self._means_[j,s]))
-                    val = logi0(kij) - (log2pi + logi0(self._kappas_[i,s]) +
-                                                 logi0(self._kappas_[j,s]))
-                    log_overlap[i,j] += val
+                    kij = np.sqrt(self._kappas_[i, s] ** 2 + self._kappas_[j, s] ** 2 +
+                                  2 * self._kappas_[i, s] * self._kappas_[j, s] *
+                                  np.cos(self._means_[i, s] - self._means_[j, s]))
+                    val = logi0(kij) - (log2pi + logi0(self._kappas_[i, s]) +
+                                        logi0(self._kappas_[j, s]))
+                    log_overlap[i, j] += val
 
         for i in range(self.n_components):
             for j in range(self.n_components):
-                log_overlap[i,j] -= 0.5*(log_overlap[i, i] + log_overlap[j, j])
+                log_overlap[i, j] -= 0.5 * (log_overlap[i, i] + log_overlap[j, j])
 
         return log_overlap
-    
+
     def timescales_(self):
         """The implied relaxation timescales of the hidden Markov transition
         matrix
@@ -404,12 +411,14 @@ class VonMisesHMM(_BaseHMM):
             # or Infs, and possibly for other reasons like convergence
             return np.nan * np.ones(self.n_states - 1)
 
+
 def circwrap(x):
     "Wrap an array on (-pi, pi)"
     return x - M_2PI * np.floor(x / M_2PI + 0.5)
 
 
 class inverse_mbessel_ratio(object):
+
     """
     Inverse the function given by the ratio modified Bessel function of the
     first kind of order 1 to the modified Bessel function of the first kind
@@ -454,16 +463,15 @@ class inverse_mbessel_ratio(object):
             raise ValueError('Domain error. y must be in (0, 1)')
         x = np.exp(self._spline(y))
 
-        ## DEBUGGING CODE
-        # # for debugging, the line below prints the error in the inverse
-        # # by printing y - A(A^(-1)(y
+        # DEBUGGING CODE
+        # for debugging, the line below prints the error in the inverse
+        # by printing y - A(A^(-1)(y
         # print('spline inverse error', y - self.bessel_ratio(x))
 
         return x
 
     @staticmethod
     def bessel_ratio(x):
-        import scipy.special
         numerator = scipy.special.iv(1, x)
         denominator = scipy.special.iv(0, x)
         return numerator / denominator

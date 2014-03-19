@@ -11,7 +11,8 @@ The switch posteriors are used in the M-step to update parameter estimates.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# modification, are permitted provided that the following conditions are
+# met:
 #
 #   Redistributions of source code must retain the above copyright notice,
 #   this list of conditions and the following disclaimer.
@@ -32,12 +33,16 @@ The switch posteriors are used in the M-step to update parameter estimates.
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function, division
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
+from __future__ import print_function, division, absolute_import
+
 import warnings
 import numpy as np
-from numpy.random import multivariate_normal, randn, rand
+from numpy.random import multivariate_normal
 import scipy.linalg
-import numpy.linalg
 from sklearn import cluster
 from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
@@ -49,7 +54,12 @@ from mixtape.mslds_solvers.mslds_A_sdp import solve_A
 from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
 
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
+
 class MetastableSwitchingLDS(object):
+
     """Metastable Switching Linear Dynamical System, fit via maximum
     likelihood.
 
@@ -120,9 +130,9 @@ class MetastableSwitchingLDS(object):
     """
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
-        init_params='tmcqab', transmat_prior=None, params='tmcqab',
-        reversible_type='mle', n_em_iter=10, covars_prior=1e-2,
-        covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
+                 init_params='tmcqab', transmat_prior=None, params='tmcqab',
+                 reversible_type='mle', n_em_iter=10, covars_prior=1e-2,
+                 covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
 
         self.n_states = n_states
         self.n_features = n_features
@@ -158,17 +168,15 @@ class MetastableSwitchingLDS(object):
             self.transmat_prior = 1.0
         if self.platform == 'cpu':
             self._impl = _mslds.MetastableSLDSCPUImpl(
-                            self.n_states, self.n_features, precision)
+                self.n_states, self.n_features, precision)
         else:
-            raise ValueError(('Invalid platform "%s".'
-                    + 'Available platforms are %s.') % (platform,
-                        ', '.join(_AVAILABLE_PLATFORMS)))
+            raise ValueError('Invalid platform "%s". Available platforms are ["cpu"]' % platform)
 
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)
         """
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
-           for s in sequences]
+                     for s in sequences]
         self._impl._sequences = sequences
 
         small_dataset = np.vstack(
@@ -177,13 +185,14 @@ class MetastableSwitchingLDS(object):
         if 'm' in self.init_params:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(small_dataset).cluster_centers_
+                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(
+                    small_dataset).cluster_centers_
         if 'c' in self.init_params:
             cv = np.cov(small_dataset.T)
             self.covars_ = \
                 distribute_covar_matrix_to_match_covariance_type(
-                  cv, 'full', self.n_states)
-            self.covars_[self._covars_==0] = 1e-5
+                    cv, 'full', self.n_states)
+            self.covars_[self._covars_ == 0] = 1e-5
         if 't' in self.init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
@@ -198,13 +207,12 @@ class MetastableSwitchingLDS(object):
             for i in range(self.n_states):
                 A = self.As_[i]
                 mean = self.means_[i]
-                self.bs_[i] = np.dot(np.eye(self.n_features) -A, mean)
+                self.bs_[i] = np.dot(np.eye(self.n_features) - A, mean)
         if 'q' in self.init_params:
             self.Qs_ = np.zeros((self.n_states, self.n_features,
-                self.n_features))
+                                 self.n_features))
             for i in range(self.n_states):
                 self.Qs_[i] = self.eps * self.covars_[i]
-
 
     def sample(self, n_samples, init_state=None, init_obs=None):
         """Sample a trajectory from model distribution
@@ -250,7 +258,7 @@ class MetastableSwitchingLDS(object):
             Q = self.Qs_[s]
             obs[t + 1] = multivariate_normal(np.dot(A, obs[t]) + b, Q)
             hidden_state[t + 1] = \
-              categorical(self.transmat_[s])
+                categorical(self.transmat_[s])
 
         return obs, hidden_state
 
@@ -298,7 +306,7 @@ class MetastableSwitchingLDS(object):
         for i in range(self.n_em_iter):
             print("Iteration %d" % i)
             _, stats = self._impl.do_estep()
-            if stats['trans'].sum() > 10*n_obs:
+            if stats['trans'].sum() > 10 * n_obs:
                 print('Number of transition counts', stats['trans'].sum())
                 print('Total sequence length', n_obs)
                 print("Numerical overflow detected. Try splitting your trajectories")
@@ -328,7 +336,6 @@ class MetastableSwitchingLDS(object):
             print("\tEig:")
             print(np.linalg.eig(self.covars_[i])[0])
         print("FINISHED FIT!")
-
 
         return self
 
@@ -362,17 +369,18 @@ class MetastableSwitchingLDS(object):
                 + self.covars_prior * np.eye(self.n_features)
         cvweight = max(self.covars_weight - self.n_features, 0)
         self.covars_ = ((cvnum) /
-                 (cvweight + stats['post'][:, None, None]))
+                        (cvweight + stats['post'][:, None, None]))
         for c in range(self.n_states):
             # Might be slightly negative due to numerical issues
             min_eig = min(np.linalg.eig(self.covars_[c])[0])
             if min_eig < 0:
                 # Assume min_eig << 1
                 self.covars_[c] += (2 * abs(min_eig) *
-                        np.eye(self.n_features))
+                                    np.eye(self.n_features))
 
     def _transmat_update(self, stats):
-        counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
+        counts = np.maximum(
+            stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
         self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
 
     def _A_update(self, stats):
@@ -380,7 +388,7 @@ class MetastableSwitchingLDS(object):
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = stats['obs*obs[t-1].T'][i]
             mean_but_last = np.reshape(stats['obs[:-1]'][i],
-                    (self.n_features, 1))
+                                       (self.n_features, 1))
             C = np.dot(b, mean_but_last.T)
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
@@ -389,7 +397,7 @@ class MetastableSwitchingLDS(object):
             avec = np.array(sol['x'])
             avec = avec[1 + self.n_features * (self.n_features + 1) / 2:]
             A = np.reshape(avec, (self.n_features, self.n_features),
-                    order='F')
+                           order='F')
             self.As_[i] = A
 
     def _Q_update(self, stats):
@@ -398,19 +406,19 @@ class MetastableSwitchingLDS(object):
             Sigma = self.covars_[i]
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             B = ((stats['obs[1:]*obs[1:].T'][i]
-                - np.dot(stats['obs*obs[t-1].T'][i], A.T)
-                - np.dot(np.reshape(stats['obs[1:]'][i],
-                    (self.n_features, 1)), b.T))
-                + (-np.dot(A, stats['obs*obs[t-1].T'][i].T) +
+                  - np.dot(stats['obs*obs[t-1].T'][i], A.T)
+                  - np.dot(np.reshape(stats['obs[1:]'][i],
+                                      (self.n_features, 1)), b.T))
+                 + (-np.dot(A, stats['obs*obs[t-1].T'][i].T) +
                     np.dot(A, np.dot(stats['obs[:-1]*obs[:-1].T'][i],
-                        A.T)) +
+                                     A.T)) +
                     np.dot(A, np.dot(np.reshape(stats['obs[:-1]'][i],
-                        (self.n_features, 1)), b.T)))
+                                                (self.n_features, 1)), b.T)))
                  + (-np.dot(b, np.reshape(stats['obs[1:]'][i],
-                        (self.n_features, 1)).T) +
+                                          (self.n_features, 1)).T) +
                     np.dot(b, np.dot(np.reshape(stats['obs[:-1]'][i],
-                        (self.n_features, 1)).T,
-                               A.T)) +
+                                                (self.n_features, 1)).T,
+                                     A.T)) +
                     stats['post[1:]'][i] * np.dot(b, b.T)))
             sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma)
             qvec = np.array(sol['x'])
@@ -430,43 +438,48 @@ class MetastableSwitchingLDS(object):
 
     @property
     def As_(self):
-      return self._As_
+        return self._As_
+
     @As_.setter
-    def As_(self,value):
-      value = np.asarray(value, order='c', dtype=np.float32)
-      self._As_ = value
-      self._impl.As_ = value
+    def As_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._As_ = value
+        self._impl.As_ = value
 
     @property
     def Qs_(self):
-      return self._Qs_
+        return self._Qs_
+
     @Qs_.setter
-    def Qs_(self,value):
-      value = np.asarray(value, order='c', dtype=np.float32)
-      self._Qs_ = value
-      self._impl.Qs_ = value
+    def Qs_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._Qs_ = value
+        self._impl.Qs_ = value
 
     @property
     def bs_(self):
-      return self._bs_
+        return self._bs_
+
     @bs_.setter
-    def bs_(self,value):
-      value = np.asarray(value, order='c', dtype=np.float32)
-      self._bs_ = value
-      self._impl.bs_ = value
+    def bs_(self, value):
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._bs_ = value
+        self._impl.bs_ = value
 
     @property
     def means_(self):
-      return self._means_
+        return self._means_
+
     @means_.setter
     def means_(self, value):
-      value = np.asarray(value, order='c', dtype=np.float32)
-      self._means_ = value
-      self._impl.means_ = value
+        value = np.asarray(value, order='c', dtype=np.float32)
+        self._means_ = value
+        self._impl.means_ = value
 
     @property
     def covars_(self):
         return self._covars_
+
     @covars_.setter
     def covars_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
@@ -476,6 +489,7 @@ class MetastableSwitchingLDS(object):
     @property
     def transmat_(self):
         return self._transmat_
+
     @transmat_.setter
     def transmat_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
@@ -485,12 +499,12 @@ class MetastableSwitchingLDS(object):
     @property
     def populations_(self):
         return self._populations_
+
     @populations_.setter
     def populations_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._populations_ = value
         self._impl.startprob_ = value
-
 
     def compute_metastable_wells(self):
         """Compute the metastable wells according to the formula
@@ -500,7 +514,7 @@ class MetastableSwitchingLDS(object):
         wells = np.zeros((self.n_states, self.n_features))
         for i in range(self.n_states):
             wells[i] = np.dot(np.linalg.inv(np.eye(self.n_features) -
-                            self.As_[i]), self.bs_[i])
+                                            self.As_[i]), self.bs_[i])
         return wells
 
     def compute_process_covariances(self, N=10000):

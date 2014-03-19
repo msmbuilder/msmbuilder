@@ -7,34 +7,34 @@
 # Copyright (c) 2013, Stanford University
 # All rights reserved.
 
-# Redistribution and use in source and binary forms, with or
-# without modification, are permitted provided that the following
-# conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
 #
-#   Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
 #
-#   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
-#   and/or other materials provided with the distribution.
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
-from __future__ import print_function, division
+
+from __future__ import print_function, division, absolute_import
 
 import time
 import warnings
@@ -55,7 +55,9 @@ EPS = np.finfo(np.float32).eps
 # Code
 #-----------------------------------------------------------------------------
 
+
 class GaussianFusionHMM(object):
+
     """
     Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
 
@@ -127,6 +129,7 @@ class GaussianFusionHMM(object):
     Notes
     -----
     """
+
     def __init__(self, n_states, n_features, n_init=10, n_em_iter=10,
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
@@ -162,14 +165,17 @@ class GaussianFusionHMM(object):
             raise ValueError('GMM estimation requires at least one em iter')
 
         if self.platform == 'cpu':
-            self._impl = _ghmm.GaussianHMMCPUImpl(self.n_states, self.n_features, precision)
+            self._impl = _ghmm.GaussianHMMCPUImpl(
+                self.n_states, self.n_features, precision)
         elif self.platform == 'sklearn':
             self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
         elif self.platform == 'cuda':
             if precision == 'single':
-                self._impl = _cuda_ghmm_single.GaussianHMMCUDAImpl(self.n_states, self.n_features)
+                self._impl = _cuda_ghmm_single.GaussianHMMCUDAImpl(
+                    self.n_states, self.n_features)
             elif precision == 'mixed':
-                self._impl = _cuda_ghmm_mixed.GaussianHMMCUDAImpl(self.n_states, self.n_features)
+                self._impl = _cuda_ghmm_mixed.GaussianHMMCUDAImpl(
+                    self.n_states, self.n_features)
             else:
                 raise ValueError('Only single and mixed precision are supported on CUDA')
         else:
@@ -206,7 +212,7 @@ class GaussianFusionHMM(object):
             for i in range(self.n_em_iter):
                 # Expectation step
                 curr_logprob, stats = self._impl.do_estep()
-                if stats['trans'].sum() > 10*n_obs:
+                if stats['trans'].sum() > 10 * n_obs:
                     raise OverflowError((
                         'Number of transition counts: %s. Total sequence length = %s '
                         'Numerical overflow detected. Try splitting your trajectories '
@@ -239,14 +245,15 @@ class GaussianFusionHMM(object):
 
         if self.timing:
             # but only print the timing variables if people really want them
-            s_per_sample_per_em = (time.time() - start_time) / (sum(len(s) for s in sequences) * total_em_iters)
+            s_per_sample_per_em = (time.time() - start_time) / \
+                (sum(len(s) for s in sequences) * total_em_iters)
             print('GaussianFusionHMM EM Fitting')
             print('----------------------------')
             print('Platform: %s    n_features: %d' % (self.platform, self.n_features))
             print('TOTAL EM Iters: %s' % total_em_iters)
             print('Speed:    %.3f +/- %.3f us/(sample * em-iter)' % (
-                np.mean(s_per_sample_per_em * 10**6),
-                np.std(s_per_sample_per_em * 10**6)))
+                np.mean(s_per_sample_per_em * 10 ** 6),
+                np.std(s_per_sample_per_em * 10 ** 6)))
 
         return self
 
@@ -267,7 +274,7 @@ class GaussianFusionHMM(object):
                 self.means_ = cluster.KMeans(
                     n_clusters=self.n_states, n_init=1, init='random',
                     n_jobs=-1, random_state=self.random_state).fit(
-                        small_dataset).cluster_centers_
+                    small_dataset).cluster_centers_
         if 'v' in init_params:
             self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         if 't' in init_params:
@@ -279,10 +286,13 @@ class GaussianFusionHMM(object):
     def _do_mstep(self, stats, params):
         if 't' in params:
             if self.reversible_type == 'mle':
-                counts = np.maximum(stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
-                self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
+                counts = np.maximum(
+                    stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
+                self.transmat_, self.populations_ = _reversibility.reversible_transmat(
+                    counts)
             elif self.reversible_type == 'transpose':
-                revcounts = np.maximum(self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
+                revcounts = np.maximum(
+                    self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
                 populations = np.sum(revcounts, axis=0)
                 self.populations_ = populations / np.sum(populations)
                 self.transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
@@ -296,20 +306,22 @@ class GaussianFusionHMM(object):
         # will be nan/inf. so padd it up by a very small constant. This particular
         # padding is following the sklearn mixture model m_step code from
         # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/mixture/gmm.py#L496
-        denom = (stats['post'][:, np.newaxis] + 10*EPS)
+        denom = (stats['post'][:, np.newaxis] + 10 * EPS)
 
         def getdiff(means):
             diff = np.zeros((self.n_features, self.n_states, self.n_states))
             for i in range(self.n_features):
-                diff[i] = np.maximum(np.abs(np.subtract.outer(means[:, i], means[:, i])), difference_cutoff)
+                diff[i] = np.maximum(
+                    np.abs(np.subtract.outer(means[:, i], means[:, i])), difference_cutoff)
             return diff
 
         if 'm' in params:
             means = stats['obs'] / denom  # unregularized means
 
             if self.fusion_prior > 0 and self.n_lqa_iter > 0:
-                strength = self.fusion_prior / getdiff(means)  # adaptive regularization strength
-                rhs =  stats['obs'] / self.vars_
+                # adaptive regularization strength
+                strength = self.fusion_prior / getdiff(means)
+                rhs = stats['obs'] / self.vars_
                 for i in range(self.n_features):
                     np.fill_diagonal(strength[i], 0)
 
@@ -320,11 +332,12 @@ class GaussianFusionHMM(object):
                         break
 
                     offdiagonal = -strength / diff
-                    diagonal_penalty = np.sum(strength/diff, axis=2)
+                    diagonal_penalty = np.sum(strength / diff, axis=2)
                     for f in range(self.n_features):
                         if np.all(diff[f] <= difference_cutoff):
                             continue
-                        ridge_approximation = np.diag(stats['post'] / self.vars_[:, f] + diagonal_penalty[f]) + offdiagonal[f]
+                        ridge_approximation = np.diag(
+                            stats['post'] / self.vars_[:, f] + diagonal_penalty[f]) + offdiagonal[f]
                         try:
                             means[:, f] = np.linalg.solve(ridge_approximation, rhs[:, f])
                         except np.linalg.LinAlgError:
@@ -358,6 +371,7 @@ class GaussianFusionHMM(object):
     @property
     def means_(self):
         return self._means_
+
     @means_.setter
     def means_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
@@ -367,6 +381,7 @@ class GaussianFusionHMM(object):
     @property
     def vars_(self):
         return self._vars_
+
     @vars_.setter
     def vars_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
@@ -376,6 +391,7 @@ class GaussianFusionHMM(object):
     @property
     def transmat_(self):
         return self._transmat_
+
     @transmat_.setter
     def transmat_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
@@ -385,6 +401,7 @@ class GaussianFusionHMM(object):
     @property
     def populations_(self):
         return self._populations_
+
     @populations_.setter
     def populations_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
@@ -489,6 +506,7 @@ class GaussianFusionHMM(object):
 
 
 class _SklearnGaussianHMMCPUImpl(object):
+
     def __init__(self, n_states, n_features):
         from sklearn.hmm import GaussianHMM
         self.impl = GaussianHMM(n_states, params='stmc')
@@ -498,7 +516,6 @@ class _SklearnGaussianHMMCPUImpl(object):
         self.vars_ = None
         self.transmat_ = None
         self.startprob_ = None
-
 
     def do_estep(self):
         from sklearn.utils.extmath import logsumexp
@@ -522,7 +539,6 @@ class _SklearnGaussianHMMCPUImpl(object):
                 bwdlattice, self.impl.params)
 
         return curr_logprob, stats
-
 
     def do_viterbi(self):
         logprob = 0

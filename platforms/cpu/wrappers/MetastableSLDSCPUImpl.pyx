@@ -53,7 +53,7 @@ cdef class MetastableSLDSCPUImpl:
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
 
-            cdef np.ndarray[ndim=1, dtype=int] seq_lengths = np.zeros(self.n_sequences, dtype=int)
+            cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
                 seq_lengths[i] = len(self.sequences[i])
@@ -142,7 +142,7 @@ cdef class MetastableSLDSCPUImpl:
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = self.means
         cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covars = self.covars
-        cdef np.ndarray[ndim=1, mode='c', dtype=int] seq_lengths = self.seq_lengths
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = self.seq_lengths
 
         # All of the sufficient statistics
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts = np.zeros((self.n_states, self.n_states), dtype=np.float32)

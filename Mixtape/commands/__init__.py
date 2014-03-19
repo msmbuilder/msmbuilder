@@ -1,4 +1,4 @@
-from __future__ import print_function, absolute_import
+from __future__ import print_function, division, absolute_import
 import os as _os
 
 _exclude = ['__init__.py']
@@ -12,4 +12,4 @@ for _fn in _os.listdir(_os.path.dirname(_os.path.abspath(__file__))):
     _items = getattr(_module, '__all__', [])
     __all__.extend(_items)
     for _item in _items:
-       exec('%s = _module.%s' % (_item, _item), globals(), locals())
+        exec('%s = _module.%s' % (_item, _item), globals(), locals())

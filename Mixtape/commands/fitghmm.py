@@ -5,34 +5,34 @@
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
-# Redistribution and use in source and binary forms, with or
-# without modification, are permitted provided that the following
-# conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
 #
-#   Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
 #
-#   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
-#   and/or other materials provided with the distribution.
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import sys
 import os
 import glob
@@ -41,11 +41,11 @@ import time
 import numpy as np
 import mdtraj as md
 
-from sklearn.cross_validation import KFold
+# from sklearn.cross_validation import KFold
 from mixtape.ghmm import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape.commands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['FitGHMM']
@@ -54,45 +54,46 @@ __all__ = ['FitGHMM']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class FitGHMM(Command, MDTrajInputMixin):
     name = 'fit-ghmm'
     description = '''Fit L1-Regularized Reversible Gaussian hidden Markov models with EM.'''
 
     group_hmm = argument_group('HMM Options')
-    group_hmm.add_argument('--featurizer', type=str, required=True,
-        help='Path to saved featurizer object')
-    group_hmm.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2],
-        help='Number of states in the models. Default = [2,]', nargs='+')
-    group_hmm.add_argument('-l', '--lag-times', action=MultipleIntAction, default=[1],
-        help='Lag time(s) of the model(s). Default = [1,]', nargs='+')
+    group_hmm.add_argument('--featurizer', type=str, required=True, help='''
+        Path to saved featurizer object''')
+    group_hmm.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2], help='''
+        Number of states in the models. Default = [2,]''', nargs='+')
+    group_hmm.add_argument('-l', '--lag-times', action=MultipleIntAction, default=[1], help='''
+        Lag time(s) of the model(s). Default = [1,]''', nargs='+')
     group_hmm.add_argument('--platform', choices=['cuda', 'cpu', 'sklearn'],
         default='cpu', help='Implementation platform. default="cpu"')
-    group_hmm.add_argument('--fusion-prior', type=float, default=1e-2,
-        help='Strength of the adaptive fusion prior. default=1e-2')
+    group_hmm.add_argument('--fusion-prior', type=float, default=1e-2, help='''
+        Strength of the adaptive fusion prior. default=1e-2''')
     group_hmm.add_argument('--n-init', type=int, default=10, help='''Number
         of initialization for each model fit. Each of these "outer iterations"
         corresponds to a new random initialization of the states from kmeans
         and then `--n-em-iter`s of expectation-maximization. The best of these
         models (selected by likelihood) is retained. default=10''')
-    group_hmm.add_argument('--n-em-iter', type=int, default=10,
-        help='''Maximum number of iterations of expectation-maximization steps
+    group_hmm.add_argument('--n-em-iter', type=int, default=10, help='''
+        Maximum number of iterations of expectation-maximization steps
         per fitting round. default=10''')
-    group_hmm.add_argument('--thresh', type=float, default=1e-2,
-        help='''Convergence criterion for EM. Quit when the log likelihood
+    group_hmm.add_argument('--thresh', type=float, default=1e-2, help='''
+        Convergence criterion for EM. Quit when the log likelihood
         decreases by less than this threshold. default=1e-2''')
-    group_hmm.add_argument('--n-lqa-iter', type=int, default=10,
-        help='''Max number of iterations for local quadradric approximation
+    group_hmm.add_argument('--n-lqa-iter', type=int, default=10, help='''
+        Max number of iterations for local quadradric approximation
         solving the fusion-L1. default=10''')
-    group_hmm.add_argument('--reversible-type', choices=['mle', 'transpose'],
-        default='mle', help='''Method by which the model is constrained to be
-        reversible. default="mle"''')
+    group_hmm.add_argument('--reversible-type', choices=['mle', 'transpose'], help='''
+        Method by which the model is constrained to be
+        reversible. default="mle"''', default='mle')
     group_hmm.add_argument('-sp', '--split', type=int, help='''Split
         trajectories into smaller chunks. This looses some counts (i.e. like
         1%% of the counts are lost with --split 100), but can help with speed
         (on gpu + multicore cpu) and numerical instabilities that come when
         trajectories get extremely long.''', default=10000)
-    group_hmm.add_argument('-n-reps', '--n-repetitions', type=int, default=1,
-        help='''Run this many repititions of the *entire experiment*  with
+    group_hmm.add_argument('-n-reps', '--n-repetitions', type=int, default=1, help='''
+        Run this many repetitions of the *entire experiment*  with
         different random seeds, saving all of the models to the output file.
         This is the outer-most iteration. default=1''')
 
@@ -105,8 +106,7 @@ class FitGHMM(Command, MDTrajInputMixin):
 
     group_out = argument_group('Output')
     group_out.add_argument('-o', '--out', default='hmms.jsonlines',
-        help='Output file. default="hmms.jsonlines"')
-
+                           help='Output file. default="hmms.jsonlines"')
 
     def __init__(self, args):
         self.args = args
@@ -118,7 +118,6 @@ class FitGHMM(Command, MDTrajInputMixin):
         self.featurizer = mixtape.featurizer.load(args.featurizer)
         self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.featurizer.n_features
-
 
     def start(self):
         args = self.args
@@ -142,10 +141,9 @@ class FitGHMM(Command, MDTrajInputMixin):
                     # else:
                     #     self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
-
     def fit(self, train, test, n_states, train_lag_time, repetition, args, outfile):
         kwargs = dict(n_states=n_states, n_features=self.n_features, n_init=args.n_init,
-                      n_em_iter=args.n_em_iter, n_lqa_iter = args.n_lqa_iter,
+                      n_em_iter=args.n_em_iter, n_lqa_iter=args.n_lqa_iter,
                       fusion_prior=args.fusion_prior, thresh=args.thresh,
                       reversible_type=args.reversible_type, platform=args.platform)
         model = GaussianFusionHMM(**kwargs)

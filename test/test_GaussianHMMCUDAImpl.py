@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import numpy  as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
@@ -82,10 +84,10 @@ def test_2():
             stats, t1, framelogprob, posteriors, fwdlattice,
             bwdlattice, 'stmc')
 
-        print 'ref transcounts'
-        print transitioncounts(cufwdlattice, cubwdlattice, cuframelogprob, np.log(transmat))
-        print 'cutranscounts'
-        print custats['trans']
+        print('ref transcounts')
+        print(transitioncounts(cufwdlattice, cubwdlattice, cuframelogprob, np.log(transmat)))
+        print('cutranscounts')
+        print(ustats['trans'])
 
         yield lambda: np.testing.assert_array_almost_equal(stats['trans'], custats['trans'], decimal=3)
         yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=3)
@@ -108,14 +110,13 @@ def reference_forward(framelogprob, startprob, transmat):
         for j in range(n_components):
             for i in range(n_components):
                 work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
-            print "reference: t=%d, j=%d, logsumexp=%f, flp=%f, sum=%f    workbuffer=%s" % (t, j, logsumexp(work_buffer), framelogprob[t, j], logsumexp(work_buffer) + framelogprob[t, j], str(work_buffer))
+            print("reference: t=%d, j=%d, logsumexp=%f, flp=%f, sum=%f    workbuffer=%s" % (t, j, logsumexp(work_buffer), framelogprob[t, j], logsumexp(work_buffer) + framelogprob[t, j], str(work_buffer)))
             fwdlattice[t, j] = logsumexp(work_buffer) + framelogprob[t, j]
     return fwdlattice
 
 
 
 def reference_backward(framelogprob, startprob, transmat):
-    print '\n\n'
     log_transmat = np.log(transmat)
     log_startprob = np.log(startprob)
     bwdlattice = np.zeros_like(framelogprob)
@@ -131,11 +132,11 @@ def reference_backward(framelogprob, startprob, transmat):
                 work_buffer[j] = log_transmat[i, j] + framelogprob[t + 1, j] + bwdlattice[t + 1, j]
 
                 if (i == 0):
-                    print 'log_transmat[i, %d]    '%j, log_transmat[i, j]
-                    print 'framelogprob[t + 1, %d]'%j,  framelogprob[t + 1, j]
-                    print 'bwdlattice[t + 1, %d]  '%j, bwdlattice[t + 1, j]
+                    print('log_transmat[i, %d]    '%j, log_transmat[i, j])
+                    print('framelogprob[t + 1, %d]'%j,  framelogprob[t + 1, j])
+                    print('bwdlattice[t + 1, %d]  '%j, bwdlattice[t + 1, j])
             if i == 0:
-                print 'bwd[%d, %d] = logsumexp(%s) = %f' % (t, i, str(work_buffer), logsumexp(work_buffer))
+                print('bwd[%d, %d] = logsumexp(%s) = %f' % (t, i, str(work_buffer), logsumexp(work_buffer)))
             bwdlattice[t, i] = logsumexp(work_buffer)
 
     return bwdlattice
@@ -146,7 +147,7 @@ def transitioncounts(fwdlattice, bwdlattice, framelogprob, log_transmat):
     lneta = np.zeros((n_observations-1, n_components, n_components))
     from scipy.misc import logsumexp
     logprob = logsumexp(fwdlattice[n_observations-1, :])
-    print 'logprob', logprob
+    print('logprob', logprob)
 
     for t in range(n_observations - 1):
         for i in range(n_components):
@@ -155,16 +156,17 @@ def transitioncounts(fwdlattice, bwdlattice, framelogprob, log_transmat):
                     + framelogprob[t + 1, j] + bwdlattice[t + 1, j] - logprob
 
 
-    print framelogprob
+    print(framelogprob)
 
-    print 'fwdlattice[:, 0]'
-    print fwdlattice[:, 0]
-    print 'logtransmat[0,0]'
-    print log_transmat[0,0]
-    print 'framelogprob'
-    print framelogprob[:, 0]
-    print 'bwdlattice[:, 0]'
-    print bwdlattice[:, 0]
-    print 'lneta{0,0}'
-    print lneta[:, 0, 0]
+    print('fwdlattice[:, 0]')
+    print(fwdlattice[:, 0])
+    print('logtransmat[0,0]')
+    print(log_transmat[0,0])
+    print('framelogprob')
+    print(framelogprob[:, 0])
+    print('bwdlattice[:, 0]')
+    print(bwdlattice[:, 0])
+    print('lneta{0,0}')
+    print(lneta[:, 0, 0])
+
     return np.exp(logsumexp(lneta, 0))

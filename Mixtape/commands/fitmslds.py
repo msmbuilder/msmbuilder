@@ -32,7 +32,7 @@
 # Imports
 #-----------------------------------------------------------------------------
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import sys
 import os
 import glob
@@ -40,11 +40,11 @@ import json
 import time
 import numpy as np
 import mdtraj as md
-import pdb
+# import pdb
 
 from mixtape.mslds import MetastableSwitchingLDS
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin, GaussianFeaturizationMixin
+from mixtape.commands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['FitMSLDS']
@@ -53,26 +53,25 @@ __all__ = ['FitMSLDS']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class FitMSLDS(Command, MDTrajInputMixin):
     name = 'fit-mslds'
     description = '''Fit Metastable Switching Linear Dynamical System with
     Generalized-EM.'''
 
     group_mslds = argument_group('MSLDS Options')
-    group_mslds.add_argument('--featurizer', type=str, required=True,
-        help='Path to saved featurizer object')
-    group_mslds.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2],
-        help='Number of states in the models. Default = [2,]', nargs='+')
-    group_mslds.add_argument('-l', '--lag-times',
-            action=MultipleIntAction, default=[1],
-        help='Lag time(s) of the model(s). Default = [1,]', nargs='+')
-    group_mslds.add_argument('--platform', choices=['cpu'],
-        default='cpu', help='Implementation platform. default="cpu"')
-    group_mslds.add_argument('--n-em-iter', type=int, default=10,
-        help='Maximum number of iterations of EM. default=10')
-    group_mslds.add_argument('--reversible-type', choices=['mle'
-        ], default='mle', help='''Method by which the model is
-        constrained to be reversible. default="mle"''')
+    group_mslds.add_argument('--featurizer', type=str, required=True, help='''
+        Path to saved featurizer object''')
+    group_mslds.add_argument('-k', '--n-states', action=MultipleIntAction, default=[2], help='''
+        Number of states in the models. Default = [2,]''', nargs='+')
+    group_mslds.add_argument('-l', '--lag-times', action=MultipleIntAction, default=[1], help='''
+        Lag time(s) of the model(s). Default = [1,]''', nargs='+')
+    group_mslds.add_argument('--platform', choices=['cpu'], default='cpu', help='''
+        Implementation platform. default="cpu"''')
+    group_mslds.add_argument('--n-em-iter', type=int, default=10, help='''
+        Maximum number of iterations of EM. default=10''')
+    group_mslds.add_argument('--reversible-type', choices=['mle'], default='mle', help='''
+        Method by which the model is constrained to be reversible. default="mle"''')
     group_mslds.add_argument('-sp', '--split', type=int, help='''Split
         trajectories into smaller chunks. This loses some counts (i.e. like
         1%% of the counts are lost with --split 100), but can help with
@@ -81,8 +80,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
 
     group_out = argument_group('Output')
     group_out.add_argument('-o', '--out', default='mslds.jsonlines',
-        help='Output file. default="mslds.jsonlines"')
-
+                           help='Output file. default="mslds.jsonlines"')
 
     def __init__(self, args):
         self.args = args
@@ -92,11 +90,9 @@ class FitMSLDS(Command, MDTrajInputMixin):
             self.top = None
 
         self.featurizer = mixtape.featurizer.load(args.featurizer)
-        self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' +
-                args.ext)
+        self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
         self.n_features = self.featurizer.n_features
         print("n_features = %d" % self.n_features)
-
 
     def start(self):
         args = self.args
@@ -109,14 +105,13 @@ class FitMSLDS(Command, MDTrajInputMixin):
                 subsampled = [d[::lag_time] for d in data]
                 for n_states in args.n_states:
                     self.fit(subsampled, n_states,
-                            lag_time, 0, args, outfile)
-
+                             lag_time, 0, args, outfile)
 
     def fit(self, train, n_states, train_lag_time, fold, args, outfile):
         kwargs = dict(n_states=n_states, n_features=self.n_features,
-                n_em_iter=args.n_em_iter,
-                reversible_type=args.reversible_type,
-                platform=args.platform)
+                      n_em_iter=args.n_em_iter,
+                      reversible_type=args.reversible_type,
+                      platform=args.platform)
         print(kwargs)
         model = MetastableSwitchingLDS(**kwargs)
 
@@ -162,8 +157,8 @@ class FitMSLDS(Command, MDTrajInputMixin):
                 data.append(features)
 
         print('Loading data into memory + vectorization: %f s' %
-                (time.time() - load_time_start))
+              (time.time() - load_time_start))
         print('''Fitting with %s timeseries from %d trajectories with %d
                 total observations''' % (len(data), len(self.filenames),
-                    sum(len(e) for e in data)))
+                                         sum(len(e) for e in data)))
         return data

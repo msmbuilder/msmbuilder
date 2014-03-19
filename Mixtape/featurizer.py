@@ -3,32 +3,41 @@
 # Copyright (c) 2014, Stanford University and the Authors
 # All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or
-# without modification, are permitted provided that the following
-# conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
 #
-#   Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
 #
-#   Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation 
-#   and/or other materials provided with the distribution.
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+from __future__ import print_function, division, absolute_import
 
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
+
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
 
 
 def featurize_all(filenames, featurizer, topology, chunk=1000):
@@ -63,13 +72,13 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
     fns = []
 
     for file in filenames:
-        kwargs = {}  if file.endswith('.h5') else {'top': topology}
+        kwargs = {} if file.endswith('.h5') else {'top': topology}
         for t in md.iterload(file, chunk=chunk, **kwargs):
             x = featurizer.featurize(t)
 
             data.append(x)
             indices.append(np.arange(len(x)))
-            fns.extend([file]*len(x))
+            fns.extend([file] * len(x))
     if len(data) == 0:
         raise ValueError("None!")
 
@@ -84,7 +93,9 @@ def load(filename):
 
 
 class Featurizer(object):
+
     """Base class for Featurizer objects."""
+
     def __init__(self):
         pass
 
@@ -97,7 +108,9 @@ class Featurizer(object):
 
 
 class SuperposeFeaturizer(Featurizer):
+
     """Featurizer based on euclidian atom distances to reference structure."""
+
     def __init__(self, atom_indices, reference_traj):
         self.atom_indices = atom_indices
         self.reference_traj = reference_traj
@@ -106,13 +119,17 @@ class SuperposeFeaturizer(Featurizer):
     def featurize(self, traj):
 
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
-        diff2 = (traj.xyz[:, self.atom_indices] - self.reference_traj.xyz[0, self.atom_indices])**2
+        diff2 = (traj.xyz[:, self.atom_indices] -
+                 self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
 
         return x
 
+
 class AtomPairsFeaturizer(Featurizer):
+
     """Featurizer based on atom pair distances."""
+
     def __init__(self, pair_indices, reference_traj, periodic=False):
         self.pair_indices = pair_indices
         self.reference_traj = reference_traj
@@ -125,6 +142,7 @@ class AtomPairsFeaturizer(Featurizer):
 
 
 class RawPositionsFeaturizer(Featurizer):
+
     def __init__(self, n_features):
         self.n_features = n_features
 

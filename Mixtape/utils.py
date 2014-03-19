@@ -1,10 +1,40 @@
+"""Utility functions"""
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+#   Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+from __future__ import print_function, division, absolute_import
+
 import json
 import numpy as np
-from numpy import shape
 from sklearn.utils import check_random_state
 from numpy.linalg import norm
-from numpy.random import randint
-import mdtraj as md
+
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
 
 
 def iterobjects(fn):
@@ -94,7 +124,7 @@ def empirical_wells(Ys, W_i_Ts):
         denom = 0
         for t in range(T):
             num += W_i_Ts[t, k] * np.outer(Ys[t] - means[k],
-                Ys[t] - means[k])
+                                           Ys[t] - means[k])
             denom += W_i_Ts[t, k]
         covars[k] = (1.0 / denom) * num
     return means, covars
@@ -107,7 +137,7 @@ def means_match(base_means, means, assignments):
     new_assignments = np.zeros(T)
     for i in range(K):
         closest = -1
-        closest_dist = Inf
+        closest_dist = np.inf
         for j in range(K):
             if norm(base_means[i] - means[j]) < closest_dist:
                 closest = j

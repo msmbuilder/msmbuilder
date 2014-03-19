@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 from cvxopt import matrix, solvers, spmatrix, spdiag, sparse
 from numpy import bmat, zeros, reshape, array, dot, eye, outer, shape
 from numpy import sqrt, real, ones
@@ -10,6 +12,7 @@ import cvxopt.misc as misc
 import math
 import IPython
 import pdb
+
 
 def construct_coeff_matrix(x_dim, Q, C, B, E):
     # x = [s vec(Z) vec(A)]
@@ -29,13 +32,13 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     epsilon = np.finfo(np.float32).eps
     p_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     g_dim = 7 * x_dim
-    G = spmatrix([], [], [], (g_dim**2, p_dim), 'd')
+    G = spmatrix([], [], [], (g_dim ** 2, p_dim), 'd')
     # Block Matrix 1
     g1_dim = 2 * x_dim
     # Add a small positive offset to avoid taking sqrt of singular matrix
     #J = real(sqrtm(pinv(Q)+epsilon*eye(x_dim)))
-    J = real(sqrtm(pinv2(Q)+epsilon*eye(x_dim)))
-    H = real(sqrtm(E+epsilon*eye(x_dim)))
+    J = real(sqrtm(pinv2(Q) + epsilon * eye(x_dim)))
+    H = real(sqrtm(E + epsilon * eye(x_dim)))
     F = dot(J, C - B)
     # First Block Column
     # Z+sI-JAF.T -FA.TJ
@@ -176,8 +179,8 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     g4_dim = 1 * x_dim
     # Seventh Block Column
     # Z
-    left = 0 * x_dim+g1_dim+g2_dim+g3_dim
-    top = 0 * x_dim+g1_dim+g2_dim+g3_dim
+    left = 0 * x_dim + g1_dim + g2_dim + g3_dim
+    top = 0 * x_dim + g1_dim + g2_dim + g3_dim
     prev = 1
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
@@ -191,9 +194,10 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
 
     Gs = [G]
     Z = matrix(zeros((p_dim, p_dim)))
-    I = matrix(eye(g_dim**2))
+    I = matrix(eye(g_dim ** 2))
     D = matrix(sparse([[Z, G], [G.T, -I]]))
     return Gs, F, J, H
+
 
 def construct_const_matrix(x_dim, D):
     # --------------------------
@@ -218,7 +222,7 @@ def construct_const_matrix(x_dim, D):
     H2 = matrix(H2)
 
     # Construct B3
-    H3 = eye(2*x_dim)
+    H3 = eye(2 * x_dim)
     H3 = matrix(H3)
 
     # Construct B5
@@ -226,17 +230,17 @@ def construct_const_matrix(x_dim, D):
     H4 = matrix(H4)
 
     # Construct Block matrix
-    H = spdiag([H1,H2,H3,H4])
+    H = spdiag([H1, H2, H3, H4])
     hs = [H]
     return hs
 
 
 def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
-    print "SOLVE_A!"
+    print("SOLVE_A!")
     MAX_ITERS = 100
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
-    c = zeros((c_dim,1))
+    c = zeros((c_dim, 1))
     c[0] = x_dim
     prev = 1
     for i in range(x_dim):
@@ -245,9 +249,9 @@ def solve_A(x_dim, B, C, E, D, Q):
     cm = matrix(c)
 
     # Scale objective down by T for numerical stability
-    eigsQinv = max([abs(1./q) for q in eig(Q)[0]])
+    eigsQinv = max([abs(1. / q) for q in eig(Q)[0]])
     eigsE = max([abs(e) for e in eig(E)[0]])
-    eigsCB = max([abs(cb) for cb in eig(C-B)[0]])
+    eigsCB = max([abs(cb) for cb in eig(C - B)[0]])
     S = max(eigsQinv, eigsE, eigsCB)
     Qdown = Q / S
     Edown = E / S
@@ -267,7 +271,7 @@ def solve_A(x_dim, B, C, E, D, Q):
 
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    print sol
+    print(sol)
     # check norm of A:
     avec = np.array(sol['x'])
     avec = avec[1 + x_dim * (x_dim + 1) / 2:]
