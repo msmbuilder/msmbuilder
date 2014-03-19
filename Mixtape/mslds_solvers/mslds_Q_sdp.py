@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 from cvxopt import matrix, solvers, spmatrix, spdiag
 from numpy import bmat, zeros, reshape, array, dot, shape, eye, shape, real
 from numpy import ones
@@ -166,7 +168,7 @@ def construct_const_matrix(x_dim, A, B, D):
 
 def solve_Q(x_dim, A, B, D):
     # x = [s vec(Z) vec(Q)]
-    print "SOLVE_Q!"
+    print("SOLVE_Q!")
     epsilon = np.finfo(np.float32).eps
     F = real(sqrtm(B + epsilon * eye(x_dim)))
     MAX_ITERS = 100
@@ -223,7 +225,7 @@ def solve_Q(x_dim, A, B, D):
     solvers.options['maxiters'] = MAX_ITERS
     #solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    print sol
+    print(sol)
     qvec = np.array(sol['x'])
     qvec = qvec[1 + x_dim * (x_dim + 1) / 2:]
     Q = np.zeros((x_dim, x_dim))
@@ -235,7 +237,7 @@ def solve_Q(x_dim, A, B, D):
     # Set this for debugging purposes
     eps = -1e-3
     if min(eig(D - Q)[0]) < eps:
-        print "Q >= D!"
+        print("Q >= D!")
         pdb.set_trace()
     return sol, c, Gs, hs
 

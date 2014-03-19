@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 from cvxopt import matrix, solvers, spmatrix, spdiag, sparse
 from numpy import bmat, zeros, reshape, array, dot, eye, outer, shape
 from numpy import sqrt, real, ones
@@ -235,7 +237,7 @@ def construct_const_matrix(x_dim, D):
 
 def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
-    print "SOLVE_A!"
+    print("SOLVE_A!")
     MAX_ITERS = 100
     c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
     c = zeros((c_dim, 1))
@@ -269,7 +271,7 @@ def solve_A(x_dim, B, C, E, D, Q):
 
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    print sol
+    print(sol)
     # check norm of A:
     avec = np.array(sol['x'])
     avec = avec[1 + x_dim * (x_dim + 1) / 2:]
