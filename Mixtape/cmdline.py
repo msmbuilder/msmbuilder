@@ -86,7 +86,7 @@ class MultipleIntAction(argparse.Action):
         if isinstance(values, list):
             values = ' '.join(values)
         try:
-            parsed = map(int, re.findall('[^,;\s]+', values))
+            parsed = [int(e) for x in re.findall('[^,;\s]+', values)]
             setattr(namespace, self.dest, parsed)
         except ValueError:
             raise argparse.ArgumentError(self, 'Invalid list of integers: "%s"' % values)
