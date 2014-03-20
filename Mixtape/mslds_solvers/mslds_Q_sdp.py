@@ -25,7 +25,7 @@ def construct_coeff_matrix(x_dim, B):
     # ------------------------
 
     g_dim = 6 * x_dim
-    p_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
+    p_dim = int(1 + 2 * x_dim * (x_dim + 1) / 2)
     G = spmatrix([], [], [], (g_dim ** 2, p_dim), 'd')
     # Block Matrix 1
     # First Block Column
@@ -42,7 +42,7 @@ def construct_coeff_matrix(x_dim, B):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
@@ -54,7 +54,7 @@ def construct_coeff_matrix(x_dim, B):
     # Q
     left = x_dim
     top = x_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -62,14 +62,14 @@ def construct_coeff_matrix(x_dim, B):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += 1.
     # Block Matrix 2
     g2_dim = 2 * x_dim
     # Third Block Column
     left = 0 * x_dim + g1_dim
     top = 0 * x_dim + g1_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -77,7 +77,7 @@ def construct_coeff_matrix(x_dim, B):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += -1.
     # Fourth Block Column
     # -------------------
@@ -87,7 +87,7 @@ def construct_coeff_matrix(x_dim, B):
     # Q
     left = 0 * x_dim + g1_dim + g2_dim
     top = 0 * x_dim + g1_dim + g2_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -95,7 +95,7 @@ def construct_coeff_matrix(x_dim, B):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += 1.
     # Block Matrix 4
     g4_dim = x_dim
@@ -111,7 +111,7 @@ def construct_coeff_matrix(x_dim, B):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += 1.
     Gs = [G]
     return Gs
@@ -172,13 +172,13 @@ def solve_Q(x_dim, A, B, D):
     epsilon = np.finfo(np.float32).eps
     F = real(sqrtm(B + epsilon * eye(x_dim)))
     MAX_ITERS = 100
-    c_dim = 1 + 2 * x_dim * (x_dim + 1) / 2
+    c_dim = int(1 + 2 * x_dim * (x_dim + 1) / 2)
     c = zeros((c_dim, 1))
     # c = s*dim + Tr Z
     c[0] = x_dim
     prev = 1
     for i in range(x_dim):
-        vec_pos = prev + i * (i + 1) / 2 + i
+        vec_pos = int(prev + i * (i + 1) / 2 + i)
         c[vec_pos] = 1.
     cm = matrix(c)
 
@@ -227,11 +227,11 @@ def solve_Q(x_dim, A, B, D):
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
     print(sol)
     qvec = np.array(sol['x'])
-    qvec = qvec[1 + x_dim * (x_dim + 1) / 2:]
+    qvec = qvec[int(1 + x_dim * (x_dim + 1) / 2):]
     Q = np.zeros((x_dim, x_dim))
     for j in range(x_dim):
         for k in range(j + 1):
-            vec_pos = j * (j + 1) / 2 + k
+            vec_pos = int(j * (j + 1) / 2 + k)
             Q[j, k] = qvec[vec_pos]
             Q[k, j] = Q[j, k]
     # Set this for debugging purposes

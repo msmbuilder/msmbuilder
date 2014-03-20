@@ -40,6 +40,7 @@ import json
 import time
 import numpy as np
 import mdtraj as md
+import traceback, sys, code, pdb
 # import pdb
 
 from mixtape.mslds import MetastableSwitchingLDS
@@ -77,6 +78,8 @@ class FitMSLDS(Command, MDTrajInputMixin):
         1%% of the counts are lost with --split 100), but can help with
         speed (on gpu + multicore cpu) and numerical instabilities that
         come when trajectories get extremely long.''', default=10000)
+    group_mslds.add_argument('--use_pdb', action='store_true', 
+		help= '''Launch python debugger PDB on exception. Useful for debugging.''')
 
     group_out = argument_group('Output')
     group_out.add_argument('-o', '--out', default='mslds.jsonlines',
@@ -95,6 +98,18 @@ class FitMSLDS(Command, MDTrajInputMixin):
         print("n_features = %d" % self.n_features)
 
     def start(self):
+        args = self.args
+        if self.args.use_pdb:
+            try:
+                self._start()
+            except:
+                type, value, tb = sys.exc_info()
+                traceback.print_exc()
+                pdb.post_mortem(tb)
+        else:
+            self._start()
+
+    def _start(self):
         args = self.args
         data = self.load_data()
 

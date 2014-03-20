@@ -30,7 +30,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # -------------------------------------------
     # Smallest number epsilon such that 1. + epsilon != 1.
     epsilon = np.finfo(np.float32).eps
-    p_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
+    p_dim = int(1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2)
     g_dim = 7 * x_dim
     G = spmatrix([], [], [], (g_dim ** 2, p_dim), 'd')
     # Block Matrix 1
@@ -53,7 +53,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += 1.
     # sI
     prev = 0
@@ -62,7 +62,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
         mat_pos = left * g_dim + i * g_dim + top + i
         G[mat_pos, vec_pos] += 1.
     # - J A F.T
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for i in range(x_dim):
         for j in range(x_dim):
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -79,7 +79,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
                     vec_pos = prev + n * x_dim + m
                     G[mat_pos, vec_pos] += val
     # - F A.T J
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for i in range(x_dim):
         for j in range(x_dim):
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -97,7 +97,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # H A.T J
     left = 0
     top = x_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for i in range(x_dim):
         for j in range(x_dim):
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -116,7 +116,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # J A H
     left = x_dim
     top = 0
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for i in range(x_dim):
         for j in range(x_dim):
             mat_pos = left * g_dim + j * g_dim + top + i
@@ -137,7 +137,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # A.T
     left = 0 * x_dim + g1_dim
     top = 1 * x_dim + g1_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
@@ -147,7 +147,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # A
     left = 1 * x_dim + g1_dim
     top = 0 * x_dim + g1_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
@@ -159,7 +159,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # A
     left = 0 * x_dim + g1_dim + g2_dim
     top = 1 * x_dim + g1_dim + g2_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + j * x_dim + i  # pos in param vector
@@ -169,7 +169,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
     # A.T
     left = 1 * x_dim + g1_dim + g2_dim
     top = 0 * x_dim + g1_dim + g2_dim
-    prev = 1 + x_dim * (x_dim + 1) / 2
+    prev = int(1 + x_dim * (x_dim + 1) / 2)
     for j in range(x_dim):  # cols
         for i in range(x_dim):  # rows
             vec_pos = prev + i * x_dim + j  # pos in param vector
@@ -189,7 +189,7 @@ def construct_coeff_matrix(x_dim, Q, C, B, E):
                 (it, jt) = (j, i)
             else:
                 (it, jt) = (i, j)
-            vec_pos = prev + jt * (jt + 1) / 2 + it  # pos in param vector
+            vec_pos = int(prev + jt * (jt + 1) / 2 + it)  # pos in params
             G[mat_pos, vec_pos] += 1
 
     Gs = [G]
@@ -239,12 +239,12 @@ def solve_A(x_dim, B, C, E, D, Q):
     # x = [s vec(Z) vec(A)]
     print("SOLVE_A!")
     MAX_ITERS = 100
-    c_dim = 1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2
+    c_dim = int(1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2)
     c = zeros((c_dim, 1))
     c[0] = x_dim
     prev = 1
     for i in range(x_dim):
-        vec_pos = prev + i * (i + 1) / 2 + i
+        vec_pos = int(prev + i * (i + 1) / 2 + i)
         c[vec_pos] = 1.
     cm = matrix(c)
 
@@ -263,18 +263,21 @@ def solve_A(x_dim, B, C, E, D, Q):
     if min_D_eig < 0:
         # assume abs(min_D_eig) << 1
         D = D + 2 * abs(min_D_eig) * eye(x_dim)
+    print("About to construct coefficient matrix")
     Gs, _, _, _ = construct_coeff_matrix(x_dim, Qdown, Cdown, Bdown, Edown)
+    print("Done constructing coefficient matrix")
     for i in range(len(Gs)):
         Gs[i] = -Gs[i] + 1e-6
-
+    print("About to construct constant matrix")
     hs = construct_const_matrix(x_dim, D)
+    print("Done constructing constant matrix")
 
     solvers.options['maxiters'] = MAX_ITERS
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
     print(sol)
     # check norm of A:
     avec = np.array(sol['x'])
-    avec = avec[1 + x_dim * (x_dim + 1) / 2:]
+    avec = avec[int(1 + x_dim * (x_dim + 1) / 2):]
     A = np.reshape(avec, (x_dim, x_dim), order='F')
     return sol, c, Gs, hs
 
