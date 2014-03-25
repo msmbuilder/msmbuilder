@@ -88,12 +88,9 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
         free(cv_chol);
     }
     free(sequence_minus_means);
-
 }
 
 void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
-                                     const float* __restrict__ means,
-                                     const float* __restrict__ covariances,
                                      const float* __restrict__ As,
                                      const float* __restrict__ bs,
                                      const float* __restrict__ Qs,
@@ -102,7 +99,7 @@ void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
                                      const int n_features,
                                      float* __restrict__ lds_loglikelihoods)
 {
-    int i, j, k, l, info;
+    int i, j, k, info;
     float chol_sol, chol2;
     float* sequence_minus_pred = malloc(n_observations * n_features * sizeof(float));
     float prefactor = n_features * log(2 * M_PI);
@@ -119,8 +116,8 @@ void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
         b_i = malloc(n_features * n_observations * sizeof(float));
         memcpy(Q_i, &Qs[i*n_features*n_features], n_features*n_features*sizeof(float));
         memcpy(A_i, &As[i*n_features*n_features], n_features*n_features*sizeof(float));
-        for (l =  0; l < n_observations; l++) {
-            memcpy(&b_i[l*n_features], &bs[i*n_features], n_features*sizeof(float));
+        for (j =  0; j < n_observations; j++) {
+            memcpy(&b_i[j*n_features], &bs[i*n_features], n_features*sizeof(float));
         }
         // Compute b_i := A_i * sequence[j] + b_i for all j
         sgemm_("N", "N", &n_features, &n_observations, &n_features, &alpha, A_i, &n_features, sequence, &n_features, &beta, b_i, &n_features);
