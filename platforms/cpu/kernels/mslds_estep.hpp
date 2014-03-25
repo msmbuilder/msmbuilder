@@ -72,7 +72,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
     float *seq_obs_but_last, *seq_obs_obs_T, *seq_obs_obs_T_offset;
     float *seq_obs_obs_T_but_first, *seq_obs_obs_T_but_last, *seq_post;
     float *seq_post_but_last, *seq_post_but_first;
-    float *frame_obs_obs_T, *frame_obs_obs_T_offset;
+    float *frame_obs_obs_T;
     float obs_m, obs_n;
 
     REAL *fwdlattice, *bwdlattice;
@@ -147,7 +147,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         for (j = 0; j < sequence_lengths[i]; j++) {
 
             // sequence[j]*sequence[j].T
-            for (int m = 0; m < n_features; m++) {
+            for (m = 0; m < n_features; m++) {
                 obs_m = sequence[j*n_features + m];
                 for (int n = 0; n < n_features; n++) {
                     obs_n = sequence[j*n_features + n];

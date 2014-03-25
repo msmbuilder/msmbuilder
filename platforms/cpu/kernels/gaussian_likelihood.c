@@ -1,9 +1,9 @@
-/*****************************************************************/
-/*    Copyright (c) 2013, Stanford University and the Authors    */
-/*    Author: Robert McGibbon <rmcgibbo@gmail.com>               */
-/*    Contributors:                                              */
-/*                                                               */
-/*****************************************************************/
+/*******************************************************************/
+/*    Copyright (c) 2013, Stanford University and the Authors      */
+/*    Author: Robert McGibbon <rmcgibbo@gmail.com>                 */
+/*    Contributors: Bharath Ramsundar <bharath.ramsundar@gmail.com */
+/*                                                                 */
+/*******************************************************************/
 
 #include "math.h"
 #include "stdio.h"
@@ -90,4 +90,77 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
     free(sequence_minus_means);
 
 }
-    
+
+void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
+                                     const float* __restrict__ means,
+                                     const float* __restrict__ covariances,
+                                     const float* __restrict__ As,
+                                     const float* __restrict__ bs,
+                                     const float* __restrict__ Qs,
+                                     const int n_observations,
+                                     const int n_states,
+                                     const int n_features,
+                                     float* __restrict__ lds_loglikelihoods)
+{
+    int i, j, k, l, info;
+    float chol_sol, chol2;
+    float* sequence_minus_pred = malloc(n_observations * n_features * sizeof(float));
+    float prefactor = n_features * log(2 * M_PI);
+    float alpha = 1.0;
+    float beta = 1.0;
+    float Q_i_log_det;
+    float* Q_i;
+    float* A_i;
+    float* b_i;
+
+    for (i = 0; i < n_states; i++) {
+        Q_i = malloc(n_features * n_features * sizeof(float));
+        A_i = malloc(n_features * n_features * sizeof(float));
+        b_i = malloc(n_features * n_observations * sizeof(float));
+        memcpy(Q_i, &Qs[i*n_features*n_features], n_features*n_features*sizeof(float));
+        memcpy(A_i, &As[i*n_features*n_features], n_features*n_features*sizeof(float));
+        for (l =  0; l < n_observations; l++) {
+            memcpy(&b_i[l*n_features], &bs[i*n_features], n_features*sizeof(float));
+        }
+        // Compute b_i := A_i * sequence[j] + b_i for all j
+        sgemm_("N", "N", &n_features, &n_observations, &n_features, &alpha, A_i, &n_features, sequence, &n_features, &beta, b_i, &n_features);
+        for (j = 0; j < n_observations; j++) {
+            for (k = 0; k < n_features; k++) {
+                sequence_minus_pred[j*n_features+k] = sequence[j*n_features+k] - b_i[j*n_features + k];
+            }
+        }
+
+        // Cholesky decomposition of covariance matrix
+        spotrf_("L", &n_features, Q_i, &n_features, &info);
+        if (info != 0) { 
+            fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); 
+            exit(1); 
+        }
+
+        // Compute the log-det of the covariance matrix down the diagonal
+        Q_i_log_det = 0;
+        for (j = 0; j < n_features; j++) {
+            Q_i_log_det += 2*log(Q_i[j*n_features + j]);
+        }
+
+        // Solve the triangular system
+        strtrs_("L", "N", "N", &n_features, &n_observations, Q_i, &n_features, sequence_minus_pred, &n_features, &info);
+        if (info != 0) { 
+            fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); 
+            exit(1); 
+        }
+
+        for (j = 0; j < n_observations; j++) {
+            lds_loglikelihoods[j*n_states + i] = -0.5 * (Q_i_log_det + prefactor);
+            for (k = 0; k < n_features; k++) {
+                chol_sol = sequence_minus_pred[j*n_features + k];
+                chol2 = chol_sol * chol_sol;
+                lds_loglikelihoods[j*n_states + i] += -0.5*chol2;
+            }
+        }
+        free(Q_i);
+        free(A_i);
+        free(b_i);
+    }
+    free(sequence_minus_pred);
+}
