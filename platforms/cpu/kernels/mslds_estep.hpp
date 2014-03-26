@@ -47,11 +47,14 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
               const float* __restrict__ As,
               const float* __restrict__ bs,
               const float* __restrict__ Qs,
+              const float* __restrict__ means,
+              const float* __restrict__ covariances,
               const float** __restrict__ sequences,
               const int n_sequences,
               const int* __restrict__ sequence_lengths,
               const int n_features,
               const int n_states,
+              const bool hmm_hotstart,
               float* __restrict__ transcounts,
               float* __restrict__ obs,
               float* __restrict__ obs_but_first,
@@ -81,8 +84,9 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
     #ifdef _OPENMP
     #pragma omp parallel for default(none)                      \
         shared(log_transmat, log_transmat_T, log_startprob,     \
-               As, bs, Qs, sequences, sequence_lengths,         \
-               transcounts, obs, obs_but_first, obs_but_last,   \
+               As, bs, Qs, means, covariances, sequences,       \
+               sequence_lengths, transcounts, obs,              \
+               obs_but_first, obs_but_last,                     \
                obs_obs_T,obs_obs_T_offset,obs_obs_T_but_first,  \
                obs_obs_T_but_last, post, post_but_first,        \
                post_but_last, logprob, stderr)                  \
@@ -116,26 +120,48 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         seq_post_but_first = (float*) calloc(n_states, sizeof(float));
         seq_post_but_last = (float*) calloc(n_states, sizeof(float));
 
-        if (framelogprob == NULL || fwdlattice == NULL || bwdlattice == NULL || posteriors == NULL
-            || seq_transcounts == NULL || seq_obs == NULL || seq_obs_obs_T ==NULL
-            || seq_obs_obs_T_offset == NULL || seq_obs_obs_T_but_first == NULL
-            || seq_obs_obs_T_but_last == NULL || frame_obs_obs_T == NULL || seq_post == NULL
-            || seq_post_but_first == NULL || seq_post_but_last == NULL) {
+        if (framelogprob == NULL || fwdlattice == NULL 
+            || bwdlattice == NULL || posteriors == NULL
+            || seq_transcounts == NULL || seq_obs == NULL 
+            || seq_obs_obs_T ==NULL || seq_obs_obs_T_offset == NULL 
+            || seq_obs_obs_T_but_first == NULL
+            || seq_obs_obs_T_but_last == NULL || frame_obs_obs_T == NULL 
+            || seq_post == NULL || seq_post_but_first == NULL 
+            || seq_post_but_last == NULL) {
             fprintf(stderr, "Memory allocation failure in %s at %d\n", __FILE__, __LINE__); exit(EXIT_FAILURE);
         }
 
-        // Do work for this sequence
-        gaussian_lds_loglikelihood_full(sequence, As, bs, Qs, length, n_states, n_features, framelogprob);
-        forward(log_transmat_T, log_startprob, framelogprob, length, n_states, fwdlattice);
-        backward(log_transmat, log_startprob, framelogprob, length, n_states, bwdlattice);
-        compute_posteriors(fwdlattice, bwdlattice, length, n_states, posteriors);
+        // Compute the HMM log-likelihood if we're still warm-starting
+        if (hmm_hotstart) {
+            gaussian_loglikelihood_full(sequence, means, covariances,
+                    length, n_states, n_features, framelogprob);
+        } 
+        // Else compute the MSLDS log likelihood 
+        else {
+            gaussian_lds_loglikelihood_full(sequence, As, bs, Qs, length,
+                n_states, n_features, framelogprob);
+        }
+        forward(log_transmat_T, log_startprob, framelogprob, length,
+                n_states, fwdlattice);
+        backward(log_transmat, log_startprob, framelogprob, length,
+                n_states, bwdlattice);
+        compute_posteriors(fwdlattice, bwdlattice, length, n_states,
+                posteriors);
 
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
-        transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm_("N", "T", &n_features, &n_states, &length, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs, &n_features);
-        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence, &n_features, posteriors, &n_states, &onef, seq_obs_but_last, &n_features);
-        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef, sequence + n_features, &n_features, posteriors + n_states, &n_states, &onef, seq_obs_but_first, &n_features);
+        transitioncounts(fwdlattice, bwdlattice, log_transmat,
+                framelogprob, sequence_lengths[i], n_states,
+                seq_transcounts, &tlocallogprob);
+        sgemm_("N", "T", &n_features, &n_states, &length, &onef, 
+                sequence, &n_features, posteriors, &n_states, &onef,
+                seq_obs, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef,
+                sequence, &n_features, posteriors, &n_states, &onef,
+                seq_obs_but_last, &n_features);
+        sgemm_("N", "T", &n_features, &n_states, &length_minus_1, &onef,
+                sequence + n_features, &n_features, posteriors + n_states,
+                &n_states, &onef, seq_obs_but_first, &n_features);
 
         for (k = 0; k < n_states; k++) {
             for (j = 0; j < sequence_lengths[i]; j++) {
@@ -158,11 +184,16 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
                 }
             }
 
-            _update_state_matrices(n_states, n_features, seq_obs_obs_T, &posteriors[j*n_states], frame_obs_obs_T);
+            _update_state_matrices(n_states, n_features, seq_obs_obs_T,
+                    &posteriors[j*n_states], frame_obs_obs_T);
             if (j > 0)
-                _update_state_matrices(n_states, n_features, seq_obs_obs_T_but_first, &posteriors[j*n_states], frame_obs_obs_T);
+                _update_state_matrices(n_states, n_features,
+                        seq_obs_obs_T_but_first, &posteriors[j*n_states],
+                        frame_obs_obs_T);
             if (j < sequence_lengths[i] - 1)
-                _update_state_matrices(n_states, n_features, seq_obs_obs_T_but_last, &posteriors[j*n_states], frame_obs_obs_T);
+                _update_state_matrices(n_states, n_features,
+                        seq_obs_obs_T_but_last, &posteriors[j*n_states],
+                        frame_obs_obs_T);
 
             if (j > 0) {
                 // sequence[j]*sequence[j-1].T
@@ -173,7 +204,9 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
                         frame_obs_obs_T[m*n_features + n] = obs_m*obs_n;
                     }
                 }
-                _update_state_matrices(n_states, n_features, seq_obs_obs_T_offset, &posteriors[j*n_states], frame_obs_obs_T);
+                _update_state_matrices(n_states, n_features,
+                        seq_obs_obs_T_offset, &posteriors[j*n_states],
+                        frame_obs_obs_T);
             }
         }
 

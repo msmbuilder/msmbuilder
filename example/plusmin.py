@@ -25,7 +25,8 @@ PLOT = True
 #PLOT = False
 
 n_seq = 1
-NUM_ITERS = 3
+NUM_HOTSTART = 3
+NUM_ITERS = 6
 T = 2000
 x_dim = 1
 K = 2
@@ -58,7 +59,8 @@ else:
 
 if LEARN:
     # Fit Metastable Switcher
-    l = MetastableSwitchingLDS(K, x_dim, n_em_iter=NUM_ITERS)
+    l = MetastableSwitchingLDS(K, x_dim, n_hotstart=NUM_HOTSTART,
+            n_em_iter=NUM_ITERS)
     l.fit(xs)
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(K, x_dim)

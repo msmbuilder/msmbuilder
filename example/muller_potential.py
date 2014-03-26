@@ -87,7 +87,8 @@ sim_T = 1000
 x_dim = 2
 y_dim = 2
 K = 3
-NUM_ITERS = 5
+NUM_HOTSTART = 5
+NUM_ITERS = 10
 
 As = zeros((K, x_dim, x_dim))
 bs = zeros((K, x_dim))
@@ -134,7 +135,8 @@ for traj in range(NUM_TRAJS):
         integrator.step(10)
 if LEARN:
     # Learn the MetastableSwitchingLDS
-    l = MetastableSwitchingLDS(K, x_dim, n_em_iter=NUM_ITERS)
+    l = MetastableSwitchingLDS(K, x_dim,
+            n_hotstart=NUM_HOTSTART, n_em_iter=NUM_ITERS)
     l.fit(xs)
     sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
 

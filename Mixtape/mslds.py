@@ -130,12 +130,14 @@ class MetastableSwitchingLDS(object):
     """
 
     def __init__(self, n_states, n_features, n_hotstart_sequences=10,
-                 init_params='tmcqab', transmat_prior=None, params='tmcqab',
-                 reversible_type='mle', n_em_iter=10, covars_prior=1e-2,
-                 covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
+                 init_params='tmcqab', transmat_prior=None,
+                 params='tmcqab', reversible_type='mle', n_em_iter=10,
+                 n_hotstart = 5, covars_prior=1e-2, covars_weight=1,
+                 precision='mixed', eps=2.e-1, platform='cpu'):
 
         self.n_states = n_states
         self.n_features = n_features
+        self.n_hotstart = n_hotstart
         self.n_hotstart_sequences = n_hotstart_sequences
         self.n_em_iter = n_em_iter
         self.init_params = init_params
@@ -150,7 +152,7 @@ class MetastableSwitchingLDS(object):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
         self.eps = eps
-        self._impl = MetastableSLDSCPUImpl(n_states, n_features, precision)
+        self._impl = None
 
         self._As_ = None
         self._bs_ = None
@@ -168,7 +170,7 @@ class MetastableSwitchingLDS(object):
             self.transmat_prior = 1.0
         if self.platform == 'cpu':
             self._impl = _mslds.MetastableSLDSCPUImpl(
-                self.n_states, self.n_features, precision)
+                self.n_states, self.n_features, self.n_hotstart, precision)
         else:
             raise ValueError('Invalid platform "%s". Available platforms are ["cpu"]' % platform)
 
@@ -305,7 +307,7 @@ class MetastableSwitchingLDS(object):
 
         for i in range(self.n_em_iter):
             print("Iteration %d" % i)
-            _, stats = self._impl.do_estep()
+            _, stats = self._impl.do_estep(i)
             if stats['trans'].sum() > 10 * n_obs:
                 print('Number of transition counts', stats['trans'].sum())
                 print('Total sequence length', n_obs)
