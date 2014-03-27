@@ -142,7 +142,8 @@ class FitGHMM(Command, MDTrajInputMixin):
                     #     self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
     def fit(self, train, test, n_states, train_lag_time, repetition, args, outfile):
-        kwargs = dict(n_states=n_states, n_features=self.n_features, n_init=args.n_init,
+        kwargs = dict(n_states=n_states, n_features=self.n_features,
+                      n_init=args.n_init,
                       n_em_iter=args.n_em_iter, n_lqa_iter=args.n_lqa_iter,
                       fusion_prior=args.fusion_prior, thresh=args.thresh,
                       reversible_type=args.reversible_type, platform=args.platform)

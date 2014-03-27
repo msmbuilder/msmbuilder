@@ -235,9 +235,8 @@ def construct_const_matrix(x_dim, D):
     return hs
 
 
-def solve_A(x_dim, B, C, E, D, Q, max_iters):
+def solve_A(x_dim, B, C, E, D, Q, max_iters, show_display):
     # x = [s vec(Z) vec(A)]
-    print("SOLVE_A!")
     c_dim = int(1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2)
     c = zeros((c_dim, 1))
     c[0] = x_dim
@@ -262,18 +261,14 @@ def solve_A(x_dim, B, C, E, D, Q, max_iters):
     if min_D_eig < 0:
         # assume abs(min_D_eig) << 1
         D = D + 2 * abs(min_D_eig) * eye(x_dim)
-    print("About to construct coefficient matrix")
     Gs, _, _, _ = construct_coeff_matrix(x_dim, Qdown, Cdown, Bdown, Edown)
-    print("Done constructing coefficient matrix")
     for i in range(len(Gs)):
         Gs[i] = -Gs[i] + 1e-6
-    print("About to construct constant matrix")
     hs = construct_const_matrix(x_dim, D)
-    print("Done constructing constant matrix")
 
     solvers.options['maxiters'] = max_iters
+    solvers.options['show_progress'] = show_display
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    print(sol)
     # check norm of A:
     avec = np.array(sol['x'])
     avec = avec[int(1 + x_dim * (x_dim + 1) / 2):]

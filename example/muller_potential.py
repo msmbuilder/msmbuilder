@@ -6,6 +6,7 @@ that it affects the meaning of the temperature and kinetic energy. So
 take the meaning of those numbers with a grain of salt.
 """
 from mixtape.mslds import *
+from mixtape.ghmm import *
 from numpy import array, reshape, savetxt, loadtxt, zeros
 from simtk.unit import kelvin, picosecond, femtosecond, nanometer, dalton
 from mixtape.utils import *
@@ -83,7 +84,7 @@ try:
     temperature = 500 * kelvin
     friction = 100 / picosecond
     timestep = 10.0 * femtosecond
-    T = 500
+    T = 2500
     sim_T = 1000
 
     x_dim = 2
