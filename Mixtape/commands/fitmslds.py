@@ -71,6 +71,8 @@ class FitMSLDS(Command, MDTrajInputMixin):
         Implementation platform. default="cpu"''')
     group_mslds.add_argument('--n-em-iter', type=int, default=10, help='''
         Maximum number of iterations of EM. default=10''')
+    group_mslds.add_argument('--n-hotstart', type=int, default=5, help='''
+        Maximum number of HMM hot-starting iterations of EM. default=5''')
     group_mslds.add_argument('--reversible-type', choices=['mle'], default='mle', help='''
         Method by which the model is constrained to be reversible. default="mle"''')
     group_mslds.add_argument('-sp', '--split', type=int, help='''Split
@@ -78,7 +80,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
         1%% of the counts are lost with --split 100), but can help with
         speed (on gpu + multicore cpu) and numerical instabilities that
         come when trajectories get extremely long.''', default=10000)
-    group_mslds.add_argument('--use_pdb', action='store_true', 
+    group_mslds.add_argument('--use_pdb', action='store_true',
 		help= '''Launch python debugger PDB on exception. Useful for debugging.''')
 
     group_out = argument_group('Output')
@@ -125,6 +127,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
     def fit(self, train, n_states, train_lag_time, fold, args, outfile):
         kwargs = dict(n_states=n_states, n_features=self.n_features,
                       n_em_iter=args.n_em_iter,
+                      n_hotstart=args.n_hotstart,
                       reversible_type=args.reversible_type,
                       platform=args.platform)
         print(kwargs)

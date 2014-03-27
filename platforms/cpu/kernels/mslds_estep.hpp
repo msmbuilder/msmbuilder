@@ -1,7 +1,7 @@
 /*****************************************************************/
 /*    Copyright (c) 2013, Stanford University and the Authors    */
 /*    Author: Robert McGibbon <rmcgibbo@gmail.com>               */
-/*    Contributors:                                              */
+/*    Contributors: Bharath Ramsundar                            */
 /*                                                               */
 /*****************************************************************/
 #ifndef MIXTAPE_CPU_MSLDS_ESTEP
@@ -146,7 +146,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
         backward(log_transmat, log_startprob, framelogprob, length,
                 n_states, bwdlattice);
         compute_posteriors(fwdlattice, bwdlattice, length, n_states,
-                posteriors);
+                posteriors); 
 
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
@@ -261,7 +261,6 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
     }
 
 }
-
 
 } // namespace
 

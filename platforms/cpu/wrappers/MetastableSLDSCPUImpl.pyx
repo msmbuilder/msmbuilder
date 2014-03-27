@@ -19,7 +19,8 @@ cdef extern from "mslds_estep.hpp" namespace "Mixtape":
         float* obs_obs_T_but_first, float* obs_obs_T_but_last,
         float* post, float* post_but_first, float* post_but_last,
         float* logprob) nogil
-    
+
+
     void do_estep_mixed "Mixtape::do_mslds_estep<double>"(
         const float* log_transmat, const float* log_transmat_T,
         const float* log_startprob, const float* As, const float* bs,

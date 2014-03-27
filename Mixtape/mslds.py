@@ -309,7 +309,8 @@ class MetastableSwitchingLDS(object):
 
         for i in range(self.n_em_iter):
             print("Iteration %d" % i)
-            _, stats = self._impl.do_estep(i)
+            log_likelihood, stats = self._impl.do_estep(i)
+            print("\t Log-Likelihood of Data = %f" % log_likelihood)
             if stats['trans'].sum() > 10 * n_obs:
                 print('Number of transition counts', stats['trans'].sum())
                 print('Total sequence length', n_obs)
@@ -339,6 +340,7 @@ class MetastableSwitchingLDS(object):
             print(self.covars_[i])
             print("\tEig:")
             print(np.linalg.eig(self.covars_[i])[0])
+        print("Final Log-Likelihood of Data = %f" % log_likelihood)
         print("FINISHED FIT!")
 
         return self
