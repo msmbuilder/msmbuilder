@@ -235,10 +235,9 @@ def construct_const_matrix(x_dim, D):
     return hs
 
 
-def solve_A(x_dim, B, C, E, D, Q):
+def solve_A(x_dim, B, C, E, D, Q, max_iters):
     # x = [s vec(Z) vec(A)]
     print("SOLVE_A!")
-    MAX_ITERS = 100
     c_dim = int(1 + x_dim * (x_dim + 1) / 2 + x_dim ** 2)
     c = zeros((c_dim, 1))
     c[0] = x_dim
@@ -272,7 +271,7 @@ def solve_A(x_dim, B, C, E, D, Q):
     hs = construct_const_matrix(x_dim, D)
     print("Done constructing constant matrix")
 
-    solvers.options['maxiters'] = MAX_ITERS
+    solvers.options['maxiters'] = max_iters
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
     print(sol)
     # check norm of A:

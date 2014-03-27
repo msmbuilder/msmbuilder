@@ -133,7 +133,8 @@ class MetastableSwitchingLDS(object):
                  init_params='tmcqab', transmat_prior=None,
                  params='tmcqab', reversible_type='mle', n_em_iter=10,
                  n_hotstart = 5, covars_prior=1e-2, covars_weight=1,
-                 precision='mixed', eps=2.e-1, platform='cpu'):
+                 precision='mixed', eps=2.e-1, platform='cpu',
+                 max_iters=50):
 
         self.n_states = n_states
         self.n_features = n_features
@@ -152,6 +153,7 @@ class MetastableSwitchingLDS(object):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
         self.eps = eps
+        self.max_iters = max_iters
         self._impl = None
 
         self._As_ = None
@@ -194,7 +196,7 @@ class MetastableSwitchingLDS(object):
             self.covars_ = \
                 distribute_covar_matrix_to_match_covariance_type(
                     cv, 'full', self.n_states)
-            self.covars_[self._covars_ == 0] = 1e-5
+            self.covars_[self.covars_ == 0] = 1e-5
         if 't' in self.init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
@@ -316,7 +318,7 @@ class MetastableSwitchingLDS(object):
                 break
 
             # Maximization step
-            self._do_mstep(stats, set(self.params))
+            self._do_mstep(stats, set(self.params), i)
         # Debugging Aids. Remove once code becomes more stable.
         print("As")
         for i in range(self.n_states):
@@ -341,14 +343,14 @@ class MetastableSwitchingLDS(object):
 
         return self
 
-    def _do_mstep(self, stats, params):
-        if 'm' in params:
-            self._means_update(stats)
-        if 'c' in params:
-            self._covars_update(stats)
+    def _do_mstep(self, stats, params, iteration):
+        if iteration < self.n_hotstart:
+            if 'm' in params:
+                self._means_update(stats)
+            if 'c' in params:
+                self._covars_update(stats)
         if 't' in params:
             self._transmat_update(stats)
-
         if 'a' in params:
             self._A_update(stats)
         if 'q' in params:
@@ -360,19 +362,26 @@ class MetastableSwitchingLDS(object):
         self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
 
     def _covars_update(self, stats):
-        cvnum = np.empty((self.n_states, self.n_features, self.n_features))
+        #cvnum = np.empty((self.n_states, self.n_features, self.n_features))
+        cvweight = max(self.covars_weight - self.n_features, 0)
         for c in range(self.n_states):
-            obsmean = np.outer(stats['obs'][c], self._means_[c])
+            obsmean = np.outer(stats['obs'][c], self.means_[c])
 
-            cvnum[c] = (stats['obs*obs.T'][c]
+            cvnum = (stats['obs*obs.T'][c]
                         - obsmean - obsmean.T
-                        + np.outer(self._means_[c], self._means_[c])
+                        + np.outer(self.means_[c], self.means_[c])
                         * stats['post'][c]) \
                 + self.covars_prior * np.eye(self.n_features)
-        cvweight = max(self.covars_weight - self.n_features, 0)
-        self.covars_ = ((cvnum) /
-                        (cvweight + stats['post'][:, None, None]))
-        for c in range(self.n_states):
+            cvdenom = (cvweight + stats['post'][c])
+            if cvdenom > np.finfo(float).eps:
+                self.covars_[c] = ((cvnum) / cvdenom)
+
+            # Deal with numerical issues
+            # If no posterior mass was recorded in this state, then
+            # we have no covariance information. Set covariance to identity
+            # to avoid numerical issues.
+            #if stats['post'][c] < np.finfo(float).eps:
+            #    self.covars_[c] = np.eye(self.n_features)
             # Might be slightly negative due to numerical issues
             min_eig = min(np.linalg.eig(self.covars_[c])[0])
             if min_eig < 0:
@@ -395,7 +404,8 @@ class MetastableSwitchingLDS(object):
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
             Q = self.Qs_[i]
-            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q)
+            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
+                    self.max_iters)
             avec = np.array(sol['x'])
             avec = avec[1 + self.n_features * (self.n_features + 1) / 2:]
             A = np.reshape(avec, (self.n_features, self.n_features),
@@ -422,7 +432,8 @@ class MetastableSwitchingLDS(object):
                                                 (self.n_features, 1)).T,
                                      A.T)) +
                     stats['post[1:]'][i] * np.dot(b, b.T)))
-            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma)
+            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
+                    self.max_iters)
             qvec = np.array(sol['x'])
             qvec = qvec[1 + self.n_features * (self.n_features + 1) / 2:]
             Q = np.zeros((self.n_features, self.n_features))

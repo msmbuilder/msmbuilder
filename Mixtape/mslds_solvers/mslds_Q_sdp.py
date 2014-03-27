@@ -166,12 +166,11 @@ def construct_const_matrix(x_dim, A, B, D):
     return hs, F
 
 
-def solve_Q(x_dim, A, B, D):
+def solve_Q(x_dim, A, B, D, max_iters):
     # x = [s vec(Z) vec(Q)]
     print("SOLVE_Q!")
     epsilon = np.finfo(np.float32).eps
     F = real(sqrtm(B + epsilon * eye(x_dim)))
-    MAX_ITERS = 100
     c_dim = int(1 + 2 * x_dim * (x_dim + 1) / 2)
     c = zeros((c_dim, 1))
     # c = s*dim + Tr Z
@@ -222,7 +221,7 @@ def solve_Q(x_dim, A, B, D):
     # Add a small positive offset to avoid taking sqrt of singular matrix
     F = real(sqrtm(Bdown + epsilon * eye(x_dim)))
 
-    solvers.options['maxiters'] = MAX_ITERS
+    solvers.options['maxiters'] = max_iters
     #solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
     print(sol)

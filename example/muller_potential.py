@@ -14,6 +14,7 @@ import matplotlib.pyplot as pp
 import numpy as np
 import sys
 import warnings
+import traceback, sys, code, pdb
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class MullerForce(mm.CustomExternalForce):
@@ -69,93 +70,100 @@ class MullerForce(mm.CustomExternalForce):
             ax = pp
         ax.contourf(xx, yy, V.clip(max=200), 40, **kwargs)
 
-# Now run code
-PLOT = True
-LEARN = True
-NUM_TRAJS = 1
+try:
+    # Now run code
+    PLOT = True
+    LEARN = True
+    NUM_TRAJS = 1
 
-# each particle is totally independent
-nParticles = 1
-mass = 1.0 * dalton
-# temps  = 200 300 500 750 1000 1250 1500 1750 2000
-temperature = 500 * kelvin
-friction = 100 / picosecond
-timestep = 10.0 * femtosecond
-T = 500
-sim_T = 1000
+    # each particle is totally independent
+    nParticles = 1
+    mass = 1.0 * dalton
+    # temps  = 200 300 500 750 1000 1250 1500 1750 2000
+    temperature = 500 * kelvin
+    friction = 100 / picosecond
+    timestep = 10.0 * femtosecond
+    T = 500
+    sim_T = 1000
 
-x_dim = 2
-y_dim = 2
-K = 3
-NUM_HOTSTART = 5
-NUM_ITERS = 10
+    x_dim = 2
+    y_dim = 2
+    K = 3
+    NUM_HOTSTART = 5
+    NUM_ITERS = 10
+    MAX_ITERS = 20
 
-As = zeros((K, x_dim, x_dim))
-bs = zeros((K, x_dim))
-mus = zeros((K, x_dim))
-Sigmas = zeros((K, x_dim, x_dim))
-Qs = zeros((K, x_dim, x_dim))
+    As = zeros((K, x_dim, x_dim))
+    bs = zeros((K, x_dim))
+    mus = zeros((K, x_dim))
+    Sigmas = zeros((K, x_dim, x_dim))
+    Qs = zeros((K, x_dim, x_dim))
 
-# Allocate Memory
-start = T / 4
-n_seq = 1
-xs = zeros((n_seq, NUM_TRAJS * (T - start), y_dim))
+    # Allocate Memory
+    start = T / 4
+    n_seq = 1
+    xs = zeros((n_seq, NUM_TRAJS * (T - start), y_dim))
 
-if PLOT:
-    # Clear Display
-    pp.cla()
-# Choose starting conformations uniform on the grid
-# between (-1.5, -0.2) and (1.2, 2)
-########################################################################
+    if PLOT:
+        # Clear Display
+        pp.cla()
+    # Choose starting conformations uniform on the grid
+    # between (-1.5, -0.2) and (1.2, 2)
+    ########################################################################
 
-for traj in range(NUM_TRAJS):
-    system = mm.System()
-    mullerforce = MullerForce()
-    for i in range(nParticles):
-        system.addParticle(mass)
-        mullerforce.addParticle(i, [])
-    system.addForce(mullerforce)
+    for traj in range(NUM_TRAJS):
+        system = mm.System()
+        mullerforce = MullerForce()
+        for i in range(nParticles):
+            system.addParticle(mass)
+            mullerforce.addParticle(i, [])
+        system.addForce(mullerforce)
 
-    integrator = mm.LangevinIntegrator(temperature, friction, timestep)
-    context = mm.Context(system, integrator)
-    startingPositions = (np.random.rand(
-        nParticles, 3) * np.array([2.7, 1.8, 1])) + np.array([-1.5, -0.2, 0])
+        integrator = mm.LangevinIntegrator(temperature, friction, timestep)
+        context = mm.Context(system, integrator)
+        startingPositions = (np.random.rand(
+            nParticles, 3) * np.array([2.7, 1.8, 1])) + np.array([-1.5, -0.2, 0])
 
-    context.setPositions(startingPositions)
-    context.setVelocitiesToTemperature(temperature)
+        context.setPositions(startingPositions)
+        context.setVelocitiesToTemperature(temperature)
 
-    trajectory = zeros((T, 2))
-    for i in range(T):
-        x = context.getState(getPositions=True).\
-            getPositions(asNumpy=True).value_in_unit(nanometer)
-        # Save the state
-        if i > start:
-            xs[0, traj * (T-start) + (i-start), :] = x[0, 0:2]
-        trajectory[i, :] = x[0, 0:2]
-        integrator.step(10)
-if LEARN:
-    # Learn the MetastableSwitchingLDS
-    l = MetastableSwitchingLDS(K, x_dim,
-            n_hotstart=NUM_HOTSTART, n_em_iter=NUM_ITERS)
-    l.fit(xs)
-    sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
-
-if PLOT:
-    pp.plot(trajectory[start:, 0], trajectory[start:, 1], color='k')
-    pp.scatter(l.means_[:, 0], l.means_[:, 1], color='r', zorder=10)
-    pp.scatter(xs[0, :, 0], xs[0,:, 1], edgecolor='none', facecolor='k', zorder=1)
-    Delta = 0.5
-    minx = min(xs[0, :, 0])
-    maxx = max(xs[0, :, 0])
-    miny = min(xs[0, :, 1])
-    maxy = max(xs[0, :, 1])
+        trajectory = zeros((T, 2))
+        for i in range(T):
+            x = context.getState(getPositions=True).\
+                getPositions(asNumpy=True).value_in_unit(nanometer)
+            # Save the state
+            if i > start:
+                xs[0, traj * (T-start) + (i-start), :] = x[0, 0:2]
+            trajectory[i, :] = x[0, 0:2]
+            integrator.step(10)
     if LEARN:
-        minx = min(min(sim_xs[:, 0]), minx) - Delta
-        maxx = max(max(sim_xs[:, 0]), maxx) + Delta
-        miny = min(min(sim_xs[:, 1]), miny) - Delta
-        maxy = max(max(sim_xs[:, 1]), maxy) + Delta
-        pp.scatter(sim_xs[:, 0], sim_xs[:, 1], edgecolor='none',
-                   zorder=5, facecolor='g')
-        pp.plot(sim_xs[:, 0], sim_xs[:, 1], zorder=5, color='g')
-    MullerForce.plot(ax=pp.gca(), minx=minx, maxx=maxx, miny=miny, maxy=maxy)
-    pp.show()
+        # Learn the MetastableSwitchingLDS
+        l = MetastableSwitchingLDS(K, x_dim,
+                n_hotstart=NUM_HOTSTART, n_em_iter=NUM_ITERS,
+                max_iters=MAX_ITERS)
+        l.fit(xs)
+        sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
+
+    if PLOT:
+        pp.plot(trajectory[start:, 0], trajectory[start:, 1], color='k')
+        pp.scatter(l.means_[:, 0], l.means_[:, 1], color='r', zorder=10)
+        pp.scatter(xs[0, :, 0], xs[0,:, 1], edgecolor='none', facecolor='k', zorder=1)
+        Delta = 0.5
+        minx = min(xs[0, :, 0])
+        maxx = max(xs[0, :, 0])
+        miny = min(xs[0, :, 1])
+        maxy = max(xs[0, :, 1])
+        if LEARN:
+            minx = min(min(sim_xs[:, 0]), minx) - Delta
+            maxx = max(max(sim_xs[:, 0]), maxx) + Delta
+            miny = min(min(sim_xs[:, 1]), miny) - Delta
+            maxy = max(max(sim_xs[:, 1]), maxy) + Delta
+            pp.scatter(sim_xs[:, 0], sim_xs[:, 1], edgecolor='none',
+                       zorder=5, facecolor='g')
+            pp.plot(sim_xs[:, 0], sim_xs[:, 1], zorder=5, color='g')
+        MullerForce.plot(ax=pp.gca(), minx=minx, maxx=maxx, miny=miny, maxy=maxy)
+        pp.show()
+except:
+    type, value, tb = sys.exc_info()
+    traceback.print_exc()
+    pdb.post_mortem(tb)

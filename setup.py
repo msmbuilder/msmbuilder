@@ -236,6 +236,7 @@ class custom_build_ext(build_ext):
         _build_ext.build_extensions(self)
 
     def build_extension(self, ext):
+        build_ext.cython_gdb = True
         # Clean all cython files for each extension
         # and force the cpp files to be rebuilt from pyx.
         cplus = self.cython_cplus or getattr(ext, 'cython_cplus', 0) or \

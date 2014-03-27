@@ -130,7 +130,7 @@ void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
         // Cholesky decomposition of covariance matrix
         spotrf_("L", &n_features, Q_i, &n_features, &info);
         if (info != 0) { 
-            fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); 
+            fprintf(stderr, "LAPACK Error in %s at %d in iteration %d\n", __FILE__, __LINE__, i); 
             exit(1); 
         }
 
