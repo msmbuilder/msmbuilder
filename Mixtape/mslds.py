@@ -266,6 +266,20 @@ class MetastableSwitchingLDS(object):
 
         return obs, hidden_state
 
+    def score(self, sequences):
+        """Log-likelihood of sequences under the model
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        """
+        self._impl._sequences = sequences
+        logprob, _ = self._impl.do_estep(self.n_em_iter)
+        return logprob
+
     def predict(self, obs):
         """Find most likely state sequence corresponding to `obs`.
 

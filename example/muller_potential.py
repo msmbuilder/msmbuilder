@@ -142,6 +142,14 @@ try:
                 n_hotstart=NUM_HOTSTART, n_em_iter=NUM_ITERS,
                 max_iters=MAX_ITERS)
         l.fit(xs)
+        mslds_score = l.score(xs)
+        print("MSLDS Log-Likelihood = %f" %  mslds_score)
+        # Fit Gaussian HMM for comparison
+        g = GaussianFusionHMM(K, x_dim)
+        g.fit(xs)
+        hmm_score = g.score(xs)
+        print("HMM Log-Likelihood = %f" %  hmm_score)
+
         sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
 
     if PLOT:

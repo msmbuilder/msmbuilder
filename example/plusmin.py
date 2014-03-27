@@ -62,9 +62,14 @@ if LEARN:
     l = MetastableSwitchingLDS(K, x_dim, n_hotstart=NUM_HOTSTART,
             n_em_iter=NUM_ITERS)
     l.fit(xs)
+    mslds_score = l.score(xs)
+    print("MSLDS Log-Likelihood = %f" %  mslds_score)
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(K, x_dim)
     g.fit(xs)
+    hmm_score = g.score(xs)
+    print("HMM Log-Likelihood = %f" %  hmm_score)
+
     sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=mus[0])
     sim_xs = reshape(sim_xs, (n_seq, T, x_dim))
 
