@@ -55,9 +55,19 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
     float* cv_chol;
     float* sequence_minus_means = malloc(n_observations * n_features * sizeof(float));
     float prefactor = n_features * log(2 * M_PI);
+    if (sequence_minus_means == NULL) {
+        fprintf(stderr, "Memory allocation failure in %s at %d\n",
+                __FILE__, __LINE__); 
+        exit(EXIT_FAILURE);
+    }
 
     for (i = 0; i < n_states; i++) {
         cv_chol = malloc(n_features * n_features * sizeof(float));
+        if (cv_chol == NULL) {
+            fprintf(stderr, "Memory allocation failure in %s at %d\n",
+                    __FILE__, __LINE__); 
+            exit(EXIT_FAILURE);
+        }
         memcpy(cv_chol, &covariances[i*n_features*n_features], n_features*n_features*sizeof(float));
         for (j = 0; j < n_observations; j++)
             for (k = 0; k < n_features; k++)
@@ -75,7 +85,11 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
         // solve the triangular system
         strtrs_("L", "N", "N", &n_features, &n_observations, cv_chol, &n_features,
                 sequence_minus_means, &n_features, &info);
-        if (info != 0) { fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); exit(1); }
+        if (info != 0) { 
+            fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__,
+                    __LINE__); 
+            exit(1); 
+        }
 
         for (j = 0; j < n_observations; j++) {
             loglikelihoods[j*n_states + i] = -0.5 * (cv_log_det + prefactor);
@@ -114,6 +128,11 @@ void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
         Q_i = malloc(n_features * n_features * sizeof(float));
         A_i = malloc(n_features * n_features * sizeof(float));
         b_i = malloc(n_features * n_observations * sizeof(float));
+        if (Q_i == NULL || A_i == NULL || b_i == NULL) {
+            fprintf(stderr, "Memory allocation failure in %s at %d\n",
+                    __FILE__, __LINE__); 
+            exit(EXIT_FAILURE);
+        }
         memcpy(Q_i, &Qs[i*n_features*n_features], n_features*n_features*sizeof(float));
         memcpy(A_i, &As[i*n_features*n_features], n_features*n_features*sizeof(float));
         for (j =  0; j < n_observations; j++) {

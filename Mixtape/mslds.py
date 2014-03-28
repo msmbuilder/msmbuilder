@@ -99,10 +99,12 @@ class MetastableSwitchingLDS(object):
         n_init consecutive runs in terms of log likelihood.
     n_features : int
         Dimensionality of the space.
-    n_hotstart : {int, 'all'}
+    n_hotstart : {int}
         Number of EM iterations where HMM inference is used instead of
-        actual inference algorithm, default = 5. Warning: This is not the
-        same n_hotstart as in ghmm.py
+        actual inference algorithm, default = 5. That is, we
+        perform n_hotstart iterations using the E-step for HMMs
+        instead of the E-step for MSLDS to hotstart the parameters.
+        Warning: This is not the same n_hotstart as in ghmm.py
     As : np.ndarray, shape=(n_states, n_features, n_features):
         Each `A[i]` is the LDS evolution operator for the system, conditional
         on it being in state `i`.
