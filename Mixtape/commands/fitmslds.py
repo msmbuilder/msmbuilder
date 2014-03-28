@@ -91,7 +91,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
         come when trajectories get extremely long.''', default=10000)
     group_mslds.add_argument('--use-pdb', action='store_true',
 		help= '''Launch python debugger PDB on exception. Useful for debugging.''')
-    group_mslds.add_argument('--solver-display', action='store_true',
+    group_mslds.add_argument('--display-solver-output', action='store_true',
         help='''Display the output of the SDP solvers.''')
 
     group_out = argument_group('Output')
@@ -142,7 +142,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
                       n_hotstart=args.n_hotstart,
                       reversible_type=args.reversible_type,
                       platform=args.platform,
-                      solver_display=args.solver_display)
+                      display_solver_output=args.display_solver_output)
         print(kwargs)
         model = MetastableSwitchingLDS(**kwargs)
 
