@@ -22,6 +22,15 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
                                  const int n_states,
                                  const int n_features,
                                  float* __restrict__ loglikelihoods);
+
+void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
+                                 const float* __restrict__ As,
+                                 const float* __restrict__ bs,
+                                 const float* __restrict__ Qs,
+                                 const int n_observations,
+                                 const int n_states,
+                                 const int n_features,
+                                 float* __restrict__ lds_loglikelihoods);
 #ifdef __cplusplus
 }
 #endif

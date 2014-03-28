@@ -2,28 +2,32 @@ import numpy as np
 from sklearn.hmm import GaussianHMM
 
 
+from libcpp cimport bool
 cimport numpy as np
 from libc.stdlib cimport malloc, free
 
 cdef extern from "mslds_estep.hpp" namespace "Mixtape":
     void do_estep_single "Mixtape::do_mslds_estep<float>"(
         const float* log_transmat, const float* log_transmat_T,
-        const float* log_startprob, const float* means,
+        const float* log_startprob, const float* As, const float* bs,
+        const float* Qs, const float* means,
         const float* covariances, const float** sequences,
         const int n_sequences, const int* sequence_lengths,
-        const int n_features, const int n_states,
+        const int n_features, const int n_states, const bool hmm_hotstart,
         float* transcounts, float* obs, float* obs_but_first,
         float* obs_but_last, float* obs_obs_t, float* obs_obs_T_offset,
         float* obs_obs_T_but_first, float* obs_obs_T_but_last,
         float* post, float* post_but_first, float* post_but_last,
         float* logprob) nogil
-    
+
+
     void do_estep_mixed "Mixtape::do_mslds_estep<double>"(
         const float* log_transmat, const float* log_transmat_T,
-        const float* log_startprob, const float* means,
+        const float* log_startprob, const float* As, const float* bs,
+        const float* Qs, const float* means,
         const float* covariances, const float** sequences,
         const int n_sequences, const int* sequence_lengths,
-        const int n_features, const int n_states,
+        const int n_features, const int n_states, const bool hmm_hotstart,
         float* transcounts, float* obs, float* obs_but_first,
         float* obs_but_last, float* obs_obs_t, float* obs_obs_T_offset,
         float* obs_obs_T_but_first, float* obs_obs_T_but_last,
@@ -35,13 +39,15 @@ cdef class MetastableSLDSCPUImpl:
     cdef list sequences
     cdef int n_sequences
     cdef np.ndarray seq_lengths
-    cdef int n_states, n_features
+    cdef int n_states, n_features, n_hotstart
     cdef str precision
     cdef np.ndarray means, covars, log_transmat, log_transmat_T, log_startprob, Qs, As, bs
 
-    def __cinit__(self, n_states, n_features, precision='single'):
+    def __cinit__(self, n_states, n_features, n_hotstart,
+            precision='single'):
         self.n_states = n_states
         self.n_features = n_features
+        self.n_hotstart = n_hotstart
         self.precision = str(precision)
         if self.precision not in ['single', 'mixed']:
             raise ValueError('This platform only supports single or mixed precision')            
@@ -55,7 +61,8 @@ cdef class MetastableSLDSCPUImpl:
 
             cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
             for i in range(self.n_sequences):
-                self.sequences[i] = np.asarray(self.sequences[i], order='c', dtype=np.float32)
+                self.sequences[i] = np.asarray(self.sequences[i],
+                        order='c', dtype=np.float32)
                 seq_lengths[i] = len(self.sequences[i])
                 # print np.shape(self.sequences[i])
                 if self.n_features != self.sequences[i].shape[1]:
@@ -67,7 +74,7 @@ cdef class MetastableSLDSCPUImpl:
         def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] m):
             if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_features):
                 raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)' %
-                                (self.n_states, self.n_features, m.shape[0], m.shape[1]))
+                    (self.n_states, self.n_features, m.shape[0], m.shape[1]))
             self.means = m
         
         def __get__(self):
@@ -135,30 +142,54 @@ cdef class MetastableSLDSCPUImpl:
             self.log_startprob = np.log(s)
 
     
-    def do_estep(self):
+    def do_estep(self, iteration):
         #starttime = time.time()
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat = self.log_transmat
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat_T = self.log_transmat_T
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = self.means
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covars = self.covars
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = self.seq_lengths
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] As = self.As
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] bs = self.bs
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] Qs = self.Qs
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = \
+                self.means
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
+                covariances = self.covars
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = \
+                self.seq_lengths
 
         # All of the sufficient statistics
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts = np.zeros((self.n_states, self.n_states), dtype=np.float32)
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts \
+                = np.zeros((self.n_states, self.n_states), 
+                        dtype=np.float32)
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs \
+                = np.zeros((self.n_states, self.n_features), 
+                        dtype=np.float32)
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                obs_but_first = np.zeros((self.n_states, self.n_features),
+                        dtype=np.float32)
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs_but_last\
+                = np.zeros((self.n_states, self.n_features), 
+                        dtype=np.float32)
 
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs = np.zeros((self.n_states, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs_but_first = np.zeros((self.n_states, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs_but_last = np.zeros((self.n_states, self.n_features), dtype=np.float32)
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T = \
+                np.zeros((self.n_states, self.n_features,
+                    self.n_features), dtype=np.float32)
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
+                obs_obs_T_offset = np.zeros((self.n_states, 
+                    self.n_features, self.n_features), dtype=np.float32)
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
+                obs_obs_T_but_first = np.zeros((self.n_states, 
+                    self.n_features, self.n_features), dtype=np.float32)
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
+                obs_obs_T_but_last = np.zeros((self.n_states, 
+                    self.n_features, self.n_features), dtype=np.float32)
 
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T = np.zeros((self.n_states, self.n_features, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T_offset = np.zeros((self.n_states, self.n_features, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T_but_first = np.zeros((self.n_states, self.n_features, self.n_features), dtype=np.float32)
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T_but_last = np.zeros((self.n_states, self.n_features, self.n_features), dtype=np.float32)
-
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post = np.zeros(self.n_states, dtype=np.float32)
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post_but_first = np.zeros(self.n_states, dtype=np.float32)
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post_but_last = np.zeros(self.n_states, dtype=np.float32)
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post = \
+                np.zeros(self.n_states, dtype=np.float32)
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
+                post_but_first = np.zeros(self.n_states, dtype=np.float32)
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
+                post_but_last = np.zeros(self.n_states, dtype=np.float32)
         cdef float logprob
 
         seq_pointers = <float**>malloc(self.n_sequences * sizeof(float*))
@@ -167,14 +198,19 @@ cdef class MetastableSLDSCPUImpl:
             sequence = self.sequences[i]
             seq_pointers[i] = &sequence[0,0]
 
+        hmm_hotstart = (iteration < self.n_hotstart)
+
         if self.precision == 'single':
             do_estep_single(
                 <float*> &log_transmat[0,0], 
                 <float*> &log_transmat_T[0,0], <float*> &log_startprob[0],
-                <float*> &means[0,0], <float*> &covars[0,0,0], 
+                <float*> &As[0,0,0], <float*> &bs[0,0], 
+                <float*> &Qs[0,0,0], <float*> &means[0,0],
+                <float*> &covariances[0,0,0],
                 <const float**> seq_pointers,
                 self.n_sequences, <int*> &seq_lengths[0], self.n_features,
-                self.n_states, <float*> &transcounts[0,0], <float*>
+                self.n_states, hmm_hotstart,
+                <float*> &transcounts[0,0], <float*>
                 &obs[0,0], <float*> &obs_but_first[0,0],
                 <float*> &obs_but_last[0,0], <float*> &obs_obs_T[0,0,0],
                 <float*> &obs_obs_T_offset[0,0,0],
@@ -186,9 +222,12 @@ cdef class MetastableSLDSCPUImpl:
             do_estep_mixed(
                 <float*> &log_transmat[0,0], 
                 <float*> &log_transmat_T[0,0], <float*> &log_startprob[0],
-                <float*> &means[0,0], <float*> &covars[0,0,0], 
-                <const float**> seq_pointers, self.n_sequences,
-                <int*> &seq_lengths[0], self.n_features, self.n_states,
+                <float*> &As[0,0,0], <float*> &bs[0,0], 
+                <float*> &Qs[0,0,0], <float*> &means[0,0],
+                <float*> &covariances[0,0,0], 
+                <const float**> seq_pointers, 
+                self.n_sequences, <int*> &seq_lengths[0], 
+                self.n_features, self.n_states, hmm_hotstart,
                 <float*> &transcounts[0,0], <float*> &obs[0,0],
                 <float*> &obs_but_first[0,0], <float*> &obs_but_last[0,0],
                 <float*> &obs_obs_T[0,0,0], 

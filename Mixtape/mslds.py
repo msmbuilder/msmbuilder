@@ -43,6 +43,7 @@ import warnings
 import numpy as np
 from numpy.random import multivariate_normal
 import scipy.linalg
+import time
 from sklearn import cluster
 from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
@@ -92,8 +93,18 @@ class MetastableSwitchingLDS(object):
         The number of hidden states. Each state is characterized by a
         separate stable linear dynamical system that the process can jump
         between.
+    n_init : int
+        Number of time the EM algorithm will be run with different
+        random seeds. The final results will be the best output of
+        n_init consecutive runs in terms of log likelihood.
     n_features : int
         Dimensionality of the space.
+    n_hotstart : {int}
+        Number of EM iterations where HMM inference is used instead of
+        actual inference algorithm, default = 5. That is, we
+        perform n_hotstart iterations using the E-step for HMMs
+        instead of the E-step for MSLDS to hotstart the parameters.
+        Warning: This is not the same n_hotstart as in ghmm.py
     As : np.ndarray, shape=(n_states, n_features, n_features):
         Each `A[i]` is the LDS evolution operator for the system, conditional
         on it being in state `i`.
@@ -129,13 +140,17 @@ class MetastableSwitchingLDS(object):
         that A[i] should almost be identity.
     """
 
-    def __init__(self, n_states, n_features, n_hotstart_sequences=10,
-                 init_params='tmcqab', transmat_prior=None, params='tmcqab',
-                 reversible_type='mle', n_em_iter=10, covars_prior=1e-2,
-                 covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu'):
+    def __init__(self, n_states, n_features, n_init=5,
+            n_hotstart_sequences=10, init_params='tmcqab',
+            transmat_prior=None, params='tmcqab', reversible_type='mle',
+            n_em_iter=10, n_hotstart = 5, covars_prior=1e-2,
+            covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu',
+            max_iters=50, display_solver_output=False):
 
         self.n_states = n_states
+        self.n_init = n_init
         self.n_features = n_features
+        self.n_hotstart = n_hotstart
         self.n_hotstart_sequences = n_hotstart_sequences
         self.n_em_iter = n_em_iter
         self.init_params = init_params
@@ -144,13 +159,15 @@ class MetastableSwitchingLDS(object):
         self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
+        self.display_solver_output = display_solver_output
         if covars_prior <= 0:
             covars_prior = 0
             covars_weight = 0
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
         self.eps = eps
-        self._impl = MetastableSLDSCPUImpl(n_states, n_features, precision)
+        self.max_iters = max_iters
+        self._impl = None
 
         self._As_ = None
         self._bs_ = None
@@ -163,12 +180,18 @@ class MetastableSwitchingLDS(object):
         if not reversible_type in ['mle']:
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be "mle"' % reversible_type)
+        if n_init < 1:
+            raise ValueError('MSLDS estimation requires at least one run')
+
+        if n_em_iter <= n_hotstart:
+            raise ValueError('No MSLDS estimation steps; '
+            + 'need n_em_iter > n_hotstart')
 
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
         if self.platform == 'cpu':
             self._impl = _mslds.MetastableSLDSCPUImpl(
-                self.n_states, self.n_features, precision)
+                self.n_states, self.n_features, self.n_hotstart, precision)
         else:
             raise ValueError('Invalid platform "%s". Available platforms are ["cpu"]' % platform)
 
@@ -192,7 +215,7 @@ class MetastableSwitchingLDS(object):
             self.covars_ = \
                 distribute_covar_matrix_to_match_covariance_type(
                     cv, 'full', self.n_states)
-            self.covars_[self._covars_ == 0] = 1e-5
+            self.covars_[self.covars_ == 0] = 1e-5
         if 't' in self.init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
@@ -262,6 +285,22 @@ class MetastableSwitchingLDS(object):
 
         return obs, hidden_state
 
+    def score(self, sequences):
+        """Log-likelihood of sequences under the model
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        """
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
+                     for s in sequences]
+        self._impl._sequences = sequences
+        logprob, _ = self._impl.do_estep(self.n_em_iter)
+        return logprob
+
     def predict(self, obs):
         """Find most likely state sequence corresponding to `obs`.
 
@@ -300,53 +339,80 @@ class MetastableSwitchingLDS(object):
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
-        self._init(sequences)
         n_obs = sum(len(s) for s in sequences)
+        best_fit = {'params': {}, 'loglikelihood': -np.inf}
 
-        for i in range(self.n_em_iter):
-            print("Iteration %d" % i)
-            _, stats = self._impl.do_estep()
-            if stats['trans'].sum() > 10 * n_obs:
-                print('Number of transition counts', stats['trans'].sum())
-                print('Total sequence length', n_obs)
-                print("Numerical overflow detected. Try splitting your trajectories")
-                print("into shorter segments or running in double")
-                break
+        for r in range(self.n_init):
+            fit_logprob = []
+            self._init(sequences)
+            print("\tFit Round %d" % r)
+            for i in range(self.n_em_iter):
+                print("\t\tIteration %d" % i)
+                # Expectation Step
+                curr_logprob, stats = self._impl.do_estep(i)
+                if stats['trans'].sum() > 10 * n_obs:
+                    print('Number of transition counts',
+                            stats['trans'].sum())
+                    print('Total sequence length', n_obs)
+                    print("Numerical overflow detected. "
+                            + "Try splitting your trajectories")
+                    print("into shorter segments or running in double")
+                    break
+                # Only count post-HMM-hotstart iterations for log-ll
+                if i >= self.n_hotstart:
+                    fit_logprob.append(curr_logprob)
+                    print("\t\t\t Log-Likelihood of Data = %f"
+                            % curr_logprob)
 
-            # Maximization step
-            self._do_mstep(stats, set(self.params))
+                # Maximization Step
+                self._do_mstep(stats, set(self.params), i)
+            # if this fit is better than our other iterations, keep it
+            if curr_logprob > best_fit['loglikelihood']:
+                best_fit['loglikelihood'] = curr_logprob
+                best_fit['params'] = {'means': self.means_,
+                                      'covars': self.covars_,
+                                      'As': self.As_,
+                                      'bs': self.bs_,
+                                      'Qs': self.Qs_,
+                                      'populations': self.populations_,
+                                      'transmat': self.transmat_,
+                                      'fit_logprob': fit_logprob}
+        # Set the final values
+        self.means_ = best_fit['params']['means']
+        self.vars_ = best_fit['params']['covars']
+        self.As_ = best_fit['params']['As']
+        self.bs_ = best_fit['params']['bs']
+        self.Qs_ = best_fit['params']['Qs']
+        self.transmat_ = best_fit['params']['transmat']
+        self.populations_ = best_fit['params']['populations']
+        self.fit_logprob_ = best_fit['params']['fit_logprob']
+
         # Debugging Aids. Remove once code becomes more stable.
         print("As")
         for i in range(self.n_states):
-            print("\tState %d" % i)
-            print(self.As_[i])
-            print("\tEig:")
+            print("\tEig[%d]:" % i)
             print(np.linalg.eig(self.As_[i])[0])
         print("Qs")
         for i in range(self.n_states):
-            print("\tState %d" % i)
-            print(self.Qs_[i])
-            print("\tEig:")
+            print("\tEig[%d]:" % i)
             print(np.linalg.eig(self.Qs_[i])[0])
         print("Ds")
         print(self.covars_)
         for i in range(self.n_states):
-            print("\tState %d" % i)
-            print(self.covars_[i])
-            print("\tEig:")
+            print("\tEig[%d]:" % i)
             print(np.linalg.eig(self.covars_[i])[0])
-        print("FINISHED FIT!")
-
+        print("Final Log-Likelihood of Data = %f"
+                % best_fit['loglikelihood'])
         return self
 
-    def _do_mstep(self, stats, params):
-        if 'm' in params:
-            self._means_update(stats)
-        if 'c' in params:
-            self._covars_update(stats)
+    def _do_mstep(self, stats, params, iteration):
+        if iteration < self.n_hotstart:
+            if 'm' in params:
+                self._means_update(stats)
+            if 'c' in params:
+                self._covars_update(stats)
         if 't' in params:
             self._transmat_update(stats)
-
         if 'a' in params:
             self._A_update(stats)
         if 'q' in params:
@@ -358,19 +424,20 @@ class MetastableSwitchingLDS(object):
         self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
 
     def _covars_update(self, stats):
-        cvnum = np.empty((self.n_states, self.n_features, self.n_features))
+        cvweight = max(self.covars_weight - self.n_features, 0)
         for c in range(self.n_states):
-            obsmean = np.outer(stats['obs'][c], self._means_[c])
+            obsmean = np.outer(stats['obs'][c], self.means_[c])
 
-            cvnum[c] = (stats['obs*obs.T'][c]
+            cvnum = (stats['obs*obs.T'][c]
                         - obsmean - obsmean.T
-                        + np.outer(self._means_[c], self._means_[c])
+                        + np.outer(self.means_[c], self.means_[c])
                         * stats['post'][c]) \
                 + self.covars_prior * np.eye(self.n_features)
-        cvweight = max(self.covars_weight - self.n_features, 0)
-        self.covars_ = ((cvnum) /
-                        (cvweight + stats['post'][:, None, None]))
-        for c in range(self.n_states):
+            cvdenom = (cvweight + stats['post'][c])
+            if cvdenom > np.finfo(float).eps:
+                self.covars_[c] = ((cvnum) / cvdenom)
+
+            # Deal with numerical issues
             # Might be slightly negative due to numerical issues
             min_eig = min(np.linalg.eig(self.covars_[c])[0])
             if min_eig < 0:
@@ -393,9 +460,11 @@ class MetastableSwitchingLDS(object):
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
             Q = self.Qs_[i]
-            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q)
+            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
+                    self.max_iters, self.display_solver_output)
             avec = np.array(sol['x'])
-            avec = avec[1 + self.n_features * (self.n_features + 1) / 2:]
+            avec = avec[int(1 + self.n_features * (self.n_features + 1) /
+                2):]
             A = np.reshape(avec, (self.n_features, self.n_features),
                            order='F')
             self.As_[i] = A
@@ -420,13 +489,14 @@ class MetastableSwitchingLDS(object):
                                                 (self.n_features, 1)).T,
                                      A.T)) +
                     stats['post[1:]'][i] * np.dot(b, b.T)))
-            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma)
+            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
+                    self.max_iters, self.display_solver_output)
             qvec = np.array(sol['x'])
-            qvec = qvec[1 + self.n_features * (self.n_features + 1) / 2:]
+            qvec = qvec[int(1 + self.n_features * (self.n_features + 1) / 2):]
             Q = np.zeros((self.n_features, self.n_features))
             for j in range(self.n_features):
                 for k in range(j + 1):
-                    vec_pos = j * (j + 1) / 2 + k
+                    vec_pos = int(j * (j + 1) / 2 + k)
                     Q[j, k] = qvec[vec_pos]
                     Q[k, j] = Q[j, k]
             self.Qs_[i] = Q

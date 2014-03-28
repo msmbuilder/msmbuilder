@@ -25,7 +25,8 @@ PLOT = True
 #PLOT = False
 
 n_seq = 1
-NUM_ITERS = 3
+NUM_HOTSTART = 3
+NUM_ITERS = 6
 T = 2000
 x_dim = 1
 K = 2
@@ -58,11 +59,17 @@ else:
 
 if LEARN:
     # Fit Metastable Switcher
-    l = MetastableSwitchingLDS(K, x_dim, n_em_iter=NUM_ITERS)
+    l = MetastableSwitchingLDS(K, x_dim, n_hotstart=NUM_HOTSTART,
+            n_em_iter=NUM_ITERS)
     l.fit(xs)
+    mslds_score = l.score(xs)
+    print("MSLDS Log-Likelihood = %f" %  mslds_score)
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(K, x_dim)
     g.fit(xs)
+    hmm_score = g.score(xs)
+    print("HMM Log-Likelihood = %f" %  hmm_score)
+
     sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=mus[0])
     sim_xs = reshape(sim_xs, (n_seq, T, x_dim))
 

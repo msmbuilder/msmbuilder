@@ -42,6 +42,7 @@ import numpy as np
 from sklearn import cluster
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _ghmm, _reversibility
+from mdtraj.utils import ensure_type
 try:
     from mixtape import _cuda_ghmm_single
     from mixtape import _cuda_ghmm_mixed
@@ -231,7 +232,8 @@ class GaussianFusionHMM(object):
             # if this is better than our other iterations, keep it
             if curr_logprob > best_fit['loglikelihood']:
                 best_fit['loglikelihood'] = curr_logprob
-                best_fit['params'] = {'means': self.means_, 'vars': self.vars_,
+                best_fit['params'] = {'means': self.means_,
+                                      'vars': self.vars_,
                                       'populations': self.populations_,
                                       'transmat': self.transmat_,
                                       'fit_logprob': fit_logprob}
@@ -261,6 +263,8 @@ class GaussianFusionHMM(object):
         '''
         Find initial means(hot start)
         '''
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
+                     for s in sequences]
         self._impl._sequences = sequences
 
         if self.n_hotstart == 'all':
@@ -469,6 +473,8 @@ class GaussianFusionHMM(object):
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
+                     for s in sequences]
         self._impl._sequences = sequences
         logprob, _ = self._impl.do_estep()
         return logprob

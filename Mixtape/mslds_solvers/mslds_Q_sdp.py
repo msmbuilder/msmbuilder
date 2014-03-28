@@ -166,12 +166,10 @@ def construct_const_matrix(x_dim, A, B, D):
     return hs, F
 
 
-def solve_Q(x_dim, A, B, D):
+def solve_Q(x_dim, A, B, D, max_iters, show_display):
     # x = [s vec(Z) vec(Q)]
-    print("SOLVE_Q!")
     epsilon = np.finfo(np.float32).eps
     F = real(sqrtm(B + epsilon * eye(x_dim)))
-    MAX_ITERS = 100
     c_dim = int(1 + 2 * x_dim * (x_dim + 1) / 2)
     c = zeros((c_dim, 1))
     # c = s*dim + Tr Z
@@ -222,10 +220,10 @@ def solve_Q(x_dim, A, B, D):
     # Add a small positive offset to avoid taking sqrt of singular matrix
     F = real(sqrtm(Bdown + epsilon * eye(x_dim)))
 
-    solvers.options['maxiters'] = MAX_ITERS
+    solvers.options['maxiters'] = max_iters
+    solvers.options['show_progress'] = show_display
     #solvers.options['debug'] = True
     sol = solvers.sdp(cm, Gs=Gs, hs=hs)
-    print(sol)
     qvec = np.array(sol['x'])
     qvec = qvec[int(1 + x_dim * (x_dim + 1) / 2):]
     Q = np.zeros((x_dim, x_dim))
@@ -234,11 +232,6 @@ def solve_Q(x_dim, A, B, D):
             vec_pos = int(j * (j + 1) / 2 + k)
             Q[j, k] = qvec[vec_pos]
             Q[k, j] = Q[j, k]
-    # Set this for debugging purposes
-    eps = -1e-3
-    if min(eig(D - Q)[0]) < eps:
-        print("Q >= D!")
-        pdb.set_trace()
     return sol, c, Gs, hs
 
 
