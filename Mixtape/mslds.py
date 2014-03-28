@@ -143,7 +143,7 @@ class MetastableSwitchingLDS(object):
             transmat_prior=None, params='tmcqab', reversible_type='mle',
             n_em_iter=10, n_hotstart = 5, covars_prior=1e-2,
             covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu',
-            max_iters=50, solver_display=False):
+            max_iters=50, display_solver_output=False):
 
         self.n_states = n_states
         self.n_init = n_init
@@ -157,7 +157,7 @@ class MetastableSwitchingLDS(object):
         self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
-        self.solver_display = solver_display
+        self.display_solver_output = display_solver_output
         if covars_prior <= 0:
             covars_prior = 0
             covars_weight = 0
@@ -459,7 +459,7 @@ class MetastableSwitchingLDS(object):
             Sigma = self.covars_[i]
             Q = self.Qs_[i]
             sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
-                    self.max_iters, self.solver_display)
+                    self.max_iters, self.display_solver_output)
             avec = np.array(sol['x'])
             avec = avec[int(1 + self.n_features * (self.n_features + 1) /
                 2):]
@@ -488,7 +488,7 @@ class MetastableSwitchingLDS(object):
                                      A.T)) +
                     stats['post[1:]'][i] * np.dot(b, b.T)))
             sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
-                    self.max_iters, self.solver_display)
+                    self.max_iters, self.display_solver_output)
             qvec = np.array(sol['x'])
             qvec = qvec[int(1 + self.n_features * (self.n_features + 1) / 2):]
             Q = np.zeros((self.n_features, self.n_features))
