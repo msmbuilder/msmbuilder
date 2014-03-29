@@ -90,59 +90,21 @@ def iter_vars(A, Q, N):
         V = Q + np.dot(A, np.dot(V, A.T))
     return V
 
+def mslds_from_json(model_dict):
+    pass
 
-def assignment_to_weights(assignments, K):
-    """Turns a hard assignment into a weights matrix. Useful for
-       experimenting with Viterbi-learning.
+def read_numpy_matrix_string(array_string):
+    """Utility function that parses the standard string form of
+       a 2-dimensional NumPy printed arrays.
     """
-    (T,) = np.shape(assignments)
-    W_i_Ts = np.zeros((T, K))
-    for t in range(T):
-        ind = assignments[t]
-        for k in range(K):
-            if k != ind:
-                W_i_Ts[t, k] = 0.0
-            else:
-                W_i_Ts[t.__int__(), ind.__int__()] = 1.0
-    return W_i_Ts
-
-
-def empirical_wells(Ys, W_i_Ts):
-    (T, y_dim) = np.shape(Ys)
-    (_, K) = np.shape(W_i_Ts)
-    means = np.zeros((K, y_dim))
-    covars = np.zeros((K, y_dim, y_dim))
-    for k in range(K):
-        num = np.zeros(y_dim)
-        denom = 0
-        for t in range(T):
-            num += W_i_Ts[t, k] * Ys[t]
-            denom += W_i_Ts[t, k]
-        means[k] = (1.0 / denom) * num
-    for k in range(K):
-        num = np.zeros((y_dim, y_dim))
-        denom = 0
-        for t in range(T):
-            num += W_i_Ts[t, k] * np.outer(Ys[t] - means[k],
-                                           Ys[t] - means[k])
-            denom += W_i_Ts[t, k]
-        covars[k] = (1.0 / denom) * num
-    return means, covars
-
-
-def means_match(base_means, means, assignments):
-    (K, y_dim) = np.shape(means)
-    (T,) = np.shape(assignments)
-    matching = np.zeros(K)
-    new_assignments = np.zeros(T)
-    for i in range(K):
-        closest = -1
-        closest_dist = np.inf
-        for j in range(K):
-            if norm(base_means[i] - means[j]) < closest_dist:
-                closest = j
-                closest_dist = norm(base_means[i] - means[j])
-        matching[i] = closest
-    for t in range(T):
-        new_assignments[t] = matching[assignments[t]]
-    return matching, new_assignments
+    array_string = array_string.replace('[','').replace(']','')
+    rows = array_string.split('\n')
+    mat = []
+    for row in rows:
+        elts = []
+        elt_strings = row.lstrip().rstrip().split('  ')
+        for elt_str in elt_strings:
+            elts.append(np.float(elt_str))
+        mat.append(elts)
+    mat = np.array(mat)
+    return mat

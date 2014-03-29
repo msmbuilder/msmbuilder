@@ -32,11 +32,14 @@
 
 from __future__ import print_function, division, absolute_import
 
-import sys
+import os, sys
+import glob
 import numpy as np
 import pandas as pd
+import mdtraj as md
 from sklearn.mixture.gmm import log_multivariate_normal_density
 
+from mixtape.utils import iterobjects
 from mixtape.cmdline import argument_group
 from mixtape.commands.sample import SampleGHMM
 import mixtape.featurizer
@@ -64,12 +67,10 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         help='''Number of states in the model to select from''')
     group.add_argument('--n-samples', type=int, required=True,
         help='''Length of trajectory to sample''')
-    group.add_argument('--lag-time', type=int, required=True,
-        help='''Training lag time of the model to select from''')
     group.add_argument('-o', '--out', metavar='OUTPUT_H5_FILE',
-        default='traj.h5',
+        default='traj.xtc',
         help=('''File to which to save the output, ''' +
-                '''in CSV format. default="means.csv'''))
+                '''in xtc format. default="traj.xtc'''))
 
     def __init__(self, args):
         if os.path.exists(args.out):
@@ -77,9 +78,8 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         matches = [o for o in iterobjects(args.filename)
                    if o['n_states'] == args.n_states]
         if len(matches) == 0:
-            self.error('No model with n_states=%d, '
-                + 'train_lag_time=%d in %s.' %
-                (args.n_states, args.lag_time, args.filename))
+            self.error('No model with n_states=%d in %s.'
+               % (args.n_states, args.filename))
 
         self.args = args
         self.model = matches[0]
@@ -88,13 +88,14 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         self.filenames = glob.glob(
             os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
         self.featurizer = mixtape.featurizer.load(args.featurizer)
-        self.match_vars = args.match_vars
 
         if len(self.filenames) == 0:
             self.error('No files matched.')
 
     def start(self):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
+        print("model")
+        print(self.model)
         obs, hidden_states = self.model.sample(args.n_samples)
         (n_samples, n_features) = shape(obs)
 
