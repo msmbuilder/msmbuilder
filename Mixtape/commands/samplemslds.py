@@ -1,5 +1,5 @@
 '''Generate a trajectory from a MSLDS Model'''
-# Author: Bharath Ramsundar <rmcgibbo@gmail.com>
+# Author: Bharath Ramsundar <bharath.ramsundar@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
@@ -40,6 +40,8 @@ from sklearn.mixture.gmm import log_multivariate_normal_density
 from mixtape.cmdline import argument_group
 from mixtape.commands.sample import SampleGHMM
 import mixtape.featurizer
+from mixtape.cmdline import Command, argument_group, MultipleIntAction
+from mixtape.commands.mixins import MDTrajInputMixin
 
 __all__ = ['PullMeansGHMM']
 
@@ -67,7 +69,7 @@ class SampleMSLDS(Command, MDTrajInputMixin):
     group.add_argument('-o', '--out', metavar='OUTPUT_H5_FILE',
         default='traj.h5',
         help=('''File to which to save the output, ''' +
-                '''in CSV format. default="means.csv''')
+                '''in CSV format. default="means.csv'''))
 
     def __init__(self, args):
         if os.path.exists(args.out):
@@ -98,9 +100,11 @@ class SampleMSLDS(Command, MDTrajInputMixin):
 
         features, ii, ff = mixtape.featurizer.featurize_all(
             self.filenames, featurizer, self.topology)
-
+        file_trajectories = []
 
         states = []
+        state_indexes = []
+        state_files = []
         logprob = log_multivariate_normal_density(
             features, np.array(self.model['means']),
             np.array(self.model['covars']), covariance_type='diag')
@@ -111,7 +115,11 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             # pick the structures that have the highest log
             # probability in the state
             s = features[assignments == k]
+            ind = ii(assignments==k)
+            f = ff(assignments==k)
             states.append(s)
+            state_indexes.append(ind)
+            state_files.append(f)
 
         # Assign the best fit to each trajectory frame
         for t in range(n_samples):
@@ -122,8 +130,6 @@ class SampleMSLDS(Command, MDTrajInputMixin):
                 np.array(self.model['Qs'][h]),
                 covariance_type='full')
             best_frame_pos = np.argmax(logprob, axis=0)
-
-        df = pd.DataFrame(data)
-        with open(self.out, 'w') as f:
-            f.write("# command: %s\n" % ' '.join(sys.argv))
-            df.to_csv(f)
+            best_file = state_files[best_frame_pos]
+            best_ind = state_indexes[best_frame_pos]
+            frame = md.load_frame(best_file, best_ind, self.topology)

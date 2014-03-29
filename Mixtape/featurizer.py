@@ -73,12 +73,14 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
 
     for file in filenames:
         kwargs = {} if file.endswith('.h5') else {'top': topology}
+        count = 0
         for t in md.iterload(file, chunk=chunk, **kwargs):
             x = featurizer.featurize(t)
 
             data.append(x)
-            indices.append(np.arange(len(x)))
+            indices.append(count + np.arange(len(x)))
             fns.extend([file] * len(x))
+            count += len(x)
     if len(data) == 0:
         raise ValueError("None!")
 
