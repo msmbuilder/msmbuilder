@@ -89,22 +89,3 @@ def iter_vars(A, Q, N):
     for i in range(N):
         V = Q + np.dot(A, np.dot(V, A.T))
     return V
-
-def mslds_from_json(model_dict):
-    pass
-
-def read_numpy_matrix_string(array_string):
-    """Utility function that parses the standard string form of
-       a 2-dimensional NumPy printed arrays.
-    """
-    array_string = array_string.replace('[','').replace(']','')
-    rows = array_string.split('\n')
-    mat = []
-    for row in rows:
-        elts = []
-        elt_strings = row.lstrip().rstrip().split('  ')
-        for elt_str in elt_strings:
-            elts.append(np.float(elt_str))
-        mat.append(elts)
-    mat = np.array(mat)
-    return mat

@@ -45,6 +45,8 @@ from mixtape.commands.sample import SampleGHMM
 import mixtape.featurizer
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
 from mixtape.commands.mixins import MDTrajInputMixin
+from mixtape.mslds import *
+import traceback, sys, code, pdb
 
 __all__ = ['PullMeansGHMM']
 
@@ -71,6 +73,9 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         default='traj.xtc',
         help=('''File to which to save the output, ''' +
                 '''in xtc format. default="traj.xtc'''))
+    group.add_argument('--use-pdb', action='store_true',
+		help= ('''Launch python debugger PDB on exception. ''' +
+              '''Useful for debugging.'''))
 
     def __init__(self, args):
         if os.path.exists(args.out):
@@ -82,7 +87,7 @@ class SampleMSLDS(Command, MDTrajInputMixin):
                % (args.n_states, args.filename))
 
         self.args = args
-        self.model = matches[0]
+        self.model_dict = matches[0]
         self.out = args.out
         self.topology = md.load(args.top)
         self.filenames = glob.glob(
@@ -93,44 +98,60 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             self.error('No files matched.')
 
     def start(self):
+        args = self.args
+        if self.args.use_pdb:
+            try:
+                self._start()
+            except:
+                type, value, tb = sys.exc_info()
+                traceback.print_exc()
+                pdb.post_mortem(tb)
+        else:
+            self._start()
+
+    def _start(self):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
         print("model")
-        print(self.model)
-        obs, hidden_states = self.model.sample(args.n_samples)
-        (n_samples, n_features) = shape(obs)
+        print(self.model_dict)
+        n_features = float(self.model_dict['n_features'])
+        n_states = float(self.model_dict['n_states'])
+        self.model = MetastableSwitchingLDS(n_states, n_features)
+        self.model.load_from_json_dict(self.model_dict)
+        obs, hidden_states = self.model.sample(self.args.n_samples)
+        (n_samples, n_features) = np.shape(obs)
 
         features, ii, ff = mixtape.featurizer.featurize_all(
             self.filenames, featurizer, self.topology)
         file_trajectories = []
 
         states = []
-        state_indexes = []
+        state_indices = []
         state_files = []
         logprob = log_multivariate_normal_density(
-            features, np.array(self.model['means']),
-            np.array(self.model['covars']), covariance_type='diag')
+            features, np.array(self.model.means_),
+            np.array(self.model.covars_), covariance_type='full')
         assignments = np.argmax(logprob, axis=1)
         probs = np.max(logprob, axis=1)
         # Presort the data into the metastable wells
-        for k in range(self.model(['n_states'])):
+        for k in range(int(self.model.n_states)):
             # pick the structures that have the highest log
             # probability in the state
             s = features[assignments == k]
-            ind = ii(assignments==k)
-            f = ff(assignments==k)
+            ind = ii[assignments==k]
+            f = ff[assignments==k]
             states.append(s)
-            state_indexes.append(ind)
+            state_indices.append(ind)
             state_files.append(f)
 
         # Assign the best fit to each trajectory frame
         for t in range(n_samples):
             featurized_frame = obs[t]
-            h = hidden_state[t]
+            h = hidden_states[t]
             logprob = log_multivariate_normal_density(
-                states[h], featurized_frame,
-                np.array(self.model['Qs'][h]),
+                states[h], featurized_frame[np.newaxis],
+                self.model.Qs_[h][np.newaxis],
                 covariance_type='full')
-            best_frame_pos = np.argmax(logprob, axis=0)
-            best_file = state_files[best_frame_pos]
-            best_ind = state_indexes[best_frame_pos]
+            best_frame_pos = np.argmax(logprob, axis=0)[0]
+            best_file = state_files[h][best_frame_pos]
+            best_ind = state_indices[h][best_frame_pos]
             frame = md.load_frame(best_file, best_ind, self.topology)
