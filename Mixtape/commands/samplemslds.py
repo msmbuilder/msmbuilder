@@ -32,7 +32,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-import os, sys
+import os, sys, pdb
 import glob
 import numpy as np
 import pandas as pd
@@ -69,10 +69,10 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         help='''Number of states in the model to select from''')
     group.add_argument('--n-samples', type=int, required=True,
         help='''Length of trajectory to sample''')
-    group.add_argument('-o', '--out', metavar='OUTPUT_H5_FILE',
-        default='traj.xtc',
+    group.add_argument('-o', '--out', metavar='OUTPUT_XTC_FILE',
+        default='traj',
         help=('''File to which to save the output, ''' +
-                '''in xtc format. default="traj.xtc'''))
+                '''in xtc format. default="traj'''))
     group.add_argument('--use-pdb', action='store_true',
 		help= ('''Launch python debugger PDB on exception. ''' +
               '''Useful for debugging.'''))
@@ -144,6 +144,7 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             state_files.append(f)
 
         # Assign the best fit to each trajectory frame
+        traj = None
         for t in range(n_samples):
             featurized_frame = obs[t]
             h = hidden_states[t]
@@ -155,3 +156,10 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             best_file = state_files[h][best_frame_pos]
             best_ind = state_indices[h][best_frame_pos]
             frame = md.load_frame(best_file, best_ind, self.topology)
+            if t == 0:
+                traj = frame
+            else:
+                traj = traj.join(frame)
+        traj.save('%s.xtc' % self.out)
+        traj[0].save('%s.xtc.pdb' % self.out)
+        #pdb.set_trace()
