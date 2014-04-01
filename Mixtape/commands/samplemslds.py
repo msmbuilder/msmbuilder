@@ -133,6 +133,8 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         assignments = np.argmax(logprob, axis=1)
         probs = np.max(logprob, axis=1)
         # Presort the data into the metastable wells
+        # i.e.: separate the original trajectories into k
+        # buckets corresponding to the metastable wells
         for k in range(int(self.model.n_states)):
             # pick the structures that have the highest log
             # probability in the state
@@ -143,7 +145,11 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             state_indices.append(ind)
             state_files.append(f)
 
-        # Assign the best fit to each trajectory frame
+        # Loop over the generated feature space trajectory.
+        # At time t, pick the frame from the original trajectory
+        # closest to the current sample in feature space. To save
+        # a bit of computation, just search in the bucket corresponding
+        # to the current metastable well (i.e., the current hidden state).
         traj = None
         for t in range(n_samples):
             featurized_frame = obs[t]
