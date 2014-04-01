@@ -159,6 +159,7 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             if t == 0:
                 traj = frame
             else:
+                frame.superpose(traj, t-1)
                 traj = traj.join(frame)
         traj.save('%s.xtc' % self.out)
         traj[0].save('%s.xtc.pdb' % self.out)
