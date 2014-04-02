@@ -57,6 +57,11 @@ class PullMeansGHMM(SampleGHMM):
     group = argument_group('I/O Arguments')
     group.add_argument('-i', '--filename', required=True, metavar='JSONLINES_FILE', help='''
         Path to the jsonlines output file containg the HMMs''')
+    group.add_argument('--featurizer', type=str, required=True, help='''
+        Path to saved featurizer object''')
+    group.add_argument('--stride', type=int, default=1, help='''
+        Load up only every stride-th frame from the trajectories, to reduce
+        memory usage''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
     group.add_argument('--n-per-state', type=int, default=1, help='''Select the

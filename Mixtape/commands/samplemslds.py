@@ -65,6 +65,9 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         '''Path to the jsonlines output file containg the MSLDS''')
     group.add_argument('--featurizer', type=str, required=True,
         help='''Path to saved featurizer object''')
+    group.add_argument('--stride', type=int, default=1, help='''
+        Load up only every stride-th frame from the trajectories, to reduce
+        memory usage''')
     group.add_argument('--n-states', type=int, required=True,
         help='''Number of states in the model to select from''')
     group.add_argument('--n-samples', type=int, required=True,
@@ -93,6 +96,7 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         self.filenames = glob.glob(
             os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
         self.featurizer = mixtape.featurizer.load(args.featurizer)
+        self.stride = stride
 
         if len(self.filenames) == 0:
             self.error('No files matched.')
@@ -110,7 +114,6 @@ class SampleMSLDS(Command, MDTrajInputMixin):
             self._start()
 
     def _start(self):
-        featurizer = mixtape.featurizer.load(self.args.featurizer)
         print("model")
         print(self.model_dict)
         n_features = float(self.model_dict['n_features'])
@@ -121,7 +124,7 @@ class SampleMSLDS(Command, MDTrajInputMixin):
         (n_samples, n_features) = np.shape(obs)
 
         features, ii, ff = mixtape.featurizer.featurize_all(
-            self.filenames, featurizer, self.topology)
+            self.filenames, self.featurizer, self.topology, self.stride)
         file_trajectories = []
 
         states = []
