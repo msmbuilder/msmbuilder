@@ -1,5 +1,10 @@
-"""Code Hazan's algorithm (CITE) for approximate solution of sparse
-semidefinite programs.
+"""Implementation of Hazan's algorithm
+
+Hazan, Elad. "Sparse Approximate Solutions to
+Semidefinite Programs." LATIN 2008: Theoretical Informatics.
+Springer Berlin Heidelberg, 2008, 306:316.
+
+for approximate solution of sparse semidefinite programs.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
@@ -34,5 +39,78 @@ semidefinite programs.
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
-class HazanSolver(object):
-    """Implementation of Hazan's Algorithm"""
+import scipy
+import scipy.sparse.linalg as linalg
+import numpy.random as random
+import numpy as np
+
+class BoundedTraceHazanSolver(object):
+    """ Implementation of Hazan's Algorithm, which solves
+        the optimization problem:
+             max f(X)
+             X \in P
+        where P = {X is PSD and Tr X = 1} is the set of PSD
+        matrices with unit trace.
+    """
+    def __init__(self):
+        pass
+    def solve(self, f, gradf, Cf, dim, N_iter):
+        """
+        Parameters
+        __________
+        f: concave function
+            Accepts (dim,dim) shaped matrices and outputs real
+        Cf: float
+            The curvature constant of function f
+        gradf: function
+            Computes grad f at given input matrix
+        dim: int
+            The dimensionality of the input vector space for f,
+        N_iter: int
+            The desired number of iterations
+        """
+        v0 = random.rand(dim, 1)
+        X = np.outer(v0, v0)
+        for k in range(N_iter):
+            grad = gradf(X)
+            # Is there a way to integrate epsk into the lanczos call?
+            # Ans: do tol = epsk
+            epsk = Cf/(k+1)**2
+            _, vk = linalg.eigs(grad, k=1)
+            alphak = min(1,2./(k+1))
+            X = X + alphak * (np.outer(vk,vk) - X)
+            print("X_%d:" % k)
+            print(X)
+            print("f(X_%d) = %f" % (k, f(X)))
+        return X
+
+def f(x):
+    """
+    Computes f(x) = -\sum_k x_kk^2
+
+    Parameters
+    __________
+    x: numpy.ndarray
+    """
+    (N, _) = np.shape(x)
+    retval = 0.
+    for i in range(N):
+        retval += -x[i,i]**2
+    return retval
+
+def gradf(x):
+    return -2. * x
+
+# Note that H(-f) = 2 I (H is the hessian)
+Cf = 2.
+
+dim = 3
+N = 100
+# Now do a dummy optimization problem. The
+# problem we consider is
+# max - \sum_k x_k^2
+# such that \sum_k x_k = 1
+# The optimal solution is -n/4, where
+# n is the dimension.
+b = BoundedTraceHazanSolver()
+b.solve(f, gradf, Cf, dim, N)
