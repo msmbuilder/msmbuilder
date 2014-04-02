@@ -90,6 +90,9 @@ class SampleGHMM(Command, MDTrajInputMixin):
         Path to the jsonlines output file containg the HMMs''')
     group.add_argument('--featurizer', type=str, required=True, help='''
         Path to saved featurizer object''')
+    group.add_argument('--stride', type=int, default=1, help='''
+        Load up only every stride-th frame from the trajectories, to reduce
+        memory usage''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
     group.add_argument('--n-per-state', type=int, default=3, help='''Number of
@@ -120,6 +123,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
         self.featurizer = mixtape.featurizer.load(args.featurizer)
         self.match_vars = args.match_vars
+        self.stride = args.stride
 
         if len(self.filenames) == 0:
             self.error('No files matched.')
@@ -127,7 +131,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
     def start(self):
         print('loading all data...')
         xx, ii, ff = mixtape.featurizer.featurize_all(
-            self.filenames, self.featurizer, self.topology)
+            self.filenames, self.featurizer, self.topology, self.stride)
         print('done loading')
 
         data = {'filename': [], 'index': [], 'state': []}
