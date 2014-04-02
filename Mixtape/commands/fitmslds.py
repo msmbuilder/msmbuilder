@@ -41,7 +41,6 @@ import time
 import numpy as np
 import mdtraj as md
 import traceback, sys, code, pdb
-# import pdb
 
 from mixtape.mslds import MetastableSwitchingLDS
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
