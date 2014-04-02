@@ -39,6 +39,7 @@ nosetests.xml
 platforms/cpu/wrappers/GaussianHMMCPUImpl.cpp
 platforms/cuda/wrappers/GaussianHMMCUDAImpl.cpp
 platforms/cpu/wrappers/SwitchingVAR1CPUImpl.cpp
+platforms/cpu/wrappers/MetastableSLDSCPUImpl.cpp
 src/gamma/gammawrap.c
 src/reversibility.c
 src/vonmises/vmhmmwrap.c

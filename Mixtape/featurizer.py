@@ -40,7 +40,7 @@ import mdtraj as md
 #-----------------------------------------------------------------------------
 
 
-def featurize_all(filenames, featurizer, topology, chunk=1000):
+def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
     """Load and featurize many trajectory files.
 
     Parameters
@@ -57,6 +57,8 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
         If chunk is an int, load the trajectories up in chunks using
         md.iterload for better memory efficiency (less trajectory data needs
         to be in memory at once)
+    stride : int, default=1
+        Only read every stride-th frame.
 
     Returns
     -------
@@ -74,13 +76,14 @@ def featurize_all(filenames, featurizer, topology, chunk=1000):
     for file in filenames:
         kwargs = {} if file.endswith('.h5') else {'top': topology}
         count = 0
-        for t in md.iterload(file, chunk=chunk, **kwargs):
+        for t in md.iterload(file, chunk=chunk, stride=stride, **kwargs):
             x = featurizer.featurize(t)
+            n_frames = len(x)
 
             data.append(x)
-            indices.append(count + np.arange(len(x)))
-            fns.extend([file] * len(x))
-            count += len(x)
+            indices.append(count + np.arange(n_frames))
+            fns.extend([file] * n_frames)
+            count += n_feames
     if len(data) == 0:
         raise ValueError("None!")
 

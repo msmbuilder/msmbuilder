@@ -59,6 +59,9 @@ class PullMeansGHMM(SampleGHMM):
         Path to the jsonlines output file containg the HMMs''')
     group.add_argument('--featurizer', type=str, required=True, help='''
         Path to saved featurizer object''')
+    group.add_argument('--stride', type=int, default=1, help='''
+        Load up only every stride-th frame from the trajectories, to reduce
+        memory usage''')
     group.add_argument('--n-states', type=int, required=True, help='''Number of
         states in the model to select from''')
     group.add_argument('--n-per-state', type=int, default=1, help='''Select the
@@ -72,7 +75,7 @@ class PullMeansGHMM(SampleGHMM):
         featurizer = mixtape.featurizer.load(self.args.featurizer)
 
         features, ii, ff = mixtape.featurizer.featurize_all(
-            self.filenames, featurizer, self.topology)
+            self.filenames, featurizer, self.topology, self.stride)
         logprob = log_multivariate_normal_density(
             features, np.array(self.model['means']),
             np.array(self.model['vars']), covariance_type='diag')
