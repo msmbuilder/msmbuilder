@@ -54,7 +54,7 @@ class BoundedTraceHazanSolver(object):
     """
     def __init__(self):
         pass
-    def solve(self, f, gradf, Cf, dim, N_iter):
+    def solve(self, f, gradf, dim, N_iter, Cf):
         """
         Parameters
         __________
@@ -69,18 +69,38 @@ class BoundedTraceHazanSolver(object):
         N_iter: int
             The desired number of iterations
         """
-        v0 = random.rand(dim, 1)
-        X = np.outer(v0, v0)
+        v = random.rand(dim, 1)
+        X = np.outer(v, v)
+        X /= np.trace(X)
+        print("v:")
+        print(v)
+        print("X:")
+        print(X)
+        print("f(X) = %f" % (f(X)))
+        print("rank(X) = %f" % (np.linalg.matrix_rank(X)))
         for k in range(N_iter):
             grad = gradf(X)
+            print("grad_%d:" % k)
+            print grad
             # Is there a way to integrate epsk into the lanczos call?
             # Ans: do tol = epsk
-            epsk = Cf/(k+1)**2
-            _, vk = linalg.eigs(grad, k=1)
-            alphak = min(1,2./(k+1))
+            if Cf != None:
+                epsk = Cf/(k+1)**2
+                _, vk = linalg.eigs(grad, k=1, tol=epsk, which='LR')
+            else:
+                _, vk = linalg.eigs(grad, k=1, which='LR')
+            # Avoid strange errors with complex numbers
+            vk = np.real(vk)
+            alphak = min(1.,2./(k+1))
+            print("alpha_%d = %f" % (k, alphak))
             X = X + alphak * (np.outer(vk,vk) - X)
+            print("v_%d:" % k)
+            print(vk)
+            print("v_%d(v_%d).T" % (k,k))
+            print(np.outer(vk,vk))
             print("X_%d:" % k)
             print(X)
+            print("rank(X_%d) = %f" % (k, np.linalg.matrix_rank(X)))
             print("f(X_%d) = %f" % (k, f(X)))
         return X
 
@@ -99,13 +119,17 @@ def f(x):
     return retval
 
 def gradf(x):
-    return -2. * x
+    (N, _) = np.shape(x)
+    G = np.zeros((N,N))
+    for i in range(N):
+        G[i,i] += -2.*x[i,i]
+    return G
 
 # Note that H(-f) = 2 I (H is the hessian)
 Cf = 2.
 
 dim = 3
-N = 100
+N_iter = 100
 # Now do a dummy optimization problem. The
 # problem we consider is
 # max - \sum_k x_k^2
@@ -113,4 +137,4 @@ N = 100
 # The optimal solution is -n/4, where
 # n is the dimension.
 b = BoundedTraceHazanSolver()
-b.solve(f, gradf, Cf, dim, N)
+b.solve(f, gradf, dim, N_iter, Cf=Cf)
