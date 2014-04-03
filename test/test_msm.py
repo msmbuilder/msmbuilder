@@ -50,7 +50,6 @@ def test_4():
     print cluster.KMeans(n_clusters=3).fit_predict(data)
     print cluster.MiniBatchKMeans(n_clusters=3).fit_predict(data)
     print cluster.AffinityPropagation().fit_predict(data)
-    print cluster.DBSCAN().fit_predict(data)
     print cluster.MeanShift().fit_predict(data)
     print cluster.SpectralClustering(n_clusters=2).fit_predict(data)
     print cluster.Ward(n_clusters=2).fit_predict(data)
