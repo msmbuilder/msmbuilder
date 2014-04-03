@@ -12,9 +12,9 @@ __all__ = ['MarkovStateModel']
 
 
 class MarkovStateModel(BaseEstimator):
-    
+
     """Reversible Markov State Model
-    
+
     Parameters
     ----------
     n_states : int
@@ -130,9 +130,9 @@ class MarkovStateModel(BaseEstimator):
             counts = counts + C
 
         return counts
-        
+
     def timescales_(self, n_timescales=None):
-        from msmbuilder.msm_analysis import get_reversible_eigenvectors, get_eigenvectors    
+        from msmbuilder.msm_analysis import get_reversible_eigenvectors, get_eigenvectors
         if n_timescales is None:
             n_timescales = self.n_states - 1
 
@@ -141,8 +141,7 @@ class MarkovStateModel(BaseEstimator):
             e_values = get_reversible_eigenvectors(self.transmat_, n_eigenvectors, populations=self.populations_)[0]
         else:
             e_values = get_eigenvectors(self.transmat_, n_eigenvectors, epsilon=1)[0]
-        
+
         # make sure to leave off equilibrium distribution
         timescales = -1 / np.log(e_values[1 : n_eigenvectors])
         return timescales
-        
