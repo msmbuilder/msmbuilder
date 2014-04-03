@@ -19,7 +19,7 @@ class MarkovStateModel(BaseEstimator):
     ----------
     n_states : int
         The number of states in the model
-    reversible_type : str
+    reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
         solved by numerical optimization (BFGS), and 'transpose'
@@ -63,7 +63,7 @@ class MarkovStateModel(BaseEstimator):
         self.reversible_type = reversible_type
         self.ergodic_trim = ergodic_trim
 
-        available_reversible_type = ['mle', 'transpose', None]
+        available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
         if self.reversible_type not in available_reversible_type:
             raise ValueError('symmetrize must be one of %s: %s' % (
                 ', '.join(available_reversible_type), reversible_type))
@@ -97,9 +97,9 @@ class MarkovStateModel(BaseEstimator):
             self.mapping_ = dict(zip(np.arange(self.n_states), np.arange(self.n_states)))
 
         # STEP (2): Reversible counts matrix
-        if self.reversible_type == 'mle':
+        if self.reversible_type in ['mle', 'MLE']:
             self.countsmat_ = mle_reversible_count_matrix(self.rawcounts_)
-        elif self.reversible_type == 'transpose':
+        elif self.reversible_type in ['transpose', 'Transpose']:
             self.countsmat_ = 0.5 * (self.rawcounts_ + self.rawcounts_.T)
         elif self.reversible_type is None:
             self.countsmat_ = self.rawcounts_
@@ -110,7 +110,7 @@ class MarkovStateModel(BaseEstimator):
         self.transmat_ = estimate_transition_matrix(self.countsmat_)
 
         # STEP (3.5): Stationary eigenvector
-        if self.reversible_type in ['mle', 'transpose']:
+        if self.reversible_type in ['mle', 'MLE', 'transpose', 'Transpose']:
             self.populations_ = np.array(self.countsmat_.sum(0)).flatten()
         elif self.reversible_type is None:
             vectors = get_eigenvectors(self.transmat_, 5)[1]
@@ -137,7 +137,7 @@ class MarkovStateModel(BaseEstimator):
             n_timescales = self.n_states - 1
 
         n_eigenvectors = n_timescales + 1
-        if self.reversible_type in ['mle', 'transpose'] and self.transmat_.shape[0] > 50:
+        if self.reversible_type in ['mle', 'MLE', 'transpose', 'Transpose'] and self.transmat_.shape[0] > 50:
             e_values = get_reversible_eigenvectors(self.transmat_, n_eigenvectors, populations=self.populations_)[0]
         else:
             e_values = get_eigenvectors(self.transmat_, n_eigenvectors, epsilon=1)[0]
