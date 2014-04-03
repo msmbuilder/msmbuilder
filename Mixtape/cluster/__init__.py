@@ -57,55 +57,117 @@ class MultiSequenceClusterMixin(object):
     # then splits the labels_ back into the sequenced form.
 
     def fit(self, sequences, y=None):
+        """Fit the  clustering on the data
+
+        Parameters
+        ----------
+        sequences : list of array-like, each of shape [sequence_length, n_features]
+            A list of multivariate timeseries. Each sequence may have
+            a different length, but they all must have the same number
+            of features.
+
+        Returns
+        -------
+        self
+        """
         concat = np.concatenate(sequences)
         lengths = [len(s) for s in sequences]
         s = super(MultiSequenceClusterMixin, self) if PY2 else super()
         s.fit(concat)
         self.labels_ = self._split(self.labels_, lengths)
         return self
-    
+
     @staticmethod
     def _split(longlist, lengths):
         return [longlist[cl - l: cl] for (cl, l) in zip(np.cumsum(lengths), lengths)]
 
-    def transform(self, sequences):
-        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
-        transformed = []
-        for sequence in sequences:
-            transformed.append(s.transform(sequence))
-        return transformed
-    
-    def fit_transform(self, sequences):
-        return self.fit(sequences).transform(sequences)
-
     def predict(self, sequences):
+        """Predict the closest cluster each sample in X belongs to.
+
+        In the vector quantization literature, `cluster_centers_` is called
+        the code book and each value returned by `predict` is the index of
+        the closest code in the code book.
+
+        Parameters
+        ----------
+        sequences : list of array-like, each of shape [sequence_length, n_features]
+            A list of multivariate timeseries. Each sequence may have
+            a different length, but they all must have the same number
+            of features.
+
+        Returns
+        -------
+        Y : list of arrays, each of shape [sequence_length,]
+            Index of the closest center each sample belongs to.
+        """
         s = super(MultiSequenceClusterMixin, self) if PY2 else super()
         predictions = []
         for sequence in sequences:
             predictions.append(s.predict(sequence))
         return transformed
 
+    def fit_predict(self, sequences):
+        '''Performs clustering on X and returns cluster labels.
+
+        Parameters
+        ----------
+        sequences : list of array-like, each of shape [sequence_length, n_features]
+            A list of multivariate timeseries. Each sequence may have
+            a different length, but they all must have the same number
+            of features.
+
+        Returns
+        -------
+        Y : list of ndarray, each of shape [sequence_length, ]
+            Cluster labels
+        '''
+        return self.fit(sequence).labels_
+
+
+def _replace_labels(doc):
+    """Really hacky find-and-replace method that modifies one of the sklearn
+    docstring to change the semantics of labels_ for the subclasses"""
+    lines = doc.splitlines()
+    labelstart, labelend = None, None
+    foundattributes = False
+    for i, line in enumerate(lines):
+        if 'Attributes' in line:
+            foundattributes = True
+        if 'labels' in line and not labelstart and foundattributes:
+            labelstart = len('\n'.join(lines[:i]))
+        if labelstart and line.strip() == '' and not labelend:
+            labelend = len('\n'.join(lines[:i+1]))
+
+
+    replace  = '''\n    `labels_` : list of arrays, each of shape [sequence_length, ]
+        `labels_[i]` is an array of the labels of each point in
+        sequence `i`. The label of each point is an integer in
+        [0, n_clusters).
+    '''
+
+    return doc[:labelstart] + replace + doc[labelend:]
+
 #-----------------------------------------------------------------------------
 # New "multisequence" versions of all of the clustering algorithims in sklearn
 #-----------------------------------------------------------------------------
 
 class KMeans(MultiSequenceClusterMixin, cluster.KMeans):
-    pass
+    __doc__ = _replace_labels(cluster.KMeans.__doc__)
 
 class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans):
-    pass
+    __doc__ = _replace_labels(cluster.MiniBatchKMeans.__doc__)
 
 class AffinityPropagation(MultiSequenceClusterMixin, cluster.AffinityPropagation):
-    pass
+    __doc__ = _replace_labels(cluster.AffinityPropagation.__doc__)
 
 class MeanShift(MultiSequenceClusterMixin, cluster.MeanShift):
-    pass
-    
+    __doc__ = _replace_labels(cluster.MeanShift.__doc__)
+
 class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering):
-    pass
+    __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
 
 class Ward(MultiSequenceClusterMixin, cluster.Ward):
-    pass
+    __doc__ = _replace_labels(cluster.Ward.__doc__)
 
 # This needs to come _after_ MultiSequenceClusterMixin is defined, to avoid
 # recursive circular imports
