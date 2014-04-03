@@ -3,6 +3,7 @@ import numpy as np
 from mdtraj.testing import eq
 import scipy.sparse
 from sklearn.externals.joblib import load, dump
+from mixtape import cluster
 from mixtape.markovstatemodel import MarkovStateModel
 
 def todense(mat):
@@ -42,3 +43,14 @@ def test_3():
         eq(model2.timescales_(), model.timescales_())
     finally:
         os.unlink('test-msm-temp.npy')
+
+
+def test_4():
+    data = [np.random.randn(10, 1), np.random.randn(100, 1)]
+    print cluster.KMeans(n_clusters=3).fit_predict(data)
+    print cluster.MiniBatchKMeans(n_clusters=3).fit_predict(data)
+    print cluster.AffinityPropagation().fit_predict(data)
+    print cluster.DBSCAN().fit_predict(data)
+    print cluster.MeanShift().fit_predict(data)
+    print cluster.SpectralClustering(n_clusters=2).fit_predict(data)
+    print cluster.Ward(n_clusters=2).fit_predict(data)
