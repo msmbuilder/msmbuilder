@@ -44,7 +44,7 @@ import scipy.sparse.linalg as linalg
 import numpy.random as random
 import numpy as np
 
-class BoundedTraceHazanSolver(object):
+class BoundedTraceSDPHazanSolver(object):
     """ Implementation of Hazan's Algorithm, which solves
         the optimization problem:
              max f(X)
@@ -104,6 +104,22 @@ class BoundedTraceHazanSolver(object):
             print("f(X_%d) = %f" % (k, f(X)))
         return X
 
+class GeneralSDPHazanSolver(object):
+    """ Implementation of Hazan's Fast SDP problem, which uses
+        the bounded trace PSD solver above to solve general SDP's
+        by optimizing the function
+
+        f(X) = -(1/M) log(sum_{i=1}^m exp(M*(A_i dot X - b_i)))
+
+        where m is the number of linear constraints and M = log m / eps,
+        with eps an error tolerance parameter
+    """
+    def __init__(self):
+        pass
+
+    def solve(self):
+        pass
+
 def f(x):
     """
     Computes f(x) = -\sum_k x_kk^2
@@ -128,13 +144,13 @@ def gradf(x):
 # Note that H(-f) = 2 I (H is the hessian)
 Cf = 2.
 
-dim = 3
+dim = 4
 N_iter = 100
 # Now do a dummy optimization problem. The
 # problem we consider is
 # max - \sum_k x_k^2
 # such that \sum_k x_k = 1
-# The optimal solution is -n/4, where
+# The optimal solution is -1/n, where
 # n is the dimension.
 b = BoundedTraceHazanSolver()
 b.solve(f, gradf, dim, N_iter, Cf=Cf)
