@@ -139,7 +139,7 @@ class MultiSequenceClusterMixin(object):
 
 def _replace_labels(doc):
     """Really hacky find-and-replace method that modifies one of the sklearn
-    docstring to change the semantics of labels_ for the subclasses"""
+    docstrings to change the semantics of labels_ for the subclasses"""
     lines = doc.splitlines()
     labelstart, labelend = None, None
     foundattributes = False
