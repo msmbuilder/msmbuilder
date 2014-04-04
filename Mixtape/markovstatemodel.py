@@ -94,7 +94,7 @@ class MarkovStateModel(BaseEstimator):
                 if j != -1:
                     self.mapping_[i] = j
         else:
-            self.mapping_ = dict(zip(np.arange(self.n_states), np.arange(self.n_states)))
+            self.mapping_ = dict((zip(np.arange(self.n_states), np.arange(self.n_states))))
 
         # STEP (2): Reversible counts matrix
         if self.reversible_type in ['mle', 'MLE']:
