@@ -1,6 +1,6 @@
 #New BSD License
 #
-#Copyright (c) 2007–2014 The scikit-learn developers.
+#Copyright (c) 2007-2013 The scikit-learn developers.
 #All rights reserved.
 #
 #
