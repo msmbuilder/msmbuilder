@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import numpy as np
 from mdtraj.testing import eq
@@ -47,10 +48,9 @@ def test_3():
 
 def test_4():
     data = [np.random.randn(10, 1), np.random.randn(100, 1)]
-    print cluster.KMeans(n_clusters=3).fit_predict(data)
-    print cluster.MiniBatchKMeans(n_clusters=3).fit_predict(data)
-    print cluster.AffinityPropagation().fit_predict(data)
-    print cluster.DBSCAN().fit_predict(data)
-    print cluster.MeanShift().fit_predict(data)
-    print cluster.SpectralClustering(n_clusters=2).fit_predict(data)
-    print cluster.Ward(n_clusters=2).fit_predict(data)
+    print(cluster.KMeans(n_clusters=3).fit_predict(data))
+    print(cluster.MiniBatchKMeans(n_clusters=3).fit_predict(data))
+    print(cluster.AffinityPropagation().fit_predict(data))
+    print(cluster.MeanShift().fit_predict(data))
+    print(cluster.SpectralClustering(n_clusters=2).fit_predict(data))
+    print(cluster.Ward(n_clusters=2).fit_predict(data))
