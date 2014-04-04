@@ -81,9 +81,9 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
             n_frames = len(x)
 
             data.append(x)
-            indices.append(count + np.arange(n_frames))
+            indices.append(count + (stride*np.arange(n_frames)))
             fns.extend([file] * n_frames)
-            count += n_feames
+            count += (stride*n_frames)
     if len(data) == 0:
         raise ValueError("None!")
 
