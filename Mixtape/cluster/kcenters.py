@@ -36,6 +36,7 @@ from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin
+from sklearn.cluster.k_means import _squared_norms, _labels_inertia
 
 from mixtape.cluster import MultiSequenceClusterMixin
 
@@ -132,12 +133,17 @@ class _KCenters(BaseEstimator, ClusterMixin):
             self.cluster_centers_[i] = X[new_center_index]
 
             new_center_index = np.argmax(self.distances_)
-    
+
         return self
 
-    def predict(self):
-        return self.labels_
-    
+    def predict(self, X):
+        if self.metric == 'euclidean':
+            x_squared_norms = _squared_norms(X)
+            return _labels_inertia(X, x_squared_norms, self.cluster_centers_)[0]
+
+        # todo: assignments
+        raise NotImplementedError('havent gotten around to this yet')
+
     def fit_predict(self, X, y=None):
         return self.fit(X, y).labels_
 
@@ -179,4 +185,3 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         lengths = [len(s) for s in sequences]
         self.distances_ = self._split(self.distances_, lengths)
         return self
-        
