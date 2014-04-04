@@ -1,7 +1,7 @@
 import numpy as np
 from mdtraj.testing import eq
 from mixtape.cluster import KCenters
-
+import scipy.spatial.distance
 
 def test_kcenters_1():
     # make sure all the shapes are correct of the fit parameters
@@ -36,3 +36,26 @@ def test_kcenters_2():
 
     # the distances should be 0 or sqrt(2)/2
     eq(np.unique(np.concatenate(m.distances_)), np.array([0, np.sqrt(2)/2]))
+
+def test_kcenters_3():
+    # test for predict using euclidean distance
+    model = KCenters(n_clusters=10)
+    data = np.random.randn(100, 2)
+    labels1 = model.fit_predict([data])
+    labels2 = model.predict([data])
+
+    eq(labels1[0], labels2[0])
+    all_pairs = scipy.spatial.distance.cdist(data, model.cluster_centers_)
+    eq(labels2[0], np.argmin(all_pairs, axis=1))
+
+def test_kcenters_4():
+    # test for predict() using non-euclidean distance. because of the
+    # way the code is structructured, this takes a different path
+    model = KCenters(n_clusters=10, metric='cityblock')
+    data = np.random.randn(100, 2)
+    labels1 = model.fit_predict([data])
+    labels2 = model.predict([data])
+
+    eq(labels1[0], labels2[0])
+    all_pairs = scipy.spatial.distance.cdist(data, model.cluster_centers_, metric='cityblock')
+    eq(labels2[0], np.argmin(all_pairs, axis=1))

@@ -104,7 +104,7 @@ class MultiSequenceClusterMixin(object):
         predictions = []
         for sequence in sequences:
             predictions.append(s.predict(sequence))
-        return transformed
+        return predictions
 
     def fit_predict(self, sequences):
         '''Performs clustering on X and returns cluster labels.
