@@ -76,7 +76,7 @@ class _KCenters(BaseEstimator, ClusterMixin):
         # return the distance from ref_sequence[ref_index] to each
         # data point in target_sequence.
 
-    [Algorithim] KCenters is a simple clustering algorithm. To
+    [Algorithm] KCenters is a simple clustering algorithm. To
     initialize, we select a random data point to be the first
     cluster center. In each iteration, we maintain knowledge of
     the distance from each data point to its assigned cluster center
@@ -104,8 +104,9 @@ class _KCenters(BaseEstimator, ClusterMixin):
         self.random = check_random_state(random_state)
 
         if isinstance(metric, string_types):
-            self.metric_function = lambda target_sequence, ref_sequence, ref_index : \
-                                   cdist(target_sequence, ref_sequence[ref_index, np.newaxis], metric=metric)[:,0]
+            # distance from r[i] to each frame in t (output is a vector of length len(t)
+            # using scipy.spatial.distance.cdist
+            self.metric_function = lambda t, r, i : cdist(t, r[i, np.newaxis], metric=metric)[:,0]
         elif callable(metric):
             self.metric_function = metric
 
