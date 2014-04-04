@@ -59,3 +59,12 @@ def test_kcenters_4():
     eq(labels1[0], labels2[0])
     all_pairs = scipy.spatial.distance.cdist(data, model.cluster_centers_, metric='cityblock')
     eq(labels2[0], np.argmin(all_pairs, axis=1))
+
+def test_kcenters_5():
+    # test custom metric. this is a euclidean metric vs. a squared euclidean metric (should give)
+    # the same assignments
+    model1 = KCenters(n_clusters=10, metric='euclidean')
+    model2 = KCenters(n_clusters=10, metric=lambda target, ref, i: np.sum((target-ref[i])**2, axis=1))
+
+    data = np.random.randn(100, 2)
+    eq(model1.fit_predict([data])[0], model2.fit_predict([data])[0])
