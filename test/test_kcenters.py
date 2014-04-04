@@ -1,6 +1,7 @@
 import operator
 import numpy as np
 import mdtraj as md
+from functools import reduce
 from mdtraj.testing import eq
 from mixtape.cluster import KCenters
 import scipy.spatial.distance

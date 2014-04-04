@@ -33,7 +33,6 @@
 from __future__ import absolute_import, print_function, division
 from six import PY2
 import numpy as np
-from functools import reduce
 from sklearn import cluster
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
