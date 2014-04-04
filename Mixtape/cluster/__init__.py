@@ -70,8 +70,21 @@ class MultiSequenceClusterMixin(object):
         -------
         self
         """
-        concat = np.concatenate(sequences)
+        if len(sequences) > 0 and isinstance(sequences[0], np.ndarray):
+            concat = np.concatenate(sequences)
+        else:
+            # if the input sequences are not numpy arrays, we need to guess
+            # how to concatenate them. this operation below works for mdtraj
+            # trajectories (which is the use case that I want to be sure to
+            # support), but in general the python container protocol doesn't
+            # give us a generic way to make sure we merged sequences
+            concat = sequences[0].join(sequences[1:])
+
         lengths = [len(s) for s in sequences]
+
+        # make sure that the concatenation operation worked
+        assert sum(lengths) == len(concat)
+
         s = super(MultiSequenceClusterMixin, self) if PY2 else super()
         s.fit(concat)
         self.labels_ = self._split(self.labels_, lengths)
@@ -104,7 +117,7 @@ class MultiSequenceClusterMixin(object):
         predictions = []
         for sequence in sequences:
             predictions.append(s.predict(sequence))
-        return transformed
+        return predictions
 
     def fit_predict(self, sequences):
         '''Performs clustering on X and returns cluster labels.

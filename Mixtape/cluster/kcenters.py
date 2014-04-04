@@ -36,7 +36,7 @@ from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin
-from sklearn.cluster.k_means import _squared_norms, _labels_inertia
+from sklearn.cluster.k_means_ import _squared_norms, _labels_inertia
 
 from mixtape.cluster import MultiSequenceClusterMixin
 
@@ -47,7 +47,7 @@ __all__ = ['KCenters']
 #-----------------------------------------------------------------------------
 
 class _KCenters(BaseEstimator, ClusterMixin):
-    """
+    """KCenters clustering
 
     Parameters
     ----------
@@ -80,7 +80,7 @@ class _KCenters(BaseEstimator, ClusterMixin):
     initialize, we select a random data point to be the first
     cluster center. In each iteration, we maintain knowledge of
     the distance from each data point to its assigned cluster center
-    (the nearest cluster ceneter). In the iteration, we increase the
+    (the nearest cluster center). In the iteration, we increase the
     number of cluster centers by one by choosing the data point which
     is farthest from its assigned cluster center to be the new
     cluster cluster.
@@ -137,12 +137,37 @@ class _KCenters(BaseEstimator, ClusterMixin):
         return self
 
     def predict(self, X):
+        """Predict the closest cluster each sample in X belongs to.
+
+        In the vector quantization literature, `cluster_centers_` is called
+        the code book and each value returned by `predict` is the index of
+        the closest code in the code book.
+
+        Parameters
+        ----------
+        X : array-like, shape = [n_samples, n_features]
+            New data to predict.
+
+        Returns
+        -------
+        Y : array, shape [n_samples,]
+            Index of the closest center each sample belongs to.
+        """
         if self.metric == 'euclidean':
             x_squared_norms = _squared_norms(X)
             return _labels_inertia(X, x_squared_norms, self.cluster_centers_)[0]
 
-        # todo: assignments
-        raise NotImplementedError('havent gotten around to this yet')
+        labels = np.zeros(len(X), dtype=int)
+        distances = np.empty(len(X), dtype=float)
+        distances.fill(np.inf)
+
+        for i in range(self.n_clusters):
+            d = self.metric_function(X, self.cluster_centers_, i)
+            mask = (d < distances)
+            distances[mask] = d[mask]
+            labels[mask] = i
+
+        return labels
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y).labels_
