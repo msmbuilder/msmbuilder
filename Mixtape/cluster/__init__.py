@@ -121,7 +121,7 @@ class MultiSequenceClusterMixin(object):
         Y : list of ndarray, each of shape [sequence_length, ]
             Cluster labels
         '''
-        return self.fit(sequence).labels_
+        return self.fit(sequences).labels_
 
 
 def _replace_labels(doc):

@@ -119,6 +119,8 @@ class MarkovStateModel(BaseEstimator):
             raise RuntimeError()
         self.populations_ /= self.populations_.sum()  # ensure normalization
 
+        return self
+
     def _count_transitions(self, sequences):
         counts = scipy.sparse.coo_matrix((self.n_states, self.n_states), dtype=np.float32)
 
