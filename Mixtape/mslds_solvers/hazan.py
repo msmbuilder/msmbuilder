@@ -54,20 +54,20 @@ class BoundedTraceSDPHazanSolver(object):
     """
     def __init__(self):
         pass
-    def solve(self, f, gradf, dim, N_iter, Cf):
+    def solve(self, f, gradf, dim, N_iter, Cf=None):
         """
         Parameters
         __________
         f: concave function
             Accepts (dim,dim) shaped matrices and outputs real
-        Cf: float
-            The curvature constant of function f
         gradf: function
             Computes grad f at given input matrix
         dim: int
             The dimensionality of the input vector space for f,
         N_iter: int
             The desired number of iterations
+        Cf: float
+            The curvature constant of function f
         """
         v = random.rand(dim, 1)
         X = np.outer(v, v)
@@ -115,10 +115,53 @@ class GeneralSDPHazanSolver(object):
         with eps an error tolerance parameter
     """
     def __init__(self):
-        pass
+        self._solver = BoundedTraceSDPHazanSolver()
 
-    def solve(self):
-        pass
+    def solve(self, As, bs, eps, dim, N_iter):
+        """
+        Parameters
+        __________
+        As: list
+            A list of square (dim, dim) numpy.ndarray matrices
+        bs: list
+            A list of floats
+        eps: float
+            Allowed error tolerance. Must be > 0
+        """
+        m = len(As)
+        M = np.log(m)/eps
+        K = int(1/eps)
+        def f(X):
+            """
+            X: np.ndarray
+                Computes function f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
+            """
+            s = 0.
+            for i in range(m):
+                Ai = As[i]
+                bi = bs[i]
+                s += np.exp(M*(np.trace(np.dot(Ai,X) - bi)))
+            return -(1.0/M) * log(s)
+        def gradf(X):
+            """
+            X: np.ndarray
+                Computes grad f(X) = -(1/M) * f' / f
+                where
+                      f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
+                      f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
+            """
+            num = 0.
+            denom = 0.
+            for i in range(M):
+                Ai = As[i]
+                bi = bs[i]
+                num += np.exp(M*(np.trace(Ai,X) - bi))*(M*Ai.T)
+                denom += np.exp(M*(np.trace(Ai,X) - bi))
+            return (-1.0/M) * num/denom
+        X = None
+        for k in range(K):
+            X = self._solver.solve(f, gradf, dim, N_iter)
+        return X
 
 def f(x):
     """
@@ -144,13 +187,16 @@ def gradf(x):
 # Note that H(-f) = 2 I (H is the hessian)
 Cf = 2.
 
-dim = 4
+#dim = 4
+#N_iter = 100
+## Now do a dummy optimization problem. The
+## problem we consider is
+## max - \sum_k x_k^2
+## such that \sum_k x_k = 1
+## The optimal solution is -1/n, where
+## n is the dimension.
+#b = BoundedTraceHazanSolver()
+#b.solve(f, gradf, dim, N_iter, Cf=Cf)
+
+dim = 1
 N_iter = 100
-# Now do a dummy optimization problem. The
-# problem we consider is
-# max - \sum_k x_k^2
-# such that \sum_k x_k = 1
-# The optimal solution is -1/n, where
-# n is the dimension.
-b = BoundedTraceHazanSolver()
-b.solve(f, gradf, dim, N_iter, Cf=Cf)
