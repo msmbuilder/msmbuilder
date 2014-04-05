@@ -43,6 +43,7 @@ import scipy
 import scipy.sparse.linalg as linalg
 import numpy.random as random
 import numpy as np
+import pdb
 
 class BoundedTraceSDPHazanSolver(object):
     """ Implementation of Hazan's Algorithm, which solves
@@ -72,36 +73,23 @@ class BoundedTraceSDPHazanSolver(object):
         v = random.rand(dim, 1)
         X = np.outer(v, v)
         X /= np.trace(X)
-        print("v:")
-        print(v)
-        print("X:")
-        print(X)
-        print("f(X) = %f" % (f(X)))
-        print("rank(X) = %f" % (np.linalg.matrix_rank(X)))
         for k in range(N_iter):
             grad = gradf(X)
-            print("grad_%d:" % k)
-            print grad
-            # Is there a way to integrate epsk into the lanczos call?
-            # Ans: do tol = epsk
-            if Cf != None:
-                epsk = Cf/(k+1)**2
-                _, vk = linalg.eigs(grad, k=1, tol=epsk, which='LR')
+            if dim >= 3:
+                if Cf != None:
+                    epsk = Cf/(k+1)**2
+                    _, vk = linalg.eigs(grad, k=1, tol=epsk, which='LR')
+                else:
+                    _, vk = linalg.eigs(grad, k=1, which='LR')
             else:
-                _, vk = linalg.eigs(grad, k=1, which='LR')
+                ws, vs = np.linalg.eig(grad)
+                i = np.argmax(np.real(ws))
+                vk = vs[:,i]
+
             # Avoid strange errors with complex numbers
             vk = np.real(vk)
             alphak = min(1.,2./(k+1))
-            print("alpha_%d = %f" % (k, alphak))
             X = X + alphak * (np.outer(vk,vk) - X)
-            print("v_%d:" % k)
-            print(vk)
-            print("v_%d(v_%d).T" % (k,k))
-            print(np.outer(vk,vk))
-            print("X_%d:" % k)
-            print(X)
-            print("rank(X_%d) = %f" % (k, np.linalg.matrix_rank(X)))
-            print("f(X_%d) = %f" % (k, f(X)))
         return X
 
 class GeneralSDPHazanSolver(object):
@@ -117,8 +105,9 @@ class GeneralSDPHazanSolver(object):
     def __init__(self):
         self._solver = BoundedTraceSDPHazanSolver()
 
-    def solve(self, As, bs, eps, dim, N_iter):
+    def solve(self, As, bs, eps, dim):
         """
+        Does binary search to find the correct trace value
         Parameters
         __________
         As: list
@@ -127,41 +116,71 @@ class GeneralSDPHazanSolver(object):
             A list of floats
         eps: float
             Allowed error tolerance. Must be > 0
+        dim: int
+            Dimension of input
         """
-        m = len(As)
-        M = np.log(m)/eps
-        K = int(1/eps)
+        FAIL = True
+        while FAIL:
+            X_trace = 1.
+            X, fX = self._solve(self, As, bs, eps, dim, X_trace)
+            if fX > -eps:
+                FAIL = False
+
+    def _solve(self, As, bs, eps, dim, X_trace):
+        """
+        Solves the subproblem of solving for X given the desired
+        trace value
+        Parameters
+        __________
+        X_trace: float
+            X_trace > 0 is the desired trace of solution X (i.e,
+            the function satisfies invariant Tr X = X_trace for
+            output matrix X)
+        """
         def f(X):
             """
             X: np.ndarray
-                Computes function f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
+                Computes function
+                f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
             """
             s = 0.
             for i in range(m):
-                Ai = As[i]
+                Ai = X_trace * As[i]
                 bi = bs[i]
                 s += np.exp(M*(np.trace(np.dot(Ai,X) - bi)))
-            return -(1.0/M) * log(s)
+            return -(1.0/M) * np.log(s)
+
         def gradf(X):
             """
             X: np.ndarray
-                Computes grad f(X) = -(1/M) * f' / f
-                where
-                      f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-                      f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
+                Computes grad f(X) = -(1/M) * f' / f where
+                  f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
+                  f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
             """
             num = 0.
             denom = 0.
-            for i in range(M):
-                Ai = As[i]
+            for i in range(m):
+                Ai = X_trace * As[i]
                 bi = bs[i]
-                num += np.exp(M*(np.trace(Ai,X) - bi))*(M*Ai.T)
-                denom += np.exp(M*(np.trace(Ai,X) - bi))
+                if dim >= 2:
+                    num += np.exp(M*(np.trace(Ai,X) - bi))*(M*Ai.T)
+                    denom += np.exp(M*(np.trace(Ai,X) - bi))
+                else:
+                    num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
+                    denom += np.exp(M*(Ai*X - bi))
             return (-1.0/M) * num/denom
-        X = None
-        for k in range(K):
-            X = self._solver.solve(f, gradf, dim, N_iter)
-        return X
+        m = len(As)
+        M = np.max((np.log(m)/eps, 1.))
+        K = int(1/eps)
+
+        X = self._solver.solve(f, gradf, dim, K)
+        fX = f(X)
+        # Undo scaling effect
+        X = X_trace * X
+        print("X:")
+        print X
+        print("f(X) = %f" % (f(X)))
+        return X, fX
 
 def f(x):
     """
@@ -195,8 +214,14 @@ Cf = 2.
 ## such that \sum_k x_k = 1
 ## The optimal solution is -1/n, where
 ## n is the dimension.
-#b = BoundedTraceHazanSolver()
+#b = BoundedTraceSDPHazanSolver()
 #b.solve(f, gradf, dim, N_iter, Cf=Cf)
 
 dim = 1
-N_iter = 100
+g = GeneralSDPHazanSolver()
+As = [np.array(1.5)]
+bs = [np.array(1.)]
+eps = 1e-1
+dim = 1
+X_trace = 2.
+g._solve(As, bs, eps, dim, X_trace)
