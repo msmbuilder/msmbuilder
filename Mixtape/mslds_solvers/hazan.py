@@ -44,6 +44,42 @@ import scipy.sparse.linalg as linalg
 import numpy.random as random
 import numpy as np
 import pdb
+from numbers import Number
+
+# Convenience functions; check if mdtraj has similar functionality
+# already
+def assert_list_of_types(Es, expected_type):
+    """Checks whether input is a list of np.ndarray elements all of
+       the same dimension dim
+
+       Parameters
+       __________
+       Es: list
+            Argument to check
+       dim: int
+            Expected dimension of Es
+     """
+    assert isinstance(Es, list)
+    for i in range(len(Es)):
+        Ei = Es[i]
+        assert isinstance(Ei, expected_type)
+
+def assert_list_of_square_arrays(Es, dim):
+    """Checks whether input is a list of np.ndarray elements all of
+       the same dimension dim
+
+       Parameters
+       __________
+       Es: list
+            Argument to check
+       dim: int
+            Expected dimension of Es
+    """
+    assert_list_of_types(Es, np.ndarray)
+    for i in range(len(Es)):
+       Ei = Es[i]
+       assert np.shape(Ei) == (dim, dim)
+
 
 class BoundedTraceSDPHazanSolver(object):
     """ Implementation of Hazan's Algorithm, which solves
@@ -99,10 +135,10 @@ class GeneralSDPHazanSolver(object):
     def __init__(self):
         self._solver = BoundedTraceSDPHazanSolver()
 
-    def solve(self, C, As, bs, eps, dim, R):
+    def solve(self, E, As, bs, Cs, ds, eps, dim, R):
         """
         Solves optimization problem
-        max Tr(CX)
+        max Tr(EX)
         subject to
             Tr(A_i X) <= b_i
             Tr(X) <= R
@@ -113,39 +149,39 @@ class GeneralSDPHazanSolver(object):
 
             A_i := R A_i
 
-        (No need to rescale C since the max operator removes constant
+        (No need to rescale E since the max operator removes constant
         factors). After the transformation, we assume Tr(X) <= 1. Next,
-        we derive an upper bound on Tr(CX). Note that
+        we derive an upper bound on Tr(EX). Note that
 
-            (Tr(CX))^2 = (\sum_{i,j} C_{ij} X_{ij})^2
-                       <= (\sum_{i,j} C_{ij}^2) (\sum_{i,j} X_{ij}^2)
-                       <= (\sum_{i,j} C_{ij}^2) (\sum_{i,j} X_{ii} X_{jj})
-                       <= (\sum_{i,j} C_{ij}^2) (\sum_{i} X_{ii})^2
-                       <= (\sum_{i,j} C_{ij}^2)
+            (Tr(EX))^2 = (\sum_{i,j} E_{ij} X_{ij})^2
+                       <= (\sum_{i,j} E_{ij}^2) (\sum_{i,j} X_{ij}^2)
+                       <= (\sum_{i,j} E_{ij}^2) (\sum_{i,j} X_{ii} X_{jj})
+                       <= (\sum_{i,j} E_{ij}^2) (\sum_{i} X_{ii})^2
+                       <= (\sum_{i,j} E_{ij}^2)
 
         The first inequality is Cauchy-Schwarz. The second inequality
         follows from a standard fact about semidefinite matrices (CITE).
         The inequality follows again from Cauchy-Schwarz. The last
         inequality follows from the fact that Tr(X) <= 1. Similarly,
 
-            Tr(CX) >= 0
+            Tr(EX) >= 0
 
-        By the fact that X is PSD (CITE). Let D = \sum_{i,j} C_{ij}^2. We
+        By the fact that X is PSD (CITE). Let D = \sum_{i,j} E_{ij}^2. We
         perform the rescaling.
 
-            C:= (1/D) C
+            E:= (1/D) E
 
-        After the scaling transformation, we have that 0 <= Tr(CX) <= 1.
+        After the scaling transformation, we have that 0 <= Tr(EX) <= 1.
         The next required transformation is binary search. Choose value
         alpha \in [0,1]. We ascertain whether alpha is a feasible value of
-        Tr(CX) by performing two subproblems:
+        Tr(EX) by performing two subproblems:
 
         (1)
         Feasibility of X
         subject to
             Tr(A_i X) <= b_i
             Tr(X) <= 1
-            Tr(C X) <= alpha
+            Tr(E X) <= alpha
 
         and
 
@@ -154,7 +190,7 @@ class GeneralSDPHazanSolver(object):
         subject to
             Tr(A_i X) <= b_i
             Tr(X) <= 1
-            Tr(C X) >= alpha => Tr(-C X) <= alpha
+            Tr(E X) >= alpha => Tr(-E X) <= alpha
 
         If problem (1) is feasible, then we know that the original problem
         has a solution in range [0, alpha]. If problem (2) is feasible,
@@ -166,7 +202,7 @@ class GeneralSDPHazanSolver(object):
         positive semidefinite matrices are real and nonnegative.
         Consequently, we introduce variables
 
-        Y  := [[X, 0],  F_i  := [[A_i, 0],  G = [[C, 0],
+        Y  := [[X, 0],  F_i  := [[A_i, 0],  G = [[E, 0],
                [0, y]]           [ 0,  0]]       [0, 0]]
 
         Y is PSD if and only if X is PSD and y is real and nonnegative. The
@@ -182,7 +218,7 @@ class GeneralSDPHazanSolver(object):
 
         Parameters
         __________
-        C: np.ndarray
+        E: np.ndarray
             The objective function
         As: list
             A list of square (dim, dim) numpy.ndarray matrices
@@ -195,6 +231,25 @@ class GeneralSDPHazanSolver(object):
         R: float
             Upper bound on trace of X: 0 <= Tr(X) <= R
         """
+        # Do some type checking
+        try:
+            assert_list_of_types(bs, Number)
+            assert_list_of_square_arrays(As, dim)
+            assert len(As) == len(bs)
+            assert isinstance(E, np.ndarray)
+            assert np.shape(E) == (dim, dim)
+            assert isinstance(R, Number)
+            assert R > 0
+        except AssertionError:
+            raise ValueError(
+            """Incorrect Arguments to solve.
+            As should be a list of square arrays of shape (dim,
+            dim), while bs should be a list of floats. Needs
+            len(As) = len(bs). E should be square array of shape
+            (dim, dim) as well. R should be a real number greater than 0.
+            """)
+
+
         m = len(As)
         Aprimes = []
         # Rescale the trace bound
@@ -204,18 +259,32 @@ class GeneralSDPHazanSolver(object):
         As = Aprimes
 
         # Rescale the optimization matrix
-        D = sum(C * C) # note this is a Hadamard product, not dot
-        C = (1./D) * D
+        D = sum(E * E) # note this is a Hadamard product, not dot
+        E = (1./D) * D
 
         # Expand all constraints to be expressed in terms of Y
         Fs = []
         for i in range(m):
             Ai = As[i]
-            Fi = zeros((dim+1,dim+1))
+            Fi = np.zeros((dim+1,dim+1))
             Fi[:dim, :dim] = Ai
-            Fs.append(F)
-        G = zeros((dim+1,dim+1))
-        G[:dim, :dim] = C
+            Fs.append(Fi)
+        G = np.zeros((dim+1,dim+1))
+        G[:dim, :dim] = E
+
+        # Generate constraints required to make Y be a block matrix
+        for i in range(dim):
+            Ri = np.zeros((dim+1,dim+1))
+            Ri[i, dim] = 1.
+            ri = 0.
+            Cs.append(Ri)
+            ds.append(ri)
+
+            Si = np.zeros((dim+1,dim+1))
+            Si[dim, i] = 1.
+            si = 0.
+            Cs.append(Si)
+            ds.append(si)
 
         # Do the binary search
         upper = 1.0
@@ -224,20 +293,23 @@ class GeneralSDPHazanSolver(object):
         X_LOWER = None
         X_UPPER = None
         while (upper - lower) >= eps:
+            print
+            print("upper: %f" % upper)
+            print("lower: %f" % lower)
             alpha = (upper + lower) / 2.0
             # Check feasibility in [lower, alpha]
             Fs.append(G)
             bs.append(alpha)
-            Y_LOWER, _, FAIL_LOWER = self.feasibility_solve(Fs, es,
-                                                            eps, dim)
+            Y_LOWER, _, FAIL_LOWER = self.feasibility_solve(Fs, bs,
+                    Cs, ds, eps, dim+1)
             Fs.pop()
             bs.pop()
 
             # Check feasibility in [alpha, upper]
             Fs.append(-G)
             bs.append(alpha)
-            Y_UPPER, _, FAIL_UPPER= self.feasibility_solve(Fs, es,
-                                                           eps, dim)
+            Y_UPPER, _, FAIL_UPPER= self.feasibility_solve(Fs, bs,
+                    Cs, ds, eps, dim+1)
 
             if not FAIL_UPPER:
                 X_UPPER = Y_UPPER[:dim,:dim]
@@ -248,15 +320,63 @@ class GeneralSDPHazanSolver(object):
             else:
                 FAIL = TRUE
                 break
-        alpha_star = None
-        X_star = None
-        if not FAIL:
-            alpha_star = (upper + lower)/2.
-            X_star = X_UPPER
-        return (alpha_star, X_star, FAIL)
+        if X_UPPER != None:
+            X_UPPER = R * X_UPPER
+        if X_LOWER != None:
+            X_LOWER = R * X_LOWER
+        return (upper, lower, X_UPPER, X_LOWER, FAIL)
 
 
-    def feasibility_solve(self, As, bs, eps, dim):
+    def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
+        """
+        Implements a convenience wrapper around
+        _feasibility_inequality_solve that allows for solution of
+        feasibility problems of type
+
+        Feasibility of X
+        subject to
+            Tr(A_i X) <= b_i
+            Tr(C_i X)  = d_i
+            Tr(X) = 1
+
+        By translating equality constraints Tr(C_i X) = d_i into
+        two inequality constraints
+
+        Tr(C_i X) <= d_i
+        Tr(-C_i x) <= d_i
+        """
+        try:
+            assert_list_of_types(bs, Number)
+            assert_list_of_types(ds, Number)
+            assert_list_of_square_arrays(As, dim)
+            assert_list_of_square_arrays(Cs, dim)
+            assert len(As) == len(bs)
+            assert len(Cs) == len(ds)
+        except AssertionError:
+            raise ValueError(
+            """
+            Incorrect Arguments to feasibility_solve.  As, Cs should be
+            lists of square matrices of shape (dim, dim), while bs, ds
+            should be lists of floats. Needs len(As) == len(bs) and
+            len(Cs) == len(ds).
+            """)
+
+        Fs = []
+        Fs.extend(As)
+        es = []
+        es.extend(bs)
+        for i in range(len(Cs)):
+            Ci = Cs[i]
+            di = ds[i]
+            # Add constraint Tr(C_i X) <= d_i
+            Fs.append(Ci)
+            es.append(di)
+            # Add constraint Tr(-C_i X) <= d_i
+            Fs.append(-Ci)
+            es.append(di)
+        return self._feasibility_inequality_solve(Fs, es, eps, dim)
+
+    def _feasibility_inequality_solve(self, As, bs, eps, dim):
         """
         Implements the subproblem of solving feasibility problems of the
         type
@@ -284,26 +404,6 @@ class GeneralSDPHazanSolver(object):
         dim: int
             Dimension of input
         """
-        # Do some type checking
-        # This is awkward; think of a better way to do this
-        CORRECT_ARGS= True
-        if isinstance(As, list) and isinstance(bs,list):
-            if len(As) == len(bs):
-                for i in range(len(As)):
-                    Ai = As[i]
-                    bi = bs[i]
-                    if (np.shape(Ai) != (dim, dim) or
-                            (not isinstance(bi, float))):
-                        CORRECT_ARGS = False
-                        break
-        if not CORRECT_ARGS:
-            raise ValueError(
-            """Incorrect Arguments to feasibility_solve.
-            As should be a list of square matrices of shape (dim,
-            dim), while bs should be a list of floats. Needs
-            len(As) = len(bs).
-            """)
-
         def f(X):
             """
             X: np.ndarray
@@ -349,48 +449,11 @@ class GeneralSDPHazanSolver(object):
         print("FAIL: " + str(FAIL))
         return X, fX, FAIL
 
-def f(x):
-    """
-    Computes f(x) = -\sum_k x_kk^2
-
-    Parameters
-    __________
-    x: numpy.ndarray
-    """
-    (N, _) = np.shape(x)
-    retval = 0.
-    for i in range(N):
-        retval += -x[i,i]**2
-    return retval
-
-def gradf(x):
-    (N, _) = np.shape(x)
-    G = np.zeros((N,N))
-    for i in range(N):
-        G[i,i] += -2.*x[i,i]
-    return G
-
-
-## Do a simple test of the Bounded Trace Solver
-#dim = 4
-## Note that H(-f) = 2 I (H is the hessian)
-#Cf = 2.
-#N_iter = 100
-## Now do a dummy optimization problem. The
-## problem we consider is
-## max - \sum_k x_k^2
-## such that \sum_k x_k = 1
-## The optimal solution is -1/n, where
-## n is the dimension.
-#b = BoundedTraceSDPHazanSolver()
-#b.solve(f, gradf, dim, N_iter, Cf=Cf)
-
-
 ## Do a simple test of the feasibility solver
 #dim = 2
 #
 ## Check argument validation
-#ERROR = False
+#Error = False
 #try:
 #    g = GeneralSDPHazanSolver()
 #    As = [np.array([[1.5, 0.],
@@ -400,9 +463,8 @@ def gradf(x):
 #    dim = 1
 #    g.feasibility_solve(As, bs, eps, dim)
 #except ValueError:
-#    ERROR = True
-#    pass
-#assert ERROR == True
+#    Error = True
+#assert Error == True
 #
 ## Now try two-dimensional basic feasible example
 #g = GeneralSDPHazanSolver()
@@ -425,7 +487,35 @@ def gradf(x):
 #assert FAIL == True
 
 # Do a simple test of General SDP Solver with binary search
+
+## Check argument validation
+#Error = False
+#try:
+#    g = GeneralSDPHazanSolver()
+#    As = [np.array([[1., 2.],
+#                    [1., 2.]])]
+#    bs = [np.array([1., 1.])]
+#    Cs = []
+#    ds = []
+#    E = np.array([[1.],
+#                  [0.]])
+#    eps = 1e-1
+#    dim = 2
+#    R = 10
+#    g.solve(E, As, bs, Cs, ds, eps, dim, R)
+#except ValueError:
+#    Error = True
+#assert Error == True
+
+# Now try a simple problem
 g = GeneralSDPHazanSolver()
 As = [np.array([[1., 2.],
                 [1., 2.]])]
-bs = [np.array([1., 1.])]
+bs = [1]
+Cs = []
+ds = []
+E = np.array([[1., 0.],
+              [0., 1.]])
+R = 10.
+upper, lower, X_upper, X_lower, fail = g.solve(E, As, bs, Cs, ds,
+                                            eps, dim, R)
