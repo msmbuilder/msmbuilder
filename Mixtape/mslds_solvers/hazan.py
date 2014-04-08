@@ -449,42 +449,6 @@ class GeneralSDPHazanSolver(object):
         print("FAIL: " + str(FAIL))
         return X, fX, FAIL
 
-## Do a simple test of the feasibility solver
-#dim = 2
-#
-## Check argument validation
-#Error = False
-#try:
-#    g = GeneralSDPHazanSolver()
-#    As = [np.array([[1.5, 0.],
-#                    [0., 1.5]])]
-#    bs = [np.array([1.5, 0])]
-#    eps = 1e-1
-#    dim = 1
-#    g.feasibility_solve(As, bs, eps, dim)
-#except ValueError:
-#    Error = True
-#assert Error == True
-#
-## Now try two-dimensional basic feasible example
-#g = GeneralSDPHazanSolver()
-#As = [np.array([[1, 0.],
-#                [0., 2]])]
-#bs = [1.5]
-#eps = 1e-1
-#dim = 2
-#X, fX, FAIL = g.feasibility_solve(As, bs, eps, dim)
-#assert FAIL == False
-#
-## Now try two-dimensional basic infeasibility example
-#g = GeneralSDPHazanSolver()
-#As = [np.array([[2, 0.],
-#                [0., 2]])]
-#bs = [1.]
-#eps = 1e-1
-#dim = 2
-#X, fX, FAIL = g.feasibility_solve(As, bs, eps, dim)
-#assert FAIL == True
 
 # Do a simple test of General SDP Solver with binary search
 
