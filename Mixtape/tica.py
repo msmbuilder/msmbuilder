@@ -33,6 +33,7 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.linalg
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import array2d
 
 __all__ = ['tICA']
@@ -42,9 +43,9 @@ __all__ = ['tICA']
 #-----------------------------------------------------------------------------
 
 
-class tICA(object):
+class tICA(BaseEstimator, TransformerMixin):
 
-    """Time-structure independent component analysis (tICA)
+    """Time-structure Independent Component Analysis (tICA)
 
     Linear dimensionality reduction using an eigendecomposition of the
     time-lag correlation matrix and covariance matrix of the data and keeping
