@@ -140,7 +140,7 @@ class tICA(BaseEstimator, TransformerMixin):
         vals = vals[ind]
         vecs = vecs[:, ind]
 
-        self._eigenvalues_ = vals
+        self._eigenvalues_ = np.real(vals)
         self._eigenvectors_ = vecs
 
         self._is_dirty = False
