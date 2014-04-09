@@ -153,7 +153,7 @@ class tICA(BaseEstimator, TransformerMixin):
     @property
     def eigenvalues_(self):
         self._solve_eigenproblem()
-        return self._eigenvectors_
+        return self._eigenvalues_
 
     @property
     def components_(self):
@@ -266,6 +266,9 @@ class tICA(BaseEstimator, TransformerMixin):
     def _fit(self, X):
         X = array2d(X)
         self._initialize(X.shape[1])
+        if not len(X) > self.offset:
+            raise ValueError('First dimension must be longer than '
+                'offset=%d. X has shape (%d, %d)' % (self.offset + X.shape))
 
         self.n_observations_ += X.shape[0]
         self.n_sequences_ += 1
