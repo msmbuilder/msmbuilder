@@ -49,7 +49,7 @@ class tICA(BaseEstimator, TransformerMixin):
 
     Linear dimensionality reduction using an eigendecomposition of the
     time-lag correlation matrix and covariance matrix of the data and keeping
-    only the vectors decorrelate slowest to project the data into a lower
+    only the vectors which decorrelate slowest to project the data into a lower
     dimensional space.
 
     Parameters
@@ -108,7 +108,7 @@ class tICA(BaseEstimator, TransformerMixin):
         self._eigenvectors_ = None
         self._eigenvalues = None
 
-        # are our current tICs ditry? this indicates that we've updated
+        # are our current tICs dirty? this indicates that we've updated
         # the model with more data since the last time we computed components_,
         # eigenvalues, eigenvectors, and is set by _fit
         self._is_dirty = True
@@ -185,8 +185,8 @@ class tICA(BaseEstimator, TransformerMixin):
         """Fit the model with X.
 
         This method is not online.  Any state accumulated from previous calls to
-        fit() or fit_update() will be cleared. For online learning, use
-        `fit_ignore`.
+        fit() or partial_fit() will be cleared. For online learning, use
+        `partial_fit`.
 
         Parameters
         ----------
@@ -247,8 +247,8 @@ class tICA(BaseEstimator, TransformerMixin):
         """Fit the model with X and apply the dimensionality reduction on X.
 
         This method is not online. Any state accumulated from previous calls to
-        fit() or fit_update() will be cleared. For online learning, use
-        `fit_ignore`.
+        `fit()` or `partial_fit()` will be cleared. For online learning, use
+        `partial_fit`.
 
         Parameters
         ----------
