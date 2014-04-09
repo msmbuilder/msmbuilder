@@ -1,4 +1,5 @@
-"""Implementation of Hazan's algorithm
+"""
+Implementation of Hazan's algorithm
 
 Hazan, Elad. "Sparse Approximate Solutions to
 Semidefinite Programs." LATIN 2008: Theoretical Informatics.
@@ -82,12 +83,14 @@ def assert_list_of_square_arrays(Es, dim):
 
 
 class BoundedTraceSDPHazanSolver(object):
-    """ Implementation of Hazan's Algorithm, which solves
-        the optimization problem:
-             max f(X)
-             X \in P
-        where P = {X is PSD and Tr X = 1} is the set of PSD
-        matrices with unit trace.
+    """
+    Implementation of Hazan's Algorithm, which solves
+    the optimization problem:
+         max f(X)
+         X \in P
+    where P = {X is PSD and Tr X = 1} is the set of PSD
+    matrices with unit trace.
+    NOTE: Should probably move f, gradf into constructor
     """
     def __init__(self):
         pass
@@ -448,38 +451,3 @@ class GeneralSDPHazanSolver(object):
         FAIL = (fX < -eps)
         print("FAIL: " + str(FAIL))
         return X, fX, FAIL
-
-
-# Do a simple test of General SDP Solver with binary search
-
-## Check argument validation
-#Error = False
-#try:
-#    g = GeneralSDPHazanSolver()
-#    As = [np.array([[1., 2.],
-#                    [1., 2.]])]
-#    bs = [np.array([1., 1.])]
-#    Cs = []
-#    ds = []
-#    E = np.array([[1.],
-#                  [0.]])
-#    eps = 1e-1
-#    dim = 2
-#    R = 10
-#    g.solve(E, As, bs, Cs, ds, eps, dim, R)
-#except ValueError:
-#    Error = True
-#assert Error == True
-
-# Now try a simple problem
-g = GeneralSDPHazanSolver()
-As = [np.array([[1., 2.],
-                [1., 2.]])]
-bs = [1]
-Cs = []
-ds = []
-E = np.array([[1., 0.],
-              [0., 1.]])
-R = 10.
-upper, lower, X_upper, X_lower, fail = g.solve(E, As, bs, Cs, ds,
-                                            eps, dim, R)
