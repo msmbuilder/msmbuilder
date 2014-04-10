@@ -117,9 +117,30 @@ class BoundedTraceSDPHazanSolver(object):
             if dim >= 3:
                 if Cf != None:
                     epsk = Cf/(k+1)**2
-                    _, vk = linalg.eigs(grad, k=1, tol=epsk, which='LR')
                 else:
-                    _, vk = linalg.eigs(grad, k=1, which='LR')
+                    epsk = 0
+                # We usually try the following eigenvector finder,
+                # which is based off an Implicitly Restarted
+                # Arnoldi Method (essentially a stable version of
+                # Lanczos's algorithm)
+                _, vk = linalg.eigsh(grad, k=1, tol=epsk, sigma=0.,
+                        which='LM')
+                #print("X[%d]" % k)
+                #print X
+                #print("v[%d]" % k)
+                #print vk
+                if np.isnan(np.min(vk)):
+                    # The gradient is singular. In this case resort
+                    # to the more expensive, but more stable eigh method,
+                    # which is based on a divide and conquer approach
+                    # instead of Lanczos
+                    print("Iteration %d Switching to divide and conquer"
+                            % k)
+                    ws, vs = np.linalg.eigh(grad)
+                    i = np.argmax(np.real(ws))
+                    vk = vs[:, i]
+                #print("norm(v[%d])" % k)
+                #print(np.linalg.norm(vk))
             else:
                 ws, vs = np.linalg.eig(grad)
                 i = np.argmax(np.real(ws))
