@@ -59,6 +59,13 @@ class tICA(BaseEstimator, TransformerMixin):
     offset : int
         Delay time forward or backward in the input data. The time-lagged
         correlations is computed between datas X[t] and X[t+offset].
+    gamma : nonnegative float, default=0.05
+        Regularization strength. Positive `gamma` entails incrementing
+        the sample covariance matrix by a constant times the identity,
+        to ensure that it is positive definite. The exact form of the
+        regularized sample covariance matrix is ::
+
+            covariance + (gamma / n_features) * Tr(covariance) * Identity
 
     Attributes
     ----------
@@ -78,9 +85,10 @@ class tICA(BaseEstimator, TransformerMixin):
     .. [2] Perez-Hernandez, Guillermo, et al. J Chem. Phys (2013): 015102.
     """
 
-    def __init__(self, n_components=None, offset=1):
+    def __init__(self, n_components=None, offset=1, gamma=0.05):
         self.n_components = n_components
         self.offset = offset
+        self.gamma = gamma
 
         self.n_features = None
         self.n_observations_ = None
@@ -129,35 +137,37 @@ class tICA(BaseEstimator, TransformerMixin):
         self._outer_0_to_TminusOffset = np.zeros((n_features, n_features))
         self._outer_offset_to_T = np.zeros((n_features, n_features))
 
-    def _solve_eigenproblem(self):
+    def _solve(self):
         if not self._is_dirty:
             return
 
         if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
             raise RuntimeError('offset correlation matrix is not symmetric')
-        assert np.allclose(self.covariance_, self.covariance_.T)
+        if not np.allclose(self.covariance_, self.covariance_.T):
             raise RuntimeError('correlation matrix is not symmetric')
 
-        vals, vecs = scipy.linalg.eig(self.offset_correlation_, b=self.covariance_)
+        rhs = self.covariance_ + (self.gamma / self.n_features) * \
+                np.trace(self.covariance_) * np.eye(self.n_features)
+        vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs)
 
         # sort in order of decreasing value
         ind = np.argsort(np.real(vals))[::-1]
         vals = vals[ind]
         vecs = vecs[:, ind]
 
-        self._eigenvalues_ = np.real(vals)
+        self._eigenvalues_ = vals
         self._eigenvectors_ = vecs
 
         self._is_dirty = False
 
     @property
     def eigenvectors_(self):
-        self._solve_eigenproblem()
+        self._solve()
         return self._eigenvectors_
 
     @property
     def eigenvalues_(self):
-        self._solve_eigenproblem()
+        self._solve()
         return self._eigenvalues_
 
     @property
