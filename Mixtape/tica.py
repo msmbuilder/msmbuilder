@@ -133,6 +133,11 @@ class tICA(BaseEstimator, TransformerMixin):
         if not self._is_dirty:
             return
 
+        if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
+            raise RuntimeError('offset correlation matrix is not symmetric')
+        assert np.allclose(self.covariance_, self.covariance_.T)
+            raise RuntimeError('correlation matrix is not symmetric')
+
         vals, vecs = scipy.linalg.eig(self.offset_correlation_, b=self.covariance_)
 
         # sort in order of decreasing value

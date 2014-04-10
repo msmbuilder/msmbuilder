@@ -29,16 +29,28 @@ def test_1():
 
     # TODO: compare the projections. msmbuilder.reduce.tICA doesn't do
     # a mean-substaction first whereas mixtape does.
-    
-def test_singular():
-    tica = tICA2(n_components=1)
-    
+
+
+def test_singular_1():
+    from mixtape.tica import tICA
+    tica = tICA(n_components=1)
+
     # make some data that has one column repeated twice
     X = np.random.randn(100, 2)
     X = np.hstack((X, X[:,0, np.newaxis]))
 
     tica.fit(X)
     print tica.components_
-    print tica.eigenvalues_
-    
+
+
+def test_singular_2():
+    from mixtape.tica import tICA
+    tica = tICA(n_components=1)
+
+    # make some data that has one column of all zeros
+    X = np.random.randn(100, 2)
+    X = np.hstack((X, np.zeros((100, 1))))
+
+    tica.fit(X)
+    print tica.components_
     
