@@ -151,7 +151,7 @@ class tICA(BaseEstimator, TransformerMixin):
         vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs)
 
         # sort in order of decreasing value
-        ind = np.argsort(np.real(vals))[::-1]
+        ind = np.argsort(vals)[::-1]
         vals = vals[ind]
         vecs = vecs[:, ind]
 
