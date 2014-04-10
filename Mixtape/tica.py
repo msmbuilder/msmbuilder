@@ -67,22 +67,53 @@ class tICA(BaseEstimator, TransformerMixin):
 
             covariance + (gamma / n_features) * Tr(covariance) * Identity
 
+        where :math:`Tr` is the trace operator.
+
     Attributes
     ----------
     `components_` : array-like, shape (n_components, n_features)
         Components with maximum autocorrelation.
     `offset_correlation_` : array-like, shape (n_features, n_features)
+        Symmetric time-lagged correlation matrix, `C=E[(x_t)^T x_{t+lag}]`.
     `eigenvalues_` : array-like, shape (n_features,)
+        Eigenvalues of the tICA generalized eigenproblem, in decreasing
+        order.
     `eigenvectors_` : array-like, shape (n_components, n_features)
+        Eigenvectors of the tICA generalized eigenproblem. The vectors
+        give a set of "directions" through configuration space along
+        which the system relaxes towards equilibrium. Each eigenvector
+        is associated with characteritic timescale
+        :math:`- \frac{offset}/{ln \lambda_i}, where :math:`lambda_i` is
+        the corresponding eigenvector. See [2] for more information.
     `means_` : array, shape (n_features,)
+        The mean of the data along each feature
     `n_observations` : int
+        Total number of data points fit by the model. Note that the model
+        is "reset" by calling `fit()` with new sequences, whereas
+        `partial_fit()` updates the fit with new data, and is suitable for
+        online learning.
     `n_sequences` : int
+        Total number of sequences fit by the model. Note that the model
+        is "reset" by calling `fit()` with new sequences, whereas
+        `partial_fit()` updates the fit with new data, and is suitable for
+         online learning.
+
+    Notes
+    -----
+    This method was introduced originally in [4], and has been applied to the
+    analysis of molecular dynamics data in [1], [2], and [3]. In [1] and [2],
+    tICA was used as a dimensionality reduction technique before fitting
+    other kinetic models.
 
     References
     ----------
     .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput.
     9.4 (2013): 2000-2009.
     .. [2] Perez-Hernandez, Guillermo, et al. J Chem. Phys (2013): 015102.
+    .. [3] Naritomi, Yusuke, and Sotaro Fuchigami. J. Chem. Phys. 134.6
+    (2011): 065101.
+    .. [4] Molgedey, Lutz, and Heinz Georg Schuster. Phys. Rev. Lett. 72.23
+    (1994): 3634.
     """
 
     def __init__(self, n_components=None, offset=1, gamma=0.05):
@@ -279,7 +310,7 @@ class tICA(BaseEstimator, TransformerMixin):
         return self.transform(X)
 
     def _fit(self, X):
-        X = array2d(X)
+        X = np.asarray(array2d(X), dtype=np.float64)
         self._initialize(X.shape[1])
         if not len(X) > self.offset:
             raise ValueError('First dimension must be longer than '
