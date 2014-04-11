@@ -471,4 +471,5 @@ class GeneralSDPHazanSolver(object):
         print("f(X) = %f" % (fX))
         FAIL = (fX < -eps)
         print("FAIL: " + str(FAIL))
+        pdb.set_trace()
         return X, fX, FAIL
