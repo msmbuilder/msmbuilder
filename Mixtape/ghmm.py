@@ -263,7 +263,7 @@ class GaussianFusionHMM(object):
         '''
         Find initial means(hot start)
         '''
-        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s', warn_on_cast=False)
                      for s in sequences]
         self._impl._sequences = sequences
 
