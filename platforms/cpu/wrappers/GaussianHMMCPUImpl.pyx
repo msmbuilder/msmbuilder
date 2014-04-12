@@ -46,6 +46,9 @@ cdef class GaussianHMMCPUImpl:
         if self.precision not in ['single', 'mixed']:
             raise ValueError('This platform only supports single or mixed precision')
 
+    def __reduce__(self):
+        return (self.__class__, (self.n_states, self.n_features, self.precision))
+
     property _sequences:
         def __set__(self, value):
             self.sequences = value
