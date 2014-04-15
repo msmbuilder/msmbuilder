@@ -60,6 +60,60 @@ def penalty(X, m, n, M, As, bs, Cs, ds):
         retval += -(1.0/M) * np.log(s + r)
     return retval
 
+def stable_penalty(X, m, n, M, As, bs, Cs, ds):
+    """
+    Note that penalty(X) roughly equals
+
+     max_{i,j} {{exp(M*(Tr(Ai,X) - bi))}, {exp(M*(Tr(Cj,X) - dj)^2)}}
+
+    This function computes and returns this quantity.
+    """
+    pass
+
+
+def stable_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim):
+    """
+    Note that penalty(X) roughly equals
+
+     max_{i,j} {{exp(M*(Tr(Ai,X) - bi))}, {exp(M*(Tr(Cj,X) - dj)^2)}}
+
+    Thus, we can approximate the gradient by picking the term such that
+    violation exp(M*(Tr(Ai,X) - bi)) or exp(M*(Tr(Cj,X) - dj)^2) is
+    largest and then returning the gradient of that terms alone
+    """
+    retval = 0.
+    log_nums = np.zeros(n+m)
+    log_denoms = np.zeros(n+m)
+    ind = 0
+    for i in range(m):
+        Ai = As[i]
+        bi = bs[i]
+        if dim >= 2:
+            log_nums[count] += (M*(np.trace(np.dot(Ai,X)) - bi)
+                                + np.log(M*Ai.T))
+            log_denoms[count] += M*(np.trace(np.dot(Ai,X)) - bi)
+        else:
+            log_nums[count] += M*(Ai*X - bi) + np.log(M*Ai.T)
+            log_denoms[count] += np.exp(M*(Ai*X - bi))
+        count += ind
+    for j in range(n):
+        Cj = Cs[j]
+        dj = ds[j]
+        if dim >= 2:
+            log_nums[count] += (np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)*
+                    (2*M*(np.trace(np.dot(Cj,X)) - dj))*
+                    Cj.T)
+            log_denoms[count] += np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)
+        else:
+            log_nums[count] += np.exp(M*(Cj*x - dj)**2)*(2*M*(Cj*x - dj))*Cj.T
+            log_denoms[count] += np.exp(M*(Cj*x - dj)**2)
+        count += ind
+    if m + n > 0:
+        retval += -(1.0/M) * num/denom
+    import pdb
+    pdb.set_trace()
+    return retval
+
 def grad_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     """
     Computes grad f(X) = -(1/M) * c' / c where
@@ -68,10 +122,12 @@ def grad_penalty(X, m, n, M, As, bs, Cs, ds, dim):
                             * (2M(Tr(Cj,X) - dj)) * Cj.T)
       c  = (sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
             + sum_{i=1}^n exp(M(Tr(Cj,X) - dj)**2))
+
+    Need Ai and Cj to be symmetric real matrices
     """
     retval = 0.
-    num = 0.
-    denom = 0.
+    nums = 0.
+    denoms = 0.
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
@@ -94,6 +150,8 @@ def grad_penalty(X, m, n, M, As, bs, Cs, ds, dim):
             denom += np.exp(M*(Cj*x - dj)**2)
     if m + n > 0:
         retval += -(1.0/M) * num/denom
+    import pdb
+    pdb.set_trace()
     return retval
 
 def test1():
@@ -209,14 +267,40 @@ def test3():
     def gradf(X):
         return grad_penalty(X, m, n, M, As, bs, Cs, ds, dim)
     As = [np.array([[ 1., 0., 0.],
-                    [ 0., 2., 0.]
+                    [ 0., 2., 0.],
                     [ 0., 0., 0.]])]
     bs = [1.]
     Cs = [np.array([[ 1.,  0., 0.],
                     [ 0.,  2., 0.],
                     [ 0.,  0., 2.]])]
     ds = [5./3]
+    B = BoundedTraceSDPHazanSolver()
+    X = B.solve(f, gradf, dim, N_iter)
 
 if __name__ == "__main__":
     #test1()
-    test2()
+    #test2()
+    #test3()
+    m = 1
+    n = 1
+    X = np.eye(3)
+    As = [np.array([[ 1., 0., 0.],
+                    [ 0., 2., 0.],
+                    [ 0., 0., 0.]])]
+    bs = [1.]
+    Cs = [np.array([[ 1.,  0., 0.],
+                    [ 0.,  2., 0.],
+                    [ 0.,  0., 2.]])]
+    ds = [5./3]
+    dim = 3
+    N_iter = 50
+    eps = 1./N_iter
+    M = 1.
+    if m + n > 0:
+        M = 0.
+        if m > 0:
+            M += np.max((np.log(m), 1.))/eps
+        if n > 0:
+            M += np.max((np.log(n), 1.))/(eps**2)
+        print("M", M)
+    val = grad_penalty(X, m, n, M, As, bs, Cs, ds, dim)
