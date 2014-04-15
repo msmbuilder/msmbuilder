@@ -18,8 +18,8 @@ SAMPLE = False
 LEARN = True
 PLOT = True
 
-# For param changes
-# TODO: Make parameter changing automatic
+## For param changes
+## TODO: Make parameter changing automatic
 #SAMPLE = True
 #LEARN = False
 #PLOT = False
@@ -49,35 +49,47 @@ s.covars_ = Sigmas
 if SAMPLE:
     xs, Ss = s.sample(T)
     xs = [xs]
-    savetxt('./example/xs.txt', xs)
-    savetxt('./example/Ss.txt', Ss)
+    savetxt('xs.txt', xs)
+    savetxt('Ss.txt', Ss)
 else:
-    xs = reshape(loadtxt('./example/xs.txt'), (T, x_dim))
+    xs = reshape(loadtxt('xs.txt'), (T, x_dim))
     xs = [xs]
-    Ss = reshape(loadtxt('./example/Ss.txt'), (T))
+    Ss = reshape(loadtxt('Ss.txt'), (T))
     Ss = [Ss]
 
 if LEARN:
-    # Fit Metastable Switcher
-    l = MetastableSwitchingLDS(K, x_dim, n_hotstart=NUM_HOTSTART,
-            n_em_iter=NUM_ITERS)
-    l.fit(xs)
-    mslds_score = l.score(xs)
-    print("MSLDS Log-Likelihood = %f" %  mslds_score)
+    # Fit CVXPY Metastable Switcher
+    cvxpy_l = MetastableSwitchingLDS(K, x_dim, n_hotstart=NUM_HOTSTART,
+            n_em_iter=NUM_ITERS, solver='cvxpy')
+    cvxpy_l.fit(xs)
+    cvxpy_mslds_score = cvxpy_l.score(xs)
+    print("CVXPY MSLDS Log-Likelihood = %f" %  cvxpy_mslds_score)
+    ## Fit CVXOPT Metastable Switcher
+    #cvxopt_l = MetastableSwitchingLDS(K, x_dim, n_hotstart=NUM_HOTSTART,
+    #        n_em_iter=NUM_ITERS, solver='cvxopt')
+    #cvxopt_l.fit(xs)
+    #cvxopt_mslds_score = cvxopt_l.score(xs)
+    #print("CVXOPT MSLDS Log-Likelihood = %f" %  cvxopt_mslds_score)
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(K, x_dim)
     g.fit(xs)
     hmm_score = g.score(xs)
     print("HMM Log-Likelihood = %f" %  hmm_score)
 
-    sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=mus[0])
-    sim_xs = reshape(sim_xs, (n_seq, T, x_dim))
+    cvxopt_sim_xs, cvxopt_sim_Ss = cvxopt_l.sample(T, init_state=0,
+            init_obs=mus[0])
+    cvxopt_sim_xs = reshape(cvxopt_sim_xs, (n_seq, T, x_dim))
+
+    cvxpy_sim_xs, cvxpy_sim_Ss = cvxpy_l.sample(T, init_state=0,
+            init_obs=mus[0])
+    cvxpy_sim_xs = reshape(cvxpy_sim_xs, (n_seq, T, x_dim))
 
 if PLOT:
     plt.close('all')
     plt.figure(1)
     plt.plot(range(T), xs[0], label="Observations")
     if LEARN:
-        plt.plot(range(T), sim_xs[0], label='Sampled Observations')
+        #plt.plot(range(T), cvxopt_sim_xs[0], label='CVXOPT')
+        plt.plot(range(T), cvxpy_sim_xs[0], label='CVXPY')
     plt.legend()
     plt.show()

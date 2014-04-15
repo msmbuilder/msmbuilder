@@ -68,6 +68,9 @@ class FitMSLDS(Command, MDTrajInputMixin):
         Lag time(s) of the model(s). Default = [1,]''', nargs='+')
     group_mslds.add_argument('--platform', choices=['cpu'], default='cpu', help='''
         Implementation platform. default="cpu"''')
+    group_mslds.add_argument('--solver', choices=['cvxopt', 'cvxpy'],
+        default='cvxopt', help='''
+        SDP Solver. default="cvxopt"''')
     group_mslds.add_argument('--n-init', type=int, default=5, help=
     '''Number of initialization for each model fit. Each of these
         "outer iterations" corresponds to a new random initialization of

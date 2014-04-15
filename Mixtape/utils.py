@@ -89,3 +89,51 @@ def iter_vars(A, Q, N):
     for i in range(N):
         V = Q + np.dot(A, np.dot(V, A.T))
     return V
+
+
+def reinflate_cvxopt(dim, matvec):
+    """
+    Given vector matvec of size dim*(dim+1)/2, encoding the upper
+    triangular portion of a symmetric matrix in column major format,
+    reinflate it into a full matrix
+
+    Parameters
+    __________
+
+    dim: int
+        Dimensionality of square matrix to be created
+
+    matvec: numpy.ndarray
+        Vector of shape (dim*(dim+1)/2,)
+    """
+    M = np.zeros((dim, dim))
+    for j in range(dim):
+        for k in range(j + 1):
+            vec_pos = int(j * (j + 1) / 2 + k)
+            M[j, k] = matvec[vec_pos]
+            M[k, j] = M[j, k]
+    return M
+
+def reinflate_cvxpy(M):
+    """
+    Given matrix M with only lower triangular elements nonzero,
+    fill-in the remainder so as to make M symmetric.
+
+    Parameters
+    __________
+
+    M: numpy.ndarray
+        A matrix with only lower-triangular and diagonal elements
+        nonzero
+    """
+    if isinstance(M, float):
+        dim = 1
+    else:
+        (dim_x, dim_y) = np.shape(M)
+        assert dim_x == dim_y
+        dim = dim_x
+    for j in range(dim):
+        for k in range(j + 1):
+            if j != k:
+                M[k, j] = M[j,k]
+    return M

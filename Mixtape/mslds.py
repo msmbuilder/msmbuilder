@@ -53,7 +53,10 @@ from mixtape import _reversibility, _mslds
 from mixtape._mslds import MetastableSLDSCPUImpl
 from mixtape.mslds_solvers.mslds_A_sdp import solve_A
 from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
+from mixtape.mslds_solvers.cvxpy_A_sdp import cvx_A_solve
+from mixtape.mslds_solvers.cvxpy_Q_sdp import cvx_Q_solve
 from mixtape.utils import iter_vars, categorical
+import pdb
 
 #-----------------------------------------------------------------------------
 # Code
@@ -145,7 +148,7 @@ class MetastableSwitchingLDS(object):
             transmat_prior=None, params='tmcqab', reversible_type='mle',
             n_em_iter=10, n_hotstart = 5, covars_prior=1e-2,
             covars_weight=1, precision='mixed', eps=2.e-1, platform='cpu',
-            max_iters=50, display_solver_output=False):
+            max_iters=50, solver='cvxopt', display_solver_output=False):
 
         self.n_states = n_states
         self.n_init = n_init
@@ -159,6 +162,7 @@ class MetastableSwitchingLDS(object):
         self.transmat_prior = transmat_prior
         self.params = params
         self.precision = precision
+        self.solver = solver
         self.display_solver_output = display_solver_output
         if covars_prior <= 0:
             covars_prior = 0
@@ -460,14 +464,32 @@ class MetastableSwitchingLDS(object):
             E = stats['obs[:-1]*obs[:-1].T'][i]
             Sigma = self.covars_[i]
             Q = self.Qs_[i]
-            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
-                    self.max_iters, self.display_solver_output)
-            avec = np.array(sol['x'])
-            avec = avec[int(1 + self.n_features * (self.n_features + 1) /
-                2):]
-            A = np.reshape(avec, (self.n_features, self.n_features),
-                           order='F')
-            self.As_[i] = A
+            if self.solver == 'cvxopt':
+                sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
+                        self.max_iters, self.display_solver_output)
+                avec = np.array(sol['x'])
+                avec = avec[int(1+self.n_features*(self.n_features+1)/2):]
+                A = np.reshape(avec, (self.n_features, self.n_features),
+                               order='F')
+                self.As_[i] = A
+            elif self.solver == 'cvxpy':
+                # The CVXPY solver is unstable, so punt to cvxopt
+                # if failure
+                prob, s, Z, A = cvx_A_solve(self.n_features, B, C, E,
+                        Sigma, Q)
+                if prob.status == 'optimal':
+                    self.As_[i] = np.array(A.value)
+                else:
+                    print("A solver swapping to cvxopt!")
+                    sol, _, G, _ = solve_A(self.n_features, B, C, E,
+                            Sigma, Q, self.max_iters,
+                            self.display_solver_output)
+                    avec = np.array(sol['x'])
+                    avec = avec[int(
+                        1+self.n_features*(self.n_features+1)/2):]
+                    A = np.reshape(avec, (self.n_features,
+                        self.n_features), order='F')
+                    self.As_[i] = A
 
     def _Q_update(self, stats):
         for i in range(self.n_states):
@@ -489,17 +511,38 @@ class MetastableSwitchingLDS(object):
                                                 (self.n_features, 1)).T,
                                      A.T)) +
                     stats['post[1:]'][i] * np.dot(b, b.T)))
-            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
-                    self.max_iters, self.display_solver_output)
-            qvec = np.array(sol['x'])
-            qvec = qvec[int(1 + self.n_features * (self.n_features + 1) / 2):]
-            Q = np.zeros((self.n_features, self.n_features))
-            for j in range(self.n_features):
-                for k in range(j + 1):
-                    vec_pos = int(j * (j + 1) / 2 + k)
-                    Q[j, k] = qvec[vec_pos]
-                    Q[k, j] = Q[j, k]
-            self.Qs_[i] = Q
+            if self.solver == 'cvxopt':
+                sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
+                        self.max_iters, self.display_solver_output)
+                qvec = np.array(sol['x'])
+                qvec = qvec[int(1+self.n_features*(self.n_features+1)/2):]
+                Q = np.zeros((self.n_features, self.n_features))
+                for j in range(self.n_features):
+                    for k in range(j + 1):
+                        vec_pos = int(j * (j + 1) / 2 + k)
+                        Q[j, k] = qvec[vec_pos]
+                        Q[k, j] = Q[j, k]
+                self.Qs_[i] = Q
+            elif self.solver == 'cvxpy':
+                # The CVXPY solver is unstable, so punt to cvxopt
+                # if failure
+                prob, s, Z, Q = cvx_Q_solve(self.n_features, A, B, Sigma)
+                if prob.status == 'optimal':
+                    self.Qs_[i] = np.array(Q.value)
+                else:
+                    print("Q solver swapping to cvxopt!")
+                    sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
+                            self.max_iters, self.display_solver_output)
+                    qvec = np.array(sol['x'])
+                    qvec = qvec[
+                            int(1+self.n_features*(self.n_features+1)/2):]
+                    Q = np.zeros((self.n_features, self.n_features))
+                    for j in range(self.n_features):
+                        for k in range(j + 1):
+                            vec_pos = int(j * (j + 1) / 2 + k)
+                            Q[j, k] = qvec[vec_pos]
+                            Q[k, j] = Q[j, k]
+                    self.Qs_[i] = Q
 
     def _b_update(self, stats):
         for i in range(self.n_states):
