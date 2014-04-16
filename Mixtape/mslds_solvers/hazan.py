@@ -94,7 +94,8 @@ class BoundedTraceSDPHazanSolver(object):
     """
     def __init__(self):
         pass
-    def solve(self, f, gradf, dim, N_iter, Cf=None):
+    def solve(self, f, gradf, dim, N_iter, Cf=None, DEBUG=False,
+                num_tries=5):
         """
         Parameters
         __________
@@ -114,6 +115,10 @@ class BoundedTraceSDPHazanSolver(object):
         X /= np.trace(X)
         for j in range(N_iter):
             grad = gradf(X)
+            if DEBUG:
+                print "\tIteration %d" % j
+                print "\tOriginal X:\n", X
+                print "\tgrad X:\n", grad
             if dim >= 3:
                 if Cf != None:
                     epsj = Cf/(j+1)**2
@@ -123,9 +128,33 @@ class BoundedTraceSDPHazanSolver(object):
                 # which is based off an Implicitly Restarted
                 # Arnoldi Method (essentially a stable version of
                 # Lanczos's algorithm)
-                _, vj = linalg.eigsh(grad, k=1, tol=epsj, sigma=0.,
-                        which='LM')
-                if np.isnan(np.min(vj)):
+
+                #_, vj = linalg.eigsh(grad, k=1, tol=epsj, sigma=0.,
+                #        which='LM') # Gives errors for positive eigs
+                # TODO: Make this more robust
+
+                try:
+                    # shift matrices upwards by a positive quantity to
+                    # avoid common issues with small eigenvalues
+                    w, _ = linalg.eigsh(grad, k=1, tol=epsj, which='LM')
+                    if np.isnan(w) or w == -np.inf or w == np.inf:
+                        shift = 1
+                    else:
+                        shift = 1.5*np.abs(w)
+                except (linalg.ArpackError, linalg.ArpackNoConvergence):
+                    shift = 1
+                vj = None
+                for i in range(num_tries):
+                    try:
+                        _, vj = linalg.eigsh(grad
+                                + (i+1)*shift*np.eye(dim),
+                                k=1, tol=epsj, which='LA')
+                    except (linalg.ArpackError,
+                            linalg.ArpackNoConvergence):
+                        continue
+                    if not np.isnan(np.min(vj)):
+                        break
+                if vj == None or np.isnan(np.min(vj)):
                     # The gradient is singular. In this case resort
                     # to the more expensive, but more stable eigh method,
                     # which is based on a divide and conquer approach
@@ -143,6 +172,11 @@ class BoundedTraceSDPHazanSolver(object):
             # Avoid strange errors with complex numbers
             vj = np.real(vj)
             alphaj = min(1.,2./(j+1))
+            step = alphaj * (np.outer(vj,vj) - X)
+            if DEBUG:
+                print "\talphaj:\n", alphaj
+                print "\tvk vk.T:\n", np.outer(vj,vj)
+                print "\tstep:\n", step
             X = X + alphaj * (np.outer(vj,vj) - X)
         return X
 
