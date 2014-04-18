@@ -90,10 +90,10 @@ def test3():
     simple_equality_constraint_test(N_iter, neg_max_penalty,
             neg_max_grad_penalty)
 
-def test4():
+def simple_constraint_test(N_iter, penalty, grad_penalty):
     """
-    Check that the bounded trace implementation can handle equality and
-    inequality type constraints
+    Check that the bounded trace implementation can handle low-dimensional
+    equality and inequality type constraints for given penalty.
 
     With As and bs as below, we solve the problem
 
@@ -106,7 +106,6 @@ def test4():
     m = 1
     n = 1
     dim = 3
-    N_iter = 50
     eps = 1./N_iter
     M = 1.
     if m + n > 0:
@@ -115,9 +114,8 @@ def test4():
             M += np.max((np.log(m), 1.))/eps
         if n > 0:
             M += np.max((np.log(n), 1.))/(eps**2)
-        print("M", M)
     def f(X):
-        return penalty(X, m, n, M, As, bs, Cs, ds)
+        return penalty(X, m, n, M, As, bs, Cs, ds, dim)
     def gradf(X):
         return grad_penalty(X, m, n, M, As, bs, Cs, ds, dim)
     As = [np.array([[ 1., 0., 0.],
@@ -130,44 +128,25 @@ def test4():
     ds = [5./3]
     run_experiment(f, gradf, dim, N_iter)
 
+def test4():
+    """
+    Check equality and inequality constraints for log_sum_exp penalty
+    """
+    N_iter = 50
+    simple_constraint_test(N_iter, log_sum_exp_penalty,
+            log_sum_exp_grad_penalty)
+
 def test5():
     """
-    Check that the bounded trace implementation can handle equality and
-    inequality type constraints with neg_max_penalty
-
-    With As and bs as below, we solve the problem
-
-        max neg_max_penalty(X)
-        subject to
-            x_11 + 2 x_22 <= 1
-            x_11 + 2 x_22 + 2 x_33 == 5/3
-            Tr(X) = x_11 + x_22 + x_33 == 1
+    Check equality and inequality constraints for neg_max penalty
     """
-    m = 1
-    n = 1
-    dim = 3
     N_iter = 50
-    eps = 1./N_iter
-    M = 1.
-    if m + n > 0:
-        M += np.max((np.log(m), 1.))/eps
-        print("M", M)
-    def f(X):
-        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
-    def gradf(X):
-        return neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
-    As = [np.array([[ 1., 0., 0.],
-                    [ 0., 2., 0.],
-                    [ 0., 0., 0.]])]
-    bs = [1.]
-    Cs = [np.array([[ 1.,  0., 0.],
-                    [ 0.,  2., 0.],
-                    [ 0.,  0., 2.]])]
-    ds = [5./3]
-    run_experiment(f, gradf, dim, N_iter)
+    simple_constraint_test(N_iter, neg_max_penalty,
+            neg_max_grad_penalty)
 
 def test6():
     """
+    TODO: Stress test log_sum_exp once made numerically stable
     Stress test the bounded trace solver for
     inequalities.
 
@@ -182,7 +161,7 @@ def test6():
     for the first n-1 diagonal elements, but a large element (about 1/2)
     for the last element.
     """
-    dims = [50]
+    dims = [4,16]
     for dim in dims:
         m = dim - 1
         n = 0
@@ -212,6 +191,7 @@ def test6():
 
 def test7():
     """
+    TODO: Stress test log_sum_exp once made numerically stable
     Stress test the bounded trace solver for equalities.
 
     With As and bs as below, we solve the probelm
@@ -224,7 +204,7 @@ def test7():
     The optimal solution should equal a diagonal matrix with zero entries
     for the first n-1 diagonal elements, but a 1 for the diagonal element.
     """
-    dims = [20]
+    dims = [4,16]
     for dim in dims:
         m = 0
         n = dim - 1
@@ -254,10 +234,11 @@ def test7():
 
 def test8():
     """
+    TODO: Stress test log_sum_exp once made numerically stable
     Stress test the bounded trace solver for both equalities and
     inequalities.
 
-    With As and bs as below, we solve the probelm
+    With As and bs as below, we solve the problem
 
     max neg_max_penalty(X)
     subject to
@@ -268,7 +249,7 @@ def test8():
     The optimal solution should equal a diagonal matrix with zero entries
     for the first n-1 diagonal elements, but a 1 for the diagonal element.
     """
-    dims = [50]
+    dims = [4, 16]
     np.set_printoptions(precision=2)
     for dim in dims:
         m = dim - 2
@@ -321,12 +302,14 @@ def run_experiment(f, gradf, dim, N_iter):
     print "\tFAIL: " + str(FAIL)
     print "\tComputation Time (s): ", elapsed
 
-
 if __name__ == "__main__":
+    # TODO: change these tests to Nosetests style
     #test1()
     #test2()
-    test3()
+    #test3()
+    #test4()
     #test5()
     #test6()
     #test7()
     #test8()
+    pass
