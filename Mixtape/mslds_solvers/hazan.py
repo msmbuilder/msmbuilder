@@ -354,34 +354,6 @@ class FeasibilitySDPHazanSolver(object):
     def __init__(self):
         self._solver = BoundedTraceSDPHazanSolver()
 
-    #def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
-    #    """
-    #    Implements a convenience wrapper around
-    #    _feasibility_inequality_solve that allows for solution of
-    #    feasibility problems of type
-
-    #    Feasibility of X
-    #    subject to
-    #        Tr(A_i X) <= b_i
-    #        Tr(C_i X)  = d_i
-    #        Tr(X) = 1
-    #    """
-
-    #    Fs = []
-    #    Fs.extend(As)
-    #    es = []
-    #    es.extend(bs)
-    #    for i in range(len(Cs)):
-    #        Ci = Cs[i]
-    #        di = ds[i]
-    #        # Add constraint Tr(C_i X) <= d_i
-    #        Fs.append(Ci)
-    #        es.append(di)
-    #        # Add constraint Tr(-C_i X) <= d_i
-    #        Fs.append(-Ci)
-    #        es.append(di)
-    #    return self._feasibility_inequality_solve(Fs, es, eps, dim)
-
     def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
         """
         Solves feasibility problems of the type
