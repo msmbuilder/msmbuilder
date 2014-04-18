@@ -117,6 +117,9 @@ class SparseTICA(tICA):
         self.verbose = verbose
         super(SparseTICA, self).__init__(n_components, offset, gamma)
 
+    def eigenvalues_(self):
+        raise NotImplementedError()
+
     def _solve(self):
         A = self.offset_correlation_
         B = self.covariance_ + (self.gamma / self.n_features) * \
@@ -204,6 +207,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
             "Could not import cvxpy, a required package for SparseTICA"
             "See https://github.com/cvxgrp/cvxpy for details")
 
+
     pprint = print
     if not verbose:
         pprint = lambda *args : None
@@ -271,7 +275,6 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         old_x.fill(np.inf)
         scaledA = (A / tau + np.eye(length))
         while np.linalg.norm(x-old_x) > tol:
-            print(np.linalg.norm(x-old_x), tol)
             pprint('x', x)
             old_x = x
             W = np.diag(1.0 / (np.abs(x) + eps))
@@ -295,14 +298,16 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
 
 
 if __name__ == '__main__':
-    X = np.random.randn(1000, 100)
-    X[:,0] = np.sin(np.arange(1000) / 100.0) + np.random.randn(1000)*0.1
-    X[:,1] = np.cos(np.arange(1000) / 100.0) + np.random.randn(1000)*0.1
-
-    tica = SparseTICA(n_components=2, rho=0.01, tolerance=1e-3, verbose=False)
-    tica.fit(X)
-    tica._solve()
+    X = np.random.randn(1000, 10)
+    X[:,0] = np.sin(np.arange(1000) / 100.0) #+ np.random.randn(1000)*0.1
+    #X[:,1] = np.cos(np.arange(1000) / 100.0) + np.random.randn(1000)*0.1
 
     tica = tICA(n_components=2).fit(X)
     print('tica eigenvector\n', tica.eigenvectors_[0])
     print('tica eigenvalue\n', tica.eigenvalues_[0])
+
+
+    tica = SparseTICA(n_components=2, rho=0.01, tolerance=1e-6, verbose=False)
+    tica.fit(X)
+    tica._solve()
+
