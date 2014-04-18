@@ -46,41 +46,8 @@ import numpy.random as random
 import numpy as np
 import pdb
 from numbers import Number
-
-# Convenience functions; check if mdtraj has similar functionality
-# already
-def assert_list_of_types(Es, expected_type):
-    """Checks whether input is a list of np.ndarray elements all of
-       the same dimension dim
-
-       Parameters
-       __________
-       Es: list
-            Argument to check
-       dim: int
-            Expected dimension of Es
-     """
-    assert isinstance(Es, list)
-    for i in range(len(Es)):
-        Ei = Es[i]
-        assert isinstance(Ei, expected_type)
-
-def assert_list_of_square_arrays(Es, dim):
-    """Checks whether input is a list of np.ndarray elements all of
-       the same dimension dim
-
-       Parameters
-       __________
-       Es: list
-            Argument to check
-       dim: int
-            Expected dimension of Es
-    """
-    assert_list_of_types(Es, np.ndarray)
-    for i in range(len(Es)):
-       Ei = Es[i]
-       assert np.shape(Ei) == (dim, dim)
-
+from hazan_penalties import *
+from hazan_utils import *
 
 class BoundedTraceSDPHazanSolver(object):
     """
@@ -181,11 +148,11 @@ class BoundedTraceSDPHazanSolver(object):
         return X
 
 class GeneralSDPHazanSolver(object):
-    """ Implementation of Hazan's Fast SDP solver, which uses
-        the bounded trace PSD solver above to solve general SDPs.
+    """ Implementation of a SDP solver, which uses binary search
+        and the FeasibilitySDPSolver below to solve general SDPs.
     """
     def __init__(self):
-        self._solver = BoundedTraceSDPHazanSolver()
+        self._solver = FeasibilitySDPHazanSolver()
 
     def solve(self, E, As, bs, Cs, ds, eps, dim, R):
         """
@@ -352,7 +319,7 @@ class GeneralSDPHazanSolver(object):
             # Check feasibility in [lower, alpha]
             Fs.append(G)
             bs.append(alpha)
-            Y_LOWER, _, FAIL_LOWER = self.feasibility_solve(Fs, bs,
+            Y_LOWER, _, FAIL_LOWER = self._solver.feasibility_solve(Fs, bs,
                     Cs, ds, eps, dim+1)
             Fs.pop()
             bs.pop()
@@ -360,7 +327,7 @@ class GeneralSDPHazanSolver(object):
             # Check feasibility in [alpha, upper]
             Fs.append(-G)
             bs.append(alpha)
-            Y_UPPER, _, FAIL_UPPER= self.feasibility_solve(Fs, bs,
+            Y_UPPER, _, FAIL_UPPER= self._solver.feasibility_solve(Fs, bs,
                     Cs, ds, eps, dim+1)
 
             if not FAIL_UPPER:
@@ -379,6 +346,13 @@ class GeneralSDPHazanSolver(object):
         return (upper, lower, X_UPPER, X_LOWER, FAIL)
 
 
+class FeasibilitySDPHazanSolver(object):
+    """ Implementation of Hazan's Fast SDP feasibility, which uses
+        the bounded trace PSD solver above to solve general SDPs.
+    """
+    def __init__(self):
+        self._solver = BoundedTraceSDPHazanSolver()
+
     def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
         """
         Implements a convenience wrapper around
@@ -390,12 +364,50 @@ class GeneralSDPHazanSolver(object):
             Tr(A_i X) <= b_i
             Tr(C_i X)  = d_i
             Tr(X) = 1
+        """
 
-        By translating equality constraints Tr(C_i X) = d_i into
-        two inequality constraints
+        Fs = []
+        Fs.extend(As)
+        es = []
+        es.extend(bs)
+        for i in range(len(Cs)):
+            Ci = Cs[i]
+            di = ds[i]
+            # Add constraint Tr(C_i X) <= d_i
+            Fs.append(Ci)
+            es.append(di)
+            # Add constraint Tr(-C_i X) <= d_i
+            Fs.append(-Ci)
+            es.append(di)
+        return self._feasibility_inequality_solve(Fs, es, eps, dim)
 
-        Tr(C_i X) <= d_i
-        Tr(-C_i x) <= d_i
+    def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
+        """
+        Solves feasibility problems of the type
+
+        Feasibility of X
+        subject to
+            Tr(A_i X) <= b_i
+            Tr(C_i X)  = d_i
+            Tr(X) = 1
+
+        by optimizing neg_max_penalty function
+        TODO: Switch to log_sum_exp_penalty once numerically stable
+
+        Parameters
+        __________
+        As: list
+            A list of square (dim, dim) numpy.ndarray matrices
+        bs: list
+            A list of floats
+        Cs: list
+            A list of square (dim, dim) numpy.ndarray matrices
+        ds: list
+            A list of floats
+        eps: float
+            Allowed error tolerance. Must be > 0
+        dim: int
+            Dimension of input
         """
         try:
             assert_list_of_types(bs, Number)
@@ -413,83 +425,9 @@ class GeneralSDPHazanSolver(object):
             len(Cs) == len(ds).
             """)
 
-        Fs = []
-        Fs.extend(As)
-        es = []
-        es.extend(bs)
-        for i in range(len(Cs)):
-            Ci = Cs[i]
-            di = ds[i]
-            # Add constraint Tr(C_i X) <= d_i
-            Fs.append(Ci)
-            es.append(di)
-            # Add constraint Tr(-C_i X) <= d_i
-            Fs.append(-Ci)
-            es.append(di)
-        return self._feasibility_inequality_solve(Fs, es, eps, dim)
-
-    def _feasibility_inequality_solve(self, As, bs, eps, dim):
-        """
-        Implements the subproblem of solving feasibility problems of the
-        type
-
-        Feasibility of X
-        subject to
-            Tr(A_i X) <= b_i
-            Tr(X) = 1
-
-        by optimizing the function
-
-        f(X) = -(1/M) log(sum_{i=1}^m exp(M*(A_i dot X - b_i)))
-
-        where m is the number of linear constraints and M = log m / eps,
-        with eps an error tolerance parameter
-
-        Parameters
-        __________
-        As: list
-            A list of square (dim, dim) numpy.ndarray matrices
-        bs: list
-            A list of floats
-        eps: float
-            Allowed error tolerance. Must be > 0
-        dim: int
-            Dimension of input
-        """
-        def f(X):
-            """
-            X: np.ndarray
-                Computes function
-                f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
-            """
-            s = 0.
-            for i in range(m):
-                Ai = As[i]
-                bi = bs[i]
-                s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-            return -(1.0/M) * np.log(s)
-
-        def gradf(X):
-            """
-            X: np.ndarray
-                Computes grad f(X) = -(1/M) * f' / f where
-                  f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-                  f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-            """
-            num = 0.
-            denom = 0.
-            for i in range(m):
-                Ai = As[i]
-                bi = bs[i]
-                if dim >= 2:
-                    num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
-                    denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-                else:
-                    num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
-                    denom += np.exp(M*(Ai*X - bi))
-            return (-1.0/M) * num/denom
         m = len(As)
-        M = np.max((np.log(m)/eps, 1.))
+        n = len(Cs)
+        M = compute_scale(m, n)
         K = int(1/eps)
 
         X = self._solver.solve(f, gradf, dim, K)

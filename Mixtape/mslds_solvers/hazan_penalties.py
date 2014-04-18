@@ -6,6 +6,29 @@ Various Useful Penalty Functions for Hazan's Algorithm.
 @email: bharath.ramsundar@gmail.com
 """
 
+def compute_scale(m,n, eps):
+    """
+    Compute the scaling factor required for m inequality and
+    n equality constraints in the log_sum_exp penalty.
+
+    Parameters
+    __________
+    m: int
+        Number of inequality constraints
+    n: int
+        Number of equality constraints
+    """
+    if m + n > 0:
+        M = 0.
+        if m > 0:
+            M += np.max((np.log(m), 1.))/eps
+        if n > 0:
+            M += np.max((np.log(n), 1.))/eps
+    else:
+        M = 1.
+    return M
+
+
 def neg_sum_squares(x):
     """
     Computes f(x) = -\sum_k x_kk^2. Useful for debugging.
@@ -34,12 +57,50 @@ def grad_neg_sum_squares(x):
         G[i,i] += -2.*x[i,i]
     return G
 
+def f(X):
+    """
+    TODO: Delete this once okay
+    X: np.ndarray
+        Computes function
+        f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
+    """
+    s = 0.
+    for i in range(m):
+        Ai = As[i]
+        bi = bs[i]
+        s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
+    return -(1.0/M) * np.log(s)
+
+def gradf(X):
+    """
+    TODO: Delete this once okay
+    X: np.ndarray
+        Computes grad f(X) = -(1/M) * f' / f where
+          f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
+          f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
+    """
+    num = 0.
+    denom = 0.
+    for i in range(m):
+        Ai = As[i]
+        bi = bs[i]
+        if dim >= 2:
+            num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
+            denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
+        else:
+            num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
+            denom += np.exp(M*(Ai*X - bi))
+    return (-1.0/M) * num/denom
+
 def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     """
     TODO: Make this more numerically stable
     Computes
     f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
                     + sum_{j=1}^n exp(M*(Tr(Cj,X) - dj)^2))
+
+    where m is the number of linear constraints and M = log m / eps,
+    with eps an error tolerance parameter
 
     Parameters
     __________
@@ -72,7 +133,7 @@ def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
         retval += -(1.0/M) * np.log(s + r)
     return retval
 
-def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim):
+def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     """
     TODO: Make this more numerically stable
     Computes grad f(X) = -(1/M) * c' / c where

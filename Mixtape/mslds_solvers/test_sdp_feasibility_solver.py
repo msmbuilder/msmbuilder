@@ -3,14 +3,14 @@ import pdb
 
 def test1():
     """
-    Check that argument validation is working.
+    Check that argument validation works.
     """
     dim = 2
 
     # Check argument validation
     Error = False
     try:
-        g = GeneralSDPHazanSolver()
+        f = FeasibilitySDPHazanSolver()
         As = [np.array([[1.5, 0.],
                         [0., 1.5]])]
         # bs is misformatted; should be bs = [1.5] in this case
@@ -19,31 +19,30 @@ def test1():
         ds = []
         eps = 1e-1
         dim = 1
-        g.feasibility_solve(As, bs, Cs, ds, eps, dim)
+        f.feasibility_solve(As, bs, Cs, ds, eps, dim)
     except ValueError:
         Error = True
     assert Error == True
 
 def test2():
     """
-    Check that the feasibility solver with just inequalities reports that a
-    feasible problem is feasible.
+    Check that the feasibility solver with one inequality reports that a
+    feasible problem is feasible.  With As, bs defined as below, the
+    constraints translate to
+
+    x_11 + 2 x_22 <= 1.5
+    Tr(X) = x_11 + x_22 = 1.
+    these two equations can both be true
     """
-    # Now try two-dimensional basic feasible example
-    g = GeneralSDPHazanSolver()
-    # With A defined as below, the constraints translate to
-    # x_11 + 2 x_22 <= 1.5
-    # the unit trace constraint is
-    # x_11 + x_22 = 1.
-    # these two equations can both be true
+    dim = 2
+    f = FeasibilitySDPHazanSolver()
     As = [np.array([[1, 0.],
                     [0., 2]])]
     bs = [1.5]
     eps = 1e-1
-    dim = 2
     Cs = []
     ds = []
-    X, fX, FAIL = g.feasibility_solve(As, bs, Cs, ds, eps, dim)
+    X, fX, FAIL = f.feasibility_solve(As, bs, Cs, ds, eps, dim)
     assert FAIL == False
 
 def test3():
@@ -52,7 +51,7 @@ def test3():
     an infeasible problem is infeasible.
     """
     # Now try two-dimensional basic infeasibility example
-    g = GeneralSDPHazanSolver()
+    f = FeasibilitySDPHazanSolver()
     # With A defined as below, the constraints translate to
     # 2 x_11 + 2 x_22 <= 1.5
     # the unit trace constraint is
@@ -74,7 +73,7 @@ def test4():
     a feasible problem is feasible.
     """
     # Now try two-dimensional basic feasible example
-    g = GeneralSDPHazanSolver()
+    f = FeasibilitySDPHazanSolver()
     # With C, d defined as below, the constraints translate to
     # x_11 + 2 x_22 = 1.5
     # the unit trace constraint is
@@ -94,6 +93,6 @@ def test4():
 
 if __name__ == "__main__":
     #test1()
-    #test2()
+    test2()
     #test3()
-    test4()
+    #test4()
