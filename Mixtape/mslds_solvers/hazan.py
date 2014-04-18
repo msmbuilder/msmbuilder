@@ -115,8 +115,8 @@ class BoundedTraceSDPHazanSolver(object):
         X /= np.trace(X)
         for j in range(N_iter):
             grad = gradf(X)
+            print "\tIteration %d" % j
             if DEBUG:
-                print "\tIteration %d" % j
                 print "\tOriginal X:\n", X
                 print "\tgrad X:\n", grad
             if dim >= 3:

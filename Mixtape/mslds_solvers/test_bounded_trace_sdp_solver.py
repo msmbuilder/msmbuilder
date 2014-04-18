@@ -1,187 +1,7 @@
 from hazan import *
+from hazan_penalties import *
 import pdb
 import time
-
-def neg_sum_squares(x):
-    """
-    Computes f(x) = -\sum_k x_kk^2
-
-    Parameters
-    __________
-    x: numpy.ndarray
-    """
-    (N, _) = np.shape(x)
-    retval = 0.
-    for i in range(N):
-        retval += -x[i,i]**2
-    return retval
-
-def grad_neg_sum_squares(x):
-    """
-    Computes grad(-\sum_k x_kk^2)
-
-    Parameters
-    __________
-    x: numpy.ndarray
-    """
-    (N, _) = np.shape(x)
-    G = np.zeros((N,N))
-    for i in range(N):
-        G[i,i] += -2.*x[i,i]
-    return G
-
-def penalty(X, m, n, M, As, bs, Cs, ds):
-    """
-    Computes
-    f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-                    + sum_{j=1}^n exp(M*(Tr(Cj,X) - dj)^2))
-
-    Parameters
-    __________
-
-    m: int
-        Number of inequaltity constraints
-    n: int
-        Number of equality constraints
-    M: float
-        Rescaling Factor
-    """
-    s = 0.
-    r = 0.
-    retval = 0.
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        if dim >= 2:
-            s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-        else:
-            s += np.exp(M*(Ai*X - bi))
-    for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        if dim >= 2:
-            r += np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)
-        else:
-            r += np.exp(M*(Cj*X - dj)**2)
-    if m + n > 0:
-        retval += -(1.0/M) * np.log(s + r)
-    return retval
-
-def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
-    """
-    Note that penalty(X) roughly equals
-
-     -max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|})
-
-    This function computes and returns this quantity.
-    """
-    penalties = np.zeros(n+m)
-    count = 0
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        if dim >= 2:
-            penalties[i] = np.trace(np.dot(Ai,X)) - bi
-        else:
-            penalties[i] = Ai*X - bi
-    for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        if dim >= 2:
-            penalties[j+m] += np.abs(np.trace(np.dot(Cj,X)) - dj)
-        else:
-            penalties[j+m] += np.abs(Cj*x - dj)
-    return -np.amax(penalties)
-
-def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
-    """
-    Note that penalty(X) roughly equals
-
-     max(max_i {Tr(Ai,X) - bi}, max_j{(Tr(Cj,X) - dj)^2})
-
-    The subgradient of this quantity is given by
-
-    Conv{{A_i | penalty(X) = Tr(Ai,X) - bi} union
-         { sign(Tr(Cj,X) - dj) 2 Cj  | penalty(X) = |Tr(Cj,X) - dj| }}
-
-    We use a weak subdifferential calculus that averages the gradients
-    of all violated constraints.
-    """
-    penalties = np.zeros(n+m)
-    count = 0
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        if dim >= 2:
-            penalties[i] = np.trace(np.dot(Ai,X)) - bi
-        else:
-            penalties[i] = Ai*X - bi
-    for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        if dim >= 2:
-            penalties[j+m] += np.abs(np.trace(np.dot(Cj,X)) - dj)
-        else:
-            penalties[j+m] += np.abs(Cj*x - dj)
-    #ind = np.argmax(penalties)
-    inds = [ind for ind in range(n+m) if penalties[ind] > eps]
-
-    grad = np.zeros(np.shape(X))
-    for ind in inds:
-        if ind < m:
-            Ai =  As[ind]
-            grad += Ai
-        else:
-            Cj = Cs[ind - m]
-            val = np.trace(np.dot(Cj,X)) - dj
-            if val < 0:
-                grad += - Cj
-            elif val > 0:
-                grad += Cj
-    # Average by num entries
-    grad = grad / max(len(inds), 1.)
-    # Take the negative since our function is -max{..}
-    return -grad
-
-def grad_penalty(X, m, n, M, As, bs, Cs, ds, dim):
-    """
-    Computes grad f(X) = -(1/M) * c' / c where
-      c' = (sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-            + sum_{j=1}^n exp(M(Tr(Cj,X) - dj)**2)
-                            * (2M(Tr(Cj,X) - dj)) * Cj.T)
-      c  = (sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-            + sum_{i=1}^n exp(M(Tr(Cj,X) - dj)**2))
-
-    Need Ai and Cj to be symmetric real matrices
-    """
-    retval = 0.
-    nums = 0.
-    denoms = 0.
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        if dim >= 2:
-            num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
-            denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-        else:
-            num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
-            denom += np.exp(M*(Ai*X - bi))
-    for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        if dim >= 2:
-            num += (np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)*
-                    (2*M*(np.trace(np.dot(Cj,X)) - dj))*
-                    Cj.T)
-            denom += np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)
-        else:
-            num += np.exp(M*(Cj*x - dj)**2)*(2*M*(Cj*x - dj))*Cj.T
-            denom += np.exp(M*(Cj*x - dj)**2)
-    if m + n > 0:
-        retval += -(1.0/M) * num/denom
-    import pdb
-    pdb.set_trace()
-    return retval
 
 def test1():
     """
@@ -199,7 +19,7 @@ def test1():
     n is the dimension.
     """
     # dimension of square matrix X
-    dims = [1,2,4,8,16,32,64,128]
+    dims = [1,4,16,64]
     for dim in dims:
         print("dim = %d" % dim)
         # Note that H(-f) = 2 I (H is the hessian of f)
@@ -208,7 +28,7 @@ def test1():
         b = BoundedTraceSDPHazanSolver()
         X = b.solve(neg_sum_squares, grad_neg_sum_squares,
                 dim, N_iter, Cf=Cf)
-        fX = f(X)
+        fX = neg_sum_squares(X)
         print("\tTr(X) = %f" % np.trace(X))
         print("\tf(X) = %f" % fX)
         print("\tf* = %f" % (-1./dim))
@@ -217,11 +37,10 @@ def test1():
         assert np.abs(fX - (-1./dim)) < 1./N_iter
         print("\tError Tolerance Acceptable")
 
-
-def test2():
+def simple_equality_constraint_test(N_iter, penalty, grad_penalty):
     """
-    Check that the bounded trace implementation can handle equality type
-    constraints.
+    Check that the bounded trace implementation can handle low dimensional
+    equality type constraints for the given penalty function.
 
     With As and bs as below, we solve the problem
 
@@ -236,7 +55,6 @@ def test2():
     m = 0
     n = 1
     dim = 2
-    N_iter = 50
     eps = 1./N_iter
     M = 1.
     if m + n > 0:
@@ -245,9 +63,8 @@ def test2():
             M += np.max((np.log(m), 1.))/eps
         if n > 0:
             M += np.max((np.log(n), 1.))/(eps**2)
-        print("M", M)
     def f(X):
-        return penalty(X, m, n, M, As, bs, Cs, ds)
+        return penalty(X, m, n, M, As, bs, Cs, ds, dim)
     def gradf(X):
         return grad_penalty(X, m, n, M, As, bs, Cs, ds, dim)
     As = []
@@ -255,60 +72,23 @@ def test2():
     Cs = [np.array([[ 1.,  0.],
                     [ 0.,  2.]])]
     ds = [1.5]
-    B = BoundedTraceSDPHazanSolver()
-    X = B.solve(f, gradf, dim, N_iter)
-    fX = f(X)
-    print("X:")
-    print X
-    print("f(X) = %f" % (fX))
-    FAIL = (fX < -eps)
-    print("FAIL: " + str(FAIL))
+    run_experiment(f, gradf, dim, N_iter)
+
+def test2():
+    """
+    Check equality constraints for log_sum_exp constraints
+    """
+    N_iter = 50
+    simple_equality_constraint_test(N_iter, log_sum_exp_penalty,
+            log_sum_exp_grad_penalty)
 
 def test3():
     """
-    Check that the bounded trace implementation can handle equality type
-    constraints with the neg_max penalty
-
-    With As and bs as below, we solve the problem
-
-        max neg_max_penalty(X)
-        subject to
-          x_11 + 2 x_22 == 1.5
-          Tr(X) = x_11 + x_22 == 1.
-
-    We should find neg_max_penalty(X) >= -eps, and that the above
-    constraints have a solution
+    Check equality constraints for neg_max constraints
     """
-    m = 0
-    n = 1
-    dim = 2
     N_iter = 50
-    eps = 1./N_iter
-    M = 1.
-    if m + n > 0:
-        M = 0.
-        if m > 0:
-            M += np.max((np.log(m), 1.))/eps
-        if n > 0:
-            M += np.max((np.log(n), 1.))/(eps**2)
-        print("M", M)
-    def f(X):
-        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
-    def gradf(X):
-        return neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
-    As = []
-    bs = []
-    Cs = [np.array([[ 1.,  0.],
-                    [ 0.,  2.]])]
-    ds = [1.5]
-    B = BoundedTraceSDPHazanSolver()
-    X = B.solve(f, gradf, dim, N_iter)
-    fX = f(X)
-    print("X:")
-    print X
-    print("f(X) = %f" % (fX))
-    FAIL = (fX < -eps)
-    print("FAIL: " + str(FAIL))
+    simple_equality_constraint_test(N_iter, neg_max_penalty,
+            neg_max_grad_penalty)
 
 def test4():
     """
@@ -348,8 +128,7 @@ def test4():
                     [ 0.,  2., 0.],
                     [ 0.,  0., 2.]])]
     ds = [5./3]
-    B = BoundedTraceSDPHazanSolver()
-    X = B.solve(f, gradf, dim, N_iter)
+    run_experiment(f, gradf, dim, N_iter)
 
 def test5():
     """
@@ -385,14 +164,7 @@ def test5():
                     [ 0.,  2., 0.],
                     [ 0.,  0., 2.]])]
     ds = [5./3]
-    B = BoundedTraceSDPHazanSolver()
-    X = B.solve(f, gradf, dim, N_iter)
-    fX = f(X)
-    print("X:")
-    print X
-    print("f(X) = %f" % (fX))
-    FAIL = (fX < -eps)
-    print("FAIL: " + str(FAIL))
+    run_experiment(f, gradf, dim, N_iter)
 
 def test6():
     """
@@ -436,18 +208,7 @@ def test6():
             bs.append(bi)
         Cs = []
         ds = []
-        B = BoundedTraceSDPHazanSolver()
-        start = time.clock()
-        X = B.solve(f, gradf, dim, N_iter, DEBUG=False)
-        elapsed = (time.clock() - start)
-        fX = f(X)
-        print "\tX:\n", X
-        print "\tf(X) = %f" % fX
-        FAIL = (fX < -eps)
-        print "\tFAIL: " + str(FAIL)
-        print "\tComputation Time (s): ", elapsed
-        #import pdb
-        #pdb.set_trace()
+        run_experiment(f, gradf, dim, N_iter)
 
 def test7():
     """
@@ -472,7 +233,7 @@ def test7():
         M = 1.
         if m + n > 0:
             M = np.max((np.log(m+n), 1.))/eps
-            print("M", M)
+            print "M", M
         def f(X):
             return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
@@ -489,18 +250,7 @@ def test7():
         for j in range(dim-1):
             dj = 0.
             ds.append(dj)
-        B = BoundedTraceSDPHazanSolver()
-        start = time.clock()
-        X = B.solve(f, gradf, dim, N_iter, DEBUG=False)
-        elapsed = (time.clock() - start)
-        fX = f(X)
-        print "\tX:\n", np.around(X, decimals=4)
-        print "\tf(X) = %f" % fX
-        FAIL = (fX < -eps)
-        print "\tFAIL: " + str(FAIL)
-        print "\tComputation Time (s): ", elapsed
-        #import pdb
-        #pdb.set_trace()
+        run_experiment(f, gradf, dim, N_iter)
 
 def test8():
     """
@@ -518,35 +268,65 @@ def test8():
     The optimal solution should equal a diagonal matrix with zero entries
     for the first n-1 diagonal elements, but a 1 for the diagonal element.
     """
+    dims = [50]
+    np.set_printoptions(precision=2)
+    for dim in dims:
+        m = dim - 2
+        n = dim**2 - dim
+        As = []
+        N_iter = 1000
+        eps = 1./N_iter
+        M = 1.
+        if m + n > 0:
+            M = np.max((np.log(m+n), 1.))/eps
+            print "M", M
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return neg_max_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        for j in range(1,dim-1):
+            Aj = np.zeros((dim,dim))
+            Aj[j,j] = 1
+            As.append(Aj)
+        bs = []
+        for j in range(1,dim-1):
+            bj = 1./N_iter
+            bs.append(bj)
+        Cs = []
+        for i in range(dim):
+            for j in range(dim):
+                if i != j:
+                    Ci = np.zeros((dim,dim))
+                    Ci[i,j] = 1
+                    Cs.append(Ci)
+        ds = []
+        for i in range(dim):
+            for j in range(dim):
+                if i != j:
+                    dij = 0.
+                    ds.append(dij)
+        run_experiment(f, gradf, dim, N_iter)
+
+def run_experiment(f, gradf, dim, N_iter):
+    eps = 1./N_iter
+    B = BoundedTraceSDPHazanSolver()
+    start = time.clock()
+    X = B.solve(f, gradf, dim, N_iter, DEBUG=False)
+    elapsed = (time.clock() - start)
+    fX = f(X)
+    print "\tX:\n", X
+    print "\tf(X) = %f" % fX
+    FAIL = (fX < -eps)
+    print "\tFAIL: " + str(FAIL)
+    print "\tComputation Time (s): ", elapsed
 
 
 if __name__ == "__main__":
     #test1()
     #test2()
-    #test3()
+    test3()
     #test5()
     #test6()
-    test7()
-    #m = 1
-    #n = 1
-    #X = np.eye(3)
-    #As = [np.array([[ 1., 0., 0.],
-    #                [ 0., 2., 0.],
-    #                [ 0., 0., 0.]])]
-    #bs = [1.]
-    #Cs = [np.array([[ 1.,  0., 0.],
-    #                [ 0.,  2., 0.],
-    #                [ 0.,  0., 2.]])]
-    #ds = [5./3]
-    #dim = 3
-    #N_iter = 50
-    #eps = 1./N_iter
-    #M = 1.
-    #if m + n > 0:
-    #    M = 0.
-    #    if m > 0:
-    #        M += np.max((np.log(m), 1.))/eps
-    #    if n > 0:
-    #        M += np.max((np.log(n), 1.))/(eps**2)
-    #    print("M", M)
-    #val = grad_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+    #test7()
+    #test8()
