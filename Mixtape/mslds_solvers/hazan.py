@@ -45,6 +45,7 @@ import scipy.sparse.linalg as linalg
 import numpy.random as random
 import numpy as np
 import pdb
+import time
 from numbers import Number
 from hazan_penalties import *
 from hazan_utils import *
@@ -353,33 +354,33 @@ class FeasibilitySDPHazanSolver(object):
     def __init__(self):
         self._solver = BoundedTraceSDPHazanSolver()
 
-    def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
-        """
-        Implements a convenience wrapper around
-        _feasibility_inequality_solve that allows for solution of
-        feasibility problems of type
+    #def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
+    #    """
+    #    Implements a convenience wrapper around
+    #    _feasibility_inequality_solve that allows for solution of
+    #    feasibility problems of type
 
-        Feasibility of X
-        subject to
-            Tr(A_i X) <= b_i
-            Tr(C_i X)  = d_i
-            Tr(X) = 1
-        """
+    #    Feasibility of X
+    #    subject to
+    #        Tr(A_i X) <= b_i
+    #        Tr(C_i X)  = d_i
+    #        Tr(X) = 1
+    #    """
 
-        Fs = []
-        Fs.extend(As)
-        es = []
-        es.extend(bs)
-        for i in range(len(Cs)):
-            Ci = Cs[i]
-            di = ds[i]
-            # Add constraint Tr(C_i X) <= d_i
-            Fs.append(Ci)
-            es.append(di)
-            # Add constraint Tr(-C_i X) <= d_i
-            Fs.append(-Ci)
-            es.append(di)
-        return self._feasibility_inequality_solve(Fs, es, eps, dim)
+    #    Fs = []
+    #    Fs.extend(As)
+    #    es = []
+    #    es.extend(bs)
+    #    for i in range(len(Cs)):
+    #        Ci = Cs[i]
+    #        di = ds[i]
+    #        # Add constraint Tr(C_i X) <= d_i
+    #        Fs.append(Ci)
+    #        es.append(di)
+    #        # Add constraint Tr(-C_i X) <= d_i
+    #        Fs.append(-Ci)
+    #        es.append(di)
+    #    return self._feasibility_inequality_solve(Fs, es, eps, dim)
 
     def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
         """
@@ -427,15 +428,23 @@ class FeasibilitySDPHazanSolver(object):
 
         m = len(As)
         n = len(Cs)
-        M = compute_scale(m, n)
-        K = int(1/eps)
+        M = compute_scale(m, n, eps)
+        N_iter = int(1./eps)
+        #TODO: Switch to log_sum_exp_penalty once numerically stable
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return neg_max_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
 
-        X = self._solver.solve(f, gradf, dim, K)
+        start = time.clock()
+        X = self._solver.solve(f, gradf, dim, N_iter)
+        elapsed = (time.clock() - start)
         fX = f(X)
-        print("X:")
-        print X
-        print("f(X) = %f" % (fX))
-        FAIL = (fX < -eps)
-        print("FAIL: " + str(FAIL))
-        pdb.set_trace()
-        return X, fX, FAIL
+        print "\tX:\n", X
+        print "\tf(X) = %f" % (fX)
+        SUCCEED = not (fX < -eps)
+        print "\tSUCCEED: " + str(SUCCEED)
+        print "\tComputation Time (s): ", elapsed
+        #pdb.set_trace()
+        return X, fX, SUCCEED

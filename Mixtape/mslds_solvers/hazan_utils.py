@@ -1,6 +1,7 @@
 """
 Implementation of various useful utility functions for Hazan's algorithm.
 """
+import numpy as np
 
 # Convenience functions; check if mdtraj has similar functionality
 # already
