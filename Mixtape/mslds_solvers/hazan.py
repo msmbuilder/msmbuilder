@@ -148,204 +148,6 @@ class BoundedTraceSDPHazanSolver(object):
             X = X + alphaj * (np.outer(vj,vj) - X)
         return X
 
-class GeneralSDPHazanSolver(object):
-    """ Implementation of a SDP solver, which uses binary search
-        and the FeasibilitySDPSolver below to solve general SDPs.
-    """
-    def __init__(self):
-        self._solver = FeasibilitySDPHazanSolver()
-
-    def solve(self, E, As, bs, Cs, ds, eps, dim, R):
-        """
-        Solves optimization problem
-        max Tr(EX)
-        subject to
-            Tr(A_i X) <= b_i
-            Tr(X) <= R
-
-        Solution of this problem with Frank-Wolfe methods requires
-        two transformations. In the first, we normalize the trace
-        upper bound Tr(X) <= R by rescaling
-
-            A_i := R A_i
-
-        (No need to rescale E since the max operator removes constant
-        factors). After the transformation, we assume Tr(X) <= 1. Next,
-        we derive an upper bound on Tr(EX). Note that
-
-            (Tr(EX))^2 = (\sum_{i,j} E_{ij} X_{ij})^2
-                       <= (\sum_{i,j} E_{ij}^2) (\sum_{i,j} X_{ij}^2)
-                       <= (\sum_{i,j} E_{ij}^2) (\sum_{i,j} X_{ii} X_{jj})
-                       <= (\sum_{i,j} E_{ij}^2) (\sum_{i} X_{ii})^2
-                       <= (\sum_{i,j} E_{ij}^2)
-
-        The first inequality is Cauchy-Schwarz. The second inequality
-        follows from a standard fact about semidefinite matrices (CITE).
-        The inequality follows again from Cauchy-Schwarz. The last
-        inequality follows from the fact that Tr(X) <= 1. Similarly,
-
-            Tr(EX) >= 0
-
-        By the fact that X is PSD (CITE). Let D = \sum_{i,j} E_{ij}^2. We
-        perform the rescaling.
-
-            E:= (1/D) E
-
-        After the scaling transformation, we have that 0 <= Tr(EX) <= 1.
-        The next required transformation is binary search. Choose value
-        alpha \in [0,1]. We ascertain whether alpha is a feasible value of
-        Tr(EX) by performing two subproblems:
-
-        (1)
-        Feasibility of X
-        subject to
-            Tr(A_i X) <= b_i
-            Tr(X) <= 1
-            Tr(E X) <= alpha
-
-        and
-
-        (2)
-        Feasibility of X
-        subject to
-            Tr(A_i X) <= b_i
-            Tr(X) <= 1
-            Tr(E X) >= alpha => Tr(-E X) <= alpha
-
-        If problem (1) is feasible, then we know that the original problem
-        has a solution in range [0, alpha]. If problem (2) is feasible,
-        then the original problem has solution in range [alpha, 1]. We can
-        use these indicators to perform binary search to find optimum
-        alpha*. Thus, we need only solve the feasibility subproblems.
-
-        To solve this problem, note that the the diagonal entries of
-        positive semidefinite matrices are real and nonnegative.
-        Consequently, we introduce variables
-
-        Y  := [[X, 0],  F_i  := [[A_i, 0],  G = [[E, 0],
-               [0, y]]           [ 0,  0]]       [0, 0]]
-
-        Y is PSD if and only if X is PSD and y is real and nonnegative. The
-        constraint that Tr Y = 1 is true if and only if Tr X <= 1. Thus,
-        we can recast a feasibility problem as
-
-        Feasibility of Y
-        subject to
-            Tr(F_i Y) <= b_i
-            Tr(Y) = 1
-
-        This is the format solvable by Hazan's algorithm.
-
-        Parameters
-        __________
-        E: np.ndarray
-            The objective function
-        As: list
-            A list of square (dim, dim) numpy.ndarray matrices
-        bs: list
-            A list of floats
-        eps: float
-            Allowed error tolerance. Must be > 0
-        dim: int
-            Dimension of input
-        R: float
-            Upper bound on trace of X: 0 <= Tr(X) <= R
-        """
-        # Do some type checking
-        try:
-            assert_list_of_types(bs, Number)
-            assert_list_of_square_arrays(As, dim)
-            assert len(As) == len(bs)
-            assert isinstance(E, np.ndarray)
-            assert np.shape(E) == (dim, dim)
-            assert isinstance(R, Number)
-            assert R > 0
-        except AssertionError:
-            raise ValueError(
-            """Incorrect Arguments to solve.
-            As should be a list of square arrays of shape (dim,
-            dim), while bs should be a list of floats. Needs
-            len(As) = len(bs). E should be square array of shape
-            (dim, dim) as well. R should be a real number greater than 0.
-            """)
-
-
-        m = len(As)
-        Aprimes = []
-        # Rescale the trace bound
-        for i in range(m):
-            Aprime = R * As[i]
-            Aprimes.append(Aprime)
-        As = Aprimes
-
-        # Rescale the optimization matrix
-        D = sum(E * E) # note this is a Hadamard product, not dot
-        E = (1./D) * D
-
-        # Expand all constraints to be expressed in terms of Y
-        Fs = []
-        for i in range(m):
-            Ai = As[i]
-            Fi = np.zeros((dim+1,dim+1))
-            Fi[:dim, :dim] = Ai
-            Fs.append(Fi)
-        G = np.zeros((dim+1,dim+1))
-        G[:dim, :dim] = E
-
-        # Generate constraints required to make Y be a block matrix
-        for i in range(dim):
-            Ri = np.zeros((dim+1,dim+1))
-            Ri[i, dim] = 1.
-            ri = 0.
-            Cs.append(Ri)
-            ds.append(ri)
-
-            Si = np.zeros((dim+1,dim+1))
-            Si[dim, i] = 1.
-            si = 0.
-            Cs.append(Si)
-            ds.append(si)
-
-        # Do the binary search
-        upper = 1.0
-        lower = 0.0
-        FAIL = False
-        X_LOWER = None
-        X_UPPER = None
-        while (upper - lower) >= eps:
-            print
-            print("upper: %f" % upper)
-            print("lower: %f" % lower)
-            alpha = (upper + lower) / 2.0
-            # Check feasibility in [lower, alpha]
-            Fs.append(G)
-            bs.append(alpha)
-            Y_LOWER, _, FAIL_LOWER = self._solver.feasibility_solve(Fs, bs,
-                    Cs, ds, eps, dim+1)
-            Fs.pop()
-            bs.pop()
-
-            # Check feasibility in [alpha, upper]
-            Fs.append(-G)
-            bs.append(alpha)
-            Y_UPPER, _, FAIL_UPPER= self._solver.feasibility_solve(Fs, bs,
-                    Cs, ds, eps, dim+1)
-
-            if not FAIL_UPPER:
-                X_UPPER = Y_UPPER[:dim,:dim]
-                lower = alpha
-            elif not FAIL_LOWER:
-                X_LOWER = X_LOWER
-                upper = alpha
-            else:
-                FAIL = TRUE
-                break
-        if X_UPPER != None:
-            X_UPPER = R * X_UPPER
-        if X_LOWER != None:
-            X_LOWER = R * X_LOWER
-        return (upper, lower, X_UPPER, X_LOWER, FAIL)
-
 
 class FeasibilitySDPHazanSolver(object):
     """ Implementation of Hazan's Fast SDP feasibility, which uses
@@ -420,3 +222,280 @@ class FeasibilitySDPHazanSolver(object):
         print "\tComputation Time (s): ", elapsed
         #pdb.set_trace()
         return X, fX, SUCCEED
+
+
+class GeneralSDPHazanSolver(object):
+    """ Implementation of a SDP solver, which uses binary search
+        and the FeasibilitySDPSolver below to solve general SDPs.
+    """
+    def __init__(self):
+        self._solver = FeasibilitySDPHazanSolver()
+
+    def solve(self, E, As, bs, Cs, ds, eps, dim, R):
+        """
+        Solves optimization problem
+
+        max Tr(EX)
+        subject to
+            Tr(A_i X) <= b_i
+            Tr(C_i X) == d_i
+            Tr(X) <= R
+
+        Solution of this problem with Frank-Wolfe methods requires
+        two transformations. In the first, we normalize the trace
+        upper bound Tr(X) <= R by performing change of variable
+
+            X := X / R
+
+        To keep the inequality constraints in their original format,
+        we need to perform scalings
+
+            A_i := A_i * R
+            C_i := C_i * R
+
+        (No need to rescale E since the max operator removes constant
+        factors). After the transformation, we assume Tr(X) <= 1. Next,
+        we derive an upper bound on Tr(EX). Note that
+
+            (Tr(EX))^2 == (sum_ij E_ij X_ij)^2
+                       <= (sum_ij (E_ij)^2) (sum_ij (X_ij)^2)
+                       <= (sum_ij (E_ij)^2) (sum_ij X_ii X_jj)
+                       == (sum_ij (E_ij)^2) (sum_i X_{ii})^2
+                       == (sum_ij (E_ij)^2) Tr(X)^2
+                       <= (sum_ij (E_ij)^2)
+
+        The first inequality is Cauchy-Schwarz. The second inequality
+        follows from a standard fact about semidefinite matrices (CITE).
+
+        For PSD matrix M, |m_ij| <= sqrt(m_ii m_jj) [See Wikipedia]
+
+        The third equality follows from factorization. The last
+        inequality follows from the fact that Tr(X) <= 1. Similarly,
+
+            Tr(EX) >= 0
+
+        By the fact that X is PSD (CITE). Let D = sum_ij (E_ij)^2. We
+        perform the rescaling.
+
+            E:= (1/D) E
+
+        After the scaling transformation, we have that 0 <= Tr(EX) <= 1.
+        The next required transformation is binary search. Choose value
+        alpha \in [0,1]. We ascertain whether alpha is a feasible value of
+        Tr(EX) by performing two subproblems:
+
+        (1)
+        Feasibility of X
+        subject to
+            Tr(A_i X) <= b_i
+            Tr(C_i X) == d_i
+            Tr(X) <= 1
+            Tr(E X) <= alpha
+
+        and
+
+        (2)
+        Feasibility of X
+        subject to
+            Tr(A_i X) <= b_i
+            Tr(C_i X) == d_i
+            Tr(X) <= 1
+            Tr(E X) >= alpha => Tr(-E X) <= alpha
+
+        If problem (1) is feasible, then we know that the original problem
+        has a solution in range [0, alpha]. If problem (2) is feasible,
+        then the original problem has solution in range [alpha, 1]. We can
+        use these indicators to perform binary search to find optimum
+        alpha*. Thus, we need only solve the feasibility subproblems.
+
+        To solve this problem, note that the the diagonal entries of
+        positive semidefinite matrices are real and nonnegative.
+        Consequently, we introduce variables
+
+        Y  := [[X, 0], F_i := [[A_i, 0], G = [[E, 0], C_i := [[C_i, 0],
+               [0, y]]         [ 0,  0]]      [0, 0]]         [ 0,  0]]
+
+        Y is PSD if and only if X is PSD and y is real and nonnegative.
+        The constraint that Tr Y = 1 is true if and only if Tr X <= 1.
+        Thus, we can recast a feasibility problem as
+
+        Feasibility of Y
+        subject to
+            Tr(F_i Y) <= b_i
+            Tr(H_i Y) == d_i
+            Tr(Y) = 1
+
+        This is the format solvable by Hazan's algorithm.
+
+        Parameters
+        __________
+        E: np.ndarray
+            The objective function
+        As: list
+            A list of square (dim, dim) numpy.ndarray matrices
+        bs: list
+            A list of floats
+        eps: float
+            Allowed error tolerance. Must be > 0
+        dim: int
+            Dimension of input
+        R: float
+            Upper bound on trace of X: 0 <= Tr(X) <= R
+        """
+        # Do some type checking
+        try:
+            assert_list_of_types(bs, Number)
+            assert_list_of_square_arrays(As, dim)
+            assert len(As) == len(bs)
+            assert len(Cs) == len(ds)
+            assert isinstance(E, np.ndarray)
+            assert np.shape(E) == (dim, dim)
+            assert isinstance(R, Number)
+            assert R > 0
+        except AssertionError:
+            raise ValueError(
+            """Incorrect Arguments to solve.
+            As should be a list of square arrays of shape (dim,
+            dim), while bs should be a list of floats. Needs
+            len(As) = len(bs). E should be square array of shape
+            (dim, dim) as well. R should be a real number greater than 0.
+            """)
+
+
+        m = len(As)
+        n = len(Cs)
+        Aprimes = []
+        Cprimes = []
+        # Rescale the trace bound
+        for i in range(m):
+            Aprime = R * As[i]
+            Aprimes.append(Aprime)
+            print
+            print "Scale As[%d] from\n" % i
+            print As[i]
+            print "to\n"
+            print Aprime
+        for j in range(n):
+            Cprime = R * Cs[j]
+            Cprimes.append(Cprime)
+            print
+            print "Scale Cs[%d] from\n" % j
+            print Cs[j]
+            print "to\n"
+            print Cprime
+        As = Aprimes
+        Cs = Cprimes
+
+        # Rescale the optimization matrix
+        D = sum(E * E) # note this is a Hadamard product, not dot
+        E = (1./D) * E
+        print
+        print "Rescaled optimization criterion E:\n", E
+
+        # Expand all constraints to be expressed in terms of Y
+        Fs = [] # expanded As
+        Hs = [] # expanded Cs
+        for i in range(m):
+            Ai = As[i]
+            Fi = np.zeros((dim+1,dim+1))
+            Fi[:dim, :dim] = Ai
+            Fs.append(Fi)
+            print
+            print "Expand As[%d] from\n" % i
+            print As[i]
+            print "to\n"
+            print Fi
+            print "recall bs[%d] = %f" % (i, bs[i])
+        for j in range(n):
+            Cj = Cs[j]
+            Hj = np.zeros((dim+1,dim+1))
+            Hj[:dim, :dim] = Cj
+            Hs.append(Hj)
+            print
+            print "Expand Cs[%d] from\n" % j
+            print Cs[j]
+            print "to\n"
+            print Hj
+            print "recall ds[%d] = %f" % (j, ds[j])
+        G = np.zeros((dim+1,dim+1))
+        G[:dim, :dim] = E
+        #import pdb
+        #pdb.set_trace()
+
+        # Generate constraints required to make Y be a block matrix
+        for i in range(dim):
+            Ri = np.zeros((dim+1,dim+1))
+            Ri[i, dim] = 1.
+            ri = 0.
+            Hs.append(Ri)
+            ds.append(ri)
+            print
+            print "Adding equality constraint Tr(R%i) = 0., where " % i
+            print "R%d equals\n" % i
+            print Ri
+
+            Si = np.zeros((dim+1,dim+1))
+            Si[dim, i] = 1.
+            si = 0.
+            print
+            print "Adding equality constraint Tr(S%i) = 0., where\n" % i
+            print "S%d equals\n" % i
+            print Si
+            Hs.append(Si)
+            ds.append(si)
+
+        # Do the binary search
+        upper = 1.0
+        lower = 0.0
+        SUCCEED = False
+        X_LOWER = None
+        X_UPPER = None
+        while (upper - lower) >= eps:
+            print
+            print("upper: %f" % upper)
+            print("lower: %f" % lower)
+            alpha = (upper + lower) / 2.0
+            # Check feasibility in [lower, alpha]
+            print "Checking feasibility in (%f, %f)" % (lower, alpha)
+            print "Adding inequality constraint Tr(GX) <= alpha"
+            print "G:\n", G
+            print "alpha: ", alpha
+            print
+            Fs.append(G)
+            bs.append(alpha)
+            Y_LOWER, _, SUCCEED_LOWER = self._solver.feasibility_solve(Fs,
+                    bs, Hs, ds, eps, dim+1)
+            import pdb
+            pdb.set_trace()
+            Fs.pop()
+            bs.pop()
+
+            # Check feasibility in [alpha, upper]
+            print "Checking feasibility in (%f, %f)" % (alpha, upper)
+            print "Adding inequality constraint Tr(-GX) <= alpha"
+            print "-G:\n", -G
+            print "alpha: ", alpha
+            Fs.append(-G)
+            bs.append(alpha)
+            Y_UPPER, _, SUCCEED_UPPER= self._solver.feasibility_solve(Fs,
+                    bs, Hs, ds, eps, dim+1)
+            Fs.pop()
+            bs.pop()
+
+            if SUCCEED_UPPER:
+                X_UPPER = Y_UPPER[:dim,:dim]
+                lower = alpha
+            elif SUCCEED_LOWER:
+                X_LOWER = X_LOWER
+                upper = alpha
+            else:
+                break
+        if (upper - lower) <= eps:
+            SUCCEED = True
+        if X_UPPER != None:
+            X_UPPER = R * X_UPPER
+        if X_LOWER != None:
+            X_LOWER = R * X_LOWER
+        return (upper, lower, X_UPPER, X_LOWER, SUCCEED)
+
+
