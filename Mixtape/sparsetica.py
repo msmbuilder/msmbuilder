@@ -47,7 +47,7 @@ class SparseTICA(tICA):
     """Sparse Time-structure Independent Component Analysis (tICA)
 
     Linear dimensionality reduction which finds sparse linear combinations
-    of the input features which decorrelate mose slowly. These can be
+    of the input features which decorrelate most slowly. These can be
     used for feature selection and/or dimensionality reduction.
 
     Parameters
@@ -85,6 +85,13 @@ class SparseTICA(tICA):
         Components with maximum autocorrelation.
     offset_correlation_` : array-like, shape (n_features, n_features)
         Symmetric time-lagged correlation matrix, `C=E[(x_t)^T x_{t+lag}]`.
+    eigenvalues_ : array-like, shape (n_features,)
+        Psuedo-eigenvalues of the tICA generalized eigenproblem, in decreasing
+        order.
+    eigenvectors_ : array-like, shape (n_components, n_features)
+        Sparse psuedo-eigenvectors of the tICA generalized eigenproblem. The
+        vectors give a set of "directions" through configuration space along
+        which the system relaxes towards equilibrium.
     means_ : array, shape (n_features,)
         The mean of the data along each feature
     n_observations : int
@@ -107,20 +114,26 @@ class SparseTICA(tICA):
     ..[1] Sriperumbudur, Bharath K., David A. Torres, and Gert RG Lanckriet.
     "A majorization-minimization approach to the sparse generalized eigenvalue
     problem." Machine learning 85.1-2 (2011): 3-39.
+    ..[2] Mackey, Lester. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
+
     """
 
     def __init__(self, n_components=None, offset=1, gamma=0.05,
                  rho=0.01, epsilon=1e-6, tolerance=1e-8, verbose=False):
+        super(SparseTICA, self).__init__(n_components, offset, gamma)
         self.rho = rho
         self.epsilon = epsilon
         self.tolerance = tolerance
         self.verbose = verbose
-        super(SparseTICA, self).__init__(n_components, offset, gamma)
-
-    def eigenvalues_(self):
-        raise NotImplementedError()
 
     def _solve(self):
+        if not self._is_dirty:
+            return
+        if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
+            raise RuntimeError('offset correlation matrix is not symmetric')
+        if not np.allclose(self.covariance_, self.covariance_.T):
+            raise RuntimeError('correlation matrix is not symmetric')
+
         A = self.offset_correlation_
         B = self.covariance_ + (self.gamma / self.n_features) * \
             np.trace(self.covariance_) * np.eye(self.n_features)
@@ -129,22 +142,54 @@ class SparseTICA(tICA):
         gevals, gevecs = scipy.linalg.eigh(A, B)
         ind = np.argsort(gevals)[::-1]
         gevecs, gevals = gevecs[:, ind], gevals[ind]
-        v_init = gevecs[:, 0]
 
-        u, v = speigh(A, B, v_init, rho=self.rho, eps=self.epsilon, tol=self.tolerance,
-                      tau=tau, verbose=self.verbose)
-        print('SparseTICA eigenvector\n', v)
-        print('SparseTICA eigenvalue\n', u)
-        raise NotImplementedError()
+        self._eigenvalues_ = np.zeros((self.n_components))
+        self._eigenvectors_ = np.zeros((self.n_components, self.n_features))
+
+        for i in range(self.n_components):
+            u, v = speigh(A, B, gevecs[:, i], rho=self.rho, eps=self.epsilon,
+                          tol=self.tolerance, tau=tau, verbose=self.verbose)
+
+            self._eigenvalues_[i] = u
+            self._eigenvectors_[i] = v
+            A = scdeflate(A, v)
+
+        self._is_dirty = False
+
+
+def scdeflate(A, x):
+    """Schur complement matrix deflation
+
+    Eliminate the influence of a psuedo-eigenvector of A using the Schur complement
+    deflation technique from [1]::
+
+        A_new = A - \frac{A x x^T A}{x^T A x}
+
+    Parameters
+    ----------
+    A : np.ndarray, shape=(N, N)
+        A matrix
+    x : np.ndarray, shape=(N, )
+        A vector, ideally one that is "close to" an eigenvector of A
+
+    Returns
+    -------
+    A_new : np.ndarray, shape=(N, N)
+        A new matrix, determined from A by eliminating the influence of x
+
+    References
+    .. [1] Mackey, Lester. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
+    """
+    return A - np.outer(np.dot(A, x), np.dot(x, A)) / np.dot(np.dot(x, A), x)
 
 
 def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
-    """Find sparse approximate generalized eigenpairs.
+    """Find a sparse approximate generalized eigenpair.
 
-    The generalized eigevalue equation, :math:`Av = lambda Bv`,
+    The generalized eigenvalue equation, :math:`Av = lambda Bv`,
     can be expressed as a variational optimization ::
     :math:`max_{x} x^T A x  s.t. x^T B x = 1`. We can search for sparse
-    approximate eigenvectors then by adding a penality to the optimization.
+    approximate eigenvectors then by adding a penalty to the optimization.
     This function solves an approximation to::
 
     max_{x}   x^T A x - \rho ||x||_0
@@ -159,7 +204,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
 
     which converges to ||x||_0 in the limit that eps goes to zero. This
     formulation can then be written as a d.c. (difference of convex) program
-    and solved efficiently. The algorithim is due to [1], and is written
+    and solved efficiently. The algorithm is due to [1], and is written
     down on page 15 of the paper.
 
     Parameters
@@ -180,7 +225,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         (closer to L0), but trickier from a numerical standpoint and can lead
         to the solver complaining when it gets too small.
     tol : float
-        Convergence critera for the eigensolver.
+        Convergence criteria for the eigensolver.
 
     Returns
     -------
@@ -271,7 +316,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
                     x = np.zeros(length)
 
     else:
-        print('Path [3]: tau != 0')
+        pprint('Path [3]: tau != 0')
         old_x.fill(np.inf)
         scaledA = (A / tau + np.eye(length))
         while np.linalg.norm(x-old_x) > tol:
@@ -299,15 +344,20 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
 
 if __name__ == '__main__':
     X = np.random.randn(1000, 10)
-    X[:,0] = np.sin(np.arange(1000) / 100.0) #+ np.random.randn(1000)*0.1
-    #X[:,1] = np.cos(np.arange(1000) / 100.0) + np.random.randn(1000)*0.1
+    X[:,0] += np.sin(np.arange(1000) / 100.0)
+    X[:,1] += np.cos(np.arange(1000) / 100.0)
 
     tica = tICA(n_components=2).fit(X)
     print('tica eigenvector\n', tica.eigenvectors_[0])
     print('tica eigenvalue\n', tica.eigenvalues_[0])
+    print('\ntica eigenvector\n', tica.eigenvectors_[1])
+    print('tica eigenvalue\n', tica.eigenvalues_[1])
 
+    print('\n\n')
 
-    tica = SparseTICA(n_components=2, rho=0.01, tolerance=1e-6, verbose=False)
-    tica.fit(X)
-    tica._solve()
-
+    sptica = SparseTICA(n_components=2, rho=0.01, tolerance=1e-6, verbose=False)
+    sptica.fit(X)
+    print('sptica eigenvector\n', sptica.eigenvectors_[0])
+    print('sptica eigenvalue\n', sptica.eigenvalues_[0])
+    print('\nsptica eigenvector\n', sptica.eigenvectors_[1])
+    print('sptica eigenvalue\n', sptica.eigenvalues_[1])
