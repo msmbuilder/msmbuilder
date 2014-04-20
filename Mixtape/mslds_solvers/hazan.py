@@ -248,13 +248,15 @@ class FeasibilitySDPHazanSolver(object):
         n = len(Cs)
         M = compute_scale(m, n, eps)
         N_iter = int(1./eps)
-        # To deal with neg_max penalty's lack of theory
+        # Need to swap in some robust theory about Cf
         fudge_factor = 3.0
-        #TODO: Switch to log_sum_exp_penalty once numerically stable
         def f(X):
             return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            #return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
-            return neg_max_grad_penalty(X, m, n, M,
+            #return neg_max_grad_penalty(X, m, n, M,
+            #            As, bs, Cs, ds, dim,eps)
+            return log_sum_exp_grad_penalty(X, m, n, M,
                         As, bs, Cs, ds, dim,eps)
 
         start = time.clock()
@@ -515,6 +517,7 @@ class GeneralSDPHazanSolver(object):
             bs.pop()
 
             # Check feasibility in [alpha, upper]
+            print
             print "Checking feasibility in (%f, %f)" % (alpha, upper)
             print "Adding inequality constraint Tr(-GX) <= alpha"
             print "-G:\n", -G
@@ -526,8 +529,8 @@ class GeneralSDPHazanSolver(object):
             Fs.pop()
             bs.pop()
 
-            import pdb
-            pdb.set_trace()
+            #import pdb
+            #pdb.set_trace()
             if SUCCEED_UPPER:
                 X_UPPER = Y_UPPER[:dim,:dim]
                 lower = alpha

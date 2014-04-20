@@ -335,7 +335,7 @@ def test10():
     """
     Stress test equality constraints for log_sum_exp_penalty
     """
-    dims = [16]
+    dims = [4,16]
     N_iter = 200
     stress_test_inequalies_and_equalities(dims, N_iter,
             log_sum_exp_penalty, log_sum_exp_grad_penalty)
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     #test4()
     #test6()
     #test8()
-    test10()
+    #test10()
 
     ## neg_max penalty, log_sum_exp grad tests
     #test45()
