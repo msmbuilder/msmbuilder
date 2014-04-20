@@ -57,40 +57,40 @@ def grad_neg_sum_squares(x):
         G[i,i] += -2.*x[i,i]
     return G
 
-def f(X):
-    """
-    TODO: Delete this once okay
-    X: np.ndarray
-        Computes function
-        f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
-    """
-    s = 0.
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-    return -(1.0/M) * np.log(s)
-
-def gradf(X):
-    """
-    TODO: Delete this once okay
-    X: np.ndarray
-        Computes grad f(X) = -(1/M) * f' / f where
-          f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-          f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-    """
-    num = 0.
-    denom = 0.
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        if dim >= 2:
-            num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
-            denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-        else:
-            num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
-            denom += np.exp(M*(Ai*X - bi))
-    return (-1.0/M) * num/denom
+#def f(X):
+#    """
+#    TODO: Delete this once okay
+#    X: np.ndarray
+#        Computes function
+#        f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
+#    """
+#    s = 0.
+#    for i in range(m):
+#        Ai = As[i]
+#        bi = bs[i]
+#        s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
+#    return -(1.0/M) * np.log(s)
+#
+#def gradf(X):
+#    """
+#    TODO: Delete this once okay
+#    X: np.ndarray
+#        Computes grad f(X) = -(1/M) * f' / f where
+#          f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
+#          f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
+#    """
+#    num = 0.
+#    denom = 0.
+#    for i in range(m):
+#        Ai = As[i]
+#        bi = bs[i]
+#        if dim >= 2:
+#            num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
+#            denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
+#        else:
+#            num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
+#            denom += np.exp(M*(Ai*X - bi))
+#    return (-1.0/M) * num/denom
 
 def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     """
@@ -112,25 +112,30 @@ def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     M: float
         Rescaling Factor
     """
-    s = 0.
-    r = 0.
-    retval = 0.
+    s = None
+    r = None
+    penalties_m = np.zeros(m)
+    penalties_n = np.zeros(n)
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
         if dim >= 2:
-            s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
+            penalties_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
         else:
-            s += np.exp(M*(Ai*X - bi))
+            penalties_m[i] = M*(Ai*X - bi)
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
         if dim >= 2:
-            r += np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)
+            penalties_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
         else:
-            r += np.exp(M*(Cj*X - dj)**2)
+            penalties_n[j] = M*np.abs(Cj*X - dj)
     if m + n > 0:
-        retval += -(1.0/M) * np.log(s + r)
+        if m > 0:
+            retval += scipy.misc.logsumexp(np.array(penalties_m), axis=0)
+        if n > =:
+            retval += scipy.misc.logsumexp(np.array(penalties_n), axis=0)
+        retval = -(1.0/M) * np.exp(retval)
     return retval
 
 def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
@@ -146,28 +151,32 @@ def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     Need Ai and Cj to be symmetric real matrices
     """
     retval = 0.
-    num = 0.
-    denom = 0.
+    nums_m = np.zeros(m)
+    denoms_m = np.zeros(m)
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
         if dim >= 2:
-            num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
-            denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
+            nums_m[i] = M*(np.trace(np.dot(Ai,X)) - bi) + np.log(M*Ai.T)
+            denoms_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
         else:
-            num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
-            denom += np.exp(M*(Ai*X - bi))
+            nums_m[i] = M*(Ai*X - bi) + (M*Ai.T)
+            denoms_m[i] = M*(Ai*X - bi)
+    nums_n = np.zeros(n)
+    denoms_n = np.zeros(n)
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
         if dim >= 2:
-            num += (np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)*
-                    (2*M*(np.trace(np.dot(Cj,X)) - dj))*
-                    Cj.T)
-            denom += np.exp(M*(np.trace(np.dot(Cj,X)) - dj)**2)
+            # fix derivative
+            nums_n[j] += (np.abs(M*(np.trace(np.dot(Cj,X)) - dj))+
+                            np.log(2*M*(np.trace(np.dot(Cj,X)) - dj))+
+                            np.log(Cj.T))
+            denoms_n[j] += M*(np.trace(np.dot(Cj,X)) - dj)
         else:
-            num += np.exp(M*(Cj*x - dj)**2)*(2*M*(Cj*x - dj))*Cj.T
-            denom += np.exp(M*(Cj*x - dj)**2)
+            nums_n[j] += (np.abs(M*(Cj*x - dj))+np.log(2*M*(Cj*x -
+                            dj))+np.log(Cj.T))
+            denoms_n[j] += M*(Cj*x - dj)
     if m + n > 0:
         retval += -(1.0/M) * num/denom
     #import pdb
@@ -177,14 +186,13 @@ def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
 
 def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     """
-    Note that penalty(X) roughly equals
+    Computes penalty
 
      -max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|})
 
     This function computes and returns this quantity.
     """
     penalties = np.zeros(n+m)
-    count = 0
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
@@ -203,14 +211,20 @@ def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
 
 def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     """
-    Note that penalty(X) roughly equals
+    Note that neg_max_penalty(X) roughly equals
 
-     max(max_i {Tr(Ai,X) - bi}, max_j{(Tr(Cj,X) - dj)^2})
+    -max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|})
 
-    The subgradient of this quantity is given by
+    Since neg_max_penalty is concave, we need to return a supergradient
+    of this function. The supergradient of this function equals the
+    subgradient of -neg_max_penalty(X):
 
-    Conv{{A_i | penalty(X) = Tr(Ai,X) - bi} union
-         { sign(Tr(Cj,X) - dj) 2 Cj  | penalty(X) = |Tr(Cj,X) - dj| }}
+    max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|})
+
+    which equals
+
+    Conv{{A_i | -neg_max_penalty(X) = Tr(Ai,X) - bi} union
+         { sign(Tr(Cj,X) - dj) Cj  | penalty(X) = |Tr(Cj,X) - dj| }}
 
     We use a weak subdifferential calculus that averages the gradients
     of all violated constraints.
@@ -228,26 +242,31 @@ def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
         Cj = Cs[j]
         dj = ds[j]
         if dim >= 2:
-            penalties[j+m] += np.abs(np.trace(np.dot(Cj,X)) - dj)
+            penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
         else:
-            penalties[j+m] += np.abs(Cj*x - dj)
+            penalties[j+m] = np.abs(Cj*X - dj)
     #ind = np.argmax(penalties)
     inds = [ind for ind in range(n+m) if penalties[ind] > eps]
 
     grad = np.zeros(np.shape(X))
     for ind in inds:
         if ind < m:
-            Ai =  As[ind]
+            Ai = As[ind]
             grad += Ai
         else:
             Cj = Cs[ind - m]
+            dj = ds[ind - m]
             val = np.trace(np.dot(Cj,X)) - dj
+            #print "val: ", val
             if val < 0:
-                grad += - Cj
+                grad += -Cj
             elif val > 0:
                 grad += Cj
     # Average by num entries
     grad = grad / max(len(inds), 1.)
     # Take the negative since our function is -max{..}
-    return -grad
+    grad = -grad
+    #import pdb
+    #pdb.set_trace()
+    return grad
 

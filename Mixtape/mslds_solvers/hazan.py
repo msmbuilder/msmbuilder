@@ -53,7 +53,7 @@ from hazan_utils import *
 class BoundedTraceSDPHazanSolver(object):
     """
     Implementation of Hazan's Algorithm, which solves
-    the optimization problem:
+    the optimization problem
          max f(X)
          X \in P
     where P = {X is PSD and Tr X = 1} is the set of PSD
@@ -62,6 +62,7 @@ class BoundedTraceSDPHazanSolver(object):
     """
     def __init__(self):
         pass
+
     def solve(self, f, gradf, dim, N_iter, Cf=None, DEBUG=False,
                 num_tries=5):
         """
@@ -156,6 +157,24 @@ class FeasibilitySDPHazanSolver(object):
     def __init__(self):
         self._solver = BoundedTraceSDPHazanSolver()
 
+    def feasibility_grad(self, X, As, bs, Cs, ds, eps, dim):
+        m = len(As)
+        n = len(Cs)
+        M = compute_scale(m, n, eps)
+        def gradf(X):
+            return neg_max_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim, eps)
+        return gradf(X)
+
+    def feasibility_val(self, X, As, bs, Cs, ds, eps, dim):
+        m = len(As)
+        n = len(Cs)
+        M = compute_scale(m, n, eps)
+        def f(X):
+            return neg_max_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim)
+        return f(X)
+
     def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
         """
         Solves feasibility problems of the type
@@ -204,6 +223,8 @@ class FeasibilitySDPHazanSolver(object):
         n = len(Cs)
         M = compute_scale(m, n, eps)
         N_iter = int(1./eps)
+        # To deal with neg_max penalty's lack of theory
+        fudge_factor = 3.0
         #TODO: Switch to log_sum_exp_penalty once numerically stable
         def f(X):
             return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
@@ -217,7 +238,7 @@ class FeasibilitySDPHazanSolver(object):
         fX = f(X)
         print "\tX:\n", X
         print "\tf(X) = %f" % (fX)
-        SUCCEED = not (fX < -eps)
+        SUCCEED = not (fX < -fudge_factor*eps)
         print "\tSUCCEED: " + str(SUCCEED)
         print "\tComputation Time (s): ", elapsed
         #pdb.set_trace()
@@ -465,8 +486,6 @@ class GeneralSDPHazanSolver(object):
             bs.append(alpha)
             Y_LOWER, _, SUCCEED_LOWER = self._solver.feasibility_solve(Fs,
                     bs, Hs, ds, eps, dim+1)
-            import pdb
-            pdb.set_trace()
             Fs.pop()
             bs.pop()
 
@@ -474,14 +493,16 @@ class GeneralSDPHazanSolver(object):
             print "Checking feasibility in (%f, %f)" % (alpha, upper)
             print "Adding inequality constraint Tr(-GX) <= alpha"
             print "-G:\n", -G
-            print "alpha: ", alpha
+            print "alpha: ", -alpha
             Fs.append(-G)
-            bs.append(alpha)
+            bs.append(-alpha)
             Y_UPPER, _, SUCCEED_UPPER= self._solver.feasibility_solve(Fs,
                     bs, Hs, ds, eps, dim+1)
             Fs.pop()
             bs.pop()
 
+            import pdb
+            pdb.set_trace()
             if SUCCEED_UPPER:
                 X_UPPER = Y_UPPER[:dim,:dim]
                 lower = alpha
@@ -497,5 +518,3 @@ class GeneralSDPHazanSolver(object):
         if X_LOWER != None:
             X_LOWER = R * X_LOWER
         return (upper, lower, X_UPPER, X_LOWER, SUCCEED)
-
-

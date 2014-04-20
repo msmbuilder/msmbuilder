@@ -66,6 +66,8 @@ def simple_equality_constraint_test(N_iter, penalty, grad_penalty):
     Cs = [np.array([[ 1.,  0.],
                     [ 0.,  2.]])]
     ds = [1.5]
+    import pdb
+    pdb.set_trace()
     run_experiment(f, gradf, dim, N_iter)
 
 def test2():
@@ -314,10 +316,10 @@ if __name__ == "__main__":
     # TODO: change these tests to Nosetests style
     #test1()
     #test2()
-    #test3()
+    test3()
     #test4()
     #test5()
     #test6()
     #test7()
-    test8()
+    #test8()
     pass
