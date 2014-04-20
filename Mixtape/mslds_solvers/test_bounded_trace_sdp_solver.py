@@ -66,8 +66,8 @@ def simple_equality_constraint_test(N_iter, penalty, grad_penalty):
     Cs = [np.array([[ 1.,  0.],
                     [ 0.,  2.]])]
     ds = [1.5]
-    import pdb
-    pdb.set_trace()
+    #import pdb
+    #pdb.set_trace()
     run_experiment(f, gradf, dim, N_iter)
 
 def test2():
@@ -116,7 +116,9 @@ def simple_constraint_test(N_iter, penalty, grad_penalty):
                     [ 0.,  2., 0.],
                     [ 0.,  0., 2.]])]
     ds = [5./3]
-    run_experiment(f, gradf, dim, N_iter)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+    #import pdb
+    #pdb.set_trace()
 
 def test4():
     """
@@ -124,6 +126,15 @@ def test4():
     """
     N_iter = 50
     simple_constraint_test(N_iter, log_sum_exp_penalty,
+            log_sum_exp_grad_penalty)
+
+def test45():
+    """
+    Check equality and inequality constraints for neg_max penalty
+    with log_sum_exp gradients.
+    """
+    N_iter = 50
+    simple_constraint_test(N_iter, neg_max_penalty,
             log_sum_exp_grad_penalty)
 
 def test5():
@@ -172,7 +183,27 @@ def stress_test_inequalities(dims, N_iter, penalty, grad_penalty):
         ds = []
         run_experiment(f, gradf, dim, N_iter)
 
+
 def test6():
+    """
+    Stress test inequality constraints for log_sum_exp penalty.
+    """
+    dims = [4,16]
+    N_iter = 50
+    stress_test_inequalities(dims, N_iter, log_sum_exp_penalty,
+            log_sum_exp_grad_penalty)
+
+def test65():
+    """
+    Stress test inequality constraints for neg_max_sum penatly
+    and log_sum_exp gradient.
+    """
+    dims = [4,16]
+    N_iter = 50
+    stress_test_inequalities(dims, N_iter, neg_max_penalty,
+            log_sum_exp_grad_penalty)
+
+def test7():
     """
     Stress test inequality constraints for neg_max_penalty
     """
@@ -180,12 +211,6 @@ def test6():
     N_iter = 50
     stress_test_inequalities(dims, N_iter, neg_max_penalty,
             neg_max_grad_penalty)
-
-def test65():
-    """
-    Stress test inequality constraints for log_sum_exp penalty.
-    """
-    pass
 
 def stress_test_equalities(dims, N_iter, penalty, grad_penalty):
     """
@@ -224,7 +249,25 @@ def stress_test_equalities(dims, N_iter, penalty, grad_penalty):
             ds.append(dj)
         run_experiment(f, gradf, dim, N_iter)
 
-def test7():
+def test8():
+    """
+    Stress test equality constraints for log_sum_exp_penalty
+    """
+    dims = [4,16]
+    N_iter = 50
+    stress_test_equalities(dims, N_iter, log_sum_exp_penalty,
+            log_sum_exp_grad_penalty)
+
+def test85():
+    """
+    Stress test equality constraints for neg_max_penalty
+    """
+    dims = [4,16]
+    N_iter = 50
+    stress_test_equalities(dims, N_iter, neg_max_penalty,
+            log_sum_exp_grad_penalty)
+
+def test9():
     """
     TODO: Stress test log_sum_exp once made numerically stable
     Stress test equality constraints for neg_max_penalty
@@ -286,11 +329,28 @@ def stress_test_inequalies_and_equalities(dims, N_iter,
                 if i != j:
                     dij = 0.
                     ds.append(dij)
-        run_experiment(f, gradf, dim, N_iter)
+        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def test8():
+def test10():
     """
-    TODO: Stress test log_sum_exp once made numerically stable
+    Stress test equality constraints for log_sum_exp_penalty
+    """
+    dims = [16]
+    N_iter = 200
+    stress_test_inequalies_and_equalities(dims, N_iter,
+            log_sum_exp_penalty, log_sum_exp_grad_penalty)
+
+def test105():
+    """
+    Stress test equality constraints for neg_max_penalty
+    """
+    dims = [4, 16]
+    N_iter = 50
+    stress_test_inequalies_and_equalities(dims, N_iter,
+            neg_max_penalty, log_sum_exp_grad_penalty)
+
+def test11():
+    """
     Stress test equality constraints for neg_max_penalty
     """
     dims = [4, 16]
@@ -308,18 +368,33 @@ def run_experiment(f, gradf, dim, N_iter):
     fX = f(X)
     print "\tX:\n", X
     print "\tf(X) = %f" % fX
-    FAIL = (fX < -fudge_factor * eps)
-    print "\tSUCCEED: " + str(not FAIL)
+    SUCCEED = not (fX < -fudge_factor * eps)
+    print "\tSUCCEED: " + str(SUCCEED)
     print "\tComputation Time (s): ", elapsed
+    return X, fX, SUCCEED
 
 if __name__ == "__main__":
     # TODO: change these tests to Nosetests style
+    ## Dummy test
     #test1()
-    #test2()
-    test3()
-    #test4()
+
+    ## neg_max tests
+    #test3()
     #test5()
-    #test6()
     #test7()
+    #test9()
+    #test11()
+
+    ## log_sum_exp tests
+    #test2()
+    #test4()
+    #test6()
     #test8()
+    test10()
+
+    ## neg_max penalty, log_sum_exp grad tests
+    #test45()
+    #test65()
+    #test85()
+    #test105()
     pass

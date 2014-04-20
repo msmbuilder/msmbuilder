@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 """
 Various Useful Penalty Functions for Hazan's Algorithm.
 
@@ -97,7 +98,7 @@ def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     TODO: Make this more numerically stable
     Computes
     f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-                    + sum_{j=1}^n exp(M*(Tr(Cj,X) - dj)^2))
+                    + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|))
 
     where m is the number of linear constraints and M = log m / eps,
     with eps an error tolerance parameter
@@ -130,10 +131,11 @@ def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
             penalties_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
         else:
             penalties_n[j] = M*np.abs(Cj*X - dj)
+    retval = 0.
     if m + n > 0:
         if m > 0:
             retval += scipy.misc.logsumexp(np.array(penalties_m), axis=0)
-        if n > =:
+        if n > 0:
             retval += scipy.misc.logsumexp(np.array(penalties_n), axis=0)
         retval = -(1.0/M) * np.exp(retval)
     return retval
@@ -143,45 +145,86 @@ def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     TODO: Make this more numerically stable
     Computes grad f(X) = -(1/M) * c' / c where
       c' = (sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-            + sum_{j=1}^n exp(M(Tr(Cj,X) - dj)**2)
-                            * (2M(Tr(Cj,X) - dj)) * Cj.T)
+            + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|)
+                            * sgn(Tr(Cj,X) - dj) * Cj.T)
       c  = (sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-            + sum_{i=1}^n exp(M(Tr(Cj,X) - dj)**2))
+            + sum_{i=1}^n exp(M*|Tr(Cj,X) - dj|))
 
-    Need Ai and Cj to be symmetric real matrices
+    Need Ai and Cj to be symmetric real matrices. The exponent terms
+    can become large and cause overflow issues. As a result,
+    we need to log-sum-exp the exponent terms to aboid this problem.
     """
     retval = 0.
-    nums_m = np.zeros(m)
-    denoms_m = np.zeros(m)
+    num_mats_m = []
+    log_nums_m = np.zeros(m)
+    log_denoms_m = np.zeros(m)
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
         if dim >= 2:
-            nums_m[i] = M*(np.trace(np.dot(Ai,X)) - bi) + np.log(M*Ai.T)
-            denoms_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
+            num_mats_m.append(M*Ai.T)
+            log_nums_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
+            log_denoms_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
         else:
-            nums_m[i] = M*(Ai*X - bi) + (M*Ai.T)
-            denoms_m[i] = M*(Ai*X - bi)
-    nums_n = np.zeros(n)
-    denoms_n = np.zeros(n)
+            num_mats_m.append(M*Ai.T)
+            log_nums_m[i] = M*(Ai*X - bi) + (M*Ai.T)
+            log_denoms_m[i] = M*(Ai*X - bi)
+    num_mats_n = []
+    log_nums_n = np.zeros(n)
+    log_denoms_n = np.zeros(n)
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
         if dim >= 2:
+            val = np.trace(np.dot(Cj,X)) - dj
+            if val < 0 :
+                sgn = -1.
+            else:
+                sgn = 1.
             # fix derivative
-            nums_n[j] += (np.abs(M*(np.trace(np.dot(Cj,X)) - dj))+
-                            np.log(2*M*(np.trace(np.dot(Cj,X)) - dj))+
-                            np.log(Cj.T))
-            denoms_n[j] += M*(np.trace(np.dot(Cj,X)) - dj)
+            num_mats_n.append(sgn*Cj.T)
+            log_nums_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
+            log_denoms_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
         else:
-            nums_n[j] += (np.abs(M*(Cj*x - dj))+np.log(2*M*(Cj*x -
-                            dj))+np.log(Cj.T))
-            denoms_n[j] += M*(Cj*x - dj)
+            val = (Cj*X) - dj
+            if val < 0 :
+                sgn = -1.
+            else:
+                sgn = 1.
+            num_mats_n.append(sgn*Cj.T)
+            log_nums_n[j] = M*np.abs(Cj*X - dj)
+            log_denoms_n[j] = M*np.abs(Cj*X - dj)
     if m + n > 0:
-        retval += -(1.0/M) * num/denom
+        log_denom_m = -np.inf
+        log_denom_n = -np.inf
+        if m > 0:
+            log_denom_m = scipy.misc.logsumexp(np.array(log_denoms_m),
+                                        axis=0)
+        if n > 0:
+            log_denom_n = scipy.misc.logsumexp(np.array(log_denoms_n),
+                                        axis=0)
+        log_denom = np.logaddexp(log_denom_m, log_denom_n)
+
+        # Now subtract from numerator
+        log_nums_m -= log_denom
+        log_nums_n -= log_denom
+
+        # Undo logarithmic storage
+        nums_m = np.exp(log_nums_m)
+        nums_n = np.exp(log_nums_n)
+
+        # Now construct gradient
+        grad = np.zeros(np.shape(X))
+        #grad += np.sum(nums_m * num_mats_m)
+        #grad += np.sum(nums_n * num_mats_n)
+        for i in range(m):
+            grad += nums_m[i] * num_mats_m[i]
+        for j in range(n):
+            grad += nums_n[j] * num_mats_n[j]
+        grad = -(1.0/M) * grad
     #import pdb
     #pdb.set_trace()
-    return retval
+    return grad
 
 
 def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):

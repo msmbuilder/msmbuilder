@@ -111,8 +111,11 @@ class BoundedTraceSDPHazanSolver(object):
                     else:
                         shift = 1.5*np.abs(w)
                 except (linalg.ArpackError, linalg.ArpackNoConvergence):
+                    #print ("\tSmall eigenvalues leading to no " +
+                    #         "convergence.  Shifting upwards.")
                     shift = 1
                 vj = None
+                last = 0.
                 for i in range(num_tries):
                     try:
                         _, vj = linalg.eigsh(grad
@@ -121,6 +124,7 @@ class BoundedTraceSDPHazanSolver(object):
                     except (linalg.ArpackError,
                             linalg.ArpackNoConvergence):
                         continue
+                    last = i
                     if not np.isnan(np.min(vj)):
                         break
                 if vj == None or np.isnan(np.min(vj)):
@@ -128,11 +132,32 @@ class BoundedTraceSDPHazanSolver(object):
                     # to the more expensive, but more stable eigh method,
                     # which is based on a divide and conquer approach
                     # instead of Lanczos
-                    print("Iteration %d Switching to divide and conquer"
-                            % j)
-                    ws, vs = np.linalg.eigh(grad)
-                    i = np.argmax(np.real(ws))
-                    vj = vs[:, i]
+                    print("Iteration %d: Gradient is singular" % j)
+                    # Going to try next smallest singular value
+                    print "Looking for largest nonzero eigenvalue"
+                    vj = None
+                    for k in range(2,dim):
+                        try:
+                            ws, vs = linalg.eigsh(grad
+                                    + (i+1)*shift*np.eye(dim),
+                                    k=k, tol=epsj, which='LA')
+                        except (linalg.ArpackError,
+                                linalg.ArpackNoConvergence):
+                            continue
+                        if not np.isnan(np.min(vs[:,k-1])):
+                            vj = vs[:,k-1]
+                            print "Picked %d-th eigenvalue" % k
+                            break
+                    #import pdb
+                    #pdb.set_trace()
+                    if vj == None:
+                    #import pdb
+                    #pdb.set_trace()
+                    # Attempt to find fis
+                        print "switching to divide and conquer"
+                        ws, vs = np.linalg.eigh(grad)
+                        i = np.argmax(np.real(ws))
+                        vj = vs[:, i]
             else:
                 ws, vs = np.linalg.eig(grad)
                 i = np.argmax(np.real(ws))
