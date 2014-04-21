@@ -144,14 +144,14 @@ class SparseTICA(tICA):
         gevecs, gevals = gevecs[:, ind], gevals[ind]
 
         self._eigenvalues_ = np.zeros((self.n_components))
-        self._eigenvectors_ = np.zeros((self.n_components, self.n_features))
+        self._eigenvectors_ = np.zeros((self.n_features, self.n_components))
 
         for i in range(self.n_components):
             u, v = speigh(A, B, gevecs[:, i], rho=self.rho, eps=self.epsilon,
                           tol=self.tolerance, tau=tau, verbose=self.verbose)
 
             self._eigenvalues_[i] = u
-            self._eigenvectors_[i] = v
+            self._eigenvectors_[:, i] = v
             A = scdeflate(A, v)
 
         self._is_dirty = False
