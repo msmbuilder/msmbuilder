@@ -167,6 +167,7 @@ class tICA(BaseEstimator, TransformerMixin):
         self._sum_0_to_T = np.zeros(n_features)
         self._outer_0_to_TminusOffset = np.zeros((n_features, n_features))
         self._outer_offset_to_T = np.zeros((n_features, n_features))
+        self._initialized = True
 
     def _solve(self):
         if not self._is_dirty:
