@@ -322,9 +322,9 @@ class tICA(BaseEstimator, TransformerMixin):
 
         self._outer_0_to_T_lagged += np.dot(X[:-self.offset].T, X[self.offset:])
         self._sum_0_to_TminusOffset += X[:-self.offset].sum(axis=0)
-        self._sum_tau_to_T = X[self.offset:].sum(axis=0)
-        self._sum_0_to_T = X.sum(axis=0)
-        self._outer_0_to_TminusOffset = np.dot(X[:-self.offset].T, X[:-self.offset])
-        self._outer_offset_to_T = np.dot(X[self.offset:].T, X[self.offset:])
+        self._sum_tau_to_T += X[self.offset:].sum(axis=0)
+        self._sum_0_to_T += X.sum(axis=0)
+        self._outer_0_to_TminusOffset += np.dot(X[:-self.offset].T, X[:-self.offset])
+        self._outer_offset_to_T += np.dot(X[self.offset:].T, X[self.offset:])
 
         self._is_dirty = True
