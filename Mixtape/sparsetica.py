@@ -43,6 +43,7 @@ __all__ = ['SparseTICA']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class SparseTICA(tICA):
     """Sparse Time-structure Independent Component Analysis (tICA)
 
@@ -268,7 +269,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         if B_is_diagonal:
             pprint('Path [1]: tau=0, diagonal B')
             old_x.fill(np.inf)
-            while np.linalg.norm(x-old_x) > tol:
+            while np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) > tol:
                 pprint('x', x)
                 old_x = x
                 w = 1.0 / (np.abs(x) + eps)
@@ -286,7 +287,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         else:
             pprint('Path [2]: tau=0, general B')
             old_x.fill(np.inf)
-            while np.linalg.norm(x-old_x) > tol:
+            while np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) > tol:
                 pprint('x: ', x)
                 old_x = x
                 w = 1.0 / (np.abs(x) + eps)
@@ -303,7 +304,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
                     objective = cp.Minimize(cp.quad_form(gamma + lambd_, SBSInv))
                     constraints = [lambd_ >= 0]
                     problem = cp.Problem(objective, constraints)
-                    result = problem.solve()
+                    result = problem.solve(solver=cp.ECOS)
                     if not problem.status == cp.OPTIMAL:
                         raise ValueError(problem.status)
                     lambd = np.asarray(lambd_.value).flatten()
@@ -319,7 +320,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         pprint('Path [3]: tau != 0')
         old_x.fill(np.inf)
         scaledA = (A / tau + np.eye(length))
-        while np.linalg.norm(x-old_x) > tol:
+        while np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) > tol:
             pprint('x', x)
             old_x = x
             W = np.diag(1.0 / (np.abs(x) + eps))
@@ -339,8 +340,25 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
             x = np.asarray(x_.value).flatten()
 
     pprint('\nxf:', x)
-    return x.dot(A).dot(x), x
+    # return x.dot(A).dot(x), x
 
+    # Proposition 1 and the "variational renormalization" described in [1].
+    # Use the sparsity pattern in 'x', but ignore the loadings and rerun an
+    # unconstrained GEV problem on the submatrices determined by the nonzero
+    # entries in our optimized x
+
+    # What cutoff to use for zeroing out entries in 'x'. We could hard-code
+    # something, but reusing the `tolerance` parameter seems fine too.
+    sparsecutoff = tol
+
+    mask = (np.abs(x) > sparsecutoff)
+    grid = np.ix_(mask, mask)
+    Ak, Bk = A[grid], B[grid]  # form the submatrices
+    gevals, gevecs = scipy.linalg.eigh(Ak, Bk, eigvals=(Ak.shape[0]-2, Ak.shape[0]-1))
+    u = gevals[-1]
+    v = np.zeros(length)
+    v[mask] = gevecs[:, -1]
+    return u, v
 
 if __name__ == '__main__':
     X = np.random.randn(1000, 10)
@@ -348,16 +366,15 @@ if __name__ == '__main__':
     X[:,1] += np.cos(np.arange(1000) / 100.0)
 
     tica = tICA(n_components=2).fit(X)
-    print('tica eigenvector\n', tica.eigenvectors_[0])
+    print('tica eigenvector\n', tica.components_[0])
     print('tica eigenvalue\n', tica.eigenvalues_[0])
-    print('\ntica eigenvector\n', tica.eigenvectors_[1])
+    print('\ntica eigenvector\n', tica.components_[1])
     print('tica eigenvalue\n', tica.eigenvalues_[1])
-
     print('\n\n')
 
     sptica = SparseTICA(n_components=2, rho=0.01, tolerance=1e-6, verbose=False)
     sptica.fit(X)
-    print('sptica eigenvector\n', sptica.eigenvectors_[0])
+    print('sptica eigenvector\n', sptica.components_[0])
     print('sptica eigenvalue\n', sptica.eigenvalues_[0])
-    print('\nsptica eigenvector\n', sptica.eigenvectors_[1])
+    print('\nsptica eigenvector\n', sptica.components_[1])
     print('sptica eigenvalue\n', sptica.eigenvalues_[1])

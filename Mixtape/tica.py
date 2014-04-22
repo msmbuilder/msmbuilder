@@ -180,7 +180,8 @@ class tICA(BaseEstimator, TransformerMixin):
 
         rhs = self.covariance_ + (self.gamma / self.n_features) * \
                 np.trace(self.covariance_) * np.eye(self.n_features)
-        vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs)
+        vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs,
+            eigvals=(self.n_features-self.n_components, self.n_features-1))
 
         # sort in order of decreasing value
         ind = np.argsort(vals)[::-1]

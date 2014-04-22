@@ -1,5 +1,6 @@
 
 import numpy as np
+from mdtraj.testing import eq
 from mixtape.tica import tICA
 from msmbuilder.reduce import tICA as tICAr
 
@@ -53,3 +54,9 @@ def test_singular_2():
     tica.fit(X)
     assert tica.components_.dtype == np.float64
     assert tica.eigenvalues_.dtype == np.float64
+
+def test_shape():
+    model = tICA(n_components=3).fit(np.random.randn(100,10))
+    eq(model.eigenvalues_.shape, (3,))
+    eq(model.eigenvectors_.shape, (10, 3))
+    eq(model.components_.shape, (3, 10))
