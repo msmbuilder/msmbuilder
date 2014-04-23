@@ -78,6 +78,8 @@ class SparseTICA(tICA):
         problems due to numberical stability.
     tolerance : positive float
         Convergence critera for the sparse generalized eigensolver.
+    maxiter : int
+        Maximum number of iterations for the sparse generalized eigensolver.
     verbose : bool
         Print verbose information from the sparse generalized eigensolver.
 
@@ -121,11 +123,13 @@ class SparseTICA(tICA):
     """
 
     def __init__(self, n_components=None, offset=1, gamma=0.05,
-                 rho=0.01, epsilon=1e-6, tolerance=1e-8, verbose=False):
+                 rho=0.01, epsilon=1e-6, tolerance=1e-8, maxiter=10000,
+                 verbose=False):
         super(SparseTICA, self).__init__(n_components, offset, gamma)
         self.rho = rho
         self.epsilon = epsilon
         self.tolerance = tolerance
+        self.maxiter = maxiter
         self.verbose = verbose
 
     def _solve(self):
@@ -153,7 +157,8 @@ class SparseTICA(tICA):
 
         for i in range(self.n_components):
             u, v = speigh(A, B, gevecs[:, i], rho=self.rho, eps=self.epsilon,
-                          tol=self.tolerance, tau=tau, verbose=self.verbose)
+                          tol=self.tolerance, tau=tau, maxiter=self.maxiter,
+                          verbose=self.verbose)
 
             self._eigenvalues_[i] = u
             self._eigenvectors_[:, i] = v
@@ -188,7 +193,7 @@ def scdeflate(A, x):
     return A - np.outer(np.dot(A, x), np.dot(x, A)) / np.dot(np.dot(x, A), x)
 
 
-def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
+def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, verbose=True):
     """Find a sparse approximate generalized eigenpair.
 
     The generalized eigenvalue equation, :math:`Av = lambda Bv`,
@@ -273,7 +278,9 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         if B_is_diagonal:
             pprint('Path [1]: tau=0, diagonal B')
             old_x.fill(np.inf)
-            while np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) > tol:
+            for i in range(maxiter):
+                if np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) < tol:
+                    break
                 pprint('x', x)
                 old_x = x
                 w = 1.0 / (np.abs(x) + eps)
@@ -291,7 +298,9 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         else:
             pprint('Path [2]: tau=0, general B')
             old_x.fill(np.inf)
-            while np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) > tol:
+            for i in range(maxiter):
+                if np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) < tol:
+                    break
                 pprint('x: ', x)
                 old_x = x
                 w = 1.0 / (np.abs(x) + eps)
@@ -324,7 +333,9 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, verbose=True):
         pprint('Path [3]: tau != 0')
         old_x.fill(np.inf)
         scaledA = (A / tau + np.eye(length))
-        while np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) > tol:
+        for i in range(maxiter):
+            if np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) < tol:
+                break
             pprint('x', x)
             old_x = x
             W = np.diag(1.0 / (np.abs(x) + eps))
