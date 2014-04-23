@@ -31,6 +31,7 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
+from six import PY2
 import numpy as np
 import scipy.linalg
 from mixtape.tica import tICA
@@ -69,7 +70,7 @@ class SparseTICA(tICA):
         where :math:`Tr` is the trace operator.
     rho : positive float
         Controls the sparsity. Higher values of rho gives more
-        sparse solutions.
+        sparse solutions. rho=0 corresponds to standard tICA
     epsilon : positive float, default=1e-6
         epsilon should be a number very close to zero, which is used to
         construct the approximation to the L_0 penality function. However,
@@ -134,6 +135,9 @@ class SparseTICA(tICA):
             raise RuntimeError('offset correlation matrix is not symmetric')
         if not np.allclose(self.covariance_, self.covariance_.T):
             raise RuntimeError('correlation matrix is not symmetric')
+        if self.rho <= 0:
+            s = super(SparseTICA, self) if PY2 else super()
+            return s._solve()
 
         A = self.offset_correlation_
         B = self.covariance_ + (self.gamma / self.n_features) * \
