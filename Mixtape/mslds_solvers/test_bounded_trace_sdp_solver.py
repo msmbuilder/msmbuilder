@@ -37,12 +37,12 @@ def test1():
         assert np.abs(fX - (-1./dim)) < 1./N_iter
         print("\tError Tolerance Acceptable")
 
-def simple_equality_constraint_test(N_iter, penalty, grad_penalty):
+def simple_equality_constraint(N_iter):
     """
     Check that the bounded trace implementation can handle low dimensional
     equality type constraints for the given penalty function.
 
-    With As and bs as below, we solve the problem
+    With As and bs as below, we specify the problem
 
         max penalty(X)
         subject to
@@ -57,34 +57,57 @@ def simple_equality_constraint_test(N_iter, penalty, grad_penalty):
     dim = 2
     eps = 1./N_iter
     M = compute_scale(m, n, eps)
-    def f(X):
-        return penalty(X, m, n, M, As, bs, Cs, ds, dim)
-    def gradf(X):
-        return grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
     As = []
     bs = []
     Cs = [np.array([[ 1.,  0.],
                     [ 0.,  2.]])]
     ds = [1.5]
+    return m, n, M, dim, eps, As, bs, Cs, ds
     #import pdb
     #pdb.set_trace()
-    run_experiment(f, gradf, dim, N_iter)
+    #run_experiment(f, gradf, dim, N_iter)
 
-def test2():
+def test2a():
     """
     Check equality constraints for log_sum_exp constraints
     """
     N_iter = 50
-    simple_equality_constraint_test(N_iter, log_sum_exp_penalty,
-            log_sum_exp_grad_penalty)
+    m, n, M, dim, eps, As, bs, Cs, ds = simple_equality_constraint(N_iter)
+    def f(X):
+        return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+    def gradf(X):
+        return log_sum_exp_grad_penalty(X, m, n, M, As,
+                    bs, Cs, ds, dim, eps)
+    run_experiment(f, gradf, dim, N_iter)
 
-def test3():
+def test2b():
     """
     Check equality constraints for neg_max constraints
     """
     N_iter = 50
-    simple_equality_constraint_test(N_iter, neg_max_penalty,
-            neg_max_grad_penalty)
+    m, n, M, dim, eps, As, bs, Cs, ds = simple_equality_constraint(N_iter)
+    def f(X):
+        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+    def gradf(X):
+        return neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
+    run_experiment(f, gradf, dim, N_iter)
+
+def test2c():
+    """
+    Check equality constraints for neg_max_grad_general
+    """
+    N_iter = 50
+    m, n, M, dim, eps, As, bs, Cs, ds = simple_equality_constraint(N_iter)
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    def f(X):
+        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+    def gradf(X):
+        return neg_max_general_grad_penalty(X, M,
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+    run_experiment(f, gradf, dim, N_iter)
 
 def simple_constraint_test(N_iter, penalty, grad_penalty):
     """
@@ -378,15 +401,18 @@ if __name__ == "__main__":
     ## Dummy test
     #test1()
 
+    # Test simple equality constraints
+    #test2b()
+    #test2b()
+    test2c()
+
     ## neg_max tests
-    #test3()
     #test5()
     #test7()
     #test9()
     #test11()
 
     ## log_sum_exp tests
-    #test2()
     #test4()
     #test6()
     #test8()

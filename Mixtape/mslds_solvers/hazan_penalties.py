@@ -58,41 +58,6 @@ def grad_neg_sum_squares(x):
         G[i,i] += -2.*x[i,i]
     return G
 
-#def f(X):
-#    """
-#    TODO: Delete this once okay
-#    X: np.ndarray
-#        Computes function
-#        f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi)))
-#    """
-#    s = 0.
-#    for i in range(m):
-#        Ai = As[i]
-#        bi = bs[i]
-#        s += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-#    return -(1.0/M) * np.log(s)
-#
-#def gradf(X):
-#    """
-#    TODO: Delete this once okay
-#    X: np.ndarray
-#        Computes grad f(X) = -(1/M) * f' / f where
-#          f' = sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-#          f  = sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-#    """
-#    num = 0.
-#    denom = 0.
-#    for i in range(m):
-#        Ai = As[i]
-#        bi = bs[i]
-#        if dim >= 2:
-#            num += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))*(M*Ai.T)
-#            denom += np.exp(M*(np.trace(np.dot(Ai,X)) - bi))
-#        else:
-#            num += np.exp(M*(Ai*X - bi))*(M*Ai.T)
-#            denom += np.exp(M*(Ai*X - bi))
-#    return (-1.0/M) * num/denom
-
 def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     """
     TODO: Make this more numerically stable
@@ -226,6 +191,41 @@ def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     #pdb.set_trace()
     return grad
 
+def neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
+    """
+    Computes penalty
+
+     -max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|},
+            max_k {Fk(x)}, max_l {|Gl(x)|})
+
+    """
+    (dim, _) = np.shape(X)
+    m = len(As)
+    n = len(Cs)
+    p = len(Fs)
+    q = len(Gs)
+    penalties = np.zeros(n+m+p+q)
+    # Handle linear inequalities
+    for i in range(m):
+        Ai = As[i]
+        bi = bs[i]
+        if dim >= 2:
+            penalties[i] = np.trace(np.dot(Ai,X)) - bi
+        else:
+            penalties[i] = Ai*X - bi
+    # Handle linear equalities
+    for j in range(n):
+        Cj = Cs[j]
+        dj = ds[j]
+        if dim >= 2:
+            penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
+        else:
+            penalties[j+m] = np.abs(Cj*X - dj)
+    # Handle convex inequalities
+    for k in range(p):
+        Fk = Fs[k]
+        penalties[k+m+n] = Fk(X)
+    return -np.amax(penalties)
 
 def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     """
@@ -233,7 +233,6 @@ def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
 
      -max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|})
 
-    This function computes and returns this quantity.
     """
     penalties = np.zeros(n+m)
     for i in range(m):
@@ -251,6 +250,98 @@ def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
         else:
             penalties[j+m] += np.abs(Cj*x - dj)
     return -np.amax(penalties)
+
+def neg_max_general_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs,
+        gradGs, eps):
+    """
+    A more complicated version of neg_max_grad_penalty that allows for
+    arbitrary convex inequalities and equalities.
+    Parameters
+    __________
+
+    X: numpy.ndarray
+        input variable
+    As: list
+        list of numpy.ndarrays for constraints Tr(A_iX) <= b_i
+    bs: list
+        list of floats for constraints Tr(A_iX) <= b_i
+    Cs: list
+        list of numpy.ndarrays for constraints Tr(C_iX) == d_i
+    ds: list
+        list of floats for constraints Tr(C_iX) == d_i
+    Fs: list
+        list of functions for constraints f_i(X) <= 0
+    Gs: list
+        list of functions for constraints g_i(X) == 0
+    dim: int
+        Input dimension. X is a (dim, dim) array.
+    eps: float
+        eps > 0 is the error tolerance.
+    """
+    # should assert X is a square matrix...
+    (dim, _) = np.shape(X)
+    m = len(As)
+    n = len(Cs)
+    p = len(Fs)
+    q = len(Gs)
+    penalties = np.zeros(n+m+p+q)
+    # Handle linear inequalities
+    for i in range(m):
+        Ai = As[i]
+        bi = bs[i]
+        if dim >= 2:
+            penalties[i] = np.trace(np.dot(Ai,X)) - bi
+        else:
+            penalties[i] = Ai*X - bi
+    # Handle linear equalities
+    for j in range(n):
+        Cj = Cs[j]
+        dj = ds[j]
+        if dim >= 2:
+            penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
+        else:
+            penalties[j+m] = np.abs(Cj*X - dj)
+    # Handle convex inequalities
+    for k in range(p):
+        Fk = Fs[k]
+        penalties[k+m+n] = Fk(X)
+    # Handle convex equalities
+    for l in range(q):
+        Gl = Gs[l]
+        penalties[l+p+m+n] = np.abs(Gl(X))
+    inds = [ind for ind in range(n+m) if penalties[ind] > eps]
+    grad = np.zeros(np.shape(X))
+    for ind in inds:
+        if ind < m:
+            Ai = As[ind]
+            grad += Ai
+        elif ind < m+n:
+            Cj = Cs[ind - m]
+            dj = ds[ind - m]
+            val = np.trace(np.dot(Cj,X)) - dj
+            #print "val: ", val
+            if val < 0:
+                grad += -Cj
+            elif val > 0:
+                grad += Cj
+        elif ind < m+n+p:
+            gradFj = gradFs[ind]
+            grad += gradFj(X)
+        else:
+            Gl = Gs[ind]
+            gradGl = gradGs[ind]
+            val = Gl(X)
+            if val < 0:
+                grad += -gradGl(X)
+            else:
+                grad += gradGl(X)
+    # Average by num entries
+    grad = grad / max(len(inds), 1.)
+    # Take the negative since our function is -max{..}
+    grad = -grad
+    #import pdb
+    #pdb.set_trace()
+    return grad
 
 def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     """
@@ -271,9 +362,31 @@ def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
 
     We use a weak subdifferential calculus that averages the gradients
     of all violated constraints.
+
+    Parameters
+    __________
+
+    X: numpy.ndarray
+        input variable
+    m: int
+        number of linear inequality constraints
+    n: int
+        number of linear equality constraints
+    As: list
+        list of numpy.ndarrays for constraints Tr(A_iX) <= b_i
+    bs: list
+        list of floats for constraints Tr(A_iX) <= b_i
+    Cs: list
+        list of numpy.ndarrays for constraints Tr(C_iX) == d_i
+    ds: list
+        list of floats for constraints Tr(C_iX) == d_i
+    dim: int
+        Input dimension. X is a (dim, dim) array.
+    eps: float
+        eps > 0 is the error tolerance.
     """
     penalties = np.zeros(n+m)
-    count = 0
+    # Handle linear inequalities
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
@@ -281,6 +394,7 @@ def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
             penalties[i] = np.trace(np.dot(Ai,X)) - bi
         else:
             penalties[i] = Ai*X - bi
+    # Handle linear equalities
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
@@ -288,9 +402,7 @@ def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
             penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
         else:
             penalties[j+m] = np.abs(Cj*X - dj)
-    #ind = np.argmax(penalties)
     inds = [ind for ind in range(n+m) if penalties[ind] > eps]
-
     grad = np.zeros(np.shape(X))
     for ind in inds:
         if ind < m:
@@ -312,4 +424,3 @@ def neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     #import pdb
     #pdb.set_trace()
     return grad
-
