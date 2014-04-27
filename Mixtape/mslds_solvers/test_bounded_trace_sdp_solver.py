@@ -109,12 +109,12 @@ def test2c():
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     run_experiment(f, gradf, dim, N_iter)
 
-def simple_constraint_test(N_iter, penalty, grad_penalty):
+def simple_constraint(N_iter):
     """
     Check that the bounded trace implementation can handle low-dimensional
     equality and inequality type constraints for given penalty.
 
-    With As and bs as below, we solve the problem
+    With As and bs as below, we specify the problem
 
         max penalty(X)
         subject to
@@ -127,10 +127,6 @@ def simple_constraint_test(N_iter, penalty, grad_penalty):
     dim = 3
     eps = 1./N_iter
     M = compute_scale(m, n, eps)
-    def f(X):
-        return penalty(X, m, n, M, As, bs, Cs, ds, dim)
-    def gradf(X):
-        return grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
     As = [np.array([[ 1., 0., 0.],
                     [ 0., 2., 0.],
                     [ 0., 0., 0.]])]
@@ -139,34 +135,146 @@ def simple_constraint_test(N_iter, penalty, grad_penalty):
                     [ 0.,  2., 0.],
                     [ 0.,  0., 2.]])]
     ds = [5./3]
-    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+    return m, n, M, As, bs, Cs, ds, dim, eps
     #import pdb
     #pdb.set_trace()
 
-def test4():
+def test3a():
     """
     Check equality and inequality constraints for log_sum_exp penalty
     """
     N_iter = 50
-    simple_constraint_test(N_iter, log_sum_exp_penalty,
-            log_sum_exp_grad_penalty)
+    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    def f(X):
+        return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+    def gradf(X):
+        return log_sum_exp_grad_penalty(X, m, n, M,
+                As, bs, Cs, ds, dim, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def test45():
+def test3b():
+    """
+    Check equality and inequality constraints for neg_max penalty
+    """
+    N_iter = 50
+    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    def f(X):
+        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+    def gradf(X):
+        return neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+
+def test3c():
     """
     Check equality and inequality constraints for neg_max penalty
     with log_sum_exp gradients.
     """
     N_iter = 50
-    simple_constraint_test(N_iter, neg_max_penalty,
-            log_sum_exp_grad_penalty)
+    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    def f(X):
+        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+    def gradf(X):
+        return log_sum_exp_grad_penalty(X, m, n, M,
+                As, bs, Cs, ds, dim, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def test5():
+def test3d():
     """
-    Check equality and inequality constraints for neg_max penalty
+    Check equality and inequality constraints for neg_max_general
+    penalty and gradients.
     """
     N_iter = 50
-    simple_constraint_test(N_iter, neg_max_penalty,
-            neg_max_grad_penalty)
+    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    def f(X):
+        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+    def gradf(X):
+        return neg_max_general_grad_penalty(X, M,
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+
+def quadratic_inequality(N_iter):
+    """
+    Check that the bounded trace implementation can handle low-dimensional
+    quadratic inequality.
+
+    We specify the problem
+
+        max penalty(X)
+        subject to
+            x_11^2 + x_22^2 <= .5
+            Tr(X) = x_11 + x_22 == 1
+    """
+    dim = 2
+    eps = 1./N_iter
+    m = 0
+    As = []
+    bs = []
+    n = 0
+    Cs = []
+    ds = []
+    p = 1
+    def f(X):
+        return X[0,0]**2 + X[1,1]**2 - 0.5
+    def gradf(X):
+        grad = np.zeros(np.shape(X))
+        grad[0,0] = 2 * X[0,0]
+        grad[1,1] = 2 * X[1,1]
+        return grad
+    Fs = [f]
+    gradFs = [gradf]
+    q = 0
+    Gs = []
+    gradGs = []
+    M = compute_scale_full(m,n,p,q,eps)
+    return dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
+
+def quadratic_equality(N_iter):
+    """
+    Check that the bounded trace implementation can handle
+    low-dimensional quadratic equalities
+
+    We specify the problem
+
+        feasibility(X)
+        subject to
+            x_11^2 + x_22^2 = 1.0
+            Tr(X) = x_11 + x_22 == 1
+    """
+    dim = 2
+    eps = 1./N_iter
+    m = 0
+    As = []
+    bs = []
+    n = 0
+    Cs = []
+    ds = []
+    p = 0
+    Fs = []
+    gradFs = []
+    q = 1
+
+def test4a():
+    """
+    Check quadratic inequality constraints for neg_max_general penalty
+    and gradients.
+    """
+    N_iter = 50
+    dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
+            quadratic_inequality(N_iter)
+    def f(X):
+        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+    def gradf(X):
+        return neg_max_general_grad_penalty(X, M,
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+    import pdb
+    pdb.set_trace()
+
+
 
 def stress_test_inequalities(dims, N_iter, penalty, grad_penalty):
     """
@@ -404,7 +512,16 @@ if __name__ == "__main__":
     # Test simple equality constraints
     #test2b()
     #test2b()
-    test2c()
+    #test2c()
+
+    # Test simple inequality and equality constraints
+    #test3a()
+    #test3b()
+    #test3c()
+    #test3d()
+
+    # Test quadratic inequality constraints
+    #test4a()
 
     ## neg_max tests
     #test5()

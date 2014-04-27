@@ -7,7 +7,10 @@ Various Useful Penalty Functions for Hazan's Algorithm.
 @email: bharath.ramsundar@gmail.com
 """
 
-def compute_scale(m,n, eps):
+def compute_scale(m, n, eps):
+    return compute_scale_full(m, n, p, q, eps)
+
+def compute_scale_full(m, n, p, q, eps):
     """
     Compute the scaling factor required for m inequality and
     n equality constraints in the log_sum_exp penalty.
@@ -18,13 +21,21 @@ def compute_scale(m,n, eps):
         Number of inequality constraints
     n: int
         Number of equality constraints
+    p: int
+        Number of convex inequality constraints
+    q: int
+        Number of convex equality constraints
     """
-    if m + n > 0:
+    if m + n + p + q> 0:
         M = 0.
         if m > 0:
             M += np.max((np.log(m), 1.))/eps
         if n > 0:
             M += np.max((np.log(n), 1.))/eps
+        if p > 0:
+            M += np.max((np.log(p), 1.))/eps
+        if q > 0:
+            M += np.max((np.log(q), 1.))/eps
     else:
         M = 1.
     return M
@@ -225,6 +236,10 @@ def neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     for k in range(p):
         Fk = Fs[k]
         penalties[k+m+n] = Fk(X)
+    # Handle convex equalities
+    for l in range(q):
+        Gl = Gs[l]
+        penalties[l+p+m+n] = Gl(X)
     return -np.amax(penalties)
 
 def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
@@ -309,32 +324,37 @@ def neg_max_general_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs,
     for l in range(q):
         Gl = Gs[l]
         penalties[l+p+m+n] = np.abs(Gl(X))
-    inds = [ind for ind in range(n+m) if penalties[ind] > eps]
+    inds = [ind for ind in range(n+m+p+q) if penalties[ind] > eps]
     grad = np.zeros(np.shape(X))
+    pen_sum = 0
     for ind in inds:
+        pen_sum += penalties[ind]
         if ind < m:
             Ai = As[ind]
-            grad += Ai
+            grad += penalties[ind] * Ai
         elif ind < m+n:
             Cj = Cs[ind - m]
             dj = ds[ind - m]
             val = np.trace(np.dot(Cj,X)) - dj
             #print "val: ", val
             if val < 0:
-                grad += -Cj
+                grad += - penalties[ind] * Cj
             elif val > 0:
-                grad += Cj
+                grad += penalties[ind] * Cj
         elif ind < m+n+p:
             gradFj = gradFs[ind]
-            grad += gradFj(X)
+            grad += penalties[ind] * gradFj(X)
         else:
             Gl = Gs[ind]
             gradGl = gradGs[ind]
             val = Gl(X)
             if val < 0:
-                grad += -gradGl(X)
+                grad += -penalties[ind] * gradGl(X)
             else:
-                grad += gradGl(X)
+                grad += penalties[ind] * gradGl(X)
+    pen_sum = max(pen_sum, 1.0)
+    # Average by penalty sum
+    grad = grad / pen_sum
     # Average by num entries
     grad = grad / max(len(inds), 1.)
     # Take the negative since our function is -max{..}
