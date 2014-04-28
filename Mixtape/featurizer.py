@@ -173,7 +173,7 @@ class DihedralFeaturizer(Featurizer):
         return np.hstack(x)
 
 
-def ContactFeaturizer(Featurizer):
+class ContactFeaturizer(Featurizer):
 
     """Featurizer based on residue-residue distances"""
 
