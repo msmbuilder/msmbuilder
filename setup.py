@@ -39,7 +39,7 @@ __version__ = VERSION
 CLASSIFIERS = """\
 Intended Audience :: Science/Research
 Intended Audience :: Developers
-License :: OSI Approved :: BSD License
+License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)
 Programming Language :: C++
 Programming Language :: Python
 Development Status :: 3 - Alpha
