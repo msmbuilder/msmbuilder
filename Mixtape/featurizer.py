@@ -173,6 +173,20 @@ class DihedralFeaturizer(Featurizer):
         return np.hstack(x)
 
 
+def ContactFeaturizer(Featurizer):
+
+    """Featurizer based on residue-residue distances"""
+
+    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True):
+        self.contacts = contacts
+        self.scheme = scheme
+        self.ignore_nonprotein = ignore_nonprotein
+
+    def featurize(self, trajectory):
+        distances, _ = md.compute_contacts(trajectory, self.contacts, self.scheme, self.ignore_nonprotein)
+        return distances
+
+
 class RawPositionsFeaturizer(Featurizer):
 
     def __init__(self, n_features):
