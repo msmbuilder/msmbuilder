@@ -232,31 +232,6 @@ def quadratic_inequality(N_iter):
     M = compute_scale_full(m,n,p,q,eps)
     return dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
 
-def quadratic_equality(N_iter):
-    """
-    Check that the bounded trace implementation can handle
-    low-dimensional quadratic equalities
-
-    We specify the problem
-
-        feasibility(X)
-        subject to
-            x_11^2 + x_22^2 = 1.0
-            Tr(X) = x_11 + x_22 == 1
-    """
-    dim = 2
-    eps = 1./N_iter
-    m = 0
-    As = []
-    bs = []
-    n = 0
-    Cs = []
-    ds = []
-    p = 0
-    Fs = []
-    gradFs = []
-    q = 1
-
 def test4a():
     """
     Check quadratic inequality constraints for neg_max_general penalty
@@ -274,6 +249,58 @@ def test4a():
     import pdb
     pdb.set_trace()
 
+def quadratic_equality(N_iter):
+    """
+    Check that the bounded trace implementation can handle
+    low-dimensional quadratic equalities
+
+    We specify the problem
+
+        feasibility(X)
+        subject to
+            x_11^2 + x_22^2 = 0.5
+            Tr(X) = x_11 + x_22 == 1
+    """
+    dim = 2
+    eps = 1./N_iter
+    m = 0
+    As = []
+    bs = []
+    n = 0
+    Cs = []
+    ds = []
+    p = 0
+    Fs = []
+    gradFs = []
+    q = 1
+    def g(X):
+        return X[0,0]**2 + X[1,1]**2 - 0.5
+    def gradg(X):
+        grad = np.zeros(np.shape(X))
+        grad[0,0] = 2 * X[0,0]
+        grad[1,1] = 2 * X[1,1]
+        return grad
+    Gs = [g]
+    gradGs = [gradg]
+    M = compute_scale_full(m, n, p, q, eps)
+    return dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
+
+def test5a():
+    """
+    Check quadratic equality constraints for neg_max_general penalty
+    and gradients.
+    """
+    N_iter = 50
+    dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
+            quadratic_equality(N_iter)
+    def f(X):
+        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+    def gradf(X):
+        return neg_max_general_grad_penalty(X, M,
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+    import pdb
+    pdb.set_trace()
 
 
 def stress_test_inequalities(dims, N_iter, penalty, grad_penalty):
@@ -522,6 +549,9 @@ if __name__ == "__main__":
 
     # Test quadratic inequality constraints
     #test4a()
+
+    # Test quadratic equality constraints
+    test5a()
 
     ## neg_max tests
     #test5()
