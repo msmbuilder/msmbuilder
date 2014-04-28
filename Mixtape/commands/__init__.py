@@ -14,7 +14,9 @@
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.from __future__ import print_function, division, absolute_import
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import print_function, division, absolute_import
 import os as _os
 
 _exclude = ['__init__.py']
