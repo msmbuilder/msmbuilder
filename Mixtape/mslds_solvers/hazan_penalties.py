@@ -9,10 +9,11 @@ Various Useful Penalty Functions for Hazan's Algorithm.
 TODOs: Too many of the penalties below are similar. Here are some
 simplifying steps.
 
-    1) Remove old neg_max penalties and gradients and rename
+    -) Remove old neg_max penalties and gradients and rename
        neg_max_general penalties and gradients to neg_max.
-    2) Factor out penalty calculation into shared subfunction
+    -) Factor out penalty calculation into shared subfunction
        to avoid duplication in both penalty and gradient functions.
+    -) Change penalty functions to no longer require m, n, dim, etc.
 """
 
 def compute_scale(m, n, eps):

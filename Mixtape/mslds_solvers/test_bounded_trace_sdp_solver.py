@@ -10,7 +10,7 @@ Tests for Hazan's core algorithm.
 
 TODOs:
     -) Clean up older tests and put them into abc format that newer tests
-       follow.
+       follow ====> DONE
     -) Add and test a batch equality operation.
     -) Add and test a batch linear operation.
     -) Add and test Schur complement constraint.
@@ -59,7 +59,7 @@ def simple_equality_constraint(N_iter):
 
     With As and bs as below, we specify the problem
 
-        max penalty(X)
+        feasibility(X)
         subject to
           x_11 + 2 x_22 == 1.5
           Tr(X) = x_11 + x_22 == 1.
@@ -131,7 +131,7 @@ def simple_constraint(N_iter):
 
     With As and bs as below, we specify the problem
 
-        max penalty(X)
+        feasbility(X)
         subject to
             x_11 + 2 x_22 <= 1
             x_11 + 2 x_22 + 2 x_33 == 5/3
@@ -244,7 +244,7 @@ def quadratic_inequality(N_iter):
     q = 0
     Gs = []
     gradGs = []
-    M = compute_scale_full(m,n,p,q,eps)
+    M = compute_scale_full(m, n, p, q, eps)
     return dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
 
 def test4a():
@@ -568,12 +568,94 @@ def test8c():
                         As, bs, Cs, ds, dim,eps)
         X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def run_experiment(f, gradf, dim, N_iter):
+def batch_equality(A, dim, N_iter):
+    """
+    Check that the bounded trace implementation can handle batch
+    equality constraints in a matrix.
+
+    We specify the problem
+
+    feasibility(X)
+    subject to
+        [[ B   , A],
+         [ A.T , D]]  is PSD, where B, D are arbitrary, A given.
+
+        Tr(X) = Tr(B) + Tr(D) == 1
+    """
+    m = 0
+    As = []
+    bs = []
+    n = 0
+    Cs = []
+    ds = []
+    p = 0
+    Fs = []
+    gradFs = []
+    q = 1
+    block_dim = int(dim/2)
+    def g(X):
+        c1 = np.sum(np.abs(X[:block_dim,block_dim:] - A))
+        c2 = np.sum(np.abs(X[block_dim:,:block_dim] - A.T))
+        return c1 + c2
+    def gradg(X):
+        # TODO: Maybe speed this up and avoid allocating new matrix
+        #       of zeros every gradient computation.
+        # Upper right
+        grad1 = X[:block_dim,block_dim:] - A
+        grad1 = np.sign(grad1) * grad1 # elementwise multiplication!
+        # Lower left
+        grad2 = X[block_dim:,:block_dim] - A.T
+        grad2 = np.sign(grad2) * grad2 # elementwise multiplication!
+
+        grad = np.zeros((dim, dim))
+        grad[:block_dim,block_dim:] = grad1
+        grad[block_dim:,:block_dim] = grad2
+        # Not sure if this is right...
+        return -grad
+
+    Gs = [g]
+    gradGs = [gradg]
+    eps = 1./N_iter
+    M = compute_scale_full(m, n, p, q, eps)
+    return M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
+
+def test9a():
+    """
+    Test block equality constraints.
+    """
+    dims = [4]
+    N_iter = 100
+    #alphas = 0.1 * np.ones(N_iter)
+    #alphas = 5 * [1./(j+1) for j in range(N_iter)]
+    alphas = None
+    DEBUG = False
+    for dim in dims:
+        A = np.eye(int(dim/2))
+        M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
+                batch_equality(A, dim, N_iter)
+        def f(X):
+            return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+        def gradf(X):
+            return neg_max_general_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+        def grad_update(X):
+            G = gradf(X)
+            wj, vj = scipy.sparse.linalg.eigsh(G, k=1, which='LA')
+            return np.outer(vj, vj)
+        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter,
+                alphas=alphas,DEBUG=DEBUG)
+        g = Gs[0]
+        gradg = gradGs[0]
+        import pdb
+        pdb.set_trace()
+
+
+def run_experiment(f, gradf, dim, N_iter, alphas=None,DEBUG=False):
     fudge_factor = 5.0
     eps = 1./N_iter
     B = BoundedTraceSDPHazanSolver()
     start = time.clock()
-    X = B.solve(f, gradf, dim, N_iter, DEBUG=False)
+    X = B.solve(f, gradf, dim, N_iter, DEBUG=DEBUG, alphas=alphas)
     elapsed = (time.clock() - start)
     fX = f(X)
     print "\tX:\n", X
@@ -618,5 +700,8 @@ if __name__ == "__main__":
     # Stress test equality and inequality constraints
     #test8a()
     #test8b()
-    test8c()
+    #test8c()
+
+    # Test block equality constraints
+    test9a()
     pass

@@ -64,7 +64,7 @@ class BoundedTraceSDPHazanSolver(object):
         pass
 
     def solve(self, f, gradf, dim, N_iter, Cf=None, DEBUG=False,
-                num_tries=5):
+                num_tries=5, alphas=None):
         """
         Parameters
         __________
@@ -90,7 +90,7 @@ class BoundedTraceSDPHazanSolver(object):
                 print "\tgrad X:\n", grad
             if dim >= 3:
                 if Cf != None:
-                    epsj = Cf/(j+1)**2
+                    epsj = Cf/(j+1)
                 else:
                     epsj = 0
                 # We usually try the following eigenvector finder,
@@ -165,9 +165,13 @@ class BoundedTraceSDPHazanSolver(object):
 
             # Avoid strange errors with complex numbers
             vj = np.real(vj)
-            alphaj = min(1.,2./(j+1))
+            if alphas == None:
+                alphaj = min(1.,2./(j+1))
+            else:
+                alphaj = alphas[j]
             step = alphaj * (np.outer(vj,vj) - X)
             if DEBUG:
+                print "\tf(X):\n", f(X)
                 print "\talphaj:\n", alphaj
                 print "\tvk vk.T:\n", np.outer(vj,vj)
                 print "\tstep:\n", step
