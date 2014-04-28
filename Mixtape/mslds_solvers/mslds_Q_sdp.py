@@ -13,6 +13,7 @@ import pdb
 
 
 def construct_coeff_matrix(x_dim, B):
+    # c = s*dim + Tr Z
     # x = [s vec(Z) vec(Q)]
     # F = B^{.5}
     # ------------------------

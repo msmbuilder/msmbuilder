@@ -2,6 +2,21 @@ from hazan import *
 from hazan_penalties import *
 import pdb
 import time
+"""
+Tests for Hazan's core algorithm.
+
+@author: Bharath Ramsundar
+@email: bharath.ramsundar@gmail.com
+
+TODOs:
+    -) Clean up older tests and put them into abc format that newer tests
+       follow.
+    -) Add and test a batch equality operation.
+    -) Add and test a batch linear operation.
+    -) Add and test Schur complement constraint.
+    -) Add and test a log det constraint.
+    -) Add and test a matrix quadratic constraint.
+"""
 
 def test1():
     """
@@ -303,12 +318,12 @@ def test5a():
     pdb.set_trace()
 
 
-def stress_test_inequalities(dims, N_iter, penalty, grad_penalty):
+def stress_inequalities(dim, N_iter):
     """
     Stress test the bounded trace solver for
     inequalities.
 
-    With As and bs as below, we solve the probelm
+    With As and bs as below, we specify the probelm
 
     max penalty(X)
     subject to
@@ -319,58 +334,71 @@ def stress_test_inequalities(dims, N_iter, penalty, grad_penalty):
     for the first n-1 diagonal elements, but a large element (about 1/2)
     for the last element.
     """
-    for dim in dims:
-        m = dim - 1
-        n = 0
-        eps = 1./N_iter
-        M = compute_scale(m, n, eps)
-        def f(X):
-            return penalty(X, m, n, M, As, bs, Cs, ds, dim)
-        def gradf(X):
-            return grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
-        As = []
-        for i in range(dim-1):
-            Ai = np.zeros((dim,dim))
-            Ai[i,i] = 1
-            As.append(Ai)
-        bs = []
-        for i in range(dim-1):
-            bi = 1./(2*dim)
-            bs.append(bi)
-        Cs = []
-        ds = []
-        run_experiment(f, gradf, dim, N_iter)
+    m = dim - 1
+    n = 0
+    eps = 1./N_iter
+    M = compute_scale(m, n, eps)
+    As = []
+    for i in range(dim-1):
+        Ai = np.zeros((dim,dim))
+        Ai[i,i] = 1
+        As.append(Ai)
+    bs = []
+    for i in range(dim-1):
+        bi = 1./(2*dim)
+        bs.append(bi)
+    Cs = []
+    ds = []
+    return m, n, M, As, bs, Cs, ds, eps
 
 
-def test6():
+def test6a():
     """
     Stress test inequality constraints for log_sum_exp penalty.
     """
     dims = [4,16]
     N_iter = 50
-    stress_test_inequalities(dims, N_iter, log_sum_exp_penalty,
-            log_sum_exp_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = stress_inequalities(dim, N_iter)
+        def f(X):
+            return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, m, n, M,
+                    As, bs, Cs, ds, dim, eps)
+        run_experiment(f, gradf, dim, N_iter)
 
-def test65():
+def test6b():
     """
     Stress test inequality constraints for neg_max_sum penatly
     and log_sum_exp gradient.
     """
     dims = [4,16]
     N_iter = 50
-    stress_test_inequalities(dims, N_iter, neg_max_penalty,
-            log_sum_exp_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = stress_inequalities(dim, N_iter)
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, m, n, M,
+                    As, bs, Cs, ds, dim, eps)
+        run_experiment(f, gradf, dim, N_iter)
 
-def test7():
+def test6c():
     """
     Stress test inequality constraints for neg_max_penalty
     """
     dims = [4,16]
     N_iter = 50
-    stress_test_inequalities(dims, N_iter, neg_max_penalty,
-            neg_max_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = stress_inequalities(dim, N_iter)
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return neg_max_grad_penalty(X, m, n, M,
+                    As, bs, Cs, ds, dim, eps)
+        run_experiment(f, gradf, dim, N_iter)
 
-def stress_test_equalities(dims, N_iter, penalty, grad_penalty):
+def stress_equalities(dim, N_iter):
     """
     Stress test the bounded trace solver for equalities.
 
@@ -384,65 +412,74 @@ def stress_test_equalities(dims, N_iter, penalty, grad_penalty):
     The optimal solution should equal a diagonal matrix with zero entries
     for the first n-1 diagonal elements, but a 1 for the diagonal element.
     """
-    for dim in dims:
-        m = 0
-        n = dim - 1
-        eps = 1./N_iter
-        M = compute_scale(m, n, eps)
-        def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
-        def gradf(X):
-            return neg_max_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
-        As = []
-        bs = []
-        Cs = []
-        for j in range(dim-1):
-            Cj = np.zeros((dim,dim))
-            Cj[j,j] = 1
-            Cs.append(Cj)
-        ds = []
-        for j in range(dim-1):
-            dj = 0.
-            ds.append(dj)
-        run_experiment(f, gradf, dim, N_iter)
+    m = 0
+    n = dim - 1
+    eps = 1./N_iter
+    M = compute_scale(m, n, eps)
+    As = []
+    bs = []
+    Cs = []
+    for j in range(dim-1):
+        Cj = np.zeros((dim,dim))
+        Cj[j,j] = 1
+        Cs.append(Cj)
+    ds = []
+    for j in range(dim-1):
+        dj = 0.
+        ds.append(dj)
+    return m, n, M, As, bs, Cs, ds, eps
 
-def test8():
+def test7a():
     """
     Stress test equality constraints for log_sum_exp_penalty
     """
     dims = [4,16]
     N_iter = 50
-    stress_test_equalities(dims, N_iter, log_sum_exp_penalty,
-            log_sum_exp_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = stress_equalities(dim, N_iter)
+        def f(X):
+            return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        run_experiment(f, gradf, dim, N_iter)
 
-def test85():
+def test7b():
     """
     Stress test equality constraints for neg_max_penalty
     """
     dims = [4,16]
     N_iter = 50
-    stress_test_equalities(dims, N_iter, neg_max_penalty,
-            log_sum_exp_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = stress_equalities(dim, N_iter)
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        run_experiment(f, gradf, dim, N_iter)
 
-def test9():
+def test7c():
     """
-    TODO: Stress test log_sum_exp once made numerically stable
     Stress test equality constraints for neg_max_penalty
     """
     dims = [4,16]
     N_iter = 50
-    stress_test_equalities(dims, N_iter, neg_max_penalty,
-            neg_max_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = stress_equalities(dim, N_iter)
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return neg_max_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        run_experiment(f, gradf, dim, N_iter)
 
-
-def stress_test_inequalies_and_equalities(dims, N_iter,
-        penalty, grad_penalty):
+def stress_inequalies_and_equalities(dim, N_iter):
     """
     Stress test the bounded trace solver for both equalities and
     inequalities.
 
-    With As and bs as below, we solve the problem
+    With As and bs as below, we specify the problem
 
     max neg_max_penalty(X)
     subject to
@@ -456,65 +493,80 @@ def stress_test_inequalies_and_equalities(dims, N_iter,
     """
     eps = 1./N_iter
     np.set_printoptions(precision=2)
-    for dim in dims:
-        m = dim - 2
-        n = dim**2 - dim
-        As = []
-        M = compute_scale(m, n, eps)
-        def f(X):
-            return penalty(X, m, n, M, As, bs, Cs, ds, dim)
-        def gradf(X):
-            return grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
-        for j in range(1,dim-1):
-            Aj = np.zeros((dim,dim))
-            Aj[j,j] = 1
-            As.append(Aj)
-        bs = []
-        for j in range(1,dim-1):
-            bj = 1./N_iter
-            bs.append(bj)
-        Cs = []
-        for i in range(dim):
-            for j in range(dim):
-                if i != j:
-                    Ci = np.zeros((dim,dim))
-                    Ci[i,j] = 1
-                    Cs.append(Ci)
-        ds = []
-        for i in range(dim):
-            for j in range(dim):
-                if i != j:
-                    dij = 0.
-                    ds.append(dij)
-        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+    m = dim - 2
+    n = dim**2 - dim
+    As = []
+    M = compute_scale(m, n, eps)
+    for j in range(1,dim-1):
+        Aj = np.zeros((dim,dim))
+        Aj[j,j] = 1
+        As.append(Aj)
+    bs = []
+    for j in range(1,dim-1):
+        bj = 1./N_iter
+        bs.append(bj)
+    Cs = []
+    for i in range(dim):
+        for j in range(dim):
+            if i != j:
+                Ci = np.zeros((dim,dim))
+                Ci[i,j] = 1
+                Cs.append(Ci)
+    ds = []
+    for i in range(dim):
+        for j in range(dim):
+            if i != j:
+                dij = 0.
+                ds.append(dij)
+    return m, n, M, As, bs, Cs, ds, eps
 
-def test10():
+def test8a():
     """
     Stress test equality constraints for log_sum_exp_penalty
     """
     dims = [4,16]
     N_iter = 200
-    stress_test_inequalies_and_equalities(dims, N_iter,
-            log_sum_exp_penalty, log_sum_exp_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = \
+               stress_inequalies_and_equalities(dim, N_iter)
+        def f(X):
+            return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def test105():
+def test8b():
     """
     Stress test equality constraints for neg_max_penalty
     """
     dims = [4, 16]
     N_iter = 50
-    stress_test_inequalies_and_equalities(dims, N_iter,
-            neg_max_penalty, log_sum_exp_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = \
+               stress_inequalies_and_equalities(dim, N_iter)
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def test11():
+def test8c():
     """
     Stress test equality constraints for neg_max_penalty
     """
     dims = [4, 16]
     N_iter = 50
-    stress_test_inequalies_and_equalities(dims, N_iter,
-            neg_max_penalty, neg_max_grad_penalty)
+    for dim in dims:
+        m, n, M, As, bs, Cs, ds, eps = \
+               stress_inequalies_and_equalities(dim, N_iter)
+        def f(X):
+            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        def gradf(X):
+            return neg_max_grad_penalty(X, m, n, M,
+                        As, bs, Cs, ds, dim,eps)
+        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def run_experiment(f, gradf, dim, N_iter):
     fudge_factor = 5.0
@@ -551,23 +603,20 @@ if __name__ == "__main__":
     #test4a()
 
     # Test quadratic equality constraints
-    test5a()
+    #test5a()
 
-    ## neg_max tests
-    #test5()
-    #test7()
-    #test9()
-    #test11()
+    # Stress test inequality constraints
+    #test6a()
+    #test6b()
+    #test6c()
 
-    ## log_sum_exp tests
-    #test4()
-    #test6()
-    #test8()
-    #test10()
+    # Stress test equality constraints
+    #test7a()
+    #test7b()
+    #test7c()
 
-    ## neg_max penalty, log_sum_exp grad tests
-    #test45()
-    #test65()
-    #test85()
-    #test105()
+    # Stress test equality and inequality constraints
+    #test8a()
+    #test8b()
+    test8c()
     pass
