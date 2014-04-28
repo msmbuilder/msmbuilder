@@ -71,28 +71,28 @@ class tICA(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    `components_` : array-like, shape (n_components, n_features)
+    components_ : array-like, shape (n_components, n_features)
         Components with maximum autocorrelation.
-    `offset_correlation_` : array-like, shape (n_features, n_features)
-        Symmetric time-lagged correlation matrix, `C=E[(x_t)^T x_{t+lag}]`.
-    `eigenvalues_` : array-like, shape (n_features,)
+    offset_correlation_ : array-like, shape (n_features, n_features)
+        Symmetric time-lagged correlation matrix, :math:`C=E[(x_t)^T x_{t+lag}]`.
+    eigenvalues_ : array-like, shape (n_features,)
         Eigenvalues of the tICA generalized eigenproblem, in decreasing
         order.
-    `eigenvectors_` : array-like, shape (n_components, n_features)
+    eigenvectors_ : array-like, shape (n_components, n_features)
         Eigenvectors of the tICA generalized eigenproblem. The vectors
         give a set of "directions" through configuration space along
         which the system relaxes towards equilibrium. Each eigenvector
         is associated with characteritic timescale
         :math:`- \frac{offset}/{ln \lambda_i}, where :math:`lambda_i` is
         the corresponding eigenvector. See [2] for more information.
-    `means_` : array, shape (n_features,)
+    means_ : array, shape (n_features,)
         The mean of the data along each feature
-    `n_observations` : int
+    n_observations : int
         Total number of data points fit by the model. Note that the model
         is "reset" by calling `fit()` with new sequences, whereas
         `partial_fit()` updates the fit with new data, and is suitable for
         online learning.
-    `n_sequences` : int
+    n_sequences : int
         Total number of sequences fit by the model. Note that the model
         is "reset" by calling `fit()` with new sequences, whereas
         `partial_fit()` updates the fit with new data, and is suitable for
@@ -180,7 +180,8 @@ class tICA(BaseEstimator, TransformerMixin):
 
         rhs = self.covariance_ + (self.gamma / self.n_features) * \
                 np.trace(self.covariance_) * np.eye(self.n_features)
-        vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs)
+        vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs,
+            eigvals=(self.n_features-self.n_components, self.n_features-1))
 
         # sort in order of decreasing value
         ind = np.argsort(vals)[::-1]

@@ -146,6 +146,47 @@ class AtomPairsFeaturizer(Featurizer):
         return d
 
 
+class DihedralFeaturizer(Featurizer):
+
+    """Featurizer based on dihedral angles"""
+
+    def __init__(self, types, sincos=True):
+        if isinstance(types, str):
+            types = [types]
+        self.types = types
+        self.sincos = sincos
+
+        known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
+        if not set(types).issubset(known):
+            raise ValueError('angles must be a subset of %s. you supplied %s' % (
+                str(known), str(types)))
+
+    def featurize(self, trajectory):
+        x = []
+        for a in self.types:
+            func = getattr(md, 'compute_%s' % a)
+            y = func(trajectory)[1]
+            if self.sincos:
+                x.extend([np.sin(y), np.cos(y)])
+            else:
+                x.append(y)
+        return np.hstack(x)
+
+
+class ContactFeaturizer(Featurizer):
+
+    """Featurizer based on residue-residue distances"""
+
+    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True):
+        self.contacts = contacts
+        self.scheme = scheme
+        self.ignore_nonprotein = ignore_nonprotein
+
+    def featurize(self, trajectory):
+        distances, _ = md.compute_contacts(trajectory, self.contacts, self.scheme, self.ignore_nonprotein)
+        return distances
+
+
 class RawPositionsFeaturizer(Featurizer):
 
     def __init__(self, n_features):
