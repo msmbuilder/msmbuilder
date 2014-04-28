@@ -1,4 +1,4 @@
-# Author: Christian Schwantes
+# Author: Christian Schwantes <schwancr@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>, Kyle A. Beauchamp  <kyleabeauchamp@gmail.com>
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
