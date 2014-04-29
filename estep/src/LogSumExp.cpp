@@ -1,17 +1,16 @@
 /*****************************************************************/
-/*    Copyright (c) 2013, Stanford University and the Authors    */
+/*    Copyright (c) 2014, Stanford University and the Authors    */
 /*    Author: Robert McGibbon <rmcgibbo@gmail.com>               */
 /*    Contributors:                                              */
 /*                                                               */
 /*****************************************************************/
-#ifndef MIXTAPE_CPU_LOGSUMEXP_H
-#define MIXTAPE_CPU_LOGSUMEXP_H
 
 #include <emmintrin.h>
-#include "float.h"
-#include <stdio.h>
-#include <math.h>
-#include "sse_mathfun.h"
+#include <cfloat>
+#include <cmath>
+#include "kernels/sse_mathfun.h"
+
+namespace Mixtape {
 
 template <typename REAL>
 static inline REAL realmax(REAL v1, REAL v2) {
@@ -130,5 +129,4 @@ float _mm_logsumexp(__m128* buf, int N) {
     return log(sum) + mymax;
 }
 
-
-#endif
+}

@@ -7,7 +7,7 @@
 #ifndef MIXTAPE_CPU_POSTERIORS_H
 #define MIXTAPE_CPU_POSTERIORS_H
 #include "math.h"
-#include "logsumexp.hpp"
+#include "LogSumExp.hpp"
 namespace Mixtape {
 
 template<typename REAL>

@@ -348,36 +348,16 @@ extensions.append(
               include_dirs=[np.get_include()]))
 
 extensions.append(
-    Extension('mixtape._ghmm',
+    Extension('mixtape._DiagonalGaussianHMMEstep',
               language='c++',
-              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
-                        glob.glob('platforms/cpu/kernels/*.c') +
-                        glob.glob('platforms/cpu/kernels/*.cpp'),
+              sources=['estep/wrappers/DiagonalGaussianHMMEstep.pyx'] +
+                       glob.glob('estep/src/*.c'),
               libraries=libraries + lapack_info['libraries'],
               extra_compile_args=extra_compile_args,
               extra_link_args=lapack_info['extra_link_args'],
-              include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
-                            'platforms/cpu/kernels/']))
+              include_dirs=[np.get_include(), 'estep/include/',
+                            'estep/include/kernels/']))
 
-extensions.append(
-    Extension('mixtape._mslds',
-              language='c++',
-              sources=['platforms/cpu/wrappers/MetastableSLDSCPUImpl.pyx'] +
-                        glob.glob('platforms/cpu/kernels/*.c') +
-                        glob.glob('platforms/cpu/kernels/*.cpp'),
-              libraries=libraries + lapack_info['libraries'],
-              extra_compile_args=extra_compile_args,
-              extra_link_args=lapack_info['extra_link_args'],
-              include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
-                            'platforms/cpu/kernels/']))
-
-extensions.append(
-    Extension('mixtape._vmhmm',
-              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.pyx',
-                       'src/vonmises/spleval.c',
-                       'src/cephes/i0.c', 'src/cephes/chbevl.c'],
-              libraries=['m'],
-              include_dirs=[np.get_include(), 'src/cephes']))
 
 try:
     if '--disable-cuda' in sys.argv:

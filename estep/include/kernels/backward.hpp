@@ -8,14 +8,14 @@
 #ifndef MIXTAPE_CPU_BACKWARD_H
 #define MIXTAPE_CPU_BACKWARD_H
 
-#include "logsumexp.hpp"
+#include "kernels/LogSumExp.hpp"
 #include "stdlib.h"
 #include "stdio.h"
 namespace Mixtape {
 
 template <typename REAL>
-void backward(const float* __restrict__ log_transmat,
-              const float* __restrict__ log_startprob,
+void backward(const double* __restrict__ log_transmat,
+              const double* __restrict__ log_startprob,
               const float* __restrict__ frame_logprob,
               const int sequence_length,
               const int n_states,
