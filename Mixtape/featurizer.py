@@ -1,5 +1,6 @@
 # Author: Kyle A. Beauchamp <kyleabeauchamp@gmail.com>
-# Contributors: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
+#               Matthew Harrigan <matthew.p.harrigan@gmail.com>
 # Copyright (c) 2014, Stanford University and the Authors
 # All rights reserved.
 #
