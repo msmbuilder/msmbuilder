@@ -125,15 +125,16 @@ class AtomPairsFeaturizer(Featurizer):
 
     """Featurizer based on atom pair distances."""
 
-    def __init__(self, pair_indices, reference_traj, periodic=False):
+    def __init__(self, pair_indices, reference_traj, periodic=False, exponent=1.):
         self.pair_indices = pair_indices
         self.reference_traj = reference_traj
         self.n_features = len(self.pair_indices)
         self.periodic = periodic
+        self.exponent = exponent 
 
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
-        return d
+        return d ** self.exponent
 
 
 class DihedralFeaturizer(Featurizer):
