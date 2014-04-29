@@ -187,10 +187,19 @@ class GaussianSolventFeaturizer(Featurizer):
     The values can be physically interpreted as the degree of solvation
     of each solute atom.
 
-    :param sigma: sets the length scale for the gaussian kernel
+    Parameters
+    ----------
+    sigma : float
+        Sets the length scale for the gaussian kernel
 
-    Gu, Chen, et al. BMC Bioinformatics 14, no. Suppl 2 (January 21, 2013):
-    S8. doi:10.1186/1471-2105-14-S2-S8.
+    Returns
+    -------
+    fingerprints : np.ndarray, shape=(n_frames, n_atoms)
+
+    References
+    ----------
+    ..[1] Gu, Chen, et al. BMC Bioinformatics 14, no. Suppl 2
+    (January 21, 2013): S8. doi:10.1186/1471-2105-14-S2-S8.
     """
 
     def __init__(self, solute_indices, solvent_indices, sigma, periodic=False):
