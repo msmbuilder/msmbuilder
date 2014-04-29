@@ -601,17 +601,15 @@ def batch_equality(A, dim, N_iter):
         # TODO: Maybe speed this up and avoid allocating new matrix
         #       of zeros every gradient computation.
         # Upper right
-        grad1 = X[:block_dim,block_dim:] - A
-        grad1 = np.sign(grad1) * grad1 # elementwise multiplication!
+        grad1 = np.sign(X[:block_dim,block_dim:] - A)
         # Lower left
-        grad2 = X[block_dim:,:block_dim] - A.T
-        grad2 = np.sign(grad2) * grad2 # elementwise multiplication!
+        grad2 = np.sign(X[block_dim:,:block_dim] - A.T)
 
         grad = np.zeros((dim, dim))
         grad[:block_dim,block_dim:] = grad1
         grad[block_dim:,:block_dim] = grad2
         # Not sure if this is right...
-        return -grad
+        return grad
 
     Gs = [g]
     gradGs = [gradg]
@@ -624,13 +622,13 @@ def test9a():
     Test block equality constraints.
     """
     dims = [4]
-    N_iter = 100
-    #alphas = 0.1 * np.ones(N_iter)
+    N_iter = 201
+    #alphas = 0.01 * np.ones(N_iter)
     #alphas = 5 * [1./(j+1) for j in range(N_iter)]
     alphas = None
     DEBUG = False
     for dim in dims:
-        A = np.eye(int(dim/2))
+        A = 0.25 * np.eye(int(dim/2))
         M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
                 batch_equality(A, dim, N_iter)
         def f(X):
@@ -638,16 +636,28 @@ def test9a():
         def gradf(X):
             return neg_max_general_grad_penalty(X, M,
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+        def z(X):
+            lambda_max = np.amax(np.linalg.eigh(gradf(X))[0])
+            return lambda_max
+        def frob(X):
+            tr = np.trace(np.dot(X, gradf(X)))
+            return tr
+        def w_dual(X):
+            zX = z(X)
+            fX = f(X)
+            tr = frob(X)
+            return zX + fX - tr
         def grad_update(X):
             G = gradf(X)
-            wj, vj = scipy.sparse.linalg.eigsh(G, k=1, which='LA')
+            wj, vj = scipy.sparse.linalg.eigsh(G, k=1, which='LA',
+                        tol=0.)
             return np.outer(vj, vj)
         X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter,
                 alphas=alphas,DEBUG=DEBUG)
         g = Gs[0]
         gradg = gradGs[0]
-        import pdb
-        pdb.set_trace()
+        #import pdb
+        #pdb.set_trace()
 
 
 def run_experiment(f, gradf, dim, N_iter, alphas=None,DEBUG=False):

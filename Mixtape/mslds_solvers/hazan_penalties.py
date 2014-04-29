@@ -248,7 +248,7 @@ def neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     # Handle convex equalities
     for l in range(q):
         Gl = Gs[l]
-        penalties[l+p+m+n] = Gl(X)
+        penalties[l+p+m+n] = np.abs(Gl(X))
     return -np.amax(penalties)
 
 def neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim):
@@ -333,6 +333,7 @@ def neg_max_general_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs,
     for l in range(q):
         Gl = Gs[l]
         penalties[l+p+m+n] = np.abs(Gl(X))
+    # Take subgradients at required points
     inds = [ind for ind in range(n+m+p+q) if penalties[ind] > eps]
     grad = np.zeros(np.shape(X))
     pen_sum = 0
