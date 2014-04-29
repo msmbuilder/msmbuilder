@@ -78,6 +78,8 @@ class AtomIndices(Command):
         CE) in a PHE ring.''')
     group2.add_argument('--alpha', action='store_true', help='''Only alpha
         carbons.''')
+    group2.add_argument('--water', action='store_true', help='''Water oxygen
+        atoms.''')
     group2.add_argument('--all', action='store_true', help='''Selection
         includes every atom.''')
 
@@ -101,6 +103,10 @@ class AtomIndices(Command):
         elif self.args.heavy:
             atom_indices = [a.index for a in self.pdb.topology.atoms if a.element != element.hydrogen
                             and a.residue.name in PROTEIN_RESIDUES]
+        elif self.args.water:
+            atom_indices = [a.index for a in self.pdb.topology.atoms if
+                            a.name == 'O'
+                            and a.residue.name == 'HOH']
         else:
             raise RuntimeError()
 
