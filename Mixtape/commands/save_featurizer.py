@@ -30,7 +30,8 @@ import mdtraj as md
 
 from mixtape.cmdline import Command, argument_group
 from mixtape.commands.mixins import GaussianFeaturizationMixin
-from mixtape.featurizer import SuperposeFeaturizer, AtomPairsFeaturizer
+from mixtape.featurizer import SuperposeFeaturizer, AtomPairsFeaturizer, \
+    GaussianSolventFeaturizer
 
 __all__ = ['SaveFeaturizer']
 
@@ -59,7 +60,26 @@ class SaveFeaturizer(Command, GaussianFeaturizationMixin):
         else:
             self.top = None
 
-        if args.distance_pairs is not None:
+
+        if args.solvent_indices is not None and args.atom_indices is not None:
+            self.solute_indices = np.loadtxt(args.atom_indices, dtype=int, ndmin=2)
+            if self.solute_indices.shape[1] != 1:
+                self.error('atom-indices must have shape (N, 1). %s had shape %s' %
+                           (args.atom_indices, self.solute_indices.shape))
+
+            self.solvent_indices = np.loadtxt(args.solvent_indices, dtype=int, ndmin=2)
+            if self.solvent_indices.shape[1] != 1:
+                self.error('solvent-indices must have shape (N, 1). %s had shape %s' %
+                           (args.solvent_indices, self.solvent_indices.shape))
+
+            #TODO: Periodic?
+            featurizer = GaussianSolventFeaturizer(self.solute_indices,
+                                                   self.solvent_indices,
+                                                   args.sigma)
+
+        elif args.solvent_indices is not None and args.atom_indices is None:
+            self.error('You must also specify atom-indices for use with solvent-indices')
+        elif args.distance_pairs is not None:
             self.indices = np.loadtxt(args.distance_pairs, dtype=int, ndmin=2)
             if self.indices.shape[1] != 2:
                 self.error('distance-pairs must have shape (N, 2). %s had shape %s' %
