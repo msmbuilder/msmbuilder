@@ -95,8 +95,8 @@ class AtomIndices(Command):
                             and a.residue.name in PROTEIN_RESIDUES]
         elif self.args.water:
             atom_indices = [a.index for a in self.pdb.topology.atoms if
-                            a.name == 'O'
-                            and a.residue.name == 'HOH']
+                            a.name in ['O', 'OW']
+                            and a.residue.name in ['HOH', 'SOL']]
         else:
             raise RuntimeError()
 
