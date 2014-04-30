@@ -190,12 +190,18 @@ class GaussianSolventFeaturizer(Featurizer):
 
     Parameters
     ----------
+    solute_indices : np.ndarray, shape=(n_solute,1)
+        Indices of solute atoms
+    solvent_indices : np.ndarray, shape=(n_solvent, 1)
+        Indices of solvent atoms
     sigma : float
         Sets the length scale for the gaussian kernel
+    periodic : bool
+        Whether to consider a periodic system in distance calculations
 
     Returns
     -------
-    fingerprints : np.ndarray, shape=(n_frames, n_atoms)
+    fingerprints : np.ndarray, shape=(n_frames, n_solute)
 
     References
     ----------
