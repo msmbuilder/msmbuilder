@@ -11,7 +11,9 @@ Tests for Hazan's core algorithm.
 TODOs:
     -) Clean up older tests and put them into abc format that newer tests
        follow ====> DONE
-    -) Add and test a batch equality operation.
+    -) Add and test a batch equality operation. ====> DONE
+    -) Add plumbing to allow solution of general SDP cone constrained
+       convex programs.
     -) Add and test a batch linear operation.
     -) Add and test Schur complement constraint.
     -) Add and test a log det constraint.
@@ -77,7 +79,11 @@ def simple_equality_constraint(N_iter):
     Cs = [np.array([[ 1.,  0.],
                     [ 0.,  2.]])]
     ds = [1.5]
-    return m, n, M, dim, eps, As, bs, Cs, ds
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    return m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
     #import pdb
     #pdb.set_trace()
     #run_experiment(f, gradf, dim, N_iter)
@@ -87,7 +93,8 @@ def test2a():
     Check equality constraints for log_sum_exp constraints
     """
     N_iter = 50
-    m, n, M, dim, eps, As, bs, Cs, ds = simple_equality_constraint(N_iter)
+    m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint(N_iter)
     def f(X):
         return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
     def gradf(X):
@@ -100,29 +107,28 @@ def test2b():
     Check equality constraints for neg_max constraints
     """
     N_iter = 50
-    m, n, M, dim, eps, As, bs, Cs, ds = simple_equality_constraint(N_iter)
+    m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint(N_iter)
     def f(X):
-        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
+        return neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
+                Gs, gradGs, eps)
     run_experiment(f, gradf, dim, N_iter)
 
-def test2c():
-    """
-    Check equality constraints for neg_max_grad_general
-    """
-    N_iter = 50
-    m, n, M, dim, eps, As, bs, Cs, ds = simple_equality_constraint(N_iter)
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    def f(X):
-        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-    def gradf(X):
-        return neg_max_general_grad_penalty(X, M,
-                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-    run_experiment(f, gradf, dim, N_iter)
+#def test2c():
+#    """
+#    Check equality constraints for neg_max_grad_general
+#    """
+#    N_iter = 50
+#    m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+#           simple_equality_constraint(N_iter)
+#    def f(X):
+#        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+#    def gradf(X):
+#        return neg_max_general_grad_penalty(X, M,
+#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+#    run_experiment(f, gradf, dim, N_iter)
 
 def simple_constraint(N_iter):
     """
@@ -150,7 +156,11 @@ def simple_constraint(N_iter):
                     [ 0.,  2., 0.],
                     [ 0.,  0., 2.]])]
     ds = [5./3]
-    return m, n, M, As, bs, Cs, ds, dim, eps
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    return m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs
     #import pdb
     #pdb.set_trace()
 
@@ -159,7 +169,8 @@ def test3a():
     Check equality and inequality constraints for log_sum_exp penalty
     """
     N_iter = 50
-    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
+            simple_constraint(N_iter)
     def f(X):
         return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
     def gradf(X):
@@ -172,11 +183,13 @@ def test3b():
     Check equality and inequality constraints for neg_max penalty
     """
     N_iter = 50
-    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
+            simple_constraint(N_iter)
     def f(X):
-        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return neg_max_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps)
+        return neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
+                Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def test3c():
@@ -185,31 +198,32 @@ def test3c():
     with log_sum_exp gradients.
     """
     N_iter = 50
-    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+    m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
+            simple_constraint(N_iter)
     def f(X):
-        return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
         return log_sum_exp_grad_penalty(X, m, n, M,
                 As, bs, Cs, ds, dim, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def test3d():
-    """
-    Check equality and inequality constraints for neg_max_general
-    penalty and gradients.
-    """
-    N_iter = 50
-    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    def f(X):
-        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-    def gradf(X):
-        return neg_max_general_grad_penalty(X, M,
-                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+#def test3d():
+#    """
+#    Check equality and inequality constraints for neg_max_general
+#    penalty and gradients.
+#    """
+#    N_iter = 50
+#    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
+#    Fs = []
+#    gradFs = []
+#    Gs = []
+#    gradGs = []
+#    def f(X):
+#        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+#    def gradf(X):
+#        return neg_max_general_grad_penalty(X, M,
+#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+#    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def quadratic_inequality(N_iter):
     """
@@ -256,13 +270,13 @@ def test4a():
     dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
             quadratic_inequality(N_iter)
     def f(X):
-        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return neg_max_general_grad_penalty(X, M,
+        return neg_max_grad_penalty(X, M,
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-    import pdb
-    pdb.set_trace()
+    #import pdb
+    #pdb.set_trace()
 
 def quadratic_equality(N_iter):
     """
@@ -309,13 +323,13 @@ def test5a():
     dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
             quadratic_equality(N_iter)
     def f(X):
-        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return neg_max_general_grad_penalty(X, M,
+        return neg_max_grad_penalty(X, M,
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-    import pdb
-    pdb.set_trace()
+    #import pdb
+    #pdb.set_trace()
 
 
 def stress_inequalities(dim, N_iter):
@@ -349,7 +363,11 @@ def stress_inequalities(dim, N_iter):
         bs.append(bi)
     Cs = []
     ds = []
-    return m, n, M, As, bs, Cs, ds, eps
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
 
 
 def test6a():
@@ -359,7 +377,8 @@ def test6a():
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = stress_inequalities(dim, N_iter)
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
+                stress_inequalities(dim, N_iter)
         def f(X):
             return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
@@ -375,9 +394,10 @@ def test6b():
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = stress_inequalities(dim, N_iter)
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
+                stress_inequalities(dim, N_iter)
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
             return log_sum_exp_grad_penalty(X, m, n, M,
                     As, bs, Cs, ds, dim, eps)
@@ -390,12 +410,13 @@ def test6c():
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = stress_inequalities(dim, N_iter)
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
+                stress_inequalities(dim, N_iter)
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return neg_max_grad_penalty(X, m, n, M,
-                    As, bs, Cs, ds, dim, eps)
+            return neg_max_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
 def stress_equalities(dim, N_iter):
@@ -427,7 +448,11 @@ def stress_equalities(dim, N_iter):
     for j in range(dim-1):
         dj = 0.
         ds.append(dj)
-    return m, n, M, As, bs, Cs, ds, eps
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
 
 def test7a():
     """
@@ -436,7 +461,8 @@ def test7a():
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = stress_equalities(dim, N_iter)
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
+                stress_equalities(dim, N_iter)
         def f(X):
             return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
@@ -451,9 +477,10 @@ def test7b():
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = stress_equalities(dim, N_iter)
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
+                stress_equalities(dim, N_iter)
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
             return log_sum_exp_grad_penalty(X, m, n, M,
                         As, bs, Cs, ds, dim,eps)
@@ -466,12 +493,13 @@ def test7c():
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = stress_equalities(dim, N_iter)
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
+                stress_equalities(dim, N_iter)
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return neg_max_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return neg_max_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
 def stress_inequalies_and_equalities(dim, N_iter):
@@ -518,7 +546,11 @@ def stress_inequalies_and_equalities(dim, N_iter):
             if i != j:
                 dij = 0.
                 ds.append(dij)
-    return m, n, M, As, bs, Cs, ds, eps
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
 
 def test8a():
     """
@@ -527,7 +559,7 @@ def test8a():
     dims = [4,16]
     N_iter = 200
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = \
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
                stress_inequalies_and_equalities(dim, N_iter)
         def f(X):
             return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
@@ -543,10 +575,10 @@ def test8b():
     dims = [4, 16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = \
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
                stress_inequalies_and_equalities(dim, N_iter)
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
             return log_sum_exp_grad_penalty(X, m, n, M,
                         As, bs, Cs, ds, dim,eps)
@@ -559,13 +591,13 @@ def test8c():
     dims = [4, 16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps = \
+        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
                stress_inequalies_and_equalities(dim, N_iter)
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return neg_max_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return neg_max_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def batch_equality(A, dim, N_iter):
@@ -621,20 +653,20 @@ def test9a():
     """
     Test block equality constraints.
     """
-    dims = [4]
-    N_iter = 201
+    dims = [4, 16]
+    N_iter = 200
     #alphas = 0.01 * np.ones(N_iter)
     #alphas = 5 * [1./(j+1) for j in range(N_iter)]
     alphas = None
     DEBUG = False
     for dim in dims:
-        A = 0.25 * np.eye(int(dim/2))
+        A = (1/(2*dim)) * np.eye(int(dim/2))
         M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
                 batch_equality(A, dim, N_iter)
         def f(X):
-            return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return neg_max_general_grad_penalty(X, M,
+            return neg_max_grad_penalty(X, M,
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         def z(X):
             lambda_max = np.amax(np.linalg.eigh(gradf(X))[0])
@@ -681,15 +713,15 @@ if __name__ == "__main__":
     #test1()
 
     # Test simple equality constraints
-    #test2b()
-    #test2b()
-    #test2c()
+    #test2a()
+    test2b()
+    ##test2c()
 
     # Test simple inequality and equality constraints
     #test3a()
     #test3b()
     #test3c()
-    #test3d()
+    ##test3d()
 
     # Test quadratic inequality constraints
     #test4a()
@@ -713,5 +745,5 @@ if __name__ == "__main__":
     #test8c()
 
     # Test block equality constraints
-    test9a()
+    #test9a()
     pass

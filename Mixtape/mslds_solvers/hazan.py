@@ -204,7 +204,8 @@ class FeasibilitySDPHazanSolver(object):
                         As, bs, Cs, ds, dim)
         return f(X)
 
-    def feasibility_solve(self, As, bs, Cs, ds, eps, dim):
+    def feasibility_solve(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
+            eps, dim):
         """
         Solves feasibility problems of the type
 
@@ -237,8 +238,13 @@ class FeasibilitySDPHazanSolver(object):
             assert_list_of_types(ds, Number)
             assert_list_of_square_arrays(As, dim)
             assert_list_of_square_arrays(Cs, dim)
+            assert_list_of_types(Fs, function)
+            assert_list_of_types(gradFs, function)
+            assert_list_of_types(gradGs, function)
             assert len(As) == len(bs)
             assert len(Cs) == len(ds)
+            assert len(Fs) == len(gradFs)
+            assert len(Gs) == len(gradGs)
         except AssertionError:
             raise ValueError(
             """
@@ -255,13 +261,14 @@ class FeasibilitySDPHazanSolver(object):
         # Need to swap in some robust theory about Cf
         fudge_factor = 3.0
         def f(X):
-            return neg_max_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return neg_max_general_penalty(X, m, n, M, As, bs, Cs, ds, Fs,
+                    Gs)
             #return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
             #return neg_max_grad_penalty(X, m, n, M,
             #            As, bs, Cs, ds, dim,eps)
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return log_sum_exp_general_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
 
         start = time.clock()
         X = self._solver.solve(f, gradf, dim, N_iter)
