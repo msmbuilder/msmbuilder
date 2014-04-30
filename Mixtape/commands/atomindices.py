@@ -96,7 +96,7 @@ class AtomIndices(Command):
         elif self.args.water:
             atom_indices = [a.index for a in self.pdb.topology.atoms if
                             a.name == 'O'
-                            and a.residue.name == 'HOH']
+                            and (a.residue.name == 'HOH' or a.residue.name == 'SOL')]
         else:
             raise RuntimeError()
 
