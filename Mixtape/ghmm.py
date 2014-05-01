@@ -56,6 +56,8 @@ class GaussianFusionHMM(object):
     ----------
     n_states : int
         The number of components (states) in the model
+    n_features : int
+        The number of features in the input dataset
     n_init : int
         Number of time the EM algorithm will be run with different
         random seeds. The final results will be the best output of

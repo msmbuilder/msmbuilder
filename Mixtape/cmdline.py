@@ -57,6 +57,8 @@ import re
 import sys
 import abc
 import argparse
+import inspect
+import numpydoc
 from IPython.utils.text import wrap_paragraphs
 
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
@@ -181,6 +183,9 @@ class mutually_exclusive_group(object):
 # Command Classes
 #-----------------------------------------------------------------------------
 
+class ClassProperty(property):
+    def __get__(self, cls, owner):
+        return self.fget.__get__(None, owner)()
 
 class Command(with_metaclass(abc.ABCMeta, object)):
 
@@ -199,6 +204,135 @@ class Command(with_metaclass(abc.ABCMeta, object)):
         exit(1)
 
 
+class NumpydocClassCommand(Command):
+    """Subclass of Command that automatically populates arguments from
+    the __init__ signature of a klass. klass must be a class whose
+    class docstring is in the numpy format, including a "Parameters" section
+    which gives the docstrings for the class's __init__ method. This will
+    be parsed to create the argparse code for this command.
+
+    When the class gets chosen on the command line executed, it's `start()`
+    method will get called.
+
+    Example
+    -------
+    >>> class HMMCommand(NumpydocClassCommand)
+    >>>    klass = HMM
+    >>>
+    >>>    def start(self):
+    >>>        print self.instance
+
+    Notes
+    -----
+    argparse lets each argument have a `type`, which converts the input
+    string as passed for that argument on the command line to the object
+    that gets loaded up. This is by default inferred from the docstring, but
+    can also be overridden by defining a method named _<attribute>_type, where
+    <attribute> is the name of the argument (i.e. one of the arguments to
+    klass.__init__)
+    """
+
+    # subclasses should override this
+    klass = None
+
+    def __init__(self, args):
+        # create the instance of `klass`
+
+        init_args = inspect.getargspec(self.klass.__init__)[0]
+        kwargs = {}
+
+        for k, v in args.__dict__.items():
+            # these are all of the specified options from the command line
+            # some of them correspond to __init__ args for self.klass, and
+            # others are "extra" arguments that wern't part of klass
+
+            if k in init_args:
+                # put the ones for klass.__init__ in a dict
+                kwargs[k] = v
+
+                if hasattr(self, '_%s_type' % k):
+                    kwargs[k] = getattr(self, '_%s_type' % k)(v)
+
+            else:
+                # set the others as attributes on self
+                setattr(self, k, v)
+
+        # make an instantiation of `klass`, populated with the requested
+        # arguments from the command line
+        self.instance = self.klass(**kwargs)
+
+    @classmethod
+    def _get_name(cls):
+        # the default name of the subcommand will just be the name of the class
+        return cls.klass.__name__
+
+    @classmethod
+    def _register_arguments(cls, subparser):
+        """this is a special method that gets called to construct the argparse
+        parser. it uses the python inspect module to introspect the __init__ method
+        of `klass`, and add an argument for each parameter. it also uses numpydoc
+        to read the class docstring of klass (which is supposed to be in numpydoc
+        format) to get the help-text and type for each argument, as well as a
+        description of the class."""
+
+        assert cls.klass is not None
+
+        # inspect __init__
+        try:
+            args, varargs, keywords, defaults = inspect.getargspec(cls.klass.__init__)
+        except TypeError:
+            args = []
+
+        doc = numpydoc.docscrape.ClassDoc(cls.klass)
+        # mapping from the name of the argument to the helptext
+        helptext = {d[0]: ' '.join(d[2]) for d in doc['Parameters']}
+
+        # mapping from the name of the argument to the type
+        typemap = {d[0]: d[1].replace(',', ' ').split(' ')[0] for d in doc['Parameters']}
+
+        # put all of these arguments into an argument group, to separate them
+        # from other arguments on the subcommand
+        group = argument_group('instance arguments')
+
+        for i, arg in enumerate(args):
+            if i == 0 and arg == 'self':
+                continue
+
+            # get default value
+            kwargs = {}
+            try:
+                kwargs['default'] = defaults[i-len(args)]
+            except (IndexError, TypeError):
+                kwargs['required'] = True
+
+            if arg in helptext:
+                # try to get some helptext
+                kwargs['help'] = helptext[arg]
+
+            # obviously this isn't an exaustive list, but try to make
+            # reasonable argparse decisions based on the docstring.
+            if arg in typemap and typemap[arg] == 'list':
+                kwargs['nargs'] = '+'
+            if arg in typemap and typemap[arg] == 'bool':
+                kwargs['action'] = FlagAction
+            if arg in typemap and typemap[arg] in ['str', 'int']:
+                kwargs['type'] = eval(typemap[arg])
+
+            group.add_argument('--{}'.format(arg), **kwargs)
+
+        group.register(subparser)
+
+    @classmethod
+    def description(cls):
+        doc = numpydoc.docscrape.ClassDoc(cls.klass)
+        summary = ' '.join(doc['Summary'])
+        if not summary.endswith('.'):
+            summary += '.'
+        extended = ' '.join(doc['Extended Summary'])
+        return '%s %s' % (summary, extended)
+
+
+
 class App(object):
     subcommand_dest = 'subcommand'
 
@@ -210,16 +344,31 @@ class App(object):
         if len(argv) == 0:
             argv.append('-h')
         self.parser = self._build_parser()
+
+        # give a special "did you mean?" message if an invalid subcommand is
+        # invoked
+        cmdnames = [e.dest for e in self.parser._subparsers._actions[1]._choices_actions] + ['-h', '--help']
+        if not argv[0] in cmdnames:
+            import difflib
+            lower2native = {s.lower(): s for s in cmdnames}
+            didyoumean = difflib.get_close_matches(argv[0].lower(),
+                lower2native.keys(), n=1, cutoff=0)[0]
+            self.parser.error("invalid choice: '%s'. did you mean '%s'?" % (
+                argv[0], lower2native[didyoumean]))
+            sys.exit(1)
+
         self.args = self.parser.parse_args(argv)
 
     def start(self):
         name = getattr(self.args, self.subcommand_dest)
         exclude = [self.subcommand_dest]
 
+        # figure out which command the user invoked
         klass = [k for k in self._subcommands() if k._get_name() == name][0]
         dct = ((k, v) for k, v in self.args.__dict__.items() if k not in exclude)
         args = argparse.Namespace(**dict(dct))
         instance = klass(args)
+        # and then call start() on it
         instance.start()
         return instance
 
@@ -236,22 +385,30 @@ class App(object):
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
         for klass in self._subcommands():
             # http://stackoverflow.com/a/17124446/1079728
+            klass_description = klass.description
+            if callable(klass_description):
+                klass_description = klass_description()
+
             first_sentence = ' '.join(
-                ' '.join(re.split(r'(?<=[.:;])\s', klass.description)[:1]).split())
-            description = '\n\n'.join(wrap_paragraphs(klass.description))
+                ' '.join(re.split(r'(?<=[.:;])\s', klass_description)[:1]).split())
+            description = '\n\n'.join(wrap_paragraphs(klass_description))
             subparser = subparsers.add_parser(
-                klass._get_name(), help=first_sentence, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
+                klass._get_name(), help=first_sentence, description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
             for v in (getattr(klass, e) for e in dir(klass)):
                 if isinstance(v, (argument, argument_group, mutually_exclusive_group)):
                     if v.parent is None:
                         v.register(subparser)
+            if issubclass(klass, NumpydocClassCommand):
+                klass._register_arguments(subparser)
 
         return parser
 
     @classmethod
     def _subcommands(cls):
         for subclass in all_subclasses(Command):
-            if subclass != cls:
+            # we don't want the raw "Command" or "NumydocClassCommand" to appear
+            # in the list of subcommands.
+            if subclass not in [cls, NumpydocClassCommand]:
                 yield subclass
 
 

@@ -24,8 +24,9 @@ from __future__ import absolute_import, print_function, division
 from six import PY2
 import numpy as np
 from sklearn import cluster
+from sklearn import mixture
 
-__all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
+__all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift', 'GMM',
            'SpectralClustering', 'Ward', 'KCenters', 'MultiSequenceClusterMixin']
 
 #-----------------------------------------------------------------------------
@@ -60,6 +61,16 @@ class MultiSequenceClusterMixin(object):
         -------
         self
         """
+        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
+        s.fit(self._concat(sequences))
+
+        if hasattr(s, 'labels_'):
+           self.labels_ = self._split(s.labels_)
+
+        return self
+
+    def _concat(self, sequences):
+        self.__lengths = [len(s) for s in sequences]
         if len(sequences) > 0 and isinstance(sequences[0], np.ndarray):
             concat = np.concatenate(sequences)
         else:
@@ -70,21 +81,13 @@ class MultiSequenceClusterMixin(object):
             # give us a generic way to make sure we merged sequences
             concat = sequences[0].join(sequences[1:])
 
-        lengths = [len(s) for s in sequences]
+        assert sum(self.__lengths) == len(concat)
+        return concat
 
-        # make sure that the concatenation operation worked
-        assert sum(lengths) == len(concat)
+    def _split(self, concat):
+        return [concat[cl - l: cl] for (cl, l) in zip(np.cumsum(self.__lengths), self.__lengths)]
 
-        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
-        s.fit(concat)
-        self.labels_ = self._split(self.labels_, lengths)
-        return self
-
-    @staticmethod
-    def _split(longlist, lengths):
-        return [longlist[cl - l: cl] for (cl, l) in zip(np.cumsum(lengths), lengths)]
-
-    def predict(self, sequences):
+    def predict(self, sequences, y=None):
         """Predict the closest cluster each sample in X belongs to.
 
         In the vector quantization literature, `cluster_centers_` is called
@@ -109,8 +112,8 @@ class MultiSequenceClusterMixin(object):
             predictions.append(s.predict(sequence))
         return predictions
 
-    def fit_predict(self, sequences):
-        '''Performs clustering on X and returns cluster labels.
+    def fit_predict(self, sequences, y=None):
+        """Performs clustering on X and returns cluster labels.
 
         Parameters
         ----------
@@ -123,8 +126,25 @@ class MultiSequenceClusterMixin(object):
         -------
         Y : list of ndarray, each of shape [sequence_length, ]
             Cluster labels
-        '''
-        return self.fit(sequences).labels_
+        """
+        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
+        if hasattr(s, 'fit_predict'):
+            labels = s.fit_predict(sequences)
+        else:
+            self.fit(sequences)
+            labels = self.predict(sequences)
+
+        if not isinstance(labels, list):
+            labels = self._split(labels)
+        return labels
+
+    def transform(self, sequences):
+        """Alias for predict"""
+        return self.predict(sequences)
+
+    def fit_transform(self, sequences, y=None):
+        """Alias for fit_predict"""
+        return self.fit_predict(sequences, y)
 
 
 def _replace_labels(doc):
@@ -157,6 +177,7 @@ def _replace_labels(doc):
 class KMeans(MultiSequenceClusterMixin, cluster.KMeans):
     __doc__ = _replace_labels(cluster.KMeans.__doc__)
 
+
 class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans):
     __doc__ = _replace_labels(cluster.MiniBatchKMeans.__doc__)
 
@@ -171,6 +192,9 @@ class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering):
 
 class Ward(MultiSequenceClusterMixin, cluster.Ward):
     __doc__ = _replace_labels(cluster.Ward.__doc__)
+
+class GMM(MultiSequenceClusterMixin, mixture.GMM):
+    __doc__ = _replace_labels(mixture.GMM.__doc__)
 
 # This needs to come _after_ MultiSequenceClusterMixin is defined, to avoid
 # recursive circular imports

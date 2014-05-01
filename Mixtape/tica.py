@@ -219,8 +219,8 @@ class tICA(BaseEstimator, TransformerMixin):
         means = self.means_
         return term - np.outer(means, means)
 
-    def fit(self, X):
-        """Fit the model with X.
+    def fit(self, sequences, y=None):
+        """Fit the model with a collection of sequences.
 
         This method is not online.  Any state accumulated from previous calls to
         fit() or partial_fit() will be cleared. For online learning, use
@@ -228,9 +228,11 @@ class tICA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X: array-like, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
-            and n_features is the number of features.
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+        y : None
+            Ignored
 
         Returns
         -------
@@ -238,7 +240,8 @@ class tICA(BaseEstimator, TransformerMixin):
             Returns the instance itself.
         """
         self._initialized = False
-        self._fit(X)
+        for X in sequences:
+            self._fit(X)
         return self
 
     def partial_fit(self, X):
@@ -261,27 +264,32 @@ class tICA(BaseEstimator, TransformerMixin):
         self._fit(X)
         return self
 
-    def transform(self, X):
+    def transform(self, sequences):
         """Apply the dimensionality reduction on X.
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
-            New data, where n_samples is the number of samples
-            and n_features is the number of features.
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
 
         Returns
         -------
-        X_new : array-like, shape (n_samples, n_components)
+        sequence_new : list of array-like, each of shape (n_samples_i, n_components)
 
         """
-        X = array2d(X)
-        if self.means_ is not None:
-            X = X - self.means_
-        X_transformed = np.dot(X, self.components_.T)
-        return X_transformed
+        sequences_new = []
 
-    def fit_transform(self, X):
+        for X in sequences:
+            X = array2d(X)
+            if self.means_ is not None:
+                X = X - self.means_
+            X_transformed = np.dot(X, self.components_.T)
+            sequences_new.append(X_transformed)
+
+        return sequences_new
+
+    def fit_transform(self, sequences, y=None):
         """Fit the model with X and apply the dimensionality reduction on X.
 
         This method is not online. Any state accumulated from previous calls to
@@ -290,23 +298,25 @@ class tICA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
-            Training data, where n_samples is the number of samples
-            and n_features is the number of features.
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+        y : None
+            Ignored
 
         Returns
         -------
-        X_new : array-like, shape (n_samples, n_components)
+        sequence_new : list of array-like, each of shape (n_samples_i, n_components)
         """
-        self.fit(X)
-        return self.transform(X)
+        self.fit(sequences)
+        return self.transform(sequences)
 
     def _fit(self, X):
         X = np.asarray(array2d(X), dtype=np.float64)
         self._initialize(X.shape[1])
         if not len(X) > self.offset:
             raise ValueError('First dimension must be longer than '
-                'offset=%d. X has shape (%d, %d)' % (self.offset + X.shape))
+                'offset=%d. X has shape (%d, %d)' % ((self.offset,) + X.shape))
 
         self.n_observations_ += X.shape[0]
         self.n_sequences_ += 1
@@ -319,3 +329,25 @@ class tICA(BaseEstimator, TransformerMixin):
         self._outer_offset_to_T += np.dot(X[self.offset:].T, X[self.offset:])
 
         self._is_dirty = True
+
+    def score(self, sequences, y=None):
+        """
+
+        Parameters
+        ----------
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+        y : None
+            Ignored
+        """
+
+        assert self._initialized
+        V = self.eigenvectors_
+
+        m2 = self.__class__(offset=self.offset)
+        for X in sequences:
+            m2.partial_fit(X)
+
+        ggrq = np.trace(V.T.dot(m2.offset_correlation_).dot(V).dot(np.linalg.pinv(V.T.dot(m2.covariance_).dot(V))))
+        return ggrq

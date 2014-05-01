@@ -44,6 +44,8 @@ class MarkovStateModel(BaseEstimator):
     ----------
     n_states : int
         The number of states in the model
+    lag_time : int
+        The lag time of the model
     reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
@@ -83,10 +85,12 @@ class MarkovStateModel(BaseEstimator):
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, n_states, reversible_type='mle', ergodic_trim=True):
+    def __init__(self, n_states=None, n_timescales=None, lag_time=1, reversible_type='mle', ergodic_trim=True):
         self.n_states = n_states
         self.reversible_type = reversible_type
         self.ergodic_trim = ergodic_trim
+        self.lag_time = lag_time
+        self.n_timescales = n_timescales
 
         available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
         if self.reversible_type not in available_reversible_type:
@@ -106,6 +110,9 @@ class MarkovStateModel(BaseEstimator):
         -------
         self
         """
+        if self.n_states is None:
+            self.n_states = np.max([np.max(x) for x in sequences]) + 1
+
         from msmbuilder.msm_analysis import get_eigenvectors
         from msmbuilder.MSMLib import mle_reversible_count_matrix, estimate_transition_matrix, ergodic_trim
 
@@ -150,25 +157,38 @@ class MarkovStateModel(BaseEstimator):
         counts = scipy.sparse.coo_matrix((self.n_states, self.n_states), dtype=np.float32)
 
         for sequence in sequences:
-            from_states = sequence[: -1: 1]
-            to_states = sequence[1::1]
+            from_states = sequence[: -self.lag_time: 1]
+            to_states = sequence[self.lag_time::1]
             transitions = np.row_stack((from_states, to_states))
             C = scipy.sparse.coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions), shape=(self.n_states, self.n_states))
             counts = counts + C
 
         return counts
 
-    def timescales_(self, n_timescales=None):
+    @property
+    def eigenpairs_(self):
         from msmbuilder.msm_analysis import get_reversible_eigenvectors, get_eigenvectors
-        if n_timescales is None:
-            n_timescales = self.n_states - 1
 
-        n_eigenvectors = n_timescales + 1
+        n_eigenpairs = self.n_timescales + 1 if self.n_timescales is not None else self.transmat_.shape[0] - 2
+
         if self.reversible_type in ['mle', 'MLE', 'transpose', 'Transpose'] and self.transmat_.shape[0] > 50:
-            e_values = get_reversible_eigenvectors(self.transmat_, n_eigenvectors, populations=self.populations_)[0]
-        else:
-            e_values = get_eigenvectors(self.transmat_, n_eigenvectors, epsilon=1)[0]
+            return get_reversible_eigenvectors(self.transmat_, n_eigenpairs, populations=self.populations_)
+        return get_eigenvectors(self.transmat_, n_eigenpairs, epsilon=1)
 
+    @property
+    def timescales_(self):
         # make sure to leave off equilibrium distribution
-        timescales = -1 / np.log(e_values[1 : n_eigenvectors])
+        e_values = self.eigenpairs_[0]
+        timescales = -1 / np.log(e_values[1:])
         return timescales
+
+    def score(self, sequences, y=None):
+        V = self.eigenpairs_[1]
+
+        m2 = self.__class__(n_states=self.n_states, n_timescales=self.n_timescales,
+                            lag_time=self.lag_time,
+                            reversible_type=self.reversible_type,
+                            ergodic_trim=self.ergodic_trim)
+        m2.fit(sequences)
+        R = V.T.dot(m2.transmat_.dot(V))
+        return np.trace(R)

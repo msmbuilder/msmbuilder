@@ -37,7 +37,7 @@ __all__ = ['KCenters']
 #-----------------------------------------------------------------------------
 
 class _KCenters(BaseEstimator, ClusterMixin):
-    """KCenters clustering
+    """K-Centers clustering
 
     Parameters
     ----------
@@ -93,13 +93,6 @@ class _KCenters(BaseEstimator, ClusterMixin):
         self.metric = metric
         self.random = check_random_state(random_state)
 
-        if isinstance(metric, string_types):
-            # distance from r[i] to each frame in t (output is a vector of length len(t)
-            # using scipy.spatial.distance.cdist
-            self.metric_function = lambda t, r, i : cdist(t, r[i, np.newaxis], metric=metric)[:,0]
-        elif callable(metric):
-            self.metric_function = metric
-
     def fit(self, X, y=None):
         n_samples = len(X)
         new_center_index = self.random.randint(0, n_samples)
@@ -107,6 +100,8 @@ class _KCenters(BaseEstimator, ClusterMixin):
         self.labels_ = np.zeros(n_samples, dtype=int)
         self.distances_ = np.empty(n_samples, dtype=float)
         self.distances_.fill(np.inf)
+
+        metric_function = self._metric_function
 
         if isinstance(self.metric, string_types):
             self.cluster_centers_ = np.zeros((self.n_clusters, X.shape[1]))
@@ -117,7 +112,7 @@ class _KCenters(BaseEstimator, ClusterMixin):
             self.cluster_centers_ = [None for i in range(self.n_clusters)]
 
         for i in range(self.n_clusters):
-            d = self.metric_function(X, X, new_center_index)
+            d = metric_function(X, X, new_center_index)
             mask = (d < self.distances_)
             self.distances_[mask] = d[mask]
             self.labels_[mask] = i
@@ -144,6 +139,7 @@ class _KCenters(BaseEstimator, ClusterMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
+        metric_function = self._metric_function
         if self.metric == 'euclidean':
             x_squared_norms = _squared_norms(X)
             return _labels_inertia(X, x_squared_norms, self.cluster_centers_)[0]
@@ -153,7 +149,7 @@ class _KCenters(BaseEstimator, ClusterMixin):
         distances.fill(np.inf)
 
         for i in range(self.n_clusters):
-            d = self.metric_function(X, self.cluster_centers_, i)
+            d = metric_function(X, self.cluster_centers_, i)
             mask = (d < distances)
             distances[mask] = d[mask]
             labels[mask] = i
@@ -162,6 +158,16 @@ class _KCenters(BaseEstimator, ClusterMixin):
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y).labels_
+
+    @property
+    def _metric_function(self):
+        if isinstance(self.metric, string_types):
+            # distance from r[i] to each frame in t (output is a vector of length len(t)
+            # using scipy.spatial.distance.cdist
+            return lambda t, r, i : cdist(t, r[i, np.newaxis], metric=self.metric)[:,0]
+        elif callable(metric):
+            return metric
+        raise NotImplementedError
 
 
 class KCenters(MultiSequenceClusterMixin, _KCenters):
@@ -198,6 +204,5 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
-        lengths = [len(s) for s in sequences]
-        self.distances_ = self._split(self.distances_, lengths)
+        self.distances_ = self._split(self.distances_)
         return self
