@@ -27,16 +27,18 @@ def compute_scale_full(m, n, p, q, eps):
     Parameters
     __________
     m: int
-        Number of inequality constraints
+        Number of affine inequality constraints
     n: int
-        Number of equality constraints
+        Number of affine equality constraints
     p: int
         Number of convex inequality constraints
     q: int
         Number of convex equality constraints
     """
     if m + n + p + q> 0:
-        M = 0.
+        M = np.max((np.log(m+1) + np.log(n+1)
+                    + np.log(p+1) + np.log(q+1)), 1.) / eps
+
         if m > 0:
             M += np.max((np.log(m), 1.))/eps
         if n > 0:
@@ -78,12 +80,14 @@ def grad_neg_sum_squares(x):
         G[i,i] += -2.*x[i,i]
     return G
 
-def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
+def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     """
     TODO: Make this more numerically stable
     Computes
     f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-                    + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|))
+                    + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|)
+                    + sum_{k=1}^p exp(M*f_k(X))
+                    + sum_{l=1}^q exp(M*|g_l(X)|))
 
     where m is the number of linear constraints and M = log m / eps,
     with eps an error tolerance parameter
@@ -91,37 +95,50 @@ def log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim):
     Parameters
     __________
 
-    m: int
-        Number of inequaltity constraints
-    n: int
-        Number of equality constraints
+    X: numpy.ndarray
+       Input matrix
     M: float
         Rescaling Factor
+    As: list
+        Inequality matrices
+    bs: list
+        Inequality vectors
+    Cs: list
+        Equality matrices
+    ds: list
+        Equality vectors
+    Fs: list
+        Convex function inequalities
+    Gs: list
+        Convex function equalities
     """
-    s = None
-    r = None
-    penalties_m = np.zeros(m)
-    penalties_n = np.zeros(n)
+    (dim, _) = np.shape(X)
+    m = len(As)
+    n = len(Cs)
+    p = len(Fs)
+    q = len(Gs)
+    penalties = np.zeros(m+n+p+q)
+    # Handle linear inequalities
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
-        if dim >= 2:
-            penalties_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
-        else:
-            penalties_m[i] = M*(Ai*X - bi)
+        penalties[i] = M*(np.trace(np.dot(Ai,X)) - bi)
+    # Handle linear equalities
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
-        if dim >= 2:
-            penalties_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
-        else:
-            penalties_n[j] = M*np.abs(Cj*X - dj)
+        penalties[j+m] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
+    # Handle convex inequalities
+    for k in range(p):
+        Fk = Fs[k]
+        penalties[k+m+n] = Fk(X)
+    # Handle convex equalities
+    for l in range(q):
+        Gl = Gs[l]
+        penalties[l+p+m+n] = np.abs(Gl(X))
     retval = 0.
-    if m + n > 0:
-        if m > 0:
-            retval += scipy.misc.logsumexp(np.array(penalties_m), axis=0)
-        if n > 0:
-            retval += scipy.misc.logsumexp(np.array(penalties_n), axis=0)
+    if m + n + p + q > 0:
+        retval = scipy.misc.logsumexp(np.array(penalties), axis=0)
         retval = -(1.0/M) * np.exp(retval)
     return retval
 
@@ -139,70 +156,40 @@ def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
     we need to log-sum-exp the exponent terms to aboid this problem.
     """
     retval = 0.
-    num_mats_m = []
-    log_nums_m = np.zeros(m)
-    log_denoms_m = np.zeros(m)
+    num_mats = []
+    log_nums = np.zeros(m+n+p+q)
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
-        if dim >= 2:
-            num_mats_m.append(M*Ai.T)
-            log_nums_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
-            log_denoms_m[i] = M*(np.trace(np.dot(Ai,X)) - bi)
-        else:
-            num_mats_m.append(M*Ai.T)
-            log_nums_m[i] = M*(Ai*X - bi) + (M*Ai.T)
-            log_denoms_m[i] = M*(Ai*X - bi)
-    num_mats_n = []
-    log_nums_n = np.zeros(n)
-    log_denoms_n = np.zeros(n)
+        num_mats.append(M*Ai.T)
+        log_nums[i] = M*(np.trace(np.dot(Ai,X)) - bi)
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
-        if dim >= 2:
-            val = np.trace(np.dot(Cj,X)) - dj
-            if val < 0 :
-                sgn = -1.
-            else:
-                sgn = 1.
-            # fix derivative
-            num_mats_n.append(sgn*Cj.T)
-            log_nums_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
-            log_denoms_n[j] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
+        val = np.trace(np.dot(Cj,X)) - dj
+        if val < 0 :
+            sgn = -1.
         else:
-            val = (Cj*X) - dj
-            if val < 0 :
-                sgn = -1.
-            else:
-                sgn = 1.
-            num_mats_n.append(sgn*Cj.T)
-            log_nums_n[j] = M*np.abs(Cj*X - dj)
-            log_denoms_n[j] = M*np.abs(Cj*X - dj)
-    if m + n > 0:
-        log_denom_m = -np.inf
-        log_denom_n = -np.inf
-        if m > 0:
-            log_denom_m = scipy.misc.logsumexp(np.array(log_denoms_m),
-                                        axis=0)
-        if n > 0:
-            log_denom_n = scipy.misc.logsumexp(np.array(log_denoms_n),
-                                        axis=0)
-        log_denom = np.logaddexp(log_denom_m, log_denom_n)
+            sgn = 1.
+        num_mats.append(sgn*Cj.T)
+        log_nums[j+m] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
+    for k in range(p):
+        pass
+    for l in range(q):
+        pass
+    if m + n + p + q > 0:
+        log_denom = scipy.misc.logsumexp(np.array(log_nums), axis=0)
 
         # Now subtract from numerator
-        log_nums_m -= log_denom
-        log_nums_n -= log_denom
+        log_nums -= log_denom
 
         # Undo logarithmic storage
-        nums_m = np.exp(log_nums_m)
-        nums_n = np.exp(log_nums_n)
+        nums = np.exp(log_nums)
 
         # Now construct gradient
         grad = np.zeros(np.shape(X))
-        for i in range(m):
-            grad += nums_m[i] * num_mats_m[i]
-        for j in range(n):
-            grad += nums_n[j] * num_mats_n[j]
+        for ind in range(m+n+p+q):
+            grad += nums[ind] * num_mats[ind]
         grad = -(1.0/M) * grad
     return grad
 
