@@ -47,14 +47,21 @@ class MDTrajInputMixin(object):
 
 
 class GaussianFeaturizationMixin(object):
-    group_munge = argument_group('Munging Options')
-    group_vector = group_munge.add_mutually_exclusive_group(required=True)
-    group_vector.add_argument('-d', '--distance-pairs', type=str, help='''Vectorize
+    group_munge = argument_group('Featurizer Options')
+    group_munge.add_argument('-d', '--distance-pairs', type=str, help='''Vectorize
         the MD trajectories by extracting timeseries of the distance
         between pairs of atoms in each frame. Supply a text file where
         each row contains the space-separate indices of two atoms which
         form a pair to monitor''')
-    group_vector.add_argument('-a', '--atom-indices', type=str, help='''Superpose
+    group_munge.add_argument('-a', '--atom-indices', type=str, help='''Superpose
         each MD conformation on the coordinates in the topology file, and then use
         the distance from each atom in the reference conformation to the
         corresponding atom in each MD conformation.''')
+    group_munge.add_argument('-s', '--solvent-indices', type=str,
+        help='''Calculate 'solvent fingerprint' by summing weighted distances
+        between each solute atom and all solvent atoms. Supply a text file
+        of solvent indices. You must also specify --atom-indices for
+        the solute atoms.''')
+    group_munge.add_argument('--sigma', type=float,
+        help='''If --solvent-indices is specified, this sets the length scale
+        for the Gaussian kernel in the solvent fingerprint. Otherwise ignored.''')
