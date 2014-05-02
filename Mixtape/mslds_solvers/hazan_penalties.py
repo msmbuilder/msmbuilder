@@ -10,10 +10,13 @@ TODOs: Too many of the penalties below are similar. Here are some
 simplifying steps.
 
     -) Remove old neg_max/log_sum_exp penalties and gradients and rename
-       neg_max_general penalties and gradients to neg_max.
+       neg_max_general penalties and gradients to neg_max. ====> DONE
+    -) Remove M from argument of functions
     -) Factor out penalty calculation into shared subfunction
        to avoid duplication in both penalty and gradient functions.
+       ====> DONE
     -) Change penalty functions to no longer require m, n, dim, etc.
+       ====> DONE
 """
 
 def compute_scale(m, n, eps):
@@ -35,22 +38,20 @@ def compute_scale_full(m, n, p, q, eps):
     q: int
         Number of convex equality constraints
     """
+    M = 1
     if m + n + p + q> 0:
-        M = np.max((np.log(m+1) + np.log(n+1)
-                    + np.log(p+1) + np.log(q+1)), 1.) / eps
-
-        if m > 0:
-            M += np.max((np.log(m), 1.))/eps
-        if n > 0:
-            M += np.max((np.log(n), 1.))/eps
-        if p > 0:
-            M += np.max((np.log(p), 1.))/eps
-        if q > 0:
-            M += np.max((np.log(q), 1.))/eps
-    else:
-        M = 1.
+        M = max((np.log(m+1) + np.log(n+1)
+                + np.log(p+1) + np.log(q+1)), 1.) / eps
     return M
 
+def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
+    c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))
+    return c
+
+def batch_equals_grad(X, A, x_low, x_hi, y_low, y_hi):
+    # Upper right
+    grad = np.sign(X[x_low:x_hi,y_low:y_hi] - A)
+    return grad
 
 def neg_sum_squares(x):
     """
@@ -142,21 +143,33 @@ def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
         retval = -(1.0/M) * np.exp(retval)
     return retval
 
-def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
+def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
+        Gs, gradGs, eps):
     """
-    Computes grad f(X) = -(1/M) * c' / c where
-      c' = (sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M * Ai.T)
-            + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|)
-                            * sgn(Tr(Cj,X) - dj) * Cj.T)
-      c  = (sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
-            + sum_{i=1}^n exp(M*|Tr(Cj,X) - dj|))
+   Computes grad f(X) = - c' / c where
+   c' = (sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * Ai.T
+       + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|) * sgn(Tr(Cj,X) - dj) * Cj.T
+       + sum_{k=1}^p exp(M*f_k(X)) * f_k'(X)
+       + sum_{l=1}^q exp(M*|g_l(X)|) * sgn(g_l(X)) * g_l'(X))
+   c  = (sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
+       + sum_{i=1}^n exp(M*|Tr(Cj,X) - dj|)
+       + sum_{k=1}^p exp(M*f_k(X))
+       + sum_{l=1}^q exp(M*|g_l(X)|))
 
-    Need Ai and Cj to be symmetric real matrices. The exponent terms
-    can become large and cause overflow issues. As a result,
-    we need to log-sum-exp the exponent terms to aboid this problem.
+    Need Ai and Cj to be symmetric real matrices and f_k, g_l to be convex
+    functions. The exponent terms can become large and cause overflow
+    issues. As a result, we need to log-sum-exp the exponent terms to
+    aboid this problem.
     """
+    (dim, _) = np.shape(X)
+    m = len(As)
+    n = len(Cs)
+    p = len(Fs)
+    q = len(Gs)
     retval = 0.
     num_mats = []
+    if m+n+p+q <= 0:
+        return None
     log_nums = np.zeros(m+n+p+q)
     for i in range(m):
         Ai = As[i]
@@ -174,23 +187,33 @@ def log_sum_exp_grad_penalty(X, m, n, M, As, bs, Cs, ds, dim, eps):
         num_mats.append(sgn*Cj.T)
         log_nums[j+m] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
     for k in range(p):
-        pass
+        Fk = Fs[k]
+        gradFk = gradFs[k]
+        num_mats.append(gradFk(X))
+        log_nums[k+n+m] = M*Fk(X)
     for l in range(q):
-        pass
-    if m + n + p + q > 0:
-        log_denom = scipy.misc.logsumexp(np.array(log_nums), axis=0)
+        Gl = Gs[l]
+        gradGl = gradGs[l]
+        val = Gl(X)
+        if val < 0 :
+            sgn = -1.
+        else:
+            sgn = 1.
+        num_mats.append(sgn*gradGl(X))
+        log_nums[l+n+m+p] = M*np.abs(Gl(X))
+    log_denom = scipy.misc.logsumexp(np.array(log_nums), axis=0)
 
-        # Now subtract from numerator
-        log_nums -= log_denom
+    # Now subtract from numerator
+    log_nums -= log_denom
 
-        # Undo logarithmic storage
-        nums = np.exp(log_nums)
+    # Undo logarithmic storage
+    nums = np.exp(log_nums)
 
-        # Now construct gradient
-        grad = np.zeros(np.shape(X))
-        for ind in range(m+n+p+q):
-            grad += nums[ind] * num_mats[ind]
-        grad = -(1.0/M) * grad
+    # Now construct gradient
+    grad = np.zeros(np.shape(X))
+    for ind in range(m+n+p+q):
+        grad += nums[ind] * num_mats[ind]
+    grad = -(1.0/M) * grad
     return grad
 
 def neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs):

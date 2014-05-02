@@ -1,30 +1,8 @@
 from hazan import *
+from test_bounded_trace_sdp_solver import batch_equality
 import pdb
 
 def test1():
-    """
-    Check that argument validation works.
-    """
-    dim = 2
-
-    # Check argument validation
-    Error = False
-    try:
-        f = FeasibilitySDPHazanSolver()
-        As = [np.array([[1.5, 0.],
-                        [0., 1.5]])]
-        # bs is misformatted; should be bs = [1.5] in this case
-        bs = [np.array([1.5, 0])]
-        Cs = []
-        ds = []
-        eps = 1e-1
-        dim = 1
-        f.feasibility_solve(As, bs, Cs, ds, eps, dim)
-    except ValueError:
-        Error = True
-    assert Error == True
-
-def test2():
     """
     Check that the feasibility solver with one inequality reports that a
     feasible problem is feasible.  With As, bs defined as below, the
@@ -43,10 +21,15 @@ def test2():
     eps = 1e-1
     Cs = []
     ds = []
-    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, eps, dim)
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
+            Gs, gradGs, eps, dim)
     assert SUCCEED == True
 
-def test3():
+def test2():
     """
     Check that the feasibility solver with one inequality reports that
     an infeasible problem is infeasible.  With As, bs defined as below,
@@ -66,10 +49,15 @@ def test3():
     dim = 2
     Cs = []
     ds = []
-    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, eps, dim)
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
+            Gs, gradGs, eps, dim)
     assert SUCCEED == False
 
-def test4():
+def test3():
     """
     Check that the feasibility solver with one equality constraint reports
     that a feasible problem is feasible.  With C, d defined as below, the
@@ -91,10 +79,40 @@ def test4():
     ds = [1.5]
     eps = 1./N_iter
     dim = 2
-    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, eps, dim)
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
+            Gs, gradGs, eps, dim)
     assert SUCCEED == True
     assert np.abs(X[0,0] + 2 * X[1,1] -1.5) < fudge_factor * eps
     assert np.abs(X[0,0] + X[1,1] - 1) < fudge_factor * eps
+
+def test4():
+    """
+    Check that the feasibility solver discerns feasibility of batch
+    equality problems like
+
+    feasibility(X)
+    subject to
+        [[ B   , A],
+         [ A.T , D]]  is PSD, where B, D are arbitrary, A given.
+        Tr(X) = Tr(B) + Tr(D) == 1
+    """
+    dims = [8]
+    N_iter = 400
+    f = FeasibilitySDPHazanSolver()
+    for dim in dims:
+        A = (1./(2*dim)) * np.eye(int(dim/2))
+        print "A\n", A
+        M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
+                batch_equality(A, dim, N_iter)
+        X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
+                Gs, gradGs, eps, dim)
+        #import pdb
+        #pdb.set_trace()
+        #assert SUCCEED == True
 
 if __name__ == "__main__":
     #test1()

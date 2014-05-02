@@ -18,6 +18,7 @@ TODOs:
     -) Add and test Schur complement constraint.
     -) Add and test a log det constraint.
     -) Add and test a matrix quadratic constraint.
+    -) Remove m, n from the test cases.
 """
 
 def test1():
@@ -96,10 +97,10 @@ def test2a():
     m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            simple_equality_constraint(N_iter)
     def f(X):
-        return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return log_sum_exp_grad_penalty(X, m, n, M, As,
-                    bs, Cs, ds, dim, eps)
+        return log_sum_exp_grad_penalty(X, M, As,
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     run_experiment(f, gradf, dim, N_iter)
 
 def test2b():
@@ -115,20 +116,6 @@ def test2b():
         return neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
                 Gs, gradGs, eps)
     run_experiment(f, gradf, dim, N_iter)
-
-#def test2c():
-#    """
-#    Check equality constraints for neg_max_grad_general
-#    """
-#    N_iter = 50
-#    m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-#           simple_equality_constraint(N_iter)
-#    def f(X):
-#        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return neg_max_general_grad_penalty(X, M,
-#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#    run_experiment(f, gradf, dim, N_iter)
 
 def simple_constraint(N_iter):
     """
@@ -161,8 +148,6 @@ def simple_constraint(N_iter):
     Gs = []
     gradGs = []
     return m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs
-    #import pdb
-    #pdb.set_trace()
 
 def test3a():
     """
@@ -172,10 +157,10 @@ def test3a():
     m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
             simple_constraint(N_iter)
     def f(X):
-        return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+        return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return log_sum_exp_grad_penalty(X, m, n, M,
-                As, bs, Cs, ds, dim, eps)
+        return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def test3b():
@@ -203,27 +188,9 @@ def test3c():
     def f(X):
         return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
-        return log_sum_exp_grad_penalty(X, m, n, M,
-                As, bs, Cs, ds, dim, eps)
+        return log_sum_exp_grad_penalty(X, M,
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-#def test3d():
-#    """
-#    Check equality and inequality constraints for neg_max_general
-#    penalty and gradients.
-#    """
-#    N_iter = 50
-#    m, n, M, As, bs, Cs, ds, dim, eps = simple_constraint(N_iter)
-#    Fs = []
-#    gradFs = []
-#    Gs = []
-#    gradGs = []
-#    def f(X):
-#        return neg_max_general_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return neg_max_general_grad_penalty(X, M,
-#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def quadratic_inequality(N_iter):
     """
@@ -263,7 +230,7 @@ def quadratic_inequality(N_iter):
 
 def test4a():
     """
-    Check quadratic inequality constraints for neg_max_general penalty
+    Check quadratic inequality constraints for neg_max penalty
     and gradients.
     """
     N_iter = 50
@@ -275,8 +242,20 @@ def test4a():
         return neg_max_grad_penalty(X, M,
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-    #import pdb
-    #pdb.set_trace()
+
+def test4b():
+    """
+    Check quadratic inequality for log_sum_exp penalty and gradients.
+    """
+    N_iter = 50
+    dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
+            quadratic_inequality(N_iter)
+    def f(X):
+        return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+    def gradf(X):
+        return log_sum_exp_grad_penalty(X, M,
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def quadratic_equality(N_iter):
     """
@@ -369,7 +348,6 @@ def stress_inequalities(dim, N_iter):
     gradGs = []
     return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
 
-
 def test6a():
     """
     Stress test inequality constraints for log_sum_exp penalty.
@@ -380,10 +358,10 @@ def test6a():
         m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
                 stress_inequalities(dim, N_iter)
         def f(X):
-            return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                    As, bs, Cs, ds, dim, eps)
+            return log_sum_exp_grad_penalty(X, M,
+                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
 def test6b():
@@ -399,8 +377,8 @@ def test6b():
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                    As, bs, Cs, ds, dim, eps)
+            return log_sum_exp_grad_penalty(X, M,
+                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
 def test6c():
@@ -464,10 +442,10 @@ def test7a():
         m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
                 stress_equalities(dim, N_iter)
         def f(X):
-            return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return log_sum_exp_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
 def test7b():
@@ -482,8 +460,8 @@ def test7b():
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
 def test7c():
@@ -562,10 +540,10 @@ def test8a():
         m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
                stress_inequalies_and_equalities(dim, N_iter)
         def f(X):
-            return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return log_sum_exp_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def test8b():
@@ -580,8 +558,8 @@ def test8b():
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return log_sum_exp_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim,eps)
+            return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs, eps)
         X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
 def test8c():
@@ -625,6 +603,7 @@ def batch_equality(A, dim, N_iter):
     gradFs = []
     q = 1
     block_dim = int(dim/2)
+    # TODO: Swap this out with generalized constraint
     def g(X):
         c1 = np.sum(np.abs(X[:block_dim,block_dim:] - A))
         c2 = np.sum(np.abs(X[block_dim:,:block_dim] - A.T))
@@ -660,7 +639,7 @@ def test9a():
     alphas = None
     DEBUG = False
     for dim in dims:
-        A = (1/(2*dim)) * np.eye(int(dim/2))
+        A = (1./(2*dim)) * np.eye(int(dim/2))
         M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
                 batch_equality(A, dim, N_iter)
         def f(X):
@@ -714,7 +693,7 @@ if __name__ == "__main__":
 
     # Test simple equality constraints
     #test2a()
-    test2b()
+    #test2b()
     ##test2c()
 
     # Test simple inequality and equality constraints
@@ -725,6 +704,7 @@ if __name__ == "__main__":
 
     # Test quadratic inequality constraints
     #test4a()
+    #test4b()
 
     # Test quadratic equality constraints
     #test5a()

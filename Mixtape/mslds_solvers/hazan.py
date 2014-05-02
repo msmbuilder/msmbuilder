@@ -186,22 +186,28 @@ class FeasibilitySDPHazanSolver(object):
     def __init__(self):
         self._solver = BoundedTraceSDPHazanSolver()
 
-    def feasibility_grad(self, X, As, bs, Cs, ds, eps, dim):
+    def feasibility_grad(self, X, As, bs, Cs, ds, Fs, gradFs, Gs,
+            gradGs, eps):
+        (dim, _) = np.shape(X)
         m = len(As)
         n = len(Cs)
-        M = compute_scale(m, n, eps)
+        p = len(Fs)
+        q = len(Gs)
+        M = compute_scale_full(m, n, p, q, eps)
         def gradf(X):
-            return neg_max_grad_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim, eps)
+            return neg_max_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs, eps)
         return gradf(X)
 
-    def feasibility_val(self, X, As, bs, Cs, ds, eps, dim):
+    def feasibility_val(self, X, As, bs, Cs, ds, Fs, Gs, eps):
+        (dim, _) = np.shape(X)
         m = len(As)
         n = len(Cs)
-        M = compute_scale(m, n, eps)
+        p = len(Fs)
+        q = len(Gs)
+        M = compute_scale(m, n, p, q, eps)
         def f(X):
-            return neg_max_penalty(X, m, n, M,
-                        As, bs, Cs, ds, dim)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         return f(X)
 
     def feasibility_solve(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
@@ -221,13 +227,17 @@ class FeasibilitySDPHazanSolver(object):
         Parameters
         __________
         As: list
-            A list of square (dim, dim) numpy.ndarray matrices
+            inequality square (dim, dim) numpy.ndarray matrices
         bs: list
-            A list of floats
+            inequality floats
         Cs: list
-            A list of square (dim, dim) numpy.ndarray matrices
+            equality square (dim, dim) numpy.ndarray matrices
         ds: list
-            A list of floats
+            equality floats
+        Fs: list
+            convex inequalities
+        Gs: list
+            convex equalities
         eps: float
             Allowed error tolerance. Must be > 0
         dim: int
@@ -238,9 +248,10 @@ class FeasibilitySDPHazanSolver(object):
             assert_list_of_types(ds, Number)
             assert_list_of_square_arrays(As, dim)
             assert_list_of_square_arrays(Cs, dim)
-            assert_list_of_types(Fs, function)
-            assert_list_of_types(gradFs, function)
-            assert_list_of_types(gradGs, function)
+            # Add a check here? Or maybe take out all such checks
+            #assert_list_of_types(Fs, function)
+            #assert_list_of_types(gradFs, function)
+            #assert_list_of_types(gradGs, function)
             assert len(As) == len(bs)
             assert len(Cs) == len(ds)
             assert len(Fs) == len(gradFs)
@@ -256,19 +267,20 @@ class FeasibilitySDPHazanSolver(object):
 
         m = len(As)
         n = len(Cs)
-        M = compute_scale(m, n, eps)
+        p = len(Fs)
+        q = len(Gs)
+        M = compute_scale_full(m, n, p, q, eps)
         N_iter = int(1./eps)
         # Need to swap in some robust theory about Cf
-        fudge_factor = 3.0
+        fudge_factor = 5.0
         def f(X):
-            return neg_max_general_penalty(X, m, n, M, As, bs, Cs, ds, Fs,
-                    Gs)
+            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
             #return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
             #return neg_max_grad_penalty(X, m, n, M,
             #            As, bs, Cs, ds, dim,eps)
-            return log_sum_exp_general_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
+            return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs, eps)
 
         start = time.clock()
         X = self._solver.solve(f, gradf, dim, N_iter)
@@ -279,6 +291,7 @@ class FeasibilitySDPHazanSolver(object):
         SUCCEED = not (fX < -fudge_factor*eps)
         print "\tSUCCEED: " + str(SUCCEED)
         print "\tComputation Time (s): ", elapsed
+        #import pdb
         #pdb.set_trace()
         return X, fX, SUCCEED
 
@@ -290,18 +303,21 @@ class GeneralSDPHazanSolver(object):
     def __init__(self):
         self._solver = FeasibilitySDPHazanSolver()
 
-    def solve(self, E, As, bs, Cs, ds, eps, dim, R):
+    def solve(self, h, gradh, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
+            eps, dim, R, U, L):
         """
         Solves optimization problem
 
-        max Tr(EX)
+        min h(X)
         subject to
-            Tr(A_i X) <= b_i
-            Tr(C_i X) == d_i
+            Tr(A_i X) <= b_i, Tr(C_j X) == d_j
+            f_k(X) <= 0, g_l(X) == 0
             Tr(X) <= R
+        assuming
+            L <= h(X) <= U
 
         Solution of this problem with Frank-Wolfe methods requires
-        two transformations. In the first, we normalize the trace
+        two transformations. For the first, we normalize the trace
         upper bound Tr(X) <= R by performing change of variable
 
             X := X / R
@@ -309,61 +325,40 @@ class GeneralSDPHazanSolver(object):
         To keep the inequality constraints in their original format,
         we need to perform scalings
 
-            A_i := A_i * R
-            C_i := C_i * R
+            A_i         := A_i * R
+            C_i         := C_i * R
+            f_k(X)      := f_k(R * X)
+            grad f_k(X) := grad g_k(R * X) * R
+            g_l(X)      := g_l(R * X)
+            grad g_l(X) := grad g_l(R * X) * R
+            h(X)        := h(R * X)
 
-        (No need to rescale E since the max operator removes constant
-        factors). After the transformation, we assume Tr(X) <= 1. Next,
-        we derive an upper bound on Tr(EX). Note that
-
-            (Tr(EX))^2 == (sum_ij E_ij X_ij)^2
-                       <= (sum_ij (E_ij)^2) (sum_ij (X_ij)^2)
-                       <= (sum_ij (E_ij)^2) (sum_ij X_ii X_jj)
-                       == (sum_ij (E_ij)^2) (sum_i X_{ii})^2
-                       == (sum_ij (E_ij)^2) Tr(X)^2
-                       <= (sum_ij (E_ij)^2)
-
-        The first inequality is Cauchy-Schwarz. The second inequality
-        follows from a standard fact about semidefinite matrices (CITE).
-
-        For PSD matrix M, |m_ij| <= sqrt(m_ii m_jj) [See Wikipedia]
-
-        The third equality follows from factorization. The last
-        inequality follows from the fact that Tr(X) <= 1. Similarly,
-
-            Tr(EX) >= 0
-
-        By the fact that X is PSD (CITE). Let D = sum_ij (E_ij)^2. We
-        perform the rescaling.
-
-            E:= (1/D) E
-
-        After the scaling transformation, we have that 0 <= Tr(EX) <= 1.
-        The next required transformation is binary search. Choose value
-        alpha \in [0,1]. We ascertain whether alpha is a feasible value of
-        Tr(EX) by performing two subproblems:
+        After the transformation, we assume Tr(X) <= 1.  We assume that L
+        <= h(X) <= U.  The next required operation is binary search.
+        Choose value alpha \in [U,L]. We ascertain whether alpha is a
+        feasible value of h(X) by performing two subproblems:
 
         (1)
         Feasibility of X
         subject to
-            Tr(A_i X) <= b_i
-            Tr(C_i X) == d_i
+            Tr(A_i X) <= b_i, Tr(C_i X) == d_i
+            f_k(X) <= 0, g_l(X) == 0
+            h(X) <= alpha
             Tr(X) <= 1
-            Tr(E X) <= alpha
 
         and
 
         (2)
         Feasibility of X
         subject to
-            Tr(A_i X) <= b_i
-            Tr(C_i X) == d_i
+            Tr(A_i X) <= b_i, Tr(C_i X) == d_i
+            f_k(X) <= 0, g_l(X) == 0
+            h(X) >= alpha => -h(X) <= -alpha
             Tr(X) <= 1
-            Tr(E X) >= alpha => Tr(-E X) <= alpha
 
         If problem (1) is feasible, then we know that the original problem
-        has a solution in range [0, alpha]. If problem (2) is feasible,
-        then the original problem has solution in range [alpha, 1]. We can
+        has a solution in range [L, alpha]. If problem (2) is feasible,
+        then the original problem has solution in range [alpha, U]. We can
         use these indicators to perform binary search to find optimum
         alpha*. Thus, we need only solve the feasibility subproblems.
 
@@ -371,8 +366,11 @@ class GeneralSDPHazanSolver(object):
         positive semidefinite matrices are real and nonnegative.
         Consequently, we introduce variables
 
-        Y  := [[X, 0], F_i := [[A_i, 0], G = [[E, 0], C_i := [[C_i, 0],
-               [0, y]]         [ 0,  0]]      [0, 0]]         [ 0,  0]]
+        Y  := [[X, 0], A_i := [[A_i, 0],  C_i := [[C_i, 0],
+               [0, y]]         [ 0,  0]]          [ 0,  0]]
+
+        f_k(Y) := f_k(X)
+        f_l(Y) := g_l(X)
 
         Y is PSD if and only if X is PSD and y is real and nonnegative.
         The constraint that Tr Y = 1 is true if and only if Tr X <= 1.
@@ -380,20 +378,32 @@ class GeneralSDPHazanSolver(object):
 
         Feasibility of Y
         subject to
-            Tr(F_i Y) <= b_i
-            Tr(H_i Y) == d_i
+            Tr(A_i Y) <= b_i, Tr(C_i Y) == d_i
+            f_k(Y) <= 0, g_l(Y) == 0
             Tr(Y) = 1
 
-        This is the format solvable by Hazan's algorithm.
+        This is the format solvable by Hazan's extended algorithm.
 
         Parameters
         __________
-        E: np.ndarray
-            The objective function
+        h: np.ndarray
+            The convex objective function
         As: list
-            A list of square (dim, dim) numpy.ndarray matrices
+            inequality square (dim, dim) numpy.ndarray matrices
         bs: list
-            A list of floats
+            inequality floats
+        Cs: list
+            equality squares
+        ds: list
+            equality floats
+        Fs: list
+            inequality convex functions
+        gradFs: list
+            gradients
+        Gs: list
+            equality convex functions
+        gradGs: list
+            equality gradients
         eps: float
             Allowed error tolerance. Must be > 0
         dim: int
@@ -401,159 +411,124 @@ class GeneralSDPHazanSolver(object):
         R: float
             Upper bound on trace of X: 0 <= Tr(X) <= R
         """
-        # Do some type checking
-        try:
-            assert_list_of_types(bs, Number)
-            assert_list_of_square_arrays(As, dim)
-            assert len(As) == len(bs)
-            assert len(Cs) == len(ds)
-            assert isinstance(E, np.ndarray)
-            assert np.shape(E) == (dim, dim)
-            assert isinstance(R, Number)
-            assert R > 0
-        except AssertionError:
-            raise ValueError(
-            """Incorrect Arguments to solve.
-            As should be a list of square arrays of shape (dim,
-            dim), while bs should be a list of floats. Needs
-            len(As) = len(bs). E should be square array of shape
-            (dim, dim) as well. R should be a real number greater than 0.
-            """)
-
 
         m = len(As)
         n = len(Cs)
+        p = len(Fs)
+        q = len(Gs)
+
         Aprimes = []
         Cprimes = []
-        # Rescale the trace bound
+        Fprimes = []
+        gradFprimes = []
+        Gprimes = []
+        gradGprimes = []
+
+        # Rescale the trace bound and expand all constraints to be
+        # expressed in terms of Y
         for i in range(m):
-            Aprime = R * As[i]
+            A = R * As[i]
+            Aprime = np.zeros((dim+1,dim+1))
+            Aprime[:dim, :dim] = A
             Aprimes.append(Aprime)
-            print
-            print "Scale As[%d] from\n" % i
-            print As[i]
-            print "to\n"
-            print Aprime
         for j in range(n):
-            Cprime = R * Cs[j]
+            C = R * Cs[j]
+            Cprime = np.zeros((dim+1,dim+1))
+            Cprime[:dim, :dim] = C
             Cprimes.append(Cprime)
-            print
-            print "Scale Cs[%d] from\n" % j
-            print Cs[j]
-            print "to\n"
-            print Cprime
+        for k in range(p):
+            fk = Fs[k]
+            gradfk = gradFs[k]
+            fprime = lambda Y: return fk(R * Y[:dim,:dim])
+            Fprimes.append(fprime)
+            gradfprime = lambda Y: return R * gradfk(R * Y[:dim,:dim])
+            gradFprimes.append(gradfprime)
+        for l in range(q):
+            gl = Gs[l]
+            gradgl = gradGs[l]
+            gprime = lambda Y: return gl(R * Y[:dim,:dim])
+            Gprimes.append(gprime)
+            gradgprime = lambda Y: return R * gradgl(R * Y[:dim,:dim])
+            gradGprimes.append(gradgprime)
+
+        hprime = lambda Y: return h(R * Y[:dim, :dim])
+
         As = Aprimes
         Cs = Cprimes
+        Fs = Fprimes
+        gradFs = gradFprimes
+        Gs = Gprimes
+        gradGs = gradGprimes
+        h = hprime
 
-        # Rescale the optimization matrix
-        D = sum(E * E) # note this is a Hadamard product, not dot
-        E = (1./D) * E
-        print
-        print "Rescaled optimization criterion E:\n", E
-
-        # Expand all constraints to be expressed in terms of Y
-        Fs = [] # expanded As
-        Hs = [] # expanded Cs
-        for i in range(m):
-            Ai = As[i]
-            Fi = np.zeros((dim+1,dim+1))
-            Fi[:dim, :dim] = Ai
-            Fs.append(Fi)
-            print
-            print "Expand As[%d] from\n" % i
-            print As[i]
-            print "to\n"
-            print Fi
-            print "recall bs[%d] = %f" % (i, bs[i])
-        for j in range(n):
-            Cj = Cs[j]
-            Hj = np.zeros((dim+1,dim+1))
-            Hj[:dim, :dim] = Cj
-            Hs.append(Hj)
-            print
-            print "Expand Cs[%d] from\n" % j
-            print Cs[j]
-            print "to\n"
-            print Hj
-            print "recall ds[%d] = %f" % (j, ds[j])
-        G = np.zeros((dim+1,dim+1))
-        G[:dim, :dim] = E
-        #import pdb
-        #pdb.set_trace()
-
-        # Generate constraints required to make Y be a block matrix
-        for i in range(dim):
-            Ri = np.zeros((dim+1,dim+1))
-            Ri[i, dim] = 1.
-            ri = 0.
-            Hs.append(Ri)
-            ds.append(ri)
-            print
-            print "Adding equality constraint Tr(R%i) = 0., where " % i
-            print "R%d equals\n" % i
-            print Ri
-
-            Si = np.zeros((dim+1,dim+1))
-            Si[dim, i] = 1.
-            si = 0.
-            print
-            print "Adding equality constraint Tr(S%i) = 0., where\n" % i
-            print "S%d equals\n" % i
-            print Si
-            Hs.append(Si)
-            ds.append(si)
+        # Constrain last row of Y to 0
+        Zs = np.zeros((1,dim))
+        def s(X):
+            return batch_equals(X, Zs, dim, dim+1, 0, dim)
+        def grads(X)
+            return batch_equals_grad(X, Zs, dim, dim+1, 0, dim)
+        Gs.append(s)
+        gradGs.append(grads)
+        # Constraint last column of Y to 0
+        Zr = np.zeros((dim, 1))
+        def r(X):
+            return batch_equals(X, Zr, 0, dim, dim, dim+1)
+        def gradr(X):
+            return batch_equals_grad(X, Zr, 0, dim, dim, dim+1)
+        Gs.append(r)
+        gradGs.append(gradr)
 
         # Do the binary search
-        upper = 1.0
-        lower = 0.0
         SUCCEED = False
-        X_LOWER = None
-        X_UPPER = None
-        while (upper - lower) >= eps:
+        X_L = None
+        X_U = None
+        while (U - L) >= eps:
             print
-            print("upper: %f" % upper)
-            print("lower: %f" % lower)
-            alpha = (upper + lower) / 2.0
-            # Check feasibility in [lower, alpha]
-            print "Checking feasibility in (%f, %f)" % (lower, alpha)
+            print("upper: %f" % U)
+            print("lower: %f" % L)
+            alpha = (U + L) / 2.0
+            # Check feasibility in [L, alpha]
+            print "Checking feasibility in (%f, %f)" % (L, alpha)
             print "Adding inequality constraint Tr(GX) <= alpha"
-            print "G:\n", G
             print "alpha: ", alpha
             print
-            Fs.append(G)
-            bs.append(alpha)
-            Y_LOWER, _, SUCCEED_LOWER = self._solver.feasibility_solve(Fs,
-                    bs, Hs, ds, eps, dim+1)
+            h_alpha = lambda(Y): return h(Y) - alpha
+            grad_h_alpha = lambda(Y): return gradh(Y)
+            Fs.append(h_alpha)
+            gradFs.append(grad_h_alpha)
+            Y_L, _, SUCCEED_L = self._solver.feasibility_solve(As,
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1)
             Fs.pop()
-            bs.pop()
+            gradFs.pop()
 
-            # Check feasibility in [alpha, upper]
+            # Check feasibility in [alpha, U]
             print
-            print "Checking feasibility in (%f, %f)" % (alpha, upper)
+            print "Checking feasibility in (%f, %f)" % (alpha, U)
             print "Adding inequality constraint Tr(-GX) <= alpha"
-            print "-G:\n", -G
             print "alpha: ", -alpha
-            Fs.append(-G)
-            bs.append(-alpha)
-            Y_UPPER, _, SUCCEED_UPPER= self._solver.feasibility_solve(Fs,
-                    bs, Hs, ds, eps, dim+1)
+            h_alpha = lambda Y: return -h(Y) + alpha
+            grad_h_alpha = lambda(Y): return -gradh(Y)
+            Fs.append(h_alpha)
+            gradFs.append(grad_h_alpha)
+            Y_U, _, SUCCEED_U = self._solver.feasibility_solve(As,
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1)
             Fs.pop()
-            bs.pop()
+            gradFs.pop()
 
             #import pdb
             #pdb.set_trace()
-            if SUCCEED_UPPER:
-                X_UPPER = Y_UPPER[:dim,:dim]
-                lower = alpha
-            elif SUCCEED_LOWER:
-                X_LOWER = X_LOWER
-                upper = alpha
+            if SUCCEED_U:
+                X_U = Y_U[:dim,:dim]
+                L = alpha
+            elif SUCCEED_L:
+                X_L = X_L
+                U = alpha
             else:
                 break
-        if (upper - lower) <= eps:
+        if (U - L) <= eps:
             SUCCEED = True
-        if X_UPPER != None:
-            X_UPPER = R * X_UPPER
-        if X_LOWER != None:
-            X_LOWER = R * X_LOWER
-        return (upper, lower, X_UPPER, X_LOWER, SUCCEED)
+        if X_U != None:
+            X_U = R * X_U
+        if X_L != None:
+            X_L = R * X_L
+        return (U, L, X_U, X_L, SUCCEED)
