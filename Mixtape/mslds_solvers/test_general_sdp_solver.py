@@ -4,28 +4,6 @@ from hazan import *
 
 def test1():
     """
-    Check argument validation
-    """
-    Error = False
-    try:
-        g = GeneralSDPHazanSolver()
-        As = [np.array([[1., 2.],
-                        [1., 2.]])]
-        bs = [np.array([1., 1.])]
-        Cs = []
-        ds = []
-        E = np.array([[1.],
-                      [0.]])
-        eps = 1e-1
-        dim = 2
-        R = 10
-        g.solve(E, As, bs, Cs, ds, eps, dim, R)
-    except ValueError:
-        Error = True
-    assert Error == True
-
-def test2():
-    """
     A simple semidefinite program
 
     max x_11 + x_22
@@ -40,11 +18,15 @@ def test2():
         X = [[1, 0],
              [0, 0]]
 
-    from Lagrange multipliers (or just directly).
+    from Lagrange multiplier.
     """
     dim = 2
     N_iter = 50
     g = GeneralSDPHazanSolver()
+    def h(X):
+        return X[0,0] + X[1,1]
+    def gradh(X):
+        return np.eye(2)
     As = []
     bs = []
     Cs = [np.array([[1., 0.],
@@ -54,12 +36,16 @@ def test2():
           np.array([[0., 0.],
                     [1., 0.]])]
     ds = [1., 0., 0.]
-    E = np.array([[1., 0.],
-                  [0., 1.]])
     R = 1.
     eps = 1./N_iter
-    upper, lower, X_upper, X_lower, SUCCEED = g.solve(E, As, bs, Cs, ds,
-                                                eps, dim, R)
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    U = 2
+    L = 0
+    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+                Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim, R, U, L)
     print
     print "General SDP Solver Finished"
     print "SUCCEED: ", SUCCEED
@@ -148,7 +134,6 @@ def testQ():
     ds = []
 
 if __name__ == "__main__":
-    #test1()
-    test2()
+    test1()
     pass
 

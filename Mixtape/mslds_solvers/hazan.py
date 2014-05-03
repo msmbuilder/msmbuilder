@@ -83,6 +83,8 @@ class BoundedTraceSDPHazanSolver(object):
         X = np.outer(v, v)
         X /= np.trace(X)
         for j in range(N_iter):
+            #import pdb
+            #pdb.set_trace()
             grad = gradf(X)
             print "\tIteration %d" % j
             if DEBUG:
@@ -217,8 +219,8 @@ class FeasibilitySDPHazanSolver(object):
 
         Feasibility of X
         subject to
-            Tr(A_i X) <= b_i
-            Tr(C_i X)  = d_i
+            Tr(A_i X) <= b_i, Tr(C_j X)  = d_j
+            f_k(X) <= 0, g_l(X) == 0
             Tr(X) = 1
 
         by optimizing neg_max_penalty function
@@ -243,27 +245,6 @@ class FeasibilitySDPHazanSolver(object):
         dim: int
             Dimension of input
         """
-        try:
-            assert_list_of_types(bs, Number)
-            assert_list_of_types(ds, Number)
-            assert_list_of_square_arrays(As, dim)
-            assert_list_of_square_arrays(Cs, dim)
-            # Add a check here? Or maybe take out all such checks
-            #assert_list_of_types(Fs, function)
-            #assert_list_of_types(gradFs, function)
-            #assert_list_of_types(gradGs, function)
-            assert len(As) == len(bs)
-            assert len(Cs) == len(ds)
-            assert len(Fs) == len(gradFs)
-            assert len(Gs) == len(gradGs)
-        except AssertionError:
-            raise ValueError(
-            """
-            Incorrect Arguments to feasibility_solve.  As, Cs should be
-            lists of square matrices of shape (dim, dim), while bs, ds
-            should be lists of floats. Needs len(As) == len(bs) and
-            len(Cs) == len(ds).
-            """)
 
         m = len(As)
         n = len(Cs)
@@ -275,10 +256,7 @@ class FeasibilitySDPHazanSolver(object):
         fudge_factor = 5.0
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-            #return log_sum_exp_penalty(X, m, n, M, As, bs, Cs, ds, dim)
         def gradf(X):
-            #return neg_max_grad_penalty(X, m, n, M,
-            #            As, bs, Cs, ds, dim,eps)
             return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs, eps)
 
@@ -439,19 +417,32 @@ class GeneralSDPHazanSolver(object):
         for k in range(p):
             fk = Fs[k]
             gradfk = gradFs[k]
-            fprime = lambda Y: return fk(R * Y[:dim,:dim])
+            fprime = lambda Y: fk(R * Y[:dim,:dim])
             Fprimes.append(fprime)
-            gradfprime = lambda Y: return R * gradfk(R * Y[:dim,:dim])
+            #gradfprime = lambda Y: R * gradfk(R * Y[:dim,:dim])
+            def gradfprime(Y):
+                ret_grad = np.zeros((dim+1,dim+1))
+                ret_grad[:dim,:dim] = R * gradfk(R * Y[:dim,:dim])
+                return ret_grad
             gradFprimes.append(gradfprime)
         for l in range(q):
             gl = Gs[l]
             gradgl = gradGs[l]
-            gprime = lambda Y: return gl(R * Y[:dim,:dim])
+            gprime = lambda Y: gl(R * Y[:dim,:dim])
             Gprimes.append(gprime)
-            gradgprime = lambda Y: return R * gradgl(R * Y[:dim,:dim])
+            #gradgprime = lambda Y: R * gradgl(R * Y[:dim,:dim])
+            def gradgprime(Y):
+                ret_grad = np.zeros((dim+1,dim+1))
+                ret_grad[:dim, :dim] = R * gradgl(R * Y[:dim,:dim])
+                return ret_grad
             gradGprimes.append(gradgprime)
 
-        hprime = lambda Y: return h(R * Y[:dim, :dim])
+        hprime = lambda Y: h(R * Y[:dim, :dim])
+        #gradhprime = lambda Y: R * gradh(R * Y[:dim, :dim])
+        def gradhprime(Y):
+            ret_grad = np.zeros((dim+1,dim+1))
+            ret_grad[:dim, :dim] = R * gradh(R * Y[:dim, :dim])
+            return ret_grad
 
         As = Aprimes
         Cs = Cprimes
@@ -459,22 +450,22 @@ class GeneralSDPHazanSolver(object):
         gradFs = gradFprimes
         Gs = Gprimes
         gradGs = gradGprimes
-        h = hprime
+        #h = hprime
 
         # Constrain last row of Y to 0
         Zs = np.zeros((1,dim))
-        def s(X):
-            return batch_equals(X, Zs, dim, dim+1, 0, dim)
-        def grads(X)
-            return batch_equals_grad(X, Zs, dim, dim+1, 0, dim)
+        def s(Y):
+            return batch_equals(Y, Zs, dim, dim+1, 0, dim)
+        def grads(Y):
+            return batch_equals_grad(Y, Zs, dim, dim+1, 0, dim)
         Gs.append(s)
         gradGs.append(grads)
         # Constraint last column of Y to 0
         Zr = np.zeros((dim, 1))
-        def r(X):
-            return batch_equals(X, Zr, 0, dim, dim, dim+1)
-        def gradr(X):
-            return batch_equals_grad(X, Zr, 0, dim, dim, dim+1)
+        def r(Y):
+            return batch_equals(Y, Zr, 0, dim, dim, dim+1)
+        def gradr(Y):
+            return batch_equals_grad(Y, Zr, 0, dim, dim, dim+1)
         Gs.append(r)
         gradGs.append(gradr)
 
@@ -489,13 +480,15 @@ class GeneralSDPHazanSolver(object):
             alpha = (U + L) / 2.0
             # Check feasibility in [L, alpha]
             print "Checking feasibility in (%f, %f)" % (L, alpha)
-            print "Adding inequality constraint Tr(GX) <= alpha"
+            #print "Adding inequality constraint Tr(GX) <= alpha"
             print "alpha: ", alpha
             print
-            h_alpha = lambda(Y): return h(Y) - alpha
-            grad_h_alpha = lambda(Y): return gradh(Y)
+            h_alpha = lambda Y: hprime(Y) - alpha
+            grad_h_alpha = lambda Y: gradhprime(Y)
             Fs.append(h_alpha)
             gradFs.append(grad_h_alpha)
+            import pdb
+            pdb.set_trace()
             Y_L, _, SUCCEED_L = self._solver.feasibility_solve(As,
                     bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1)
             Fs.pop()
@@ -504,10 +497,10 @@ class GeneralSDPHazanSolver(object):
             # Check feasibility in [alpha, U]
             print
             print "Checking feasibility in (%f, %f)" % (alpha, U)
-            print "Adding inequality constraint Tr(-GX) <= alpha"
+            #print "Adding inequality constraint Tr(-GX) <= alpha"
             print "alpha: ", -alpha
-            h_alpha = lambda Y: return -h(Y) + alpha
-            grad_h_alpha = lambda(Y): return -gradh(Y)
+            h_alpha = lambda Y: -hprime(Y) + alpha
+            grad_h_alpha = lambda(Y): -gradhprime(Y)
             Fs.append(h_alpha)
             gradFs.append(grad_h_alpha)
             Y_U, _, SUCCEED_U = self._solver.feasibility_solve(As,

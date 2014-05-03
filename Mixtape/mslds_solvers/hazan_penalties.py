@@ -50,7 +50,9 @@ def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
 
 def batch_equals_grad(X, A, x_low, x_hi, y_low, y_hi):
     # Upper right
-    grad = np.sign(X[x_low:x_hi,y_low:y_hi] - A)
+    grad_piece = np.sign(X[x_low:x_hi,y_low:y_hi] - A)
+    grad = np.zeros(np.shape(X))
+    grad[x_low:x_hi,y_low:y_hi] = grad_piece
     return grad
 
 def neg_sum_squares(x):
