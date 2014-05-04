@@ -213,7 +213,7 @@ class FeasibilitySDPHazanSolver(object):
         return f(X)
 
     def feasibility_solve(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
-            eps, dim):
+            eps, dim, N_iter=None):
         """
         Solves feasibility problems of the type
 
@@ -251,9 +251,10 @@ class FeasibilitySDPHazanSolver(object):
         p = len(Fs)
         q = len(Gs)
         M = compute_scale_full(m, n, p, q, eps)
-        N_iter = int(1./eps)
+        if N_iter == None:
+            N_iter = int(1./eps)
         # Need to swap in some robust theory about Cf
-        fudge_factor = 5.0
+        fudge_factor = 1.0
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
@@ -282,7 +283,7 @@ class GeneralSDPHazanSolver(object):
         self._solver = FeasibilitySDPHazanSolver()
 
     def solve(self, h, gradh, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
-            eps, dim, R, U, L):
+            eps, dim, R, U, L, N_iter):
         """
         Solves optimization problem
 
@@ -310,8 +311,9 @@ class GeneralSDPHazanSolver(object):
             g_l(X)      := g_l(R * X)
             grad g_l(X) := grad g_l(R * X) * R
             h(X)        := h(R * X)
+            grad h(X)   := R * grad h(R * X)
 
-        After the transformation, we assume Tr(X) <= 1.  We assume that L
+        After the transformation, we have Tr(X) <= 1.  We assume that L
         <= h(X) <= U.  The next required operation is binary search.
         Choose value alpha \in [U,L]. We ascertain whether alpha is a
         feasible value of h(X) by performing two subproblems:
@@ -321,7 +323,7 @@ class GeneralSDPHazanSolver(object):
         subject to
             Tr(A_i X) <= b_i, Tr(C_i X) == d_i
             f_k(X) <= 0, g_l(X) == 0
-            h(X) <= alpha
+            L <= h(X) <= alpha => h(x) - alpha <= 0, -h(x) + L <= 0
             Tr(X) <= 1
 
         and
@@ -331,7 +333,7 @@ class GeneralSDPHazanSolver(object):
         subject to
             Tr(A_i X) <= b_i, Tr(C_i X) == d_i
             f_k(X) <= 0, g_l(X) == 0
-            h(X) >= alpha => -h(X) <= -alpha
+            alpha <= h(X) <= U => -h(X) + alpha <= 0, h(X) - U <= 0
             Tr(X) <= 1
 
         If problem (1) is feasible, then we know that the original problem
@@ -347,8 +349,12 @@ class GeneralSDPHazanSolver(object):
         Y  := [[X, 0], A_i := [[A_i, 0],  C_i := [[C_i, 0],
                [0, y]]         [ 0,  0]]          [ 0,  0]]
 
-        f_k(Y) := f_k(X)
-        f_l(Y) := g_l(X)
+        f_k(Y)      := f_k(X)
+        grad f_k(Y) := [[ grad f_k(X), 0]
+                        [      0     , 0]]
+        g_l(Y)      := g_l(X)
+        grad g_l(Y) := [[ grad g_l(X), 0]
+                        [      0     , 0]]
 
         Y is PSD if and only if X is PSD and y is real and nonnegative.
         The constraint that Tr Y = 1 is true if and only if Tr X <= 1.
@@ -481,18 +487,27 @@ class GeneralSDPHazanSolver(object):
             # Check feasibility in [L, alpha]
             print "Checking feasibility in (%f, %f)" % (L, alpha)
             #print "Adding inequality constraint Tr(GX) <= alpha"
-            print "alpha: ", alpha
+            #print "alpha: ", alpha
             print
             h_alpha = lambda Y: hprime(Y) - alpha
             grad_h_alpha = lambda Y: gradhprime(Y)
-            Fs.append(h_alpha)
-            gradFs.append(grad_h_alpha)
+            h_lower = lambda Y: -hprime(Y) + L
+            grad_h_lower = lambda Y: -gradhprime(Y)
+            #Fs.append(h_alpha)
+            #gradFs.append(grad_h_alpha)
+            Fs += [h_lower, h_alpha]
+            gradFs += [grad_h_lower, grad_h_alpha]
             import pdb
             pdb.set_trace()
             Y_L, _, SUCCEED_L = self._solver.feasibility_solve(As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1)
-            Fs.pop()
-            gradFs.pop()
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter)
+            #Fs.pop()
+            #gradFs.pop()
+            Fs = Fs[:-2]
+            gradFs = gradFs[:-2]
+            print "Checked feasibility in (%f, %f)" % (L, alpha)
+            import pdb
+            pdb.set_trace()
 
             # Check feasibility in [alpha, U]
             print
@@ -501,12 +516,21 @@ class GeneralSDPHazanSolver(object):
             print "alpha: ", -alpha
             h_alpha = lambda Y: -hprime(Y) + alpha
             grad_h_alpha = lambda(Y): -gradhprime(Y)
-            Fs.append(h_alpha)
-            gradFs.append(grad_h_alpha)
+            h_upper = lambda Y: hprime(Y) - U
+            grad_h_upper = lambda Y: gradhprime(Y)
+            #Fs.append(h_alpha)
+            #gradFs.append(grad_h_alpha)
+            Fs += [h_alpha, h_upper]
+            gradFs += [grad_h_alpha, grad_h_upper]
             Y_U, _, SUCCEED_U = self._solver.feasibility_solve(As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1)
-            Fs.pop()
-            gradFs.pop()
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter)
+            #Fs.pop()
+            #gradFs.pop()
+            Fs = Fs[:-2]
+            gradFs = gradFs[:-2]
+            print "Checked feasibility in (%f, %f)" % (alpha, U)
+            import pdb
+            pdb.set_trace()
 
             #import pdb
             #pdb.set_trace()
