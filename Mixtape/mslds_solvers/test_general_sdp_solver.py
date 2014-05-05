@@ -1,4 +1,8 @@
 from hazan import *
+from hazan_penalties import batch_equals, batch_linear_equals
+from hazan_penalties import batch_equals_grad, grad_batch_linear_equals
+import scipy
+import numpy as np
 
 # Do a simple test of General SDP Solver with binary search
 
@@ -56,17 +60,15 @@ def test1():
 
 def testQ():
     """
-    Solves a simple version of the SDPs required for
+    Specifies a simple version of the convex program required for
     Q optimization
 
-    Given
-     A,
-     F = B^{.5},
+    Given A, F = B^{.5},
 
     We want to solve for x = [s vec(Z) vec(Q)]. To do so, we
     construct and solve the following optimization problem
 
-    max Tr Z + log det Q
+    max Tr Z + log det Q^{-1}
 
           -----------------------
          | Z   F                 |
@@ -79,16 +81,17 @@ def testQ():
     X is PSD
 
     If Q is dim by dim, then this matrix is
-    4 * dim by 4 * dim
+    6 * dim by 6 * dim
 
     TODO: Think of how to shrink this representation
-        Ideas:
-            1) Add specific zero penalty operations so
-               we don't need to do python for-loops. ====> Done
+    Ideas:
+        1) Add specific zero penalty operations so
+           we don't need to do python for-loops. ====> Done
+        2) Extend Hazan's method to simultaneously maintain multiple
+           PSD matrices instead of just one.
     """
-    dim = 2
-    cdim = 4 * dim
-    N_iter = 50
+    dim = 1
+    cdim = 6 * dim
     g = GeneralSDPHazanSolver()
     As = []
     bs = []
@@ -98,6 +101,37 @@ def testQ():
     gradFs = []
     Gs = []
     gradGs = []
+    Z_coords = (5*dim, 6*dim, 5*dim, 6*dim)
+    Q_coords = (4*dim, 5*dim, 4*dim, 5*dim)
+    block_1_Z_coords = (0, dim, 0, dim)
+    block_1_Q_coords = (dim, 2*dim, dim, 2*dim)
+    block_2_Q_coords = (2*dim, 3*dim, 2*dim, 3*dim)
+    # Generate random initial data
+    B = np.random.rand(dim, dim)
+    B = np.dot(B.T, B)
+    D = np.random.rand(dim, dim)
+    D = np.dot(D.T, D)
+    F = scipy.linalg.sqrtm(B)
+    A = np.random.rand(dim, dim)
+    # Tr Z + log det Q^{-1}
+    def h(X):
+        z_x_low, z_x_hi, z_y_low, z_y_hi = Z_coords
+        q_x_low, q_x_hi, q_y_low, q_y_hi = Q_coords
+        Z = X[z_x_low:z_x_hi, z_y_low:z_y_hi]
+        Q = X[q_x_low:q_x_hi, q_y_low:q_y_hi]
+        return np.trace(Z) - np.log(np.linalg.det(Q))
+    # grad log det Q^{-1} = Q (see Boyd and Vandenberge, A4.1)
+    # grad h = I_Z + Q
+    def gradh(X):
+        z_x_low, z_x_hi, z_y_low, z_y_hi = Z_coords
+        q_x_low, q_x_hi, q_y_low, q_y_hi = Q_coords
+        grad = np.zeros(np.shape(X))
+        Z = X[z_x_low:z_x_hi, z_y_low:z_y_hi]
+        grad[z_x_low:z_x_hi, z_y_low:z_y_hi] = np.eye(dim)
+        Q = X[q_x_low:q_x_hi, q_y_low:q_y_hi]
+        grad[q_x_low:q_x_hi, q_y_low:q_y_hi] = Q
+        return grad
+
     #  -------
     # | Z   F |
     # |F.T  Q |
@@ -135,16 +169,13 @@ def testQ():
     #| Q |
     # ---
     c = 1.
-    Q_coords = (4*dim, 5*dim, 4*dim, 5*dim)
-    block_1_Q_coords = (dim, 2*dim, dim, 2*dim)
-    Z = zeros((dim, dim))
+    Z = np.zeros((dim, dim))
     def block_1_Q(X):
         return batch_linear_equals(X, c, Q_coords, Z, block_1_Q_coords)
     def grad_block_1_Q(X):
         return grad_batch_linear_equals(X, c, Q_coords, Z,
                 grad_block_1_Q_coords)
     d = -1.
-    block_2_Q_coords = (2*dim, 3*dim, 2*dim, 3*dim)
     def block_2_Q(X):
         return batch_linear_equals(X, d, Q_coords, D, block_2_Q_coords)
     def grad_block_2_Q(X):
@@ -155,19 +186,114 @@ def testQ():
     # ---
     #| Z |
     # ---
-            else:
-                # Swap this out for a sparse representation ...
-                Cij = np.zeros((dim, dim))
-                Cij[i,j] = 1.
-                dij = 0.
-                Cs.append(Cij)
-                ds.append(dij)
-                pass
+    c = 1.
+    Z = np.zeros((dim, dim))
+    def block_1_Z(X):
+        return batch_linear_equals(X, c, Z_coords, Z, block_1_Z_coords)
+    def grad_block_1_Z(X):
+        return grad_batch_linear_equals(X, c, Z_coords, Z,
+                block_1_Z_coords)
+    Gs += [block_1_Z]
+    gradGs += [grad_block_1_Z]
 
+    # Zero constraints
+    Z_1_below = np.zeros((4*dim, 2*dim))
+    def block_1_below_zeros(X):
+        return batch_equals(X, Z_1_below, 2*dim, 6*dim, 0, 2*dim)
+    def grad_block_1_below_zeros(X):
+        return batch_equals_grad(X, Z_1_below, 2*dim, 6*dim, 0, 2*dim)
+    Z_1_right = np.zeros((2*dim, 4*dim))
+    def block_1_right_zeros(X):
+        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 6*dim)
+    def grad_block_1_right_zeros(X):
+        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 6*dim)
 
+    Gs += [block_1_below_zeros, block_1_right_zeros]
+    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros]
+
+    R = 10
+    U = 10
+    L = 0
+    N_iter = 1
+    eps = 1.e-2
+    X_init = np.zeros((cdim, cdim))
+    Q_init = np.eye(dim)
+    set_entries(X_init, Q_coords, Q_init)
+    set_entries(X_init, block_1_Q_coords, Q_init)
+    set_entries(X_init, block_2_Q_coords, Q_init)
+    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+                Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
+                N_iter, X_init=X_init)
+
+def set_entries(X, coords, Z):
+    x_low, x_hi, y_low, y_hi = coords
+    X[x_low:x_hi, y_low:y_hi] = Z
+
+def testA():
+    """
+    Specifies a simple version of the convex program required for
+    A optimization.
+
+    Given
+        D, Q, C, B, E
+
+    We want to solve for x = A_i. To do so, we solve
+
+    max Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    X is PSD
+
+    If A is dim by dim, then this matrix is 4 * dim by 4 * dim
+    """
+    dim = 1
+    cdim = 4 * dim
+    g = GeneralSDPHazanSolver()
+    As = []
+    bs = []
+    Cs = []
     ds = []
+    Fs = []
+    gradFs = []
+    Gs = []
+    gradGs = []
+    block_1_A_coords = (0, dim, dim, 2*dim)
+    block_1_A_T_coords = (dim, 2*dim, 0, dim)
+    block_2_A_coords = (2*dim, 3*dim, 3*dim, 4*dim)
+    block_2_A_T_coords = (3*dim, 4*dim, 2*dim, 3*dim)
+
+    # Generate random data
+    D = np.random.rand(dim, dim)
+    D = np.dot(D.T, D)
+    Q = np.random.rand(dim, dim)
+    Q = np.dot(Q.T, Q)
+
+
+    # Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+    # Zero constraints
+    Z_1_below = np.zeros((2*dim, 2*dim))
+    def block_1_below_zeros(X):
+        return batch_equals(X, Z_1_below, 2*dim, 4*dim, 0, 2*dim)
+    def grad_block_1_below_zeros(X):
+        return batch_equals_grad(X, Z_1_below, 2*dim, 4*dim, 0, 2*dim)
+    Z_1_right = np.zeros((2*dim, 2*dim))
+    def block_1_right_zeros(X):
+        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 4*dim)
+    def grad_block_1_right_zeros(X):
+        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 4*dim)
+
+    Gs += [block_1_below_zeros, block_1_right_zeros]
+    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros]
+
 
 if __name__ == "__main__":
-    test1()
+    #test1()
+    testQ()
     pass
 

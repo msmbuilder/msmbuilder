@@ -64,7 +64,7 @@ class BoundedTraceSDPHazanSolver(object):
         pass
 
     def solve(self, f, gradf, dim, N_iter, Cf=None, DEBUG=False,
-                num_tries=5, alphas=None):
+                num_tries=5, alphas=None, X_init=None):
         """
         Parameters
         __________
@@ -80,7 +80,10 @@ class BoundedTraceSDPHazanSolver(object):
             The curvature constant of function f (Optional).
         """
         v = random.rand(dim, 1)
-        X = np.outer(v, v)
+        if X_init == None:
+            X = np.outer(v, v)
+        else:
+            X = X_init
         X /= np.trace(X)
         for j in range(N_iter):
             #import pdb
@@ -213,7 +216,7 @@ class FeasibilitySDPHazanSolver(object):
         return f(X)
 
     def feasibility_solve(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
-            eps, dim, N_iter=None):
+            eps, dim, N_iter=None, X_init=None):
         """
         Solves feasibility problems of the type
 
@@ -262,7 +265,7 @@ class FeasibilitySDPHazanSolver(object):
                     Fs, gradFs, Gs, gradGs, eps)
 
         start = time.clock()
-        X = self._solver.solve(f, gradf, dim, N_iter)
+        X = self._solver.solve(f, gradf, dim, N_iter, X_init)
         elapsed = (time.clock() - start)
         fX = f(X)
         print "\tX:\n", X
@@ -283,7 +286,7 @@ class GeneralSDPHazanSolver(object):
         self._solver = FeasibilitySDPHazanSolver()
 
     def solve(self, h, gradh, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
-            eps, dim, R, U, L, N_iter):
+            eps, dim, R, U, L, N_iter, X_init=None):
         """
         Solves optimization problem
 
@@ -500,7 +503,8 @@ class GeneralSDPHazanSolver(object):
             import pdb
             pdb.set_trace()
             Y_L, _, SUCCEED_L = self._solver.feasibility_solve(As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter)
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter,
+                    X_init)
             #Fs.pop()
             #gradFs.pop()
             Fs = Fs[:-2]
@@ -523,7 +527,8 @@ class GeneralSDPHazanSolver(object):
             Fs += [h_alpha, h_upper]
             gradFs += [grad_h_alpha, grad_h_upper]
             Y_U, _, SUCCEED_U = self._solver.feasibility_solve(As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter)
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter,
+                    X_init)
             #Fs.pop()
             #gradFs.pop()
             Fs = Fs[:-2]

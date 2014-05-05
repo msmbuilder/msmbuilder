@@ -55,6 +55,30 @@ def batch_equals_grad(X, A, x_low, x_hi, y_low, y_hi):
     grad[x_low:x_hi,y_low:y_hi] = grad_piece
     return grad
 
+def batch_linear_equals(X, c, P_coords, Q, R_coords):
+    """
+    Performs operation R_coords = c * P_coords + Q
+    """
+    p_x_low, p_x_hi, p_y_low, p_y_hi = P_coords
+    r_x_low, r_x_hi, r_y_low, r_y_hi = R_coords
+    c = np.sum(np.abs(c * X[p_x_low:p_x_hi, p_y_low:p_y_hi] + Q
+                    - X[r_x_low:r_x_hi, r_y_low:r_y_hi]))
+    return c
+
+def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
+    p_x_low, p_x_hi, p_y_low, p_y_hi = P_coords
+    r_x_low, r_x_hi, r_y_low, r_y_hi = R_coords
+    grad_piece_P = c * np.sign(c * X[p_x_low:p_x_hi, p_y_low:p_y_hi] + Q
+                        - X[r_x_low:r_x_hi, r_y_low:r_y_hi])
+    grad_piece_R = - np.sign(c * X[p_x_low:p_x_hi, p_y_low:p_y_hi] + Q
+                        - X[r_x_low:r_x_hi, r_y_low:r_y_hi])
+    grad = np.zeros(np.shape(X))
+    grad[p_x_low:p_x_hi, p_y_low:p_y_hi] = grad_piece_P
+    grad[r_x_low:r_x_hi, r_y_low:r_y_hi] = grad_piece_R
+    return grad
+
+
+
 def neg_sum_squares(x):
     """
     Computes f(x) = -\sum_k x_kk^2. Useful for debugging.
