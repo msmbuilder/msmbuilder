@@ -58,6 +58,9 @@ class tICA(BaseEstimator, TransformerMixin):
             covariance + (gamma / n_features) * Tr(covariance) * Identity
 
         where :math:`Tr` is the trace operator.
+    weighted_transform : bool, default=False
+        If True, weight the projections by the implied timescales, giving
+        a quantity that has units [Time].
 
     Attributes
     ----------
@@ -87,6 +90,9 @@ class tICA(BaseEstimator, TransformerMixin):
         is "reset" by calling `fit()` with new sequences, whereas
         `partial_fit()` updates the fit with new data, and is suitable for
          online learning.
+    timescales : array-like, shape (n_features,)
+        The implied timescales of the tICA model, given by 
+        -offset / log(eigenvalues)
 
     Notes
     -----
@@ -106,10 +112,11 @@ class tICA(BaseEstimator, TransformerMixin):
     (1994): 3634.
     """
 
-    def __init__(self, n_components=None, offset=1, gamma=0.05):
+    def __init__(self, n_components=None, offset=1, gamma=0.05, weighted_transform=False):
         self.n_components = n_components
         self.offset = offset
         self.gamma = gamma
+        self.weighted_transform = weighted_transform
 
         self.n_features = None
         self.n_observations_ = None
@@ -192,6 +199,11 @@ class tICA(BaseEstimator, TransformerMixin):
     def eigenvalues_(self):
         self._solve()
         return self._eigenvalues_
+
+    @property
+    def timescales_(self):
+        self._solve()
+        return -1. * self.offset / np.log(self._eigenvalues_)
 
     @property
     def components_(self):
@@ -278,7 +290,12 @@ class tICA(BaseEstimator, TransformerMixin):
         X = array2d(X)
         if self.means_ is not None:
             X = X - self.means_
+        
         X_transformed = np.dot(X, self.components_.T)
+        
+        if self.weighted_transform:        
+            X_transformed *= self.timescales_
+        
         return X_transformed
 
     def fit_transform(self, X):
