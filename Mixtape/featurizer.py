@@ -245,3 +245,29 @@ class RawPositionsFeaturizer(Featurizer):
 
     def featurize(self, traj):
         return traj.xyz.reshape(len(traj), -1)
+
+
+class RMSDFeaturizer(Featurizer):
+    """Featurizer based on RMSD to a series of reference frames.
+
+    Parameters
+    ----------
+    trj0 : mdtraj.Trajectory
+        Reference trajectory.  trj0.n_frames gives the number of features
+        in this Featurizer.
+
+    """
+
+    def __init__(self, trj0, atom_indices=None):
+        self.n_features = trj0.n_frames
+        self.trj0 = trj0
+        self.atom_indices = atom_indices
+
+    def featurize(self, traj):
+        X = np.zeros((traj.n_frames, self.n_features))
+        
+        for frame in range(self.n_features):
+            X[:, frame] = md.rmsd(traj, self.trj0, atom_indices=self.atom_indices, frame=frame)
+        
+        return X
+
