@@ -290,11 +290,12 @@ class tICA(BaseEstimator, TransformerMixin):
         X = array2d(X)
         if self.means_ is not None:
             X = X - self.means_
-        if not self.weighted_transform:
-            X_transformed = np.dot(X, self.components_.T)
-        else:
-            X_transformed = np.dot(X, self.components_.T)
+        
+        X_transformed = np.dot(X, self.components_.T)
+        
+        if self.weighted_transform:        
             X_transformed *= self.timescales_
+        
         return X_transformed
 
     def fit_transform(self, X):
