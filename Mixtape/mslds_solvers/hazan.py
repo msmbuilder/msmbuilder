@@ -171,7 +171,8 @@ class BoundedTraceSDPHazanSolver(object):
             # Avoid strange errors with complex numbers
             vj = np.real(vj)
             if alphas == None:
-                alphaj = min(1.,2./(j+1))
+                #alphaj = min(1.,2./(j+1))
+                alphaj = min(.5,2./(j+1))
             else:
                 alphaj = alphas[j]
             step = alphaj * (np.outer(vj,vj) - X)

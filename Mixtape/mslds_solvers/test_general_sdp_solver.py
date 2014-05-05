@@ -111,6 +111,7 @@ def testQ():
     B = np.dot(B.T, B)
     D = np.random.rand(dim, dim)
     D = np.dot(D.T, D)
+    Dinv = np.linalg.inv(D)
     F = scipy.linalg.sqrtm(B)
     A = np.random.rand(dim, dim)
     # Tr Z + log det Q^{-1}
@@ -214,8 +215,17 @@ def testQ():
     R = 10
     U = 10
     L = 0
-    N_iter = 1
+    N_iter = 10
     eps = 1.e-2
+    #import pdb
+    #pdb.set_trace()
+    D_upper = np.trace(D)
+    Q_upper = np.trace(D)
+    Q_inv_upper = np.trace(Dinv)
+    D_inv_upper = np.trace(Dinv)
+    Z_upper = np.trace(np.dot(F, np.dot(Dinv, F.T)))
+    R = (Z_upper + Q_upper + D_upper + D_inv_upper + Q_upper + Z_upper)
+
     X_init = np.zeros((cdim, cdim))
     Q_init = np.eye(dim)
     set_entries(X_init, Q_coords, Q_init)
@@ -288,8 +298,35 @@ def testA():
     def grad_block_1_right_zeros(X):
         return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 4*dim)
 
-    Gs += [block_1_below_zeros, block_1_right_zeros]
-    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros]
+    Z_2_below = np.zeros((2*dim, 2*dim))
+    def block_2_below_zeros(X):
+        return batch_equals(X, Z_2_below, 4*dim, 6*dim, 2*dim, 4*dim)
+    def grad_block_2_below_zeros(X):
+        return batch_equals_grad(X, Z_2_below, 4*dim, 6*dim, 2*dim, 4*dim)
+    Z_2_right = np.zeros((2*dim, 2*dim))
+    def block_2_right_zeros(X):
+        return batch_equals(X, Z_2_right, 2*dim, 4*dim, 4*dim, 6*dim)
+    def grad_block_2_right_zeros(X):
+        return batch_equals_grad(X, Z_2_right, 2*dim, 4*dim, 4*dim, 6*dim)
+
+    Z_3_below = np.zeros((dim, dim))
+    def block_3_below_zeros(X):
+        return batch_equals(X, Z_3_below, 5*dim, 6*dim, 4*dim, 5*dim)
+    def grad_block_3_below_zeros(X):
+        return batch_equals(X, Z_3_below, 5*dim, 6*dim, 4*dim, 5*dim)
+    Z_3_right = np.zeros((dim, dim))
+    def block_3_right_zeros(X):
+        return batch_equals(X, Z_3_right, 4*dim, 5*dim, 5*dim, 6*dim)
+    def grad_block_3_below_zeros(X):
+        return batch_equals(X, Z_3_right, 4*dim, 5*dim, 5*dim, 6*dim)
+
+
+    Gs += [block_1_below_zeros, block_1_right_zeros,
+            block_2_below_zeros, block_2_right_zeros,
+            block_3_below_zeros, block_3_right_zeros]
+    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros,
+            grad_block_2_below_zeros, grad_block_2_right_zeros,
+            grad_block_3_below_zeros, grad_block_3_right_zeros]
 
 
 if __name__ == "__main__":
