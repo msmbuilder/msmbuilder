@@ -255,6 +255,9 @@ class RMSDFeaturizer(Featurizer):
     trj0 : mdtraj.Trajectory
         Reference trajectory.  trj0.n_frames gives the number of features
         in this Featurizer.
+    atom_indices : np.ndarray, default=None
+        Which atom indices to use during RMSD calculation.  If None, MDTraj
+        should default to all atoms.
 
     """
 
