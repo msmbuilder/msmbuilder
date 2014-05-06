@@ -86,8 +86,6 @@ class BoundedTraceSDPHazanSolver(object):
             X = X_init
         X /= np.trace(X)
         for j in range(N_iter):
-            #import pdb
-            #pdb.set_trace()
             grad = gradf(X)
             print "\tIteration %d" % j
             if DEBUG:
@@ -181,6 +179,8 @@ class BoundedTraceSDPHazanSolver(object):
                 print "\talphaj:\n", alphaj
                 print "\tvk vk.T:\n", np.outer(vj,vj)
                 print "\tstep:\n", step
+            #import pdb
+            #pdb.set_trace()
             X = X + alphaj * (np.outer(vj,vj) - X)
         return X
 
@@ -265,6 +265,8 @@ class FeasibilitySDPHazanSolver(object):
             return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs, eps)
 
+        #import pdb
+        #pdb.set_trace()
         start = time.clock()
         X = self._solver.solve(f, gradf, dim, N_iter, X_init)
         elapsed = (time.clock() - start)
@@ -414,6 +416,12 @@ class GeneralSDPHazanSolver(object):
 
         # Rescale the trace bound and expand all constraints to be
         # expressed in terms of Y
+        if X_init != None:
+            Y_init = np.zeros((dim+1, dim+1))
+            Y_init[:dim, :dim] = X_init
+            Y_init = Y_init / R
+        else:
+            Y_init = None
         for i in range(m):
             A = R * As[i]
             Aprime = np.zeros((dim+1,dim+1))
@@ -427,40 +435,55 @@ class GeneralSDPHazanSolver(object):
         for k in range(p):
             fk = Fs[k]
             gradfk = gradFs[k]
-            fprime = lambda Y: fk(R * Y[:dim,:dim])
+            def make_fprime(fk):
+                return lambda Y: fk(R * Y[:dim,:dim])
+            fprime = make_fprime(fk)
             Fprimes.append(fprime)
             #gradfprime = lambda Y: R * gradfk(R * Y[:dim,:dim])
-            def gradfprime(Y):
-                ret_grad = np.zeros((dim+1,dim+1))
-                ret_grad[:dim,:dim] = R * gradfk(R * Y[:dim,:dim])
-                return ret_grad
+            def make_gradfprime(gradfk):
+                def gradfprime(Y):
+                    ret_grad = np.zeros((dim+1,dim+1))
+                    #ret_grad[:dim,:dim] = R * gradfk(R * Y[:dim,:dim])
+                    ret_grad[:dim,:dim] = gradfk(R * Y[:dim,:dim]) #?
+                    return ret_grad
+                return gradgfprime
             gradFprimes.append(gradfprime)
         for l in range(q):
             gl = Gs[l]
             gradgl = gradGs[l]
-            gprime = lambda Y: gl(R * Y[:dim,:dim])
+            #gprime = lambda Y, gl=gl: gl(R * Y[:dim,:dim])
+            def make_gprime(gl):
+                return lambda Y: gl(R * Y[:dim,:dim])
+            gprime = make_gprime(gl)
             Gprimes.append(gprime)
             #gradgprime = lambda Y: R * gradgl(R * Y[:dim,:dim])
-            def gradgprime(Y):
-                ret_grad = np.zeros((dim+1,dim+1))
-                ret_grad[:dim, :dim] = R * gradgl(R * Y[:dim,:dim])
-                return ret_grad
+            def make_gradgprime(gradgl):
+                def gradgprime(Y):
+                    ret_grad = np.zeros((dim+1,dim+1))
+                    #ret_grad[:dim, :dim] = R * gradgl(R * Y[:dim,:dim])
+                    ret_grad[:dim, :dim] = gradgl(R * Y[:dim,:dim]) #?
+                    return ret_grad
+                return gradgprime
+            gradgprime = make_gradgprime(gradgl)
             gradGprimes.append(gradgprime)
 
         hprime = lambda Y: h(R * Y[:dim, :dim])
         #gradhprime = lambda Y: R * gradh(R * Y[:dim, :dim])
         def gradhprime(Y):
             ret_grad = np.zeros((dim+1,dim+1))
-            ret_grad[:dim, :dim] = R * gradh(R * Y[:dim, :dim])
+            #ret_grad[:dim, :dim] = R * gradh(R * Y[:dim, :dim])
+            ret_grad[:dim, :dim] = gradh(R * Y[:dim, :dim]) #?
             return ret_grad
 
-        As = Aprimes
-        Cs = Cprimes
-        Fs = Fprimes
-        gradFs = gradFprimes
-        Gs = Gprimes
-        gradGs = gradGprimes
+        #As = Aprimes
+        #Cs = Cprimes
+        #Fs = Fprimes
+        #gradFs = gradFprimes
+        #Gs = Gprimes
+        #gradGs = gradGprimes
         #h = hprime
+        bprimes = bs
+        dprimes = ds
 
         # Constrain last row of Y to 0
         Zs = np.zeros((1,dim))
@@ -468,16 +491,16 @@ class GeneralSDPHazanSolver(object):
             return batch_equals(Y, Zs, dim, dim+1, 0, dim)
         def grads(Y):
             return batch_equals_grad(Y, Zs, dim, dim+1, 0, dim)
-        Gs.append(s)
-        gradGs.append(grads)
+        Gprimes.append(s)
+        gradGprimes.append(grads)
         # Constraint last column of Y to 0
         Zr = np.zeros((dim, 1))
         def r(Y):
             return batch_equals(Y, Zr, 0, dim, dim, dim+1)
         def gradr(Y):
             return batch_equals_grad(Y, Zr, 0, dim, dim, dim+1)
-        Gs.append(r)
-        gradGs.append(gradr)
+        Gprimes.append(r)
+        gradGprimes.append(gradr)
 
         # Do the binary search
         SUCCEED = False
@@ -499,17 +522,17 @@ class GeneralSDPHazanSolver(object):
             grad_h_lower = lambda Y: -gradhprime(Y)
             #Fs.append(h_alpha)
             #gradFs.append(grad_h_alpha)
-            Fs += [h_lower, h_alpha]
-            gradFs += [grad_h_lower, grad_h_alpha]
-            import pdb
-            pdb.set_trace()
-            Y_L, _, SUCCEED_L = self._solver.feasibility_solve(As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter,
-                    X_init)
+            Fprimes += [h_lower, h_alpha]
+            gradFprimes += [grad_h_lower, grad_h_alpha]
+            #import pdb
+            #pdb.set_trace()
+            Y_L, fY_L, SUCCEED_L = self._solver.feasibility_solve(Aprimes,
+                    bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
+                    Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)
             #Fs.pop()
             #gradFs.pop()
-            Fs = Fs[:-2]
-            gradFs = gradFs[:-2]
+            Fprimes = Fprimes[:-2]
+            gradFprimes = gradFprimes[:-2]
             print "Checked feasibility in (%f, %f)" % (L, alpha)
             import pdb
             pdb.set_trace()
@@ -525,33 +548,33 @@ class GeneralSDPHazanSolver(object):
             grad_h_upper = lambda Y: gradhprime(Y)
             #Fs.append(h_alpha)
             #gradFs.append(grad_h_alpha)
-            Fs += [h_alpha, h_upper]
-            gradFs += [grad_h_alpha, grad_h_upper]
-            Y_U, _, SUCCEED_U = self._solver.feasibility_solve(As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps, dim+1, N_iter,
-                    X_init)
+            Fprimes += [h_alpha, h_upper]
+            gradFprimes += [grad_h_alpha, grad_h_upper]
+            Y_U, fY_U, SUCCEED_U = self._solver.feasibility_solve(Aprimes,
+                    bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
+                    Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)
             #Fs.pop()
             #gradFs.pop()
-            Fs = Fs[:-2]
-            gradFs = gradFs[:-2]
+            Fprimes = Fprimes[:-2]
+            gradFprimes = gradFprimes[:-2]
             print "Checked feasibility in (%f, %f)" % (alpha, U)
             import pdb
             pdb.set_trace()
 
             #import pdb
             #pdb.set_trace()
-            if SUCCEED_U:
-                X_U = Y_U[:dim,:dim]
+            if fY_U >= fY_L:
+                X_U = R * Y_U[:dim,:dim]
                 L = alpha
-            elif SUCCEED_L:
-                X_L = X_L
-                U = alpha
             else:
-                break
+                X_L = R * Y_U[:dim, :dim]
+                U = alpha
         if (U - L) <= eps:
-            SUCCEED = True
-        if X_U != None:
-            X_U = R * X_U
-        if X_L != None:
-            X_L = R * X_L
+            fY = fY_L
+            if fY_L >= -eps:
+                SUCCEED = True
+        #if X_U != None:
+        #    X_U = R * X_U
+        #if X_L != None:
+        #    X_L = R * X_L
         return (U, L, X_U, X_L, SUCCEED)

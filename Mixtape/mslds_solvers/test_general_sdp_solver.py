@@ -1,6 +1,5 @@
 from hazan import *
-from hazan_penalties import batch_equals, batch_linear_equals
-from hazan_penalties import batch_equals_grad, grad_batch_linear_equals
+from hazan_penalties import *
 import scipy
 import numpy as np
 
@@ -58,6 +57,115 @@ def test1():
     print "X_lower:\n", X_lower
     print "lower: ", lower
 
+def testSchurComplement():
+    """
+    Specifies a Schur complement SDP of form
+
+    minimize -log det Q^{-1}
+          ------------
+         |D-Q   A     |
+    X =  |A.T D^{-1}  |
+         |           Q|
+          ------------
+    X is PSD
+    """
+    dim = 1
+    cdim = 3 * dim
+    g = GeneralSDPHazanSolver()
+    As, bs, Cs, ds, = [], [], [], []
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+
+    # Generate initial data
+    D = np.eye(dim)
+    Dinv = np.linalg.inv(D)
+    A = 0.5 * np.eye(dim)
+    """ We neeed to enforce constant equalities in X.
+      -------------
+     |D-_   A    0 |
+C =  |A.T D^{-1} 0 |
+     | 0    0    _ |
+      -------------
+    """
+    C = np.zeros((cdim, cdim))
+    A_1_cds = (0, dim, dim, 2*dim)
+    A_T_1_cds = (dim, 2*dim, 0, dim)
+    Dinv_1_cds  = (dim, 2*dim, dim, 2*dim)
+    constraints = [(A_1_cds, A), (A_T_1_cds, A.T),
+            (Dinv_1_cds, Dinv)]
+    def const_regions(X):
+        return many_batch_equals(X, constraints)
+    def grad_const_regions(X):
+        return grad_many_batch_equals(X, constraints)
+    Gs.append(const_regions)
+    gradGs.append(grad_const_regions)
+
+    """ We need to constraint linear inequalities
+          -----------
+         |D-Q        |
+    C =  |           |
+         |         Q |
+          -----------
+    """
+    Q_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    block_1_Q_cds = (0, dim, 0, dim)
+    linear_constraints = [(-1., Q_cds, D, block_1_Q_cds)]
+
+    def linear_regions(X):
+        return many_batch_linear_equals(X, linear_constraints)
+    def grad_linear_regions(X):
+        return grad_many_batch_linear_equals(X, linear_constraints)
+    Gs.append(linear_regions)
+    gradGs.append(grad_linear_regions)
+
+    # log det Q^{-1} = - log det Q
+    def h(X):
+        Q = get_entries(X, Q_cds)
+        #D_Q = get_entries(X, block_1_Q_cds)
+        #block_1_Q = -D_Q + D
+        #return -np.log(np.linalg.det(Q)) - np.log(np.linalg.det(block_1_Q))
+        return np.log(np.linalg.det(Q))
+    # grad log det Q^{-1} = -Q^{-1} (see Boyd and Vandenberge, A4.1)
+    def gradh(X):
+        grad = np.zeros(np.shape(X))
+        Q = get_entries(X, Q_cds)
+        # Look into avoiding this computation if possible
+        eigs_Q = np.linalg.eigh(Q)[0]
+        max_eig_Q = np.amax(eigs_Q)
+        max_eig_Qinv = 1./max_eig_Q
+        Qinv = np.linalg.inv(Q)
+        # Scale Qinv down to unit spectral norm
+        Qinv = (1/max_eig_Qinv) * Qinv
+        # Scale Qinv to have spectral norm the same as Q
+        Qinv *= max_eig_Q
+        gradQ = Qinv
+        set_entries(grad, Q_cds, gradQ)
+        set_entries(grad, block_1_Q_cds, gradQ)
+        return grad
+
+    D_upper = np.trace(D)
+    D_inv_upper = np.trace(Dinv)
+    R = (D_upper + D_inv_upper + D_upper)
+    L = 0
+    U = 25
+    eps = 3e-2
+    N_iter = 150
+    X_init = np.zeros((cdim, cdim))
+    Q_init = 0.2 * np.eye(dim)
+    set_entries(X_init, Q_cds, Q_init)
+    set_entries(X_init, block_1_Q_cds, D - Q_init)
+    import pdb
+    pdb.set_trace()
+    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+                Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
+                N_iter, X_init=X_init)
+    print "X_lower\n", X_lower
+    if X_lower != None:
+        print "h(X_lower)\n", h(X_lower)
+    print "X_upper\n", X_upper
+    if X_upper != None:
+        print "h(X_upper)\n", h(X_upper)
+
+
 def testQ():
     """
     Specifies a simple version of the convex program required for
@@ -93,151 +201,132 @@ def testQ():
     dim = 1
     cdim = 6 * dim
     g = GeneralSDPHazanSolver()
-    As = []
-    bs = []
-    Cs = []
-    ds = []
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    Z_coords = (5*dim, 6*dim, 5*dim, 6*dim)
-    Q_coords = (4*dim, 5*dim, 4*dim, 5*dim)
-    block_1_Z_coords = (0, dim, 0, dim)
-    block_1_Q_coords = (dim, 2*dim, dim, 2*dim)
-    block_2_Q_coords = (2*dim, 3*dim, 2*dim, 3*dim)
-    # Generate random initial data
-    B = np.random.rand(dim, dim)
-    B = np.dot(B.T, B)
-    D = np.random.rand(dim, dim)
-    D = np.dot(D.T, D)
+    As, bs, Cs, ds, = [], [], [], []
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+
+    # Generate initial data
+    B = 1 * np.eye(dim)
+    D = np.eye(dim)
     Dinv = np.linalg.inv(D)
     F = scipy.linalg.sqrtm(B)
-    A = np.random.rand(dim, dim)
+    A = np.eye(dim)
+
+    """ We neeed to enforce constant equalities in X.
+      ------------------------
+     | _   F   0    0    0  0 |
+     |F.T  _   0    0    0  0 |
+     | 0   0  D-_   A    0  0 |
+C =  | 0   0  A.T D^{-1} 0  0 |
+     | 0   0   0    0    _  0 |
+     | 0   0   0    0    0  _ |
+      ------------------------
+    """
+    C = np.zeros((cdim, cdim))
+    F_1_cds = (0, dim, dim, 2*dim)
+    F_T_1_cds = (dim, 2*dim, 0, dim)
+
+    A_2_cds = (2*dim, 3*dim, 3*dim, 4*dim)
+    A_T_2_cds = (3*dim, 4*dim, 2*dim, 3*dim)
+
+    Dinv_2_cds = (3*dim, 4*dim, 3*dim, 4*dim)
+
+    Z_1_below =  np.zeros((4*dim, 2*dim))
+    Z_1_below_cds = (2*dim, 6*dim, 0, 2*dim)
+
+    Z_1_right =  np.zeros((2*dim, 4*dim))
+    Z_1_right_cds = (0, 2*dim, 2, 6*dim)
+
+    Z_2_below = np.zeros((2*dim, 2*dim))
+    Z_2_below_cds = (4*dim, 6*dim, 2*dim, 4*dim)
+
+    Z_2_right = np.zeros((2*dim, 2*dim))
+    Z_2_right_cds = (2*dim, 4*dim, 4*dim, 6*dim)
+
+    Z_3_below = np.zeros((dim, dim))
+    Z_3_below_cds = (5*dim, 6*dim, 4*dim, 5*dim)
+
+    Z_3_right = np.zeros((dim, dim))
+    Z_3_right_cds = (4*dim, 5*dim, 5*dim, 6*dim)
+
+    constraints = [(F_1_cds, F), (F_T_1_cds, F.T), (A_2_cds, A),
+        (A_T_2_cds, A.T), (Dinv_2_cds, Dinv),
+        (Z_1_below_cds, Z_1_below), (Z_1_right_cds, Z_1_right),
+        (Z_2_below_cds, Z_2_below), (Z_2_right_cds, Z_2_right),
+        (Z_3_below_cds, Z_3_below), (Z_3_right_cds, Z_3_right)]
+    def const_regions(X):
+        return many_batch_equals(X, constraints)
+    def grad_const_regions(X):
+        return grad_many_batch_equals(X, constraints)
+    Gs.append(const_regions)
+    gradGs.append(grad_const_regions)
+
+    """ We need to constraint linear inequalities
+          -----------------------
+         | Z                     |
+         |     Q                 |
+         |        D-Q            |
+    C =  |                       |
+         |                   Q   |
+         |                     Z |
+          -----------------------
+    """
+
+    Z_cds = (5*dim, 6*dim, 5*dim, 6*dim)
+    Q_cds = (4*dim, 5*dim, 4*dim, 5*dim)
+    block_1_Z_cds = (0, dim, 0, dim)
+    block_1_Q_cds = (dim, 2*dim, dim, 2*dim)
+    block_2_Q_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+
+    linear_constraints = \
+            [( 1., Q_cds, np.zeros((dim, dim)), block_1_Q_cds),
+             (-1., Q_cds, D, block_2_Q_cds),
+             ( 1., Z_cds, np.zeros((dim, dim)), block_1_Z_cds)]
+
+    def linear_regions(X):
+        return many_batch_linear_equals(X, linear_constraints)
+    def grad_linear_regions(X):
+        return grad_many_batch_linear_equals(X, linear_constraints)
+    Gs.append(linear_regions)
+    gradGs.append(grad_linear_regions)
+
     # Tr Z + log det Q^{-1}
     def h(X):
-        z_x_low, z_x_hi, z_y_low, z_y_hi = Z_coords
-        q_x_low, q_x_hi, q_y_low, q_y_hi = Q_coords
-        Z = X[z_x_low:z_x_hi, z_y_low:z_y_hi]
-        Q = X[q_x_low:q_x_hi, q_y_low:q_y_hi]
+        Z = get_entries(X, Z_cds)
+        Q = get_entries(X, Q_cds)
         return np.trace(Z) - np.log(np.linalg.det(Q))
     # grad log det Q^{-1} = Q (see Boyd and Vandenberge, A4.1)
     # grad h = I_Z + Q
     def gradh(X):
-        z_x_low, z_x_hi, z_y_low, z_y_hi = Z_coords
-        q_x_low, q_x_hi, q_y_low, q_y_hi = Q_coords
         grad = np.zeros(np.shape(X))
-        Z = X[z_x_low:z_x_hi, z_y_low:z_y_hi]
-        grad[z_x_low:z_x_hi, z_y_low:z_y_hi] = np.eye(dim)
-        Q = X[q_x_low:q_x_hi, q_y_low:q_y_hi]
-        grad[q_x_low:q_x_hi, q_y_low:q_y_hi] = Q
+        gradQ = get_entries(X, Q_cds)
+        gradZ = np.eye(dim)
+        set_entries(X, Z_cds, gradZ)
+        set_entries(X, block_1_Z_cds, gradZ)
+        set_entries(grad, Q_cds, gradQ)
+        set_entries(grad, block_1_Q_cds, gradQ)
+        set_entries(grad, block_2_Q_cds, gradQ)
         return grad
 
-    #  -------
-    # | Z   F |
-    # |F.T  Q |
-    #  -------
-    def block_1_F(X):
-        return batch_equals(X, F, 0, dim, dim, 2*dim)
-    def grad_block_1_F(X):
-        return batch_equals_grad(X, F, 0, dim, dim, 2*dim)
-    def block_1_F_T(X):
-        return batch_equals(X, F.T, dim, 2*dim, 0, dim)
-    def grad_block_1_F_T(X):
-        return batch_equals_grad(X, F.T, dim, 2*dim, 0, dim)
-    Gs += [block_1_F, block_1_F_T]
-    gradGs += [grad_block_1_F, grad_block_1_F_T]
-
-    #  -----------
-    # | D-Q   A   |
-    # | A.T D^{-1}|
-    #  -----------
-    def block_2_A(X):
-        return batch_equals(X, A, 0, dim, dim, 2*dim)
-    def grad_block_2_A(X):
-        return batch_equals_grad(X, A, 0, dim, dim, 2*dim)
-    def block_2_A_T(X):
-        return batch_equals(X, A.T, dim, 2*dim, 0, dim)
-    def grad_block_2_A_T(X):
-        return grad_batch_equals(X, A.T, dim, 2*dim, 0, dim)
-    def block_2_Dinv(X):
-        return batch_equals(X, Dinv, 3*dim, 4*dim, 3*dim, 4*dim)
-    def grad_block_2_Dinv(X):
-        return batch_equals(X, Dinv, 3*dim, 4*dim, 3*dim, 4*dim)
-    Gs += [block_2_A, block_2_A_T, block_2_Dinv]
-    gradGs += [grad_block_2_A, grad_block_2_A_T, grad_block_2_Dinv]
-    # ---
-    #| Q |
-    # ---
-    c = 1.
-    Z = np.zeros((dim, dim))
-    def block_1_Q(X):
-        return batch_linear_equals(X, c, Q_coords, Z, block_1_Q_coords)
-    def grad_block_1_Q(X):
-        return grad_batch_linear_equals(X, c, Q_coords, Z,
-                grad_block_1_Q_coords)
-    d = -1.
-    def block_2_Q(X):
-        return batch_linear_equals(X, d, Q_coords, D, block_2_Q_coords)
-    def grad_block_2_Q(X):
-        return grad_batch_linear_equals(X, d, Q_coords, D,
-                block_2_Q_coords)
-    Gs += [block_1_Q, block_2_Q]
-    gradGs += [grad_block_1_Q, grad_block_2_Q]
-    # ---
-    #| Z |
-    # ---
-    c = 1.
-    Z = np.zeros((dim, dim))
-    def block_1_Z(X):
-        return batch_linear_equals(X, c, Z_coords, Z, block_1_Z_coords)
-    def grad_block_1_Z(X):
-        return grad_batch_linear_equals(X, c, Z_coords, Z,
-                block_1_Z_coords)
-    Gs += [block_1_Z]
-    gradGs += [grad_block_1_Z]
-
-    # Zero constraints
-    Z_1_below = np.zeros((4*dim, 2*dim))
-    def block_1_below_zeros(X):
-        return batch_equals(X, Z_1_below, 2*dim, 6*dim, 0, 2*dim)
-    def grad_block_1_below_zeros(X):
-        return batch_equals_grad(X, Z_1_below, 2*dim, 6*dim, 0, 2*dim)
-    Z_1_right = np.zeros((2*dim, 4*dim))
-    def block_1_right_zeros(X):
-        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 6*dim)
-    def grad_block_1_right_zeros(X):
-        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 6*dim)
-
-    Gs += [block_1_below_zeros, block_1_right_zeros]
-    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros]
-
-    R = 10
-    U = 10
-    L = 0
-    N_iter = 10
+    N_iter = 100
     eps = 1.e-2
-    #import pdb
-    #pdb.set_trace()
     D_upper = np.trace(D)
-    Q_upper = np.trace(D)
-    Q_inv_upper = np.trace(Dinv)
     D_inv_upper = np.trace(Dinv)
     Z_upper = np.trace(np.dot(F, np.dot(Dinv, F.T)))
-    R = (Z_upper + Q_upper + D_upper + D_inv_upper + Q_upper + Z_upper)
+    R = (Z_upper + D_upper + D_upper + D_inv_upper + D_upper + Z_upper)
+    L = 0
+    U = 2 * Z_upper
+    print "R: ", R
 
     X_init = np.zeros((cdim, cdim))
-    Q_init = np.eye(dim)
-    set_entries(X_init, Q_coords, Q_init)
-    set_entries(X_init, block_1_Q_coords, Q_init)
-    set_entries(X_init, block_2_Q_coords, Q_init)
+    Q_init = 0.2 * np.eye(dim)
+    set_entries(X_init, Q_cds, Q_init)
+    set_entries(X_init, block_1_Q_cds, Q_init)
+    set_entries(X_init, block_2_Q_cds, D - Q_init)
+    import pdb
+    pdb.set_trace()
     upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
                 Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
                 N_iter, X_init=X_init)
-
-def set_entries(X, coords, Z):
-    x_low, x_hi, y_low, y_hi = coords
-    X[x_low:x_hi, y_low:y_hi] = Z
 
 def testA():
     """
@@ -298,39 +387,12 @@ def testA():
     def grad_block_1_right_zeros(X):
         return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 4*dim)
 
-    Z_2_below = np.zeros((2*dim, 2*dim))
-    def block_2_below_zeros(X):
-        return batch_equals(X, Z_2_below, 4*dim, 6*dim, 2*dim, 4*dim)
-    def grad_block_2_below_zeros(X):
-        return batch_equals_grad(X, Z_2_below, 4*dim, 6*dim, 2*dim, 4*dim)
-    Z_2_right = np.zeros((2*dim, 2*dim))
-    def block_2_right_zeros(X):
-        return batch_equals(X, Z_2_right, 2*dim, 4*dim, 4*dim, 6*dim)
-    def grad_block_2_right_zeros(X):
-        return batch_equals_grad(X, Z_2_right, 2*dim, 4*dim, 4*dim, 6*dim)
-
-    Z_3_below = np.zeros((dim, dim))
-    def block_3_below_zeros(X):
-        return batch_equals(X, Z_3_below, 5*dim, 6*dim, 4*dim, 5*dim)
-    def grad_block_3_below_zeros(X):
-        return batch_equals(X, Z_3_below, 5*dim, 6*dim, 4*dim, 5*dim)
-    Z_3_right = np.zeros((dim, dim))
-    def block_3_right_zeros(X):
-        return batch_equals(X, Z_3_right, 4*dim, 5*dim, 5*dim, 6*dim)
-    def grad_block_3_below_zeros(X):
-        return batch_equals(X, Z_3_right, 4*dim, 5*dim, 5*dim, 6*dim)
-
-
-    Gs += [block_1_below_zeros, block_1_right_zeros,
-            block_2_below_zeros, block_2_right_zeros,
-            block_3_below_zeros, block_3_right_zeros]
-    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros,
-            grad_block_2_below_zeros, grad_block_2_right_zeros,
-            grad_block_3_below_zeros, grad_block_3_right_zeros]
+    Gs += [block_1_below_zeros, block_1_right_zeros]
+    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros]
 
 
 if __name__ == "__main__":
     #test1()
-    testQ()
+    #testQ()
+    testSchurComplement()
     pass
-

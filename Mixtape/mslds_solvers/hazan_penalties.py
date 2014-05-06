@@ -44,6 +44,14 @@ def compute_scale_full(m, n, p, q, eps):
                 + np.log(p+1) + np.log(q+1)), 1.) / eps
     return M
 
+def set_entries(X, coords, Z):
+    x_low, x_hi, y_low, y_hi = coords
+    X[x_low:x_hi, y_low:y_hi] = Z
+
+def get_entries(X, coords):
+    x_low, x_hi, y_low, y_hi = coords
+    return X[x_low:x_hi, y_low:y_hi]
+
 def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
     c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))
     return c
@@ -55,29 +63,56 @@ def batch_equals_grad(X, A, x_low, x_hi, y_low, y_hi):
     grad[x_low:x_hi,y_low:y_hi] = grad_piece
     return grad
 
+def many_batch_equals(X, constraints):
+    sum_c = 0
+    for coord, mat in constraints:
+        c = np.sum(np.abs(get_entries(X, coord) - mat))
+        sum_c += c
+    return sum_c
+
+def grad_many_batch_equals(X, constraints):
+    grad = np.zeros(np.shape(X))
+    for coord, mat in constraints:
+        grad_piece = np.sign(get_entries(X, coord) - mat)
+        set_entries(grad, coord, grad_piece)
+    return grad
+
 def batch_linear_equals(X, c, P_coords, Q, R_coords):
     """
     Performs operation R_coords = c * P_coords + Q
     """
-    p_x_low, p_x_hi, p_y_low, p_y_hi = P_coords
-    r_x_low, r_x_hi, r_y_low, r_y_hi = R_coords
-    c = np.sum(np.abs(c * X[p_x_low:p_x_hi, p_y_low:p_y_hi] + Q
-                    - X[r_x_low:r_x_hi, r_y_low:r_y_hi]))
+    c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
+                    - get_entries(X, R_coords)))
     return c
 
+def many_batch_linear_equals(X, constraints):
+    sum_c = 0
+    for c, P_coords, Q, R_coords in constraints:
+        c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
+                        - get_entries(X, R_coords)))
+        sum_c += c
+    return sum_c
+
 def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
-    p_x_low, p_x_hi, p_y_low, p_y_hi = P_coords
-    r_x_low, r_x_hi, r_y_low, r_y_hi = R_coords
-    grad_piece_P = c * np.sign(c * X[p_x_low:p_x_hi, p_y_low:p_y_hi] + Q
-                        - X[r_x_low:r_x_hi, r_y_low:r_y_hi])
-    grad_piece_R = - np.sign(c * X[p_x_low:p_x_hi, p_y_low:p_y_hi] + Q
-                        - X[r_x_low:r_x_hi, r_y_low:r_y_hi])
     grad = np.zeros(np.shape(X))
-    grad[p_x_low:p_x_hi, p_y_low:p_y_hi] = grad_piece_P
-    grad[r_x_low:r_x_hi, r_y_low:r_y_hi] = grad_piece_R
+    grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
+                        - get_entries(X, R_coords))
+    grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
+                        - get_entries(X, R_coords))
+    set_entries(grad, P_coords, grad_piece_P)
+    set_entries(grad, R_coords, grad_piece_R)
     return grad
 
-
+def grad_many_batch_linear_equals(X, constraints):
+    grad = np.zeros(np.shape(X))
+    for c, P_coords, Q, R_coords in constraints:
+        grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
+                            - get_entries(X, R_coords))
+        grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
+                            - get_entries(X, R_coords))
+        set_entries(grad, P_coords, grad_piece_P)
+        set_entries(grad, R_coords, grad_piece_R)
+    return grad
 
 def neg_sum_squares(x):
     """
