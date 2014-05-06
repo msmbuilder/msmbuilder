@@ -59,14 +59,14 @@ def test1():
 
 def testSchurComplement():
     """
-    Specifies a Schur complement SDP of form
+    Specifies a Schur complement convex program of form
 
-    minimize -log det Q^{-1}
-          ------------
-         |D-Q   A     |
-    X =  |A.T D^{-1}  |
-         |           Q|
-          ------------
+    minimize -log det R
+          --------------
+         |D-ADA.T  I    |
+    X =  |   I     R    |
+         |            R |
+          --------------
     X is PSD
     """
     dim = 1
@@ -81,17 +81,21 @@ def testSchurComplement():
     A = 0.5 * np.eye(dim)
     """ We neeed to enforce constant equalities in X.
       -------------
-     |D-_   A    0 |
-C =  |A.T D^{-1} 0 |
-     | 0    0    _ |
+     |D-ADA.T   I    0 |
+C =  | I        _    0 |
+     | 0        0    _ |
       -------------
     """
     C = np.zeros((cdim, cdim))
-    A_1_cds = (0, dim, dim, 2*dim)
-    A_T_1_cds = (dim, 2*dim, 0, dim)
-    Dinv_1_cds  = (dim, 2*dim, dim, 2*dim)
-    constraints = [(A_1_cds, A), (A_T_1_cds, A.T),
-            (Dinv_1_cds, Dinv)]
+    D_ADA_T_cds = (0, dim, 0, dim)
+    D_ADA_T = D - np.dot(A, np.dot(D, A.T))
+    I_1_cds = (0, dim, dim, 2*dim)
+    I_2_cds = (dim, 2*dim, 0, dim)
+    constraints = [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
+            (I_2_cds, np.eye(dim))]
+    # Add zero constraints
+    constraints += [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
+            ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
     def const_regions(X):
         return many_batch_equals(X, constraints)
     def grad_const_regions(X):
@@ -100,15 +104,15 @@ C =  |A.T D^{-1} 0 |
     gradGs.append(grad_const_regions)
 
     """ We need to constraint linear inequalities
-          -----------
-         |D-Q        |
-    C =  |           |
-         |         Q |
-          -----------
+          ----------
+         |          |
+    C =  |     R    |
+         |        R |
+          ----------
     """
-    Q_cds = (2*dim, 3*dim, 2*dim, 3*dim)
-    block_1_Q_cds = (0, dim, 0, dim)
-    linear_constraints = [(-1., Q_cds, D, block_1_Q_cds)]
+    R_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    block_1_R_cds = (dim, 2*dim, dim, 2*dim)
+    linear_constraints = [(1., R_cds, np.zeros((dim,dim)), block_1_R_cds)]
 
     def linear_regions(X):
         return many_batch_linear_equals(X, linear_constraints)
@@ -117,42 +121,42 @@ C =  |A.T D^{-1} 0 |
     Gs.append(linear_regions)
     gradGs.append(grad_linear_regions)
 
-    # log det Q^{-1} = - log det Q
+    # - log det R
     def h(X):
-        Q = get_entries(X, Q_cds)
-        #D_Q = get_entries(X, block_1_Q_cds)
-        #block_1_Q = -D_Q + D
-        #return -np.log(np.linalg.det(Q)) - np.log(np.linalg.det(block_1_Q))
-        return np.log(np.linalg.det(Q))
-    # grad log det Q^{-1} = -Q^{-1} (see Boyd and Vandenberge, A4.1)
+        R = get_entries(X, R_cds)
+        return -np.log(np.linalg.det(R))
+    # grad - log det R = -R^{-1} (see Boyd and Vandenberge, A4.1)
+    # Note -R^{-1} = -Q
     def gradh(X):
         grad = np.zeros(np.shape(X))
-        Q = get_entries(X, Q_cds)
+        R = get_entries(X, R_cds)
         # Look into avoiding this computation if possible
-        eigs_Q = np.linalg.eigh(Q)[0]
-        max_eig_Q = np.amax(eigs_Q)
-        max_eig_Qinv = 1./max_eig_Q
-        Qinv = np.linalg.inv(Q)
-        # Scale Qinv down to unit spectral norm
-        Qinv = (1/max_eig_Qinv) * Qinv
-        # Scale Qinv to have spectral norm the same as Q
-        Qinv *= max_eig_Q
-        gradQ = Qinv
-        set_entries(grad, Q_cds, gradQ)
-        set_entries(grad, block_1_Q_cds, gradQ)
+        eigs_R = np.linalg.eigh(R)[0]
+        max_eig_R = np.amax(eigs_R)
+        max_eig_Q = 1./max_eig_R
+        Q = np.linalg.inv(R)
+        # Scale Q down to unit spectral norm
+        Q = (1/max_eig_Q) * Q
+        # Scale Q to have spectral norm the same as Q
+        #Qinv *= max_eig_Q
+        gradR = Q
+        set_entries(grad, R_cds, gradR)
+        set_entries(grad, block_1_R_cds, gradR)
         return grad
 
-    D_upper = np.trace(D)
-    D_inv_upper = np.trace(Dinv)
-    R = (D_upper + D_inv_upper + D_upper)
+    #D_upper = np.trace(D)
+    #D_inv_upper = np.trace(Dinv)
+    #R = (D_upper + D_inv_upper + D_inv_upper)
+    R = 100 # Just going to set this high...
     L = 0
     U = 25
     eps = 3e-2
     N_iter = 150
     X_init = np.zeros((cdim, cdim))
     Q_init = 0.2 * np.eye(dim)
-    set_entries(X_init, Q_cds, Q_init)
-    set_entries(X_init, block_1_Q_cds, D - Q_init)
+    R_init = np.linalg.inv(Q_init)
+    set_entries(X_init, R_cds, R_init)
+    set_entries(X_init, block_1_R_cds, R_init)
     import pdb
     pdb.set_trace()
     upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
