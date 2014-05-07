@@ -83,7 +83,7 @@ class BoundedTraceSDPHazanSolver(object):
         if X_init == None:
             X = np.outer(v, v)
         else:
-            X = X_init
+            X = np.copy(X_init)
         X /= np.trace(X)
         for j in range(N_iter):
             grad = gradf(X)
@@ -179,9 +179,9 @@ class BoundedTraceSDPHazanSolver(object):
                 print "\talphaj:\n", alphaj
                 print "\tvk vk.T:\n", np.outer(vj,vj)
                 print "\tstep:\n", step
-            #import pdb
-            #pdb.set_trace()
             X = X + alphaj * (np.outer(vj,vj) - X)
+        import pdb
+        pdb.set_trace()
         return X
 
 
@@ -268,7 +268,7 @@ class FeasibilitySDPHazanSolver(object):
         #import pdb
         #pdb.set_trace()
         start = time.clock()
-        X = self._solver.solve(f, gradf, dim, N_iter, X_init)
+        X = self._solver.solve(f, gradf, dim, N_iter, X_init=X_init)
         elapsed = (time.clock() - start)
         fX = f(X)
         print "\tX:\n", X
@@ -524,8 +524,8 @@ class GeneralSDPHazanSolver(object):
             #gradFs.append(grad_h_alpha)
             Fprimes += [h_lower, h_alpha]
             gradFprimes += [grad_h_lower, grad_h_alpha]
-            #import pdb
-            #pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             Y_L, fY_L, SUCCEED_L = self._solver.feasibility_solve(Aprimes,
                     bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
                     Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)

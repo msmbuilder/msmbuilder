@@ -69,7 +69,7 @@ def testSchurComplement():
           --------------
     X is PSD
     """
-    dim = 1
+    dim = 2
     cdim = 3 * dim
     g = GeneralSDPHazanSolver()
     As, bs, Cs, ds, = [], [], [], []
@@ -142,16 +142,16 @@ C =  | I        _    0 |
         gradR = Q
         set_entries(grad, R_cds, gradR)
         set_entries(grad, block_1_R_cds, gradR)
-        return grad
+        return -grad
 
     #D_upper = np.trace(D)
     #D_inv_upper = np.trace(Dinv)
     #R = (D_upper + D_inv_upper + D_inv_upper)
-    R = 100 # Just going to set this high...
-    L = 0
-    U = 25
+    R = 5 # Just going to set this high...
+    L = -20
+    U = 20
     eps = 3e-2
-    N_iter = 150
+    N_iter = 100
     X_init = np.zeros((cdim, cdim))
     Q_init = 0.2 * np.eye(dim)
     R_init = np.linalg.inv(Q_init)
