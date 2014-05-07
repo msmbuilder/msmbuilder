@@ -312,10 +312,3 @@ class DistributedGridSearchCV(DistributedBaseSeachCV):
 
         """
         return self._fit(X, y, ParameterGrid(self.param_grid))
-
-
-if __name__ == '__main__':
-    from sklearn.svm import SVC
-    grid = DistributedGridSearchCV(SVC(), param_grid={'C': range(1,10)}, verbose=0)
-    grid.fit(np.random.randn(100,2), np.random.randint(2, size=100))
-    print(grid.grid_scores_)
