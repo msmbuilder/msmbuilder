@@ -3,19 +3,21 @@ import sys
 import six
 import time
 import numpy as np
-from abc import ABCMeta, abstractmethod
 
 from IPython.parallel import Client
 from IPython.display import clear_output
 
-from sklearn.base import BaseEstimator, is_classifier, clone
-from sklearn.metrics.scorer import check_scoring
-from sklearn.utils.validation import _num_samples, check_arrays
-from sklearn.cross_validation import _check_cv as check_cv
-from sklearn.grid_search import (GridSearchCV, BaseSearchCV,
-                                 _check_param_grid, ParameterGrid)
-from sklearn.cross_validation import _fit_and_score
-
+try:
+    from sklearn.base import BaseEstimator, is_classifier, clone
+    from sklearn.metrics.scorer import check_scoring
+    from sklearn.utils.validation import _num_samples, check_arrays
+    from sklearn.cross_validation import _check_cv as check_cv
+    from sklearn.grid_search import (GridSearchCV, BaseSearchCV,
+                                     _check_param_grid, ParameterGrid)
+    from sklearn.cross_validation import _fit_and_score
+except ImportError as e:
+    print('This module requires the latest development version (0.15) of sklearn', file=sys.stderr)
+    raise e
 
 def _fit_and_score_helper(args):
     from sklearn.cross_validation import _fit_and_score
