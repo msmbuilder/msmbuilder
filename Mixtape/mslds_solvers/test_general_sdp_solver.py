@@ -57,9 +57,9 @@ def test1():
     print "X_lower:\n", X_lower
     print "lower: ", lower
 
-def testSchurComplement():
+def testQ():
     """
-    Specifies a Schur complement convex program of form
+    Specifies the convex program required for Q optimization.
 
     minimize -log det R
           --------------
@@ -80,23 +80,34 @@ def testSchurComplement():
     Dinv = np.linalg.inv(D)
     B = np.eye(dim)
     A = 0.5 * np.eye(dim)
-    """ We neeed to enforce constant equalities in X.
+
+    """
+    We need to enforce zero equalities in X.
       -------------
-     |D-ADA.T   I    0 |
-C =  | I        _    0 |
+     | -        -    0 |
+C =  | -        _    0 |
      | 0        0    _ |
       -------------
     """
-    C = np.zeros((cdim, cdim))
+    constraints += [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
+            ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
+
+    """
+    We need to enforce constant equalities in X.
+      -------------
+     |D-ADA.T   I    _ |
+C =  | I        _    _ |
+     | _        _    _ |
+      -------------
+    """
     D_ADA_T_cds = (0, dim, 0, dim)
     D_ADA_T = D - np.dot(A, np.dot(D, A.T))
     I_1_cds = (0, dim, dim, 2*dim)
     I_2_cds = (dim, 2*dim, 0, dim)
     constraints = [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
             (I_2_cds, np.eye(dim))]
-    # Add zero constraints
-    constraints += [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
-            ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
+
+    # Add constraints to Gs
     def const_regions(X):
         return many_batch_equals(X, constraints)
     def grad_const_regions(X):
@@ -104,7 +115,8 @@ C =  | I        _    0 |
     Gs.append(const_regions)
     gradGs.append(grad_const_regions)
 
-    """ We need to constraint linear inequalities
+
+    """ We need to enforce linear inequalities
           ----------
          |          |
     C =  |     R    |
@@ -147,6 +159,9 @@ C =  | I        _    0 |
     R_init = np.linalg.inv(Q_init)
     set_entries(X_init, R_cds, R_init)
     set_entries(X_init, block_1_R_cds, R_init)
+    set_entries(X_init, D_ADA_T_cds, D_ADA_T)
+    set_entries(X_init, I_1_cds, np.eye(dim))
+    set_entries(X_init, I_2_cds, np.eye(dim))
     import pdb
     pdb.set_trace()
     upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
@@ -164,11 +179,6 @@ def testA():
     Specifies a simple version of the convex program required for
     A optimization.
 
-    Given
-        D, Q, C, B, E
-
-    We want to solve for x = A_i. To do so, we solve
-
     max Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
 
           --------------------
@@ -184,42 +194,127 @@ def testA():
     dim = 1
     cdim = 4 * dim
     g = GeneralSDPHazanSolver()
-    As = []
-    bs = []
-    Cs = []
-    ds = []
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
+    As, bs, Cs, ds, = [], [], [], []
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+
     block_1_A_coords = (0, dim, dim, 2*dim)
     block_1_A_T_coords = (dim, 2*dim, 0, dim)
     block_2_A_coords = (2*dim, 3*dim, 3*dim, 4*dim)
     block_2_A_T_coords = (3*dim, 4*dim, 2*dim, 3*dim)
 
     # Generate random data
-    D = np.random.rand(dim, dim)
-    D = np.dot(D.T, D)
-    Q = np.random.rand(dim, dim)
-    Q = np.dot(Q.T, Q)
+    D = np.eye(dim)
+    Q = 0.5 * np.eye(dim)
+    C = 2 * np.eye(dim)
+    B = np.eye(dim)
+    E = np.eye(dim)
 
+    """
+    We need to enforce zero equalities in X
+      ----------------------
+     | _        _    0   0 |
+C =  | _        _    0   0 |
+     | 0        0    _   _ |
+     | 0        0    _   _ |
+      ----------------------
+    """
+    constraints += [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
+            ((0, 2*dim, 2*dim, 4*dim), np.zeros((2*dim, 2*dim)))]
+
+    """
+    We need to enforce constant equalities in X
+      ---------------------
+     |D-Q       _    _   _ |
+C =  | _     D^{-1}  _   _ |
+     | _        _    I   _ |
+     | _        _    _   I |
+      ---------------------
+    """
+    D_Q_cds = (0, dim, 0, dim)
+    D_Q = D-Q
+    Dinv_cds = (dim, 2*dim, dim, 2*dim)
+    Dinv = np.linalg.inv(D)
+    I_1_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    I_2_cds = (3*dim, 4*dim, 3*dim, 4*dim)
+    constraints = [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
+            (I_1_cds, np.eye(dim)), (I_2_cds, np.eye(dim))]
+
+    # Add constraints to Gs
+    def const_regions(X):
+        return many_batch_equals(X, constraints)
+    def grad_const_regions(X):
+        return grad_many_batch_equals(X, constraints)
+    Gs.append(const_regions)
+    gradGs.append(grad_const_regions)
+
+    """ We need to enforce linear inequalities
+
+          --------------------
+         |  _     A     _   _ |
+    X =  | A.T    _     _   _ |
+         |  _     _     _   A |
+         |  _     _    A.T  _ |
+          --------------------
+    """
+    A_1_cds = (0, dim, dim, 2*dim)
+    A_2_cds = (2*dim, 3*dim, 3*dim, 4*dim)
+    linear_constraints = [(1., A_1_cds, np.zeros((dim, dim)), A_2_cds)]
+
+    def linear_regions(X):
+        return many_batch_linear_equals(X, linear_constraints)
+    def grad_linear_regions(X):
+        return grad_many_batch_linear_equals(X, linear_constraints)
+    Gs.append(linear_regions)
+    gradGs.append(grad_linear_regions)
 
     # Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-    # Zero constraints
-    Z_1_below = np.zeros((2*dim, 2*dim))
-    def block_1_below_zeros(X):
-        return batch_equals(X, Z_1_below, 2*dim, 4*dim, 0, 2*dim)
-    def grad_block_1_below_zeros(X):
-        return batch_equals_grad(X, Z_1_below, 2*dim, 4*dim, 0, 2*dim)
-    Z_1_right = np.zeros((2*dim, 2*dim))
-    def block_1_right_zeros(X):
-        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 4*dim)
-    def grad_block_1_right_zeros(X):
-        return batch_equals(X, Z_1_right, 0, 2*dim, 2*dim, 4*dim)
-
-    Gs += [block_1_below_zeros, block_1_right_zeros]
-    gradGs += [grad_block_1_below_zeros, grad_block_1_right_zeros]
+    def h(X):
+        A_1 = get_entries(X, A_1_cds)
+        term1 = np.dot(C-B, A_1.T)
+        term2 = term1.T
+        term3 = np.dot(A_1, np.dot(E, A_1.T))
+        term = np.dot(Qinv, term1+term2+term3)
+        return np.trace(term)
+    # grad Tr [Q^{-1} (C - B) A.T] = Q^{-1} (C - B)
+    # grad Tr [Q^{-1} A [C - B].T] = Q^{-T} (C - B)
+    # grad Tr [Q^{-1} A E A.T] = Q^{-T} A E.T + Q^{-1} A E
+    def gradh(X):
+        grad = np.zeros(np.shape(X))
+        A_1 = get_entries(X, A_1_cds)
+        grad_term1 = np.dot(Qinv, C-B)
+        grad_term2 = np.dot(Qinv.T, C-B)
+        grad_term3 = np.dot(Qinv.T, np.dot(A_1, E.T)) + \
+                        np.dot(Qinv, np.dot(A_1, E))
+        gradA = grad_term1 + grad_term2 + grad_term3
+        set_entries(grad, A_1_cds, gradA)
+        set_entries(grad, A_2_cds, gradA)
+        set_entries(grad, A_T_1_cds, gradA.T)
+        set_entries(grad, A_T_2_cds, gradA.T)
+        return grad
+    R = 5
+    L = -20
+    U = 20
+    eps = 3e-2
+    N_iter = 100
+    X_init = np.zeros((cdim, cdim))
+    set_entries(X_init, D_Q_cds, D_Q)
+    set_entries(Dinv_cds, Dinv)
+    set_entries(I_1_cds, np.eye(dim))
+    set_entries(I_2_cds, np.eye(dim))
+    A_init = np.eye(dim)
+    set_entries(X_init, A_1_cds, A_init)
+    set_entries(X_init, A_2_cds, A_init)
+    set_entries(X_init, A_T_1_cds, A_init.T)
+    set_entries(X_init, A_T_2_cds, A_init.T)
+    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+                Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
+                N_iter, X_init=X_init)
+    print "X_lower\n", X_lower
+    if X_lower != None:
+        print "h(X_lower)\n", h(X_lower)
+    print "X_upper\n", X_upper
+    if X_upper != None:
+        print "h(X_upper)\n", h(X_upper)
 
 
 if __name__ == "__main__":
