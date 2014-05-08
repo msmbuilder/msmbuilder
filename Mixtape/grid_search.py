@@ -1,9 +1,13 @@
 from __future__ import print_function, absolute_import, division
+import os
 import sys
 import six
 import time
 import numpy as np
-
+from scipy.stats import sem
+from sklearn.externals.joblib import load, dump
+from sklearn.externals.joblib.logger import short_format_time
+ 
 from IPython.parallel import Client
 from IPython.display import clear_output
 
@@ -19,55 +23,64 @@ except ImportError as e:
     print('This module requires the latest development version (0.15) of sklearn', file=sys.stderr)
     raise e
 
+
 def _fit_and_score_helper(args):
+    import numpy as np
+    from sklearn.externals import six
+    from sklearn.externals.joblib import load
     from sklearn.cross_validation import _fit_and_score
+    args = list(args)
+    if isinstance(args[1], six.string_types):
+        args[1] = np.asarray(load(args[1], mmap_mode='r'))
     return _fit_and_score(*args)
 
 
-def _wait_interactive(ar, dt=1):
-    N = len(ar)
-    p = [0 for i in range(N)]
+def verbose_wait(amr, clientview, return_train_scores):
+    N = len(amr)
+    pending = set(amr.msg_ids)
+    while pending:
+        try:
+            clientview.wait(pending, 1e-3)
+        except parallel.TimeoutError:
+            pass
 
-    while not ar.ready():
-        stdouts = ar.stdout
-        if not any(stdouts):
-            continue
-        # clear_output doesn't do much in terminal environments
-        clear_output()
-        print("%4i/%i tasks finished after %4i s" % (ar.progress, N, ar.elapsed), end='')
-        engine_ids = [md['engine_id'] for md in ar._metadata]
-        line_cleared = False
-        for i, (eid, stdout) in enumerate(zip(engine_ids, ar.stdout)):
-            if eid is None:
-                eid = ''
-            new_stdout = stdout[p[i]:]
-            if new_stdout:
-                if not line_cleared:
-                    print()
-                line_cleared = True
-                print("[engine {0}]\n{1}".format(eid, new_stdout))
-                p[i] += len(new_stdout)
-        sys.stdout.flush()
-        time.sleep(dt)
+        n_completed = N - len(clientview.outstanding)
+        finished = pending.difference(clientview.outstanding)
+        pending = pending.difference(finished)
 
-    for i, (eid, stdout) in enumerate(zip(ar.engine_id, ar.stdout)):
-        new_stdout = stdout[p[i]:]
-        if new_stdout:
-            print("[engine {0}]\n{1}".format(eid, new_stdout))
-    print()
+        if len(finished) > 0:
+            print()
+
+        for msg_id in finished:
+            ar = clientview.get_result(msg_id)
+            for result in ar.result:
+                elapsed, params = result[-2], result[-1]
+                test_score = result[1] if return_train_scores else result[0]
+                left = '[CV engine={}] {}   '.format(ar.engine_id,
+                    ', '.join('{}={}'.format(k, v) for k, v in params.items()))
+                right = '  score = {:5f}  {}'.format(test_score, short_format_time(elapsed))
+                print(left + right.rjust(70-len(left), '-'))
+
+        else:
+            left = '\r[Parallel] {0:d}/{1:d}  tasks finished'.format(n_completed, N)
+            right = 'elapsed {0}         '.format(short_format_time(amr.elapsed))
+            print(left + right.rjust(71-len(left)), end='')
+            sys.stdout.flush()
+            time.sleep(1 + round(amr.elapsed) - amr.elapsed)
 
 
 class DistributedBaseSeachCV(BaseSearchCV):
     def __init__(self, estimator, scoring=None, loss_func=None,
                  score_func=None, fit_params=None, iid=True,
                  refit=True, cv=None, verbose=0, client=None,
-                 return_train_scores=True):
+                 return_train_scores=False, tmp_dir='.'):
         super(DistributedBaseSeachCV, self).__init__(
             estimator=estimator, scoring=scoring, loss_func=loss_func,
             score_func=score_func, iid=iid, refit=refit,
             cv=cv, verbose=verbose)
         self.client = client
         self.return_train_scores = return_train_scores
+        self.tmp_dir = tmp_dir
     
     def _fit(self, X, y, parameter_iterable):
         """Actual fitting,  performing the search over parameters."""
@@ -89,27 +102,47 @@ class DistributedBaseSeachCV(BaseSearchCV):
                                  % (len(y), n_samples))
             y = np.asarray(y)
         cv = check_cv(cv, X, y, classifier=is_classifier(estimator))
-
         base_estimator = clone(self.estimator)
-
+        verbose = self.verbose
         client = self.client
         if not isinstance(client, Client):
             client = Client(client)
 
-        view = client.load_balanced_view()
-        async = view.map(_fit_and_score_helper,
-                       ((clone(base_estimator), X, y, self.scorer_, train, test,
-                         self.verbose, parameters, self.fit_params,
-                         self.return_train_scores, True)
-                for parameters in parameter_iterable
-                for train, test in cv), block=False)
+        if verbose > 0:
+            print('Fitting %d folds for each of %d candidates, totalling %d fits on %d engines' % (
+                    len(cv), len(parameter_iterable), len(cv)*len(parameter_iterable),
+                    len(client)))
 
-        if self.verbose > 0:
-            _wait_interactive(async)
-        async.wait()
-        if self.verbose <= 0:
-            async.display_outputs()
-        out = async.result
+        if self.tmp_dir:
+            tmpfn = os.path.abspath(os.path.join(self.tmp_dir,
+                'temp-{:05d}.pkl'.format(np.random.randint(1e5))))
+            clean_me_up = dump(X, tmpfn)
+            # Warm up the data to avoid concurrent disk access in
+            # multiple children processes
+            load(tmpfn, mmap_mode='r').max()
+            Xscatter = tmpfn
+        else:
+            Xscatter = X
+
+        try:
+            view = client.load_balanced_view()
+            async = view.map(_fit_and_score_helper,
+                             ((clone(base_estimator), Xscatter, y, self.scorer_, train, test,
+                               self.verbose, parameters, self.fit_params,
+                               self.return_train_scores, True)
+                    for parameters in parameter_iterable
+                    for train, test in cv), block=False, chunksize=1)
+
+            if verbose > 0:
+                verbose_wait(async, view, self.return_train_scores)
+            async.wait()
+            if verbose > 0:
+                async.display_outputs()
+            out = async.result
+        finally:
+            if self.tmp_dir:
+                for fn in clean_me_up:
+                    os.unlink(fn)
 
         # Out is a list of triplet: score, estimator, n_test_samples
         n_fits = len(out)
@@ -287,12 +320,12 @@ class DistributedGridSearchCV(DistributedBaseSeachCV):
     def __init__(self, estimator, param_grid, scoring=None, loss_func=None,
                  score_func=None, fit_params=None, iid=True,
                  refit=True, cv=None, verbose=0, client=None,
-                 return_train_scores=True):
+                 return_train_scores=False, tmp_dir='.'):
         super(DistributedGridSearchCV, self).__init__(
             estimator, scoring=scoring, loss_func=loss_func,
             score_func=score_func, fit_params=fit_params, iid=iid,
             refit=refit, cv=cv, verbose=verbose, client=client,
-            return_train_scores=return_train_scores)
+            return_train_scores=return_train_scores, tmp_dir=tmp_dir)
         self.param_grid = param_grid
         _check_param_grid(param_grid)
 
@@ -312,3 +345,21 @@ class DistributedGridSearchCV(DistributedBaseSeachCV):
 
         """
         return self._fit(X, y, ParameterGrid(self.param_grid))
+
+
+if __name__ == '__main__':
+    from sklearn.cluster import KMeans
+    from sklearn.cross_validation import KFold
+    X = np.random.RandomState(0).randn(200000, 200)
+
+    print('X (MB)', X.nbytes / float(1024*1024))
+
+    # cv = KFold(len(X), n_folds=5)
+    # grid2 = GridSearchCV(SVC(), n_jobs=-1, verbose=10, cv=cv, param_grid={'C': range(1,100)})
+    # grid2.fit(X, y)
+
+    cv = KFold(len(X), n_folds=5)
+    grid1 = DistributedGridSearchCV(KMeans(max_iter=5, n_init=1), verbose=1,
+        cv=cv, refit=False, tmp_dir='.', param_grid={'n_clusters': range(100, 101)})
+    grid1.fit(X)
+
