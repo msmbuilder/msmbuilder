@@ -3,6 +3,9 @@ import mixtape.tica
 
 
 class TICAScoreMixin(object):
+    """Provides compare() and summarize() functionality for TICAOptimizer.
+    Uses variational eigenvalue comparison to rank models.
+    """
     def compare(self):
         return is_better(self.model.eigenvalues_, self.old_model.eigenvalues_)
 
@@ -12,6 +15,7 @@ class TICAScoreMixin(object):
 
 
 class TICAOptimizer(TICAScoreMixin):
+    """Optimize TICA objective function by swapping active features one-by-one."""
     def __init__(self, subset_featurizer, trajectories):
         self.trj0 = trajectories[0][0]
         
@@ -23,16 +27,15 @@ class TICAOptimizer(TICAScoreMixin):
         return self.subset_featurizer.subset
     
     def build_full(self, trajectories):
+        """Featurize all active subset and build a tICA model."""
         tica = mixtape.tica.tICA()
         features = map(lambda trj: self.subset_featurizer.featurize(trj), trajectories)
         unused_output = map(lambda X: tica.partial_fit(X), features)
         
         self.model, self.features = tica, features
 
-    def swap_feature(self, features, changed_feature, to_replace, new_value):
-        pass
-
     def build_partial(self, trajectories, to_replace, new_value):
+        """Featurize single proposal and build a tICA model."""
         tica = mixtape.tica.tICA()
         self.old_feature = map(lambda X: X[:, [to_replace]].copy(), self.features)
         new_feature = map(lambda trj: self.subset_featurizer.featurize_single(trj, new_value), trajectories)
@@ -43,11 +46,13 @@ class TICAOptimizer(TICAScoreMixin):
         
 
     def revert(self):
+        """Revert to cached features and TICA model."""
         self.model = self.old_model
         self.subset_featurizer.set(self.old_subset)
         set_feature(self.features, self.old_feature, self.to_replace)        
         
     def propose(self, trajectories):
+        """Propose (and store) a single feature swap."""
         to_replace, new_value, old_value = self.subset_featurizer.propose()
         self.to_replace = to_replace
         
