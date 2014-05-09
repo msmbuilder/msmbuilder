@@ -42,6 +42,7 @@ for approximate solution of sparse semidefinite programs.
 #-----------------------------------------------------------------------------
 import scipy
 import scipy.sparse.linalg as linalg
+import scipy.linalg
 import numpy.random as random
 import numpy as np
 import pdb
@@ -184,11 +185,12 @@ class BoundedTraceSDPHazanSolver(object):
             # Do simple back-tracking line search
             scale_down = 0.7
             f_X = f(X)
+            gamma_best = gamma
+            gamma_best_proj = gamma
             f_best = f((1.-gamma)*X + gamma*step)
+            X_prop = (1 - gamma_best) * X + gamma_best*step
             f_best_proj = f_X
             N_tries = 30
-            gamma_best = gamma
-            gamma_best_proj = jamma
             for count in range(N_tries):
                 if f_best < f_X and count > N_tries:
                     break
@@ -197,15 +199,19 @@ class BoundedTraceSDPHazanSolver(object):
                 if f_best < f_cur:
                     f_best = f_cur
                     gamma_best = gamma
+                    X_prop = (1.-gamma)*X + gamma*step
                 #print "\t\tf_cur: ", f_cur
                 X_proj = X + gamma * grad
-                f_cur_proj =
+                X_proj = scipy.linalg.sqrtm(np.dot(X_proj.T, X_proj))
+                f_cur_proj = f(X_proj)
+                if f_best < f_cur_proj:
+                    f_best = f_cur_proj
+                    X_prop = X_proj
             if DEBUG:
                 print "\tf(X):\n", f(X)
                 print "\talphaj:\n", alphaj
                 print "\tvk vk.T:\n", np.outer(vj,vj)
                 print "\tstep:\n", step
-            X_prop = (1 - gamma_best) * X + gamma_best*step
             if f(X_prop) > f(X):
                 X = X_prop
             print "\t\tgamma: ", gamma_best
