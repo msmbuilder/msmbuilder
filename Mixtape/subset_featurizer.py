@@ -141,11 +141,11 @@ class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
 
 class SubsetAtomPairs(BaseSubsetFeaturizer):
     """Subset featurizer based on atom pair distances."""
-    def __init__(self, possible_pair_indices, reference_traj, periodic=False, alpha=1.0):
+    def __init__(self, possible_pair_indices, reference_traj, periodic=False, exponent=1.0):
         
         self.possible_pair_indices = possible_pair_indices
         self.periodic = periodic
-        self.alpha = alpha
+        self.exponent = exponent
 
     @property
     def n_max(self):
@@ -153,7 +153,7 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
 
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
-        return d ** self.alpha
+        return d ** self.exponent
 
     @property
     def pair_indices(self):
