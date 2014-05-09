@@ -220,12 +220,6 @@ class ListFeaturizer(BaseSubsetFeaturizer):
     feature_weights : np.ndarray, dtype=float, shape=(len(featurizers)), optional, default=None
         If not None, use feature_weights as probability distribution for weighting
         different classes of features
-    
-    To Do
-    -----
-    Allow weighting the classes of features.  Currently the proposals are
-    uniform on the total number of possible features, meaning that
-    featurizers with larger `n_max` will be sampled more thoroughly.
     """
     
     def __init__(self, n_features, featurizers, feature_weights=None):
