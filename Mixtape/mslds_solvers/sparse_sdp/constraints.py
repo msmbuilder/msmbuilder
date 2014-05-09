@@ -1,3 +1,24 @@
+import numpy as np
+
+def simple_equality_constraint():
+    """
+    Since constraints that specify the problem
+
+        feasibility(X)
+        subject to
+          x_11 + 2 x_22 == 1.5
+          Tr(X) = x_11 + x_22 == 1.
+
+    """
+    dim = 2
+    As, bs = [], []
+    Cs = [np.array([[ 1.,  0.],
+                    [ 0.,  2.]])]
+    ds = [1.5]
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+    return dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
+
 def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
     c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))
     return c

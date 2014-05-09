@@ -1,15 +1,13 @@
 import numpy as np
-import scipy
+import scipy.misc
 """
 Various Useful penalty Functions.
 
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 
-TODOs: Too many of the penalties below are similar. Here are some
-simplifying steps.
-
-    -) Remove M from argument of functions
+TODO:
+    -) Factor common penalty calculation out into separate function
 """
 
 def compute_scale(m, n, p, q, eps):
@@ -36,7 +34,6 @@ def compute_scale(m, n, p, q, eps):
 
 def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     """
-    TODO: Make this more numerically stable
     Computes
     f(X) = -(1/M) log(sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
                     + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|)
@@ -76,12 +73,12 @@ def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     for i in range(m):
         Ai = As[i]
         bi = bs[i]
-        penalties[i] = M*(np.trace(np.dot(Ai,X)) - bi)
+        penalties[i] = (np.trace(np.dot(Ai,X)) - bi)
     # Handle linear equalities
     for j in range(n):
         Cj = Cs[j]
         dj = ds[j]
-        penalties[j+m] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
+        penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
     # Handle convex inequalities
     for k in range(p):
         Fk = Fs[k]
@@ -92,69 +89,56 @@ def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
         penalties[l+p+m+n] = np.abs(Gl(X))
     retval = 0.
     if m + n + p + q > 0:
-        retval = scipy.misc.logsumexp(np.array(penalties), axis=0)
-        retval = -(1.0/M) * np.exp(retval)
+        retval = scipy.misc.logsumexp(M*np.array(penalties), axis=0)
+        retval = -(1.0/M) * retval
     return retval
 
-def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
-        Gs, gradGs, eps):
+def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
     """
-   Computes grad f(X) = - c' / c where
-   c' = (sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * Ai.T
-       + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|) * sgn(Tr(Cj,X) - dj) * Cj.T
-       + sum_{k=1}^p exp(M*f_k(X)) * f_k'(X)
-       + sum_{l=1}^q exp(M*|g_l(X)|) * sgn(g_l(X)) * g_l'(X))
+   Computes grad f(X) = -(1/M) * c' / c where
+   c' = (sum_{i=1}^m exp(M*(Tr(Ai, X) - bi)) * (M*Ai.T)
+       + sum_{j=1}^n exp(M*|Tr(Cj,X) - dj|) * sgn(Tr(Cj,X) - dj) * (M*Cj.T)
+       + sum_{k=1}^p exp(M*f_k(X)) * (M*f_k'(X))
+       + sum_{l=1}^q exp(M*|g_l(X)|) * sgn(g_l(X)) * (M*g_l'(X)))
    c  = (sum_{i=1}^m exp(M*(Tr(Ai,X) - bi))
        + sum_{i=1}^n exp(M*|Tr(Cj,X) - dj|)
        + sum_{k=1}^p exp(M*f_k(X))
        + sum_{l=1}^q exp(M*|g_l(X)|))
 
-    Need Ai and Cj to be symmetric real matrices and f_k, g_l to be convex
-    functions. The exponent terms can become large and cause overflow
-    issues. As a result, we need to log-sum-exp the exponent terms to
-    aboid this problem.
+    As[i] and Cs[j] should be symmetric real matrices and Fs[k], Gs[l] to
+    be convex functions.
     """
     (dim, _) = np.shape(X)
-    m = len(As)
-    n = len(Cs)
-    p = len(Fs)
-    q = len(Gs)
+    m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
     retval = 0.
     num_mats = []
     if m+n+p+q <= 0:
         return None
     log_nums = np.zeros(m+n+p+q)
     for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        num_mats.append(M*Ai.T)
-        log_nums[i] = M*(np.trace(np.dot(Ai,X)) - bi)
+        log_nums[i] = M*(np.trace(np.dot(As[i],X)) - bs[i])
+        num_mats.append(M*As[i].T)
     for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        val = np.trace(np.dot(Cj,X)) - dj
+        log_nums[j+m] = M*np.abs(np.trace(np.dot(Cs[j],X)) - ds[j])
+        val = np.trace(np.dot(Cs[j],X)) - ds[j]
         if val < 0 :
             sgn = -1.
         else:
             sgn = 1.
-        num_mats.append(sgn*Cj.T)
-        log_nums[j+m] = M*np.abs(np.trace(np.dot(Cj,X)) - dj)
+        num_mats.append(sgn*M*Cs[j].T)
     for k in range(p):
-        Fk = Fs[k]
-        gradFk = gradFs[k]
-        num_mats.append(gradFk(X))
-        log_nums[k+n+m] = M*Fk(X)
+        log_nums[k+n+m] = M*Fs[k](X)
+        num_mats.append(M*gradFs[k](X))
     for l in range(q):
-        Gl = Gs[l]
-        gradGl = gradGs[l]
-        val = Gl(X)
+        log_nums[l+n+m+p] = M*np.abs(Gl(X))
+        val = Gs[l](X)
         if val < 0 :
             sgn = -1.
         else:
             sgn = 1.
-        num_mats.append(sgn*gradGl(X))
-        log_nums[l+n+m+p] = M*np.abs(Gl(X))
-    log_denom = scipy.misc.logsumexp(np.array(log_nums), axis=0)
+        num_mats.append(sgn*M*gradGs[l](X))
+    log_nums = np.array(log_nums)
+    log_denom = scipy.misc.logsumexp(log_nums, axis=0)
 
     # Now subtract from numerator
     log_nums -= log_denom
@@ -169,11 +153,11 @@ def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
     grad = -(1.0/M) * grad
     return grad
 
-def neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
-    penalties = neg_max_penalties(X, M, As, bs, Cs, ds, Fs, Gs)
+def neg_max_penalty(X, As, bs, Cs, ds, Fs, Gs):
+    penalties = neg_max_penalties(X, As, bs, Cs, ds, Fs, Gs)
     return -np.amax(penalties)
 
-def neg_max_penalties(X, M, As, bs, Cs, ds, Fs, Gs):
+def neg_max_penalties(X, As, bs, Cs, ds, Fs, Gs):
     """
     Computes penalties
 
@@ -213,7 +197,7 @@ def neg_max_penalties(X, M, As, bs, Cs, ds, Fs, Gs):
         penalties[l+p+m+n] = np.abs(Gl(X))
     return penalties
 
-def neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs,
+def neg_max_grad_penalty(X, As, bs, Cs, ds, Fs, gradFs, Gs,
         gradGs, eps):
     """
     A more complicated version of neg_max_grad_penalty that allows for
@@ -246,7 +230,7 @@ def neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs,
     n = len(Cs)
     p = len(Fs)
     q = len(Gs)
-    penalties = neg_max_penalties(X, M, As, bs, Cs, ds, Fs, Gs)
+    penalties = neg_max_penalties(X, As, bs, Cs, ds, Fs, Gs)
     inds = [ind for ind in range(n+m+p+q) if penalties[ind] > eps]
     grad = np.zeros(np.shape(X))
     pen_sum = 0

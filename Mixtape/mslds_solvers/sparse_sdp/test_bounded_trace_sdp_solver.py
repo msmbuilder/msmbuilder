@@ -1,5 +1,6 @@
 from bounded_trace_sdp_solver import BoundedTraceSolver
 from objectives import neg_sum_squares, grad_neg_sum_squares
+from constraints import simple_equality_constraint
 import time
 import scipy
 import numpy as np
@@ -44,41 +45,13 @@ def test1():
         print("\tError Tolerance 1/%d = %f" % (N_iter, 1./N_iter))
         assert np.abs(fX - (-1./dim)) < 1./N_iter
 
-def simple_equality_constraint(N_iter):
-    """
-    Check that the bounded trace implementation can handle low dimensional
-    equality type constraints for the given penalty function.
-
-    With As and bs as below, we specify the problem
-
-        feasibility(X)
-        subject to
-          x_11 + 2 x_22 == 1.5
-          Tr(X) = x_11 + x_22 == 1.
-
-    We should find penalty(X) >= -eps, and that the above constraints have
-    a solution
-    """
-    dim = 2
-    eps = 1./N_iter
-    As = []
-    bs = []
-    Cs = [np.array([[ 1.,  0.],
-                    [ 0.,  2.]])]
-    ds = [1.5]
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    return dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
-
 def test2a():
     """
     Check equality constraints for log_sum_exp constraints
     """
     N_iter = 50
-    dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-           simple_equality_constraint(N_iter)
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint()
     def f(X):
         return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
@@ -654,17 +627,16 @@ def test9a():
         #pdb.set_trace()
 
 
-def run_experiment(f, gradf, dim, N_iter, alphas=None,DEBUG=False):
-    fudge_factor = 5.0
+def run_experiment(f, gradf, dim, N_iter, debug=False):
     eps = 1./N_iter
     B = BoundedTraceSolver()
     start = time.clock()
-    X = B.solve(f, gradf, dim, N_iter, DEBUG=DEBUG, alphas=alphas)
+    X = B.solve(f, gradf, dim, N_iter, debug=debug)
     elapsed = (time.clock() - start)
     fX = f(X)
     print "\tX:\n", X
     print "\tf(X) = %f" % fX
-    SUCCEED = not (fX < -fudge_factor * eps)
+    SUCCEED = not (fX < -eps)
     print "\tSUCCEED: " + str(SUCCEED)
     print "\tComputation Time (s): ", elapsed
     return X, fX, SUCCEED
