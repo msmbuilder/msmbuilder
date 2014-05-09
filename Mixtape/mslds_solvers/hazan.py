@@ -101,15 +101,11 @@ class BoundedTraceSDPHazanSolver(object):
                 if Cf != None:
                     epsj = Cf/(j+1)
                 else:
-                    epsj = 1e-6
+                    epsj = 1e-9
                 # We usually try the following eigenvector finder,
                 # which is based off an Implicitly Restarted
                 # Arnoldi Method (essentially a stable version of
                 # Lanczos's algorithm)
-
-                #_, vj = linalg.eigsh(grad, k=1, tol=epsj, sigma=0.,
-                #        which='LM') # Gives errors for positive eigs
-                # TODO: Make this more robust
 
                 try:
                     # shift matrices upwards by a positive quantity to
@@ -157,12 +153,7 @@ class BoundedTraceSDPHazanSolver(object):
                             vj = vs[:,k-1]
                             print "Picked %d-th eigenvalue" % k
                             break
-                    #import pdb
-                    #pdb.set_trace()
                     if vj == None:
-                    #import pdb
-                    #pdb.set_trace()
-                    # Attempt to find fis
                         print "switching to divide and conquer"
                         ws, vs = np.linalg.eigh(grad)
                         i = np.argmax(np.real(ws))
@@ -172,13 +163,13 @@ class BoundedTraceSDPHazanSolver(object):
                 i = np.argmax(np.real(ws))
                 vj = vs[:,i]
 
-            # Avoid strange errors with complex numbers
-            vj = np.real(vj)
-            if alphas == None:
-                #alphaj = min(1.,2./(j+1))
-                alphaj = min(.5,2./(j+1))
-            else:
-                alphaj = alphas[j]
+            # We don't really use Cf anymore...
+            ## Avoid strange errors with complex numbers
+            #vj = np.real(vj)
+            #if alphas == None:
+            #    alphaj = min(.5,2./(j+1))
+            #else:
+            #    alphaj = alphas[j]
             O = np.outer(vj, vj)
             step = (np.outer(vj,vj) - X)
             gamma = 1.0
@@ -191,20 +182,26 @@ class BoundedTraceSDPHazanSolver(object):
             X_prop = (1 - gamma_best) * X + gamma_best*step
             f_best_proj = f_X
             N_tries = 30
+            best_origin = None
             for count in range(N_tries):
                 if f_best < f_X and count > N_tries:
                     break
                 gamma = scale_down * gamma
                 f_cur = f((1.-gamma)*X + gamma*step)
                 if f_best < f_cur:
+                    best_origin = 'Hazan'
                     f_best = f_cur
                     gamma_best = gamma
                     X_prop = (1.-gamma)*X + gamma*step
-                #print "\t\tf_cur: ", f_cur
+                # The following lines implement projected gradient
+                # in the backtracking line search. This will be
+                # inefficient for large matrices. Figure out a way
+                # to get rid of it ......
                 X_proj = X + gamma * grad
                 X_proj = scipy.linalg.sqrtm(np.dot(X_proj.T, X_proj))
                 f_cur_proj = f(X_proj)
                 if f_best < f_cur_proj:
+                    best_origin = 'Proj'
                     f_best = f_cur_proj
                     X_prop = X_proj
             if DEBUG:
@@ -216,6 +213,7 @@ class BoundedTraceSDPHazanSolver(object):
                 X = X_prop
             print "\t\tgamma: ", gamma_best
             print "\t\t\tf(X): ", f(X)
+            print "\t\t\tBest Origin: ", best_origin
             #X = X + alphaj * (np.outer(vj,vj) - X)
         import pdb
         pdb.set_trace()
