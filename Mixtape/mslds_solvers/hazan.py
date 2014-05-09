@@ -106,7 +106,6 @@ class BoundedTraceSDPHazanSolver(object):
                 # which is based off an Implicitly Restarted
                 # Arnoldi Method (essentially a stable version of
                 # Lanczos's algorithm)
-
                 try:
                     # shift matrices upwards by a positive quantity to
                     # avoid common issues with small eigenvalues

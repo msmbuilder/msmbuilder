@@ -61,7 +61,7 @@ def testQ():
     """
     Specifies the convex program required for Q optimization.
 
-    minimize -log det R
+    minimize -log det R + Tr(RB)
           --------------
          |D-ADA.T  I    |
     X =  |   I     R    |
@@ -137,7 +137,18 @@ C =  | I        _    _ |
     # - log det R + Tr(RB)
     def h(X):
         R = get_entries(X, R_cds)
-        return -np.log(np.linalg.det(R)) + np.trace(np.dot(R, B))
+        # Move this out...
+        np.seterr(divide='raise')
+        np.seterr(invalid='raise')
+        np.seterr(over='raise')
+        np.seterr(divide='raise')
+        np.seterr(invalid='raise')
+        np.seterr(over='raise')
+        try:
+            val = -np.log(np.linalg.det(R)) + np.trace(np.dot(R, B))
+        except FloatingPointError:
+            return -np.inf
+        return val
     # grad - log det R = -R^{-1} = -Q (see Boyd and Vandenberge, A4.1)
     # grad tr(RB) = B^T
     def gradh(X):
@@ -149,7 +160,6 @@ C =  | I        _    _ |
         set_entries(grad, block_1_R_cds, gradR)
         return grad
 
-    R = 5
     L = -20
     U = 20
     eps = 3e-2
@@ -162,6 +172,7 @@ C =  | I        _    _ |
     set_entries(X_init, D_ADA_T_cds, D_ADA_T)
     set_entries(X_init, I_1_cds, np.eye(dim))
     set_entries(X_init, I_2_cds, np.eye(dim))
+    R = 2 * np.trace(X_init)
     import pdb
     pdb.set_trace()
     upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
@@ -322,6 +333,6 @@ C =  | _     D^{-1}  _   _ |
 
 if __name__ == "__main__":
     #test1()
-    #testQ()
-    testA()
+    testQ()
+    #testA()
     pass
