@@ -89,7 +89,7 @@ C =  | -        _    0 |
      | 0        0    _ |
       -------------
     """
-    constraints += [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
+    constraints = [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
             ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
 
     """
@@ -104,7 +104,7 @@ C =  | I        _    _ |
     D_ADA_T = D - np.dot(A, np.dot(D, A.T))
     I_1_cds = (0, dim, dim, 2*dim)
     I_2_cds = (dim, 2*dim, 0, dim)
-    constraints = [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
+    constraints += [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
             (I_2_cds, np.eye(dim))]
 
     # Add constraints to Gs
@@ -179,7 +179,7 @@ def testA():
     Specifies a simple version of the convex program required for
     A optimization.
 
-    max Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
 
           --------------------
          | D-Q    A           |
@@ -205,6 +205,7 @@ def testA():
     # Generate random data
     D = np.eye(dim)
     Q = 0.5 * np.eye(dim)
+    Qinv = np.linalg.inv(Q)
     C = 2 * np.eye(dim)
     B = np.eye(dim)
     E = np.eye(dim)
@@ -218,7 +219,7 @@ C =  | _        _    0   0 |
      | 0        0    _   _ |
       ----------------------
     """
-    constraints += [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
+    constraints = [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
             ((0, 2*dim, 2*dim, 4*dim), np.zeros((2*dim, 2*dim)))]
 
     """
@@ -236,7 +237,7 @@ C =  | _     D^{-1}  _   _ |
     Dinv = np.linalg.inv(D)
     I_1_cds = (2*dim, 3*dim, 2*dim, 3*dim)
     I_2_cds = (3*dim, 4*dim, 3*dim, 4*dim)
-    constraints = [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
+    constraints += [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
             (I_1_cds, np.eye(dim)), (I_2_cds, np.eye(dim))]
 
     # Add constraints to Gs
@@ -257,7 +258,9 @@ C =  | _     D^{-1}  _   _ |
           --------------------
     """
     A_1_cds = (0, dim, dim, 2*dim)
+    A_T_1_cds = (dim, 2*dim, 0, dim)
     A_2_cds = (2*dim, 3*dim, 3*dim, 4*dim)
+    A_T_2_cds = (3*dim, 4*dim, 2*dim, 3*dim)
     linear_constraints = [(1., A_1_cds, np.zeros((dim, dim)), A_2_cds)]
 
     def linear_regions(X):
@@ -292,16 +295,16 @@ C =  | _     D^{-1}  _   _ |
         set_entries(grad, A_T_2_cds, gradA.T)
         return grad
     R = 5
-    L = -20
-    U = 20
-    eps = 3e-2
+    L = 0
+    U = 5
+    eps = 1e-1
     N_iter = 100
     X_init = np.zeros((cdim, cdim))
     set_entries(X_init, D_Q_cds, D_Q)
-    set_entries(Dinv_cds, Dinv)
-    set_entries(I_1_cds, np.eye(dim))
-    set_entries(I_2_cds, np.eye(dim))
-    A_init = np.eye(dim)
+    set_entries(X_init, Dinv_cds, Dinv)
+    set_entries(X_init, I_1_cds, np.eye(dim))
+    set_entries(X_init, I_2_cds, np.eye(dim))
+    A_init = (1./np.sqrt(2)) * np.eye(dim)
     set_entries(X_init, A_1_cds, A_init)
     set_entries(X_init, A_2_cds, A_init)
     set_entries(X_init, A_T_1_cds, A_init.T)
@@ -320,5 +323,5 @@ C =  | _     D^{-1}  _   _ |
 if __name__ == "__main__":
     #test1()
     #testQ()
-    testSchurComplement()
+    testA()
     pass

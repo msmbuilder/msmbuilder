@@ -699,7 +699,7 @@ if __name__ == "__main__":
     # Test simple inequality and equality constraints
     #test3a()
     #test3b()
-    #test3c()
+    test3c()
     ##test3d()
 
     # Test quadratic inequality constraints

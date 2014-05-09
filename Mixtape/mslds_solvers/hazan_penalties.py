@@ -63,41 +63,63 @@ def batch_equals_grad(X, A, x_low, x_hi, y_low, y_hi):
     grad[x_low:x_hi,y_low:y_hi] = grad_piece
     return grad
 
+Scale = 2.0
+L1Scale = 0.05
 def many_batch_equals(X, constraints):
     sum_c = 0
     for coord, mat in constraints:
-        c = np.sum(np.abs(get_entries(X, coord) - mat))
+        #c = np.sum(np.abs(get_entries(X, coord) - mat))
+        c = np.sum((get_entries(X, coord) - mat)**2)
+        c += L1Scale * np.sum(np.abs(get_entries(X, coord) - mat))
         sum_c += c
-    return sum_c
+    return Scale * sum_c
 
 def grad_many_batch_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for coord, mat in constraints:
-        grad_piece = np.sign(get_entries(X, coord) - mat)
+        #grad_piece = np.sign(get_entries(X, coord) - mat)
+        grad_piece = 2*(get_entries(X, coord) - mat)
+        grad_piece += L1Scale * np.sign(get_entries(X, coord) - mat)
         set_entries(grad, coord, grad_piece)
-    return grad
+    return Scale * grad
 
 def batch_linear_equals(X, c, P_coords, Q, R_coords):
     """
     Performs operation R_coords = c * P_coords + Q
     """
-    c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
+    #c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
+    #                - get_entries(X, R_coords)))
+    c += np.sum(np.abs(c * get_entries(X, P_coords) + Q
                     - get_entries(X, R_coords)))
+    c += L1Scale * np.sum((c * get_entries(X, P_coords) + Q
+                    - get_entries(X, R_coords))**2)
     return c
 
 def many_batch_linear_equals(X, constraints):
     sum_c = 0
     for c, P_coords, Q, R_coords in constraints:
-        c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
+        #c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
+        #                - get_entries(X, R_coords)))
+        c = np.sum((c * get_entries(X, P_coords) + Q
+                        - get_entries(X, R_coords))**2)
+        c += L1Scale * np.sum(np.abs(c * get_entries(X, P_coords) + Q
                         - get_entries(X, R_coords)))
         sum_c += c
     return sum_c
 
 def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
     grad = np.zeros(np.shape(X))
-    grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
+    #grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
+    #                    - get_entries(X, R_coords))
+    #grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
+    #                    - get_entries(X, R_coords))
+    grad_piece_P = c * 2*(c * get_entries(X, P_coords) + Q
                         - get_entries(X, R_coords))
-    grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
+    grad_piece_R = - 2*(c * get_entries(X, P_coords) + Q
+                        - get_entries(X, R_coords))
+    grad_piece_P += L1Scale * c * np.sign(c * get_entries(X, P_coords) + Q
+                        - get_entries(X, R_coords))
+    grad_piece_R += L1Scale * - np.sign(c * get_entries(X, P_coords) + Q
                         - get_entries(X, R_coords))
     set_entries(grad, P_coords, grad_piece_P)
     set_entries(grad, R_coords, grad_piece_R)
@@ -106,9 +128,17 @@ def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
 def grad_many_batch_linear_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for c, P_coords, Q, R_coords in constraints:
-        grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
+        #grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
+        #                    - get_entries(X, R_coords))
+        #grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
+        #                    - get_entries(X, R_coords))
+        grad_piece_P = c * 2*(c * get_entries(X, P_coords) + Q
                             - get_entries(X, R_coords))
-        grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
+        grad_piece_R = - 2*(c * get_entries(X, P_coords) + Q
+                            - get_entries(X, R_coords))
+        grad_piece_P += L1Scale*c*np.sign(c * get_entries(X, P_coords) + Q
+                            - get_entries(X, R_coords))
+        grad_piece_R += L1Scale * -np.sign(c * get_entries(X, P_coords) + Q
                             - get_entries(X, R_coords))
         set_entries(grad, P_coords, grad_piece_P)
         set_entries(grad, R_coords, grad_piece_R)
@@ -283,10 +313,10 @@ def neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
 
 def neg_max_penalties(X, M, As, bs, Cs, ds, Fs, Gs):
     """
-    Computes penalty
+    Computes penalties
 
-     -max(max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|},
-            max_k {Fk(x)}, max_l {|Gl(x)|})
+     (max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|},
+      max_k {Fk(x)}, max_l {|Gl(x)|})
 
     """
     (dim, _) = np.shape(X)

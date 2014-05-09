@@ -49,6 +49,7 @@ import time
 from numbers import Number
 from hazan_penalties import *
 from hazan_utils import *
+import scipy.optimize
 
 class BoundedTraceSDPHazanSolver(object):
     """
@@ -80,11 +81,15 @@ class BoundedTraceSDPHazanSolver(object):
             The curvature constant of function f (Optional).
         """
         v = random.rand(dim, 1)
+        # orthonormalize v
+        v = v / np.linalg.norm(v)
         if X_init == None:
             X = np.outer(v, v)
         else:
             X = np.copy(X_init)
-        X /= np.trace(X)
+        #X /= np.trace(X)
+        import pdb
+        pdb.set_trace()
         for j in range(N_iter):
             grad = gradf(X)
             print "\tIteration %d" % j
@@ -95,7 +100,7 @@ class BoundedTraceSDPHazanSolver(object):
                 if Cf != None:
                     epsj = Cf/(j+1)
                 else:
-                    epsj = 0
+                    epsj = 1e-6
                 # We usually try the following eigenvector finder,
                 # which is based off an Implicitly Restarted
                 # Arnoldi Method (essentially a stable version of
@@ -173,13 +178,39 @@ class BoundedTraceSDPHazanSolver(object):
                 alphaj = min(.5,2./(j+1))
             else:
                 alphaj = alphas[j]
-            step = alphaj * (np.outer(vj,vj) - X)
+            O = np.outer(vj, vj)
+            step = (np.outer(vj,vj) - X)
+            gamma = 1.0
+            # Do simple back-tracking line search
+            scale_down = 0.7
+            f_X = f(X)
+            f_best = f((1.-gamma)*X + gamma*step)
+            f_best_proj = f_X
+            N_tries = 30
+            gamma_best = gamma
+            gamma_best_proj = jamma
+            for count in range(N_tries):
+                if f_best < f_X and count > N_tries:
+                    break
+                gamma = scale_down * gamma
+                f_cur = f((1.-gamma)*X + gamma*step)
+                if f_best < f_cur:
+                    f_best = f_cur
+                    gamma_best = gamma
+                #print "\t\tf_cur: ", f_cur
+                X_proj = X + gamma * grad
+                f_cur_proj =
             if DEBUG:
                 print "\tf(X):\n", f(X)
                 print "\talphaj:\n", alphaj
                 print "\tvk vk.T:\n", np.outer(vj,vj)
                 print "\tstep:\n", step
-            X = X + alphaj * (np.outer(vj,vj) - X)
+            X_prop = (1 - gamma_best) * X + gamma_best*step
+            if f(X_prop) > f(X):
+                X = X_prop
+            print "\t\tgamma: ", gamma_best
+            print "\t\t\tf(X): ", f(X)
+            #X = X + alphaj * (np.outer(vj,vj) - X)
         import pdb
         pdb.set_trace()
         return X
@@ -301,9 +332,10 @@ class GeneralSDPHazanSolver(object):
         assuming
             L <= h(X) <= U
 
-        Solution of this problem with Frank-Wolfe methods requires
-        two transformations. For the first, we normalize the trace
-        upper bound Tr(X) <= R by performing change of variable
+        where h is convex.  Solution of this problem with Frank-Wolfe
+        methods requires two transformations. For the first, we normalize
+        the trace upper bound Tr(X) <= R to Tr(X) <= 1 by performing
+        change of variable
 
             X := X / R
 
@@ -319,60 +351,57 @@ class GeneralSDPHazanSolver(object):
             h(X)        := h(R * X)
             grad h(X)   := R * grad h(R * X)
 
-        After the transformation, we have Tr(X) <= 1.  We assume that L
-        <= h(X) <= U.  The next required operation is binary search.
+        To transform inequality Tr(X) <= 1 to Tr(X) == 1, we perform
+        change of variable
+
+        Y  := [[X,    0     ],
+               [0, 1 - tr(X)]]
+
+        Y is PSD if and only if X is PSD and y is real and nonnegative.
+        The constraint that Tr Y = 1 is true if and only if Tr X <= 1.
+        We transform the origin constraints by
+
+         A_i := [[A_i, 0],  C_i := [[C_i, 0],
+                 [ 0,  0]]          [ 0,  0]]
+
+        f_k(Y)      := f_k(X)
+        grad f_k(Y) := [[ grad f_k(X), 0], # Multiply this by 1/R?
+                        [      0     , 0]]
+        g_l(Y)      := g_l(X)
+        grad g_l(Y) := [[ grad g_l(X), 0], # Multiply this by 1/R?
+                        [      0     , 0]]
+
+        h(Y)        := h(X)
+        grad h(Y)   := [[ grad h(X), 0], # Multiply this by 1/R?
+                        [      0   , 0]]
+
+        Now we can constrain Tr(Y) == 1.  We assume that L
+        <= h(Y) <= U.  The next required operation is binary search.
         Choose value alpha \in [U,L]. We ascertain whether alpha is a
         feasible value of h(X) by performing two subproblems:
 
         (1)
         Feasibility of X
         subject to
-            Tr(A_i X) <= b_i, Tr(C_i X) == d_i
-            f_k(X) <= 0, g_l(X) == 0
-            L <= h(X) <= alpha => h(x) - alpha <= 0, -h(x) + L <= 0
-            Tr(X) <= 1
+            Tr(A_i Y) <= b_i, Tr(C_i Y) == d_i
+            f_k(Y) <= 0, g_l(Y) == 0
+            L <= h(Y) <= alpha
+            Tr(Y) == 1
 
         and
 
         (2)
-        Feasibility of X
-        subject to
-            Tr(A_i X) <= b_i, Tr(C_i X) == d_i
-            f_k(X) <= 0, g_l(X) == 0
-            alpha <= h(X) <= U => -h(X) + alpha <= 0, h(X) - U <= 0
-            Tr(X) <= 1
-
-        If problem (1) is feasible, then we know that the original problem
-        has a solution in range [L, alpha]. If problem (2) is feasible,
-        then the original problem has solution in range [alpha, U]. We can
-        use these indicators to perform binary search to find optimum
-        alpha*. Thus, we need only solve the feasibility subproblems.
-
-        To solve this problem, note that the the diagonal entries of
-        positive semidefinite matrices are real and nonnegative.
-        Consequently, we introduce variables
-
-        Y  := [[X, 0], A_i := [[A_i, 0],  C_i := [[C_i, 0],
-               [0, y]]         [ 0,  0]]          [ 0,  0]]
-
-        f_k(Y)      := f_k(X)
-        grad f_k(Y) := [[ grad f_k(X), 0]
-                        [      0     , 0]]
-        g_l(Y)      := g_l(X)
-        grad g_l(Y) := [[ grad g_l(X), 0]
-                        [      0     , 0]]
-
-        Y is PSD if and only if X is PSD and y is real and nonnegative.
-        The constraint that Tr Y = 1 is true if and only if Tr X <= 1.
-        Thus, we can recast a feasibility problem as
-
         Feasibility of Y
         subject to
             Tr(A_i Y) <= b_i, Tr(C_i Y) == d_i
             f_k(Y) <= 0, g_l(Y) == 0
-            Tr(Y) = 1
+            alpha <= h(Y) <= U
+            Tr(Y) == 1
 
-        This is the format solvable by Hazan's extended algorithm.
+        If problem (1) is feasible, then we know that there is a solution
+        in range [L, alpha]. If problem (2) is feasible, then there is a
+        solution in range [alpha, U]. We can perform binary search to find
+        optimum alpha*.
 
         Parameters
         __________
@@ -420,6 +449,8 @@ class GeneralSDPHazanSolver(object):
             Y_init = np.zeros((dim+1, dim+1))
             Y_init[:dim, :dim] = X_init
             Y_init = Y_init / R
+            init_trace = np.trace(Y_init)
+            Y_init[dim, dim] = 1 - init_trace
         else:
             Y_init = None
         for i in range(m):
@@ -439,68 +470,40 @@ class GeneralSDPHazanSolver(object):
                 return lambda Y: fk(R * Y[:dim,:dim])
             fprime = make_fprime(fk)
             Fprimes.append(fprime)
-            #gradfprime = lambda Y: R * gradfk(R * Y[:dim,:dim])
             def make_gradfprime(gradfk):
                 def gradfprime(Y):
                     ret_grad = np.zeros((dim+1,dim+1))
-                    #ret_grad[:dim,:dim] = R * gradfk(R * Y[:dim,:dim])
-                    ret_grad[:dim,:dim] = gradfk(R * Y[:dim,:dim]) #?
+                    ret_grad[:dim,:dim] = gradfk(R * Y[:dim,:dim])
+                    ret_grad = (1./R) * ret_grad #?
                     return ret_grad
                 return gradgfprime
             gradFprimes.append(gradfprime)
         for l in range(q):
             gl = Gs[l]
             gradgl = gradGs[l]
-            #gprime = lambda Y, gl=gl: gl(R * Y[:dim,:dim])
             def make_gprime(gl):
                 return lambda Y: gl(R * Y[:dim,:dim])
             gprime = make_gprime(gl)
             Gprimes.append(gprime)
-            #gradgprime = lambda Y: R * gradgl(R * Y[:dim,:dim])
             def make_gradgprime(gradgl):
                 def gradgprime(Y):
                     ret_grad = np.zeros((dim+1,dim+1))
-                    #ret_grad[:dim, :dim] = R * gradgl(R * Y[:dim,:dim])
-                    ret_grad[:dim, :dim] = gradgl(R * Y[:dim,:dim]) #?
+                    ret_grad[:dim, :dim] = gradgl(R * Y[:dim,:dim])
+                    ret_grad = (1./R) * ret_grad #?
                     return ret_grad
                 return gradgprime
             gradgprime = make_gradgprime(gradgl)
             gradGprimes.append(gradgprime)
 
         hprime = lambda Y: h(R * Y[:dim, :dim])
-        #gradhprime = lambda Y: R * gradh(R * Y[:dim, :dim])
         def gradhprime(Y):
             ret_grad = np.zeros((dim+1,dim+1))
-            #ret_grad[:dim, :dim] = R * gradh(R * Y[:dim, :dim])
-            ret_grad[:dim, :dim] = gradh(R * Y[:dim, :dim]) #?
+            ret_grad[:dim, :dim] = gradh(R * Y[:dim, :dim])
+            ret_grad = (1./R) * ret_grad #?
             return ret_grad
 
-        #As = Aprimes
-        #Cs = Cprimes
-        #Fs = Fprimes
-        #gradFs = gradFprimes
-        #Gs = Gprimes
-        #gradGs = gradGprimes
-        #h = hprime
         bprimes = bs
         dprimes = ds
-
-        # Constrain last row of Y to 0
-        Zs = np.zeros((1,dim))
-        def s(Y):
-            return batch_equals(Y, Zs, dim, dim+1, 0, dim)
-        def grads(Y):
-            return batch_equals_grad(Y, Zs, dim, dim+1, 0, dim)
-        Gprimes.append(s)
-        gradGprimes.append(grads)
-        # Constraint last column of Y to 0
-        Zr = np.zeros((dim, 1))
-        def r(Y):
-            return batch_equals(Y, Zr, 0, dim, dim, dim+1)
-        def gradr(Y):
-            return batch_equals_grad(Y, Zr, 0, dim, dim, dim+1)
-        Gprimes.append(r)
-        gradGprimes.append(gradr)
 
         # Do the binary search
         SUCCEED = False
@@ -511,17 +514,13 @@ class GeneralSDPHazanSolver(object):
             print("upper: %f" % U)
             print("lower: %f" % L)
             alpha = (U + L) / 2.0
-            # Check feasibility in [L, alpha]
             print "Checking feasibility in (%f, %f)" % (L, alpha)
-            #print "Adding inequality constraint Tr(GX) <= alpha"
-            #print "alpha: ", alpha
             print
             h_alpha = lambda Y: hprime(Y) - alpha
             grad_h_alpha = lambda Y: gradhprime(Y)
             h_lower = lambda Y: -hprime(Y) + L
             grad_h_lower = lambda Y: -gradhprime(Y)
-            #Fs.append(h_alpha)
-            #gradFs.append(grad_h_alpha)
+
             Fprimes += [h_lower, h_alpha]
             gradFprimes += [grad_h_lower, grad_h_alpha]
             import pdb
@@ -529,52 +528,47 @@ class GeneralSDPHazanSolver(object):
             Y_L, fY_L, SUCCEED_L = self._solver.feasibility_solve(Aprimes,
                     bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
                     Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)
-            #Fs.pop()
-            #gradFs.pop()
             Fprimes = Fprimes[:-2]
             gradFprimes = gradFprimes[:-2]
             print "Checked feasibility in (%f, %f)" % (L, alpha)
             import pdb
             pdb.set_trace()
+            if SUCCEED_L:
+                X_L = R * Y_L[:dim, :dim]
+                U = alpha
+                continue
 
             # Check feasibility in [alpha, U]
             print
             print "Checking feasibility in (%f, %f)" % (alpha, U)
-            #print "Adding inequality constraint Tr(-GX) <= alpha"
             print "alpha: ", -alpha
             h_alpha = lambda Y: -hprime(Y) + alpha
             grad_h_alpha = lambda(Y): -gradhprime(Y)
             h_upper = lambda Y: hprime(Y) - U
             grad_h_upper = lambda Y: gradhprime(Y)
-            #Fs.append(h_alpha)
-            #gradFs.append(grad_h_alpha)
             Fprimes += [h_alpha, h_upper]
             gradFprimes += [grad_h_alpha, grad_h_upper]
             Y_U, fY_U, SUCCEED_U = self._solver.feasibility_solve(Aprimes,
                     bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
                     Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)
-            #Fs.pop()
-            #gradFs.pop()
             Fprimes = Fprimes[:-2]
             gradFprimes = gradFprimes[:-2]
             print "Checked feasibility in (%f, %f)" % (alpha, U)
             import pdb
             pdb.set_trace()
+            if SUCCEED_U:
+                X_U = R * Y_U[:dim,:dim]
+                L = alpha
+                continue
 
-            #import pdb
-            #pdb.set_trace()
             if fY_U >= fY_L:
                 X_U = R * Y_U[:dim,:dim]
                 L = alpha
             else:
-                X_L = R * Y_U[:dim, :dim]
+                X_L = R * Y_L[:dim, :dim]
                 U = alpha
         if (U - L) <= eps:
             fY = fY_L
             if fY_L >= -eps:
                 SUCCEED = True
-        #if X_U != None:
-        #    X_U = R * X_U
-        #if X_L != None:
-        #    X_L = R * X_L
         return (U, L, X_U, X_L, SUCCEED)
