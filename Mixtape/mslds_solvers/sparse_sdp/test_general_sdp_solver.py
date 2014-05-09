@@ -200,7 +200,8 @@ def testA():
           --------------------
     X is PSD
 
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim
+    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    The solution to this problem is A = 0 when dim = 1.
     """
     dim = 1
     cdim = 4 * dim
