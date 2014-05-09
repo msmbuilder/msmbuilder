@@ -36,14 +36,16 @@ def get_atompairs(trj0, keep_atoms=ATOM_NAMES, exclude_atoms=None):
     return atom_indices, pair_indices
 
 
-def lookup_subset(all_pair_indices, optimal_pair_indices):
+def lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
     n = all_pair_indices.max()
     
     all_keys = all_pair_indices[:, 0] + n * all_pair_indices[:, 1]
-    optimal_keys = optimal_pair_indices[:, 0] + n * optimal_pair_indices[:, 1]
-    ind = np.where(np.in1d(all_keys, optimal_keys))[0]
-    return ind
+    optimal_keys = subset_pair_indices[:, 0] + n * subset_pair_indices[:, 1]
+    subset = np.where(np.in1d(all_keys, optimal_keys))[0]
+    if n_choose is not None:
+        subset[0:min(len(subset), n_choose)] = subset[0:min(len(subset), n_choose)]
 
+    return subset
 
 
 class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
@@ -57,13 +59,20 @@ class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
     def propose(self):
         to_replace = np.random.choice(self.n_features)
         new_value = np.random.choice(self.n_max)
-        return to_replace, new_value
+        old_value = self.subset[to_replace]
+        
+        old_subset = self.subset
+        
+        subset = self.subset.copy()
+        
+        return to_replace, new_value, old_value, subset, old_subset
     
     def set(self, subset):
         self.subset = subset
     
     def propose_all(self, n_features):
         return np.random.choice(self.n_max, n_features, replace=False)
+
 
 class SubsetAtomPairs(BaseSubsetFeaturizer):
     """Featurizer based on atom pair distances."""
@@ -90,7 +99,7 @@ class SubsetTrigFeaturizer(BaseSubsetFeaturizer):
     """Featurizer based on atom pair distances."""
     
     def featurize(self, traj):        
-        dih = md.geometry.dihedral.compute_dihedrals(traj, self.which_atom_ind)
+        dih = md.geometry.dihedral.compute_dihedrals(traj, self.which_atom_ind[self.subset])
         features = self.trig_function(dih)
         return features
 
@@ -179,4 +188,3 @@ class ListFeaturizer(BaseSubsetFeaturizer):
         for k, featurizer in enumerate(self.featurizers):
             my_local_states = self.local_states[self.states == k]
             featurizer.set(my_local_states)
-
