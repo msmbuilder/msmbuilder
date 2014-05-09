@@ -2,7 +2,7 @@ import numpy as np
 
 def simple_equality_constraint():
     """
-    Since constraints that specify the problem
+    Generate constraints that specify the problem
 
         feasibility(X)
         subject to
@@ -15,6 +15,28 @@ def simple_equality_constraint():
     Cs = [np.array([[ 1.,  0.],
                     [ 0.,  2.]])]
     ds = [1.5]
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+    return dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
+def simple_equality_and_inequality_constraint():
+    """
+    Generate constraints that specify the problem
+
+        feasbility(X)
+        subject to
+            x_11 + 2 x_22 <= 1
+            x_11 + 2 x_22 + 2 x_33 == 5/3
+            Tr(X) = x_11 + x_22 + x_33 == 1
+    """
+    dim = 3
+    As = [np.array([[ 1., 0., 0.],
+                    [ 0., 2., 0.],
+                    [ 0., 0., 0.]])]
+    bs = [1.]
+    Cs = [np.array([[ 1.,  0., 0.],
+                    [ 0.,  2., 0.],
+                    [ 0.,  0., 2.]])]
+    ds = [5./3]
     Fs, gradFs, Gs, gradGs = [], [], [], []
     return dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 

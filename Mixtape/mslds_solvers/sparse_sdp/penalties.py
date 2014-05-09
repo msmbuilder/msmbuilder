@@ -32,6 +32,31 @@ def compute_scale(m, n, p, q, eps):
                 + np.log(p+1) + np.log(q+1)), 1.) / eps
     return M
 
+def penalties(X, As, bs, Cs, ds, Fs, Gs):
+    """
+    Computes penalties
+
+     (max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|},
+      max_k {Fk(x)}, max_l {|Gl(x)|})
+
+    """
+    (dim, _) = np.shape(X)
+    m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
+    penalties = np.zeros(n+m+p+q)
+    # Handle linear inequalities
+    for i in range(m):
+        penalties[i] = np.trace(np.dot(As[i],X)) - bs[i]
+    # Handle linear equalities
+    for j in range(n):
+        penalties[j+m] = np.abs(np.trace(np.dot(Cs[j],X)) - ds[j])
+    # Handle convex inequalities
+    for k in range(p):
+        penalties[k+m+n] = Fs[k](X)
+    # Handle convex equalities
+    for l in range(q):
+        penalties[l+p+m+n] = np.abs(Gs[l](X))
+    return penalties
+
 def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     """
     Computes
@@ -63,33 +88,11 @@ def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     Gs: list
         Convex function equalities
     """
-    (dim, _) = np.shape(X)
-    m = len(As)
-    n = len(Cs)
-    p = len(Fs)
-    q = len(Gs)
-    penalties = np.zeros(m+n+p+q)
-    # Handle linear inequalities
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        penalties[i] = (np.trace(np.dot(Ai,X)) - bi)
-    # Handle linear equalities
-    for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
-    # Handle convex inequalities
-    for k in range(p):
-        Fk = Fs[k]
-        penalties[k+m+n] = Fk(X)
-    # Handle convex equalities
-    for l in range(q):
-        Gl = Gs[l]
-        penalties[l+p+m+n] = np.abs(Gl(X))
+    pens = penalties(X, As, bs, Cs, ds, Fs, Gs)
     retval = 0.
+    m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
     if m + n + p + q > 0:
-        retval = scipy.misc.logsumexp(M*np.array(penalties), axis=0)
+        retval = scipy.misc.logsumexp(M*np.array(pens), axis=0)
         retval = -(1.0/M) * retval
     return retval
 
@@ -154,75 +157,33 @@ def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
     return grad
 
 def neg_max_penalty(X, As, bs, Cs, ds, Fs, Gs):
-    penalties = neg_max_penalties(X, As, bs, Cs, ds, Fs, Gs)
-    return -np.amax(penalties)
-
-def neg_max_penalties(X, As, bs, Cs, ds, Fs, Gs):
-    """
-    Computes penalties
-
-     (max_i {Tr(Ai,X) - bi}, max_j{|Tr(Cj,X) - dj|},
-      max_k {Fk(x)}, max_l {|Gl(x)|})
-
-    """
-    (dim, _) = np.shape(X)
-    m = len(As)
-    n = len(Cs)
-    p = len(Fs)
-    q = len(Gs)
-    penalties = np.zeros(n+m+p+q)
-    # Handle linear inequalities
-    for i in range(m):
-        Ai = As[i]
-        bi = bs[i]
-        if dim >= 2:
-            penalties[i] = np.trace(np.dot(Ai,X)) - bi
-        else:
-            penalties[i] = Ai*X - bi
-    # Handle linear equalities
-    for j in range(n):
-        Cj = Cs[j]
-        dj = ds[j]
-        if dim >= 2:
-            penalties[j+m] = np.abs(np.trace(np.dot(Cj,X)) - dj)
-        else:
-            penalties[j+m] = np.abs(Cj*X - dj)
-    # Handle convex inequalities
-    for k in range(p):
-        Fk = Fs[k]
-        penalties[k+m+n] = Fk(X)
-    # Handle convex equalities
-    for l in range(q):
-        Gl = Gs[l]
-        penalties[l+p+m+n] = np.abs(Gl(X))
-    return penalties
+    return -np.amax(penalties(X, As, bs, Cs, ds, Fs, Gs))
 
 def neg_max_grad_penalty(X, As, bs, Cs, ds, Fs, gradFs, Gs,
         gradGs, eps):
     """
-    A more complicated version of neg_max_grad_penalty that allows for
-    arbitrary convex inequalities and equalities.
+    Gradient of neg_max_penalty
     Parameters
     __________
 
     X: numpy.ndarray
         input variable
     As: list
-        list of numpy.ndarrays for constraints Tr(A_iX) <= b_i
+        constraints Tr(A_iX) <= b_i
     bs: list
-        list of floats for constraints Tr(A_iX) <= b_i
+        constraints Tr(A_iX) <= b_i
     Cs: list
-        list of numpy.ndarrays for constraints Tr(C_iX) == d_i
+        constraints Tr(C_iX) == d_i
     ds: list
-        list of floats for constraints Tr(C_iX) == d_i
+        constraints Tr(C_iX) == d_i
     Fs: list
-        list of functions for constraints f_i(X) <= 0
+        constraints f_i(X) <= 0
     Gs: list
-        list of functions for constraints g_i(X) == 0
+        constraints g_i(X) == 0
     dim: int
         Input dimension. X is a (dim, dim) array.
     eps: float
-        eps > 0 is the error tolerance.
+        error tolerance.
     """
     # should assert X is a square matrix...
     (dim, _) = np.shape(X)
@@ -230,7 +191,7 @@ def neg_max_grad_penalty(X, As, bs, Cs, ds, Fs, gradFs, Gs,
     n = len(Cs)
     p = len(Fs)
     q = len(Gs)
-    penalties = neg_max_penalties(X, As, bs, Cs, ds, Fs, Gs)
+    pens = penalties(X, As, bs, Cs, ds, Fs, Gs)
     inds = [ind for ind in range(n+m+p+q) if penalties[ind] > eps]
     grad = np.zeros(np.shape(X))
     pen_sum = 0

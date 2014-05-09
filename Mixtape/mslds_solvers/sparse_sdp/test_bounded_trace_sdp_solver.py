@@ -1,6 +1,9 @@
 from bounded_trace_sdp_solver import BoundedTraceSolver
 from objectives import neg_sum_squares, grad_neg_sum_squares
 from constraints import simple_equality_constraint
+from constraints import simple_equality_and_inequality_constraint
+from penalties import compute_scale, log_sum_exp_penalty
+from penalties import log_sum_exp_grad_penalty
 import time
 import scipy
 import numpy as np
@@ -29,9 +32,9 @@ def test1():
     The optimal solution is -1/n, where
     n is the dimension.
     """
+    eps = 1e-3
     N_iter = 50
     # dimension of square matrix X
-    #dims = [1,4,16,64]
     dims = [16]
     for dim in dims:
         print("dim = %d" % dim)
@@ -42,28 +45,35 @@ def test1():
         print("\tf(X) = %f" % fX)
         print("\tf* = %f" % (-1./dim))
         print("\t|f(X) - f*| = %f" % (np.abs(fX - (-1./dim))))
-        print("\tError Tolerance 1/%d = %f" % (N_iter, 1./N_iter))
-        assert np.abs(fX - (-1./dim)) < 1./N_iter
+        assert np.abs(fX - (-1./dim)) < eps
 
 def test2a():
     """
     Check equality constraints for log_sum_exp constraints
     """
+    eps = 1e-3
     N_iter = 50
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            simple_equality_constraint()
+    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
     def f(X):
         return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
         return log_sum_exp_grad_penalty(X, M, As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-    run_experiment(f, gradf, dim, N_iter)
+                    bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    B = BoundedTraceSolver(f, gradf, dim)
+    X, elapsed  = run_experiment(B, N_iter)
+    succeed = not (f(X) < -eps)
+    print "\tComputation Time (s): ", elapsed
+    assert succeed == True
 
 def test2b():
     """
     Check equality constraints for neg_max constraints
+    TODO: Fix this test
     """
     N_iter = 50
+    assert True == False
     m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            simple_equality_constraint(N_iter)
     def f(X):
@@ -73,56 +83,32 @@ def test2b():
                 Gs, gradGs, eps)
     run_experiment(f, gradf, dim, N_iter)
 
-def simple_constraint(N_iter):
-    """
-    Check that the bounded trace implementation can handle low-dimensional
-    equality and inequality type constraints for given penalty.
-
-    With As and bs as below, we specify the problem
-
-        feasbility(X)
-        subject to
-            x_11 + 2 x_22 <= 1
-            x_11 + 2 x_22 + 2 x_33 == 5/3
-            Tr(X) = x_11 + x_22 + x_33 == 1
-    """
-    m = 1
-    n = 1
-    dim = 3
-    eps = 1./N_iter
-    M = compute_scale(m, n, eps)
-    As = [np.array([[ 1., 0., 0.],
-                    [ 0., 2., 0.],
-                    [ 0., 0., 0.]])]
-    bs = [1.]
-    Cs = [np.array([[ 1.,  0., 0.],
-                    [ 0.,  2., 0.],
-                    [ 0.,  0., 2.]])]
-    ds = [5./3]
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    return m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs
-
 def test3a():
     """
     Check equality and inequality constraints for log_sum_exp penalty
     """
+    eps = 1e-3
     N_iter = 50
-    m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
-            simple_constraint(N_iter)
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            simple_equality_and_inequality_constraint()
+    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
     def f(X):
         return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
         return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
-                Fs, gradFs, Gs, gradGs, eps)
-    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+                Fs, gradFs, Gs, gradGs)
+    B = BoundedTraceSolver(f, gradf, dim)
+    X, elapsed  = run_experiment(B, N_iter)
+    succeed = not (f(X) < -eps)
+    print "\tComputation Time (s): ", elapsed
+    assert succeed == True
 
 def test3b():
     """
     Check equality and inequality constraints for neg_max penalty
+    TODO: Fix this test
     """
+    assert True == False
     N_iter = 50
     m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
             simple_constraint(N_iter)
@@ -137,7 +123,9 @@ def test3c():
     """
     Check equality and inequality constraints for neg_max penalty
     with log_sum_exp gradients.
+    TODO: Fix this cost
     """
+    assert True == False
     N_iter = 50
     m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
             simple_constraint(N_iter)
@@ -623,20 +611,9 @@ def test9a():
                 alphas=alphas,DEBUG=DEBUG)
         g = Gs[0]
         gradg = gradGs[0]
-        #import pdb
-        #pdb.set_trace()
 
-
-def run_experiment(f, gradf, dim, N_iter, debug=False):
-    eps = 1./N_iter
-    B = BoundedTraceSolver()
+def run_experiment(B, N_iter, disp=True, debug=False):
     start = time.clock()
-    X = B.solve(f, gradf, dim, N_iter, debug=debug)
+    X = B.solve(N_iter, disp=disp, debug=debug)
     elapsed = (time.clock() - start)
-    fX = f(X)
-    print "\tX:\n", X
-    print "\tf(X) = %f" % fX
-    SUCCEED = not (fX < -eps)
-    print "\tSUCCEED: " + str(SUCCEED)
-    print "\tComputation Time (s): ", elapsed
-    return X, fX, SUCCEED
+    return X, elapsed

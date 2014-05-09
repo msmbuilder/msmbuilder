@@ -144,4 +144,8 @@ class BoundedTraceSolver(object):
                 print "grad\n", grad
             if f(X_prop) > f(X):
                 X = X_prop
+            else:
+                if np.array_equal(X, X_prop):
+                    # We're stuck in fixed point.
+                    break
         return X
