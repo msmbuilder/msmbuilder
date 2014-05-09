@@ -7,7 +7,9 @@ class TICAScoreMixin(object):
     Uses variational eigenvalue comparison to rank models.
     """
     def compare(self):
-        return is_better(self.model.eigenvalues_, self.old_model.eigenvalues_)
+        self.accept = is_better(self.model.eigenvalues_, self.old_model.eigenvalues_)
+        self.summarize()
+        return self.accept
 
     def summarize(self):
         print("%d %.5f %.4f %.4f **** %.5f %.4f %.4f" % (
@@ -69,11 +71,7 @@ class TICAOptimizer(TICAScoreMixin):
         for i in range(n_iter):
             self.propose(trajectories)
             if not self.compare():
-                self.accept =  False
                 self.revert()
-            else:
-                self.accept =  True
-            self.summarize()
 
 
 def is_better(lam, lam0):
