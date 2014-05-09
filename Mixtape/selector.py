@@ -16,27 +16,51 @@ class TICAOptimizer(TICAScoreMixin):
         self.trj0 = trajectories[0][0]
         
         self.subset_featurizer = subset_featurizer
-        
-        self.old_subset = self.subset_featurizer.subset
-        self.old_model, self.old_features = self.build(trajectories)
-        
+        self.build_full(trajectories)
+
+    @property
+    def subset(self):
+        return self.subset_featurizer.subset
     
-    def build(self, trajectories):
+    def build_full(self, trajectories):
         tica = mixtape.tica.tICA()
         features = map(lambda trj: self.subset_featurizer.featurize(trj), trajectories)
         unused_output = map(lambda X: tica.partial_fit(X), features)
-        return tica, features
-    
+        
+        self.model, self.features = tica, features
+
+    def swap_feature(self, features, changed_feature, to_replace, new_value):
+        pass
+
+    def build_partial(self, trajectories, to_replace, new_value):
+        tica = mixtape.tica.tICA()
+        self.old_feature = map(lambda X: X[:, [to_replace]].copy(), self.features)
+        new_feature = map(lambda trj: self.subset_featurizer.featurize_single(trj, new_value), trajectories)
+        set_feature(self.features, new_feature, to_replace)
+        unused_output = map(lambda X: tica.partial_fit(X), self.features)
+        
+        self.model = tica
+        
+
     def revert(self):
-        self.model, self.features = self.old_model, self.old_features
+        self.model = self.old_model
         self.subset_featurizer.set(self.old_subset)
+        set_feature(self.features, self.old_feature, self.to_replace)        
         
     def propose(self, trajectories):
-        self.to_replace, self.new_value, self.old_value, self.subset, self.old_subset = self.subset_featurizer.propose()
+        to_replace, new_value, old_value = self.subset_featurizer.propose()
+        self.to_replace = to_replace
+        
+        self.old_model = self.model
+        self.old_subset = self.subset.copy()
+        
+        self.subset[to_replace] = new_value
         self.subset_featurizer.set(self.subset)
-        self.model, self.features = self.build(trajectories)
+        
+        self.build_partial(trajectories, to_replace, new_value)
         
     def optimize(self, n_iter, trajectories):
+        self.build_full(trajectories)
         for i in range(n_iter):
             self.propose(trajectories)
             if not self.compare():
@@ -45,8 +69,6 @@ class TICAOptimizer(TICAScoreMixin):
             else:
                 self.accept =  True
             self.summarize()
-            self.old_model, self.old_features, self.old_subset = self.model, self.features, self.subset
-
 
 
 def is_better(lam, lam0):
@@ -57,3 +79,7 @@ def is_better(lam, lam0):
         return first_gain < first_loss
     except:
         return False
+
+def set_feature(X_list, Y_list, i):
+    for k in range(len(X_list)):
+        X_list[k][:, i] = Y_list[k][:, 0]

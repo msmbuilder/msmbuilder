@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import itertools
 import numpy as np
 import mixtape.featurizer, mixtape.tica
@@ -47,6 +48,12 @@ def lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
 
     return subset
 
+@contextmanager
+def remember_subset(subset_featurizer):
+    old_subset = subset_featurizer.subset.copy()
+    yield
+    subset_featurizer.set(old_subset)
+    
 
 class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
     def __init__(self, trj0):
@@ -61,11 +68,7 @@ class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
         new_value = np.random.choice(self.n_max)
         old_value = self.subset[to_replace]
         
-        old_subset = self.subset
-        
-        subset = self.subset.copy()
-        
-        return to_replace, new_value, old_value, subset, old_subset
+        return to_replace, new_value, old_value
     
     def set(self, subset):
         self.subset = subset
@@ -73,6 +76,11 @@ class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
     def propose_all(self, n_features):
         return np.random.choice(self.n_max, n_features, replace=False)
 
+    def featurize_single(self, trajectory, index):
+        with remember_subset(self):
+            self.set(np.array([index]))
+            X = self.featurize(trajectory)
+        return X
 
 class SubsetAtomPairs(BaseSubsetFeaturizer):
     """Featurizer based on atom pair distances."""
@@ -159,10 +167,6 @@ class ListFeaturizer(BaseSubsetFeaturizer):
     def n_max(self):
         return sum([f.n_max for f in self.featurizers])
 
-    @property
-    def all_n_max(self):
-        return np.array([f.n_max for f in self.featurizers])
-    
     def lookup_indices(self, indices):
         """Convert global indices to lists of states and local indices."""
         states = np.array([np.where(s >= self.cutoffs)[0][-1] for s in indices])
@@ -184,7 +188,6 @@ class ListFeaturizer(BaseSubsetFeaturizer):
     def set(self, subset):
         super(ListFeaturizer, self).set(subset)
         self.states, self.local_states = self.lookup_indices(self.subset)
-
         for k, featurizer in enumerate(self.featurizers):
             my_local_states = self.local_states[self.states == k]
             featurizer.set(my_local_states)
