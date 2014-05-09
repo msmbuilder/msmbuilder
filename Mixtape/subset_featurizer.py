@@ -217,6 +217,9 @@ class ListFeaturizer(BaseSubsetFeaturizer):
         Number of active features
     featurizers : list(BaseSubsetFeaturizer)
         A list of subset featurizers to concatenate.
+    feature_weights : np.ndarray, dtype=float, shape=(len(featurizers)), optional, default=None
+        If not None, use feature_weights as probability distribution for weighting
+        different classes of features
     
     To Do
     -----
@@ -225,9 +228,9 @@ class ListFeaturizer(BaseSubsetFeaturizer):
     featurizers with larger `n_max` will be sampled more thoroughly.
     """
     
-    def __init__(self, n_features, featurizers):
+    def __init__(self, n_features, featurizers, feature_weights=None):
         self.featurizers = featurizers
-
+        self.feature_weights = feature_weights
         self.index_mapping = np.array_split(np.arange(self.n_max), np.cumsum([f.n_max for f in self.featurizers])[:-1])
         self.cutoffs = np.array([mapping[0] for mapping in self.index_mapping])
 
@@ -246,6 +249,25 @@ class ListFeaturizer(BaseSubsetFeaturizer):
         states = np.array([np.where(s >= self.cutoffs)[0][-1] for s in indices])
         local_states = indices - self.cutoffs[states]
         return states, local_states
+
+    def propose(self):
+        """Propose a feature to swap and a new one to replace it, possibly using weights."""
+        if self.feature_weights is None:
+            return super(ListFeaturizer, self).propose()
+        
+        # Pick a feature using feature_weights
+        new_feature = np.random.choice(len(self.featurizers), p=self.feature_weights)
+        
+        # Pick a local index of the new feature
+        new_value = np.random.choice(self.featurizers[new_feature].n_max)
+        # Map to the "global" index
+        new_value += self.cutoffs[new_feature]
+
+        to_replace = np.random.choice(self.n_features)
+        old_value = self.subset[to_replace]
+        
+        return to_replace, new_value, old_value
+
 
 
     def featurize(self, traj):
