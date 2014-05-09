@@ -12,6 +12,7 @@ for approximate solution of sparse semidefinite programs.
 """
 import numpy as np
 import scipy.linalg
+import scipy.sparse.linalg
 
 class BoundedTraceSolver(object):
     """
@@ -46,22 +47,24 @@ class BoundedTraceSolver(object):
         try:
             # shift matrices upwards by a positive quantity to
             # avoid common issues with small eigenvalues
-            w, _ = linalg.eigsh(grad, k=1, tol=epsj, which='LM')
+            w, _ = scipy.sparse.linalg.eigsh(grad, k=1,
+                                        tol=epsj, which='LM')
             if np.isnan(w) or w == -np.inf or w == np.inf:
                 shift = 1
             else:
                 shift = 1.5*np.abs(w)
-        except (linalg.ArpackError, linalg.ArpackNoConvergence):
+        except (scipy.sparse.linalg.ArpackError,
+                scipy.sparse.linalg.ArpackNoConvergence):
             shift = 1
         vj = None
         last = 0.
         for i in range(num_tries):
             try:
-                _, vj = linalg.eigsh(grad
+                _, vj = scipy.sparse.linalg.eigsh(grad
                         + (i+1)*shift*np.eye(dim),
                         k=1, tol=epsj, which='LA')
-            except (linalg.ArpackError,
-                    linalg.ArpackNoConvergence):
+            except (scipy.sparse.linalg.ArpackError,
+                    scipy.sparse.linalg.ArpackNoConvergence):
                 continue
             last = i
             if not np.isnan(np.min(vj)):
@@ -77,11 +80,11 @@ class BoundedTraceSolver(object):
             vj = None
             for k in range(2,dim):
                 try:
-                    ws, vs = linalg.eigsh(grad
+                    ws, vs = scipy.sparse.linalg.eigsh(grad
                             + (i+1)*shift*np.eye(dim),
                             k=k, tol=epsj, which='LA')
-                except (linalg.ArpackError,
-                        linalg.ArpackNoConvergence):
+                except (scipy.sparse.linalg.ArpackError,
+                        scipy.sparse.linalg.ArpackNoConvergence):
                     continue
                 if not np.isnan(np.min(vs[:,k-1])):
                     vj = vs[:,k-1]
@@ -167,7 +170,7 @@ class BoundedTraceSolver(object):
             if debug:
                 print "\tOriginal X:\n", X
                 print "\tgrad X:\n", grad
-            vj = self.rank_one_apprimxation(grad)
+            vj = self.rank_one_approximation(grad)
             O = np.outer(vj, vj)
             step = (O - X)
             X_prop, method = back_tracking_line_search(X, step,

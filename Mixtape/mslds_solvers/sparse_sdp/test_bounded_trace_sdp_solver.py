@@ -35,17 +35,14 @@ def test1():
     for dim in dims:
         print("dim = %d" % dim)
         Cf = 2. # Note that H(-f) = 2 I (H is the hessian of f)
-        b = BoundedTraceSolver()
-        X = b.solve(neg_sum_squares, grad_neg_sum_squares,
-                dim, N_iter, Cf=Cf)
-        fX = neg_sum_squares(X)
+        b = BoundedTraceSolver(neg_sum_squares, grad_neg_sum_squares, dim)
+        X = b.solve(N_iter)
         print("\tTr(X) = %f" % np.trace(X))
-        print("\tf(X) = %f" % fX)
+        print("\tf(X) = %f" % f(X))
         print("\tf* = %f" % (-1./dim))
         print("\t|f(X) - f*| = %f" % (np.abs(fX - (-1./dim))))
         print("\tError Tolerance 1/%d = %f" % (N_iter, 1./N_iter))
         assert np.abs(fX - (-1./dim)) < 1./N_iter
-        print("\tError Tolerance Acceptable")
 
 def simple_equality_constraint(N_iter):
     """
