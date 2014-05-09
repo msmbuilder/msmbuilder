@@ -1,7 +1,6 @@
-from hazan import *
-from hazan_penalties import *
-import pdb
+from bounded_trace_sdp_solver import BoundedTraceSolver
 import time
+import scipy
 """
 Tests for Hazan's core algorithm.
 
@@ -9,15 +8,6 @@ Tests for Hazan's core algorithm.
 @email: bharath.ramsundar@gmail.com
 
 TODOs:
-    -) Clean up older tests and put them into abc format that newer tests
-       follow ====> DONE
-    -) Add and test a batch equality operation. ====> DONE
-    -) Add plumbing to allow solution of general SDP cone constrained
-       convex programs.
-    -) Add and test a batch linear operation.
-    -) Add and test Schur complement constraint.
-    -) Add and test a log det constraint.
-    -) Add and test a matrix quadratic constraint.
     -) Remove m, n from the test cases.
 """
 
@@ -41,9 +31,8 @@ def test1():
     dims = [1,4,16,64]
     for dim in dims:
         print("dim = %d" % dim)
-        # Note that H(-f) = 2 I (H is the hessian of f)
-        Cf = 2.
-        b = BoundedTraceSDPHazanSolver()
+        Cf = 2. # Note that H(-f) = 2 I (H is the hessian of f)
+        b = BoundedTraceSolver()
         X = b.solve(neg_sum_squares, grad_neg_sum_squares,
                 dim, N_iter, Cf=Cf)
         fX = neg_sum_squares(X)
@@ -674,7 +663,7 @@ def test9a():
 def run_experiment(f, gradf, dim, N_iter, alphas=None,DEBUG=False):
     fudge_factor = 5.0
     eps = 1./N_iter
-    B = BoundedTraceSDPHazanSolver()
+    B = BoundedTraceSolver()
     start = time.clock()
     X = B.solve(f, gradf, dim, N_iter, DEBUG=DEBUG, alphas=alphas)
     elapsed = (time.clock() - start)
@@ -685,45 +674,3 @@ def run_experiment(f, gradf, dim, N_iter, alphas=None,DEBUG=False):
     print "\tSUCCEED: " + str(SUCCEED)
     print "\tComputation Time (s): ", elapsed
     return X, fX, SUCCEED
-
-if __name__ == "__main__":
-    # TODO: change these tests to Nosetests style
-    ## Dummy test
-    #test1()
-
-    # Test simple equality constraints
-    #test2a()
-    #test2b()
-    ##test2c()
-
-    # Test simple inequality and equality constraints
-    #test3a()
-    #test3b()
-    test3c()
-    ##test3d()
-
-    # Test quadratic inequality constraints
-    #test4a()
-    #test4b()
-
-    # Test quadratic equality constraints
-    #test5a()
-
-    # Stress test inequality constraints
-    #test6a()
-    #test6b()
-    #test6c()
-
-    # Stress test equality constraints
-    #test7a()
-    #test7b()
-    #test7c()
-
-    # Stress test equality and inequality constraints
-    #test8a()
-    #test8b()
-    #test8c()
-
-    # Test block equality constraints
-    #test9a()
-    pass

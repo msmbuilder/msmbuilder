@@ -9,6 +9,7 @@ for approximate solution of sparse semidefinite programs.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
+import numpy as np
 
 class BoundedTraceSolver(object):
     """
@@ -39,7 +40,7 @@ class BoundedTraceSolver(object):
         Cf: float
             The curvature constant of function f (Optional).
         """
-        v = random.rand(dim, 1)
+        v = np.random.rand(dim, 1)
         # orthonormalize v
         v = v / np.linalg.norm(v)
         if X_init == None:
@@ -47,8 +48,6 @@ class BoundedTraceSolver(object):
         else:
             X = np.copy(X_init)
         #X /= np.trace(X)
-        import pdb
-        pdb.set_trace()
         for j in range(N_iter):
             grad = gradf(X)
             print "\tIteration %d" % j
@@ -120,13 +119,6 @@ class BoundedTraceSolver(object):
                 i = np.argmax(np.real(ws))
                 vj = vs[:,i]
 
-            # We don't really use Cf anymore...
-            ## Avoid strange errors with complex numbers
-            #vj = np.real(vj)
-            #if alphas == None:
-            #    alphaj = min(.5,2./(j+1))
-            #else:
-            #    alphaj = alphas[j]
             O = np.outer(vj, vj)
             step = (np.outer(vj,vj) - X)
             gamma = 1.0
@@ -171,9 +163,6 @@ class BoundedTraceSolver(object):
             print "\t\tgamma: ", gamma_best
             print "\t\t\tf(X): ", f(X)
             print "\t\t\tBest Origin: ", best_origin
-            #X = X + alphaj * (np.outer(vj,vj) - X)
-        import pdb
-        pdb.set_trace()
         return X
 
 

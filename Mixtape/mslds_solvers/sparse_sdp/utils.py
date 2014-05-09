@@ -1,38 +1,37 @@
 """
-Implementation of various useful utility functions for Hazan's algorithm.
+Implementation of various useful utility functions.
 """
 import numpy as np
 
-# Convenience functions; check if mdtraj has similar functionality
-# already
-def assert_list_of_types(Es, expected_type):
-    """Checks whether input is a list of np.ndarray elements all of
-       the same dimension dim
+# Convenience matrix access functions
+def set_entries(X, coords, Z):
+    x_low, x_hi, y_low, y_hi = coords
+    X[x_low:x_hi, y_low:y_hi] = Z
 
-       Parameters
-       __________
-       Es: list
-            Argument to check
-       dim: int
-            Expected dimension of Es
-     """
-    assert isinstance(Es, list)
-    for i in range(len(Es)):
-        Ei = Es[i]
-        assert isinstance(Ei, expected_type)
+def get_entries(X, coords):
+    x_low, x_hi, y_low, y_hi = coords
+    return X[x_low:x_hi, y_low:y_hi]
 
-def assert_list_of_square_arrays(Es, dim):
-    """Checks whether input is a list of np.ndarray elements all of
-       the same dimension dim
-
-       Parameters
-       __________
-       Es: list
-            Argument to check
-       dim: int
-            Expected dimension of Es
+def numerical_derivative(f, X):
     """
-    assert_list_of_types(Es, np.ndarray)
-    for i in range(len(Es)):
-       Ei = Es[i]
-       assert np.shape(Ei) == (dim, dim)
+    Numerical gradient of a matrix valued function that accepts
+    dim by dim real matrices as arguments. Uses formula
+
+    grad f[i,j] \approx (f(X + eps e_ij) - f(X - eps e_ij))/ (2 eps)
+    """
+    eps = 1e-4
+    (dim, _) = np.shape(X)
+    grad = np.zeros((dim, dim))
+    for i in range(dim):
+        for j in range(dim):
+            # Calculate upper
+            X[i,j] += eps
+            f_ij_plus = f(X)
+            X[i,j] -= eps
+
+            # Calculate lower
+            X[i,j] -= eps
+            f_ij_minus = f(X)
+            X[i,j] += eps
+            grad[i,j] = (f_ij_plus - f_ij_minus)/(2*eps)
+    return grad
