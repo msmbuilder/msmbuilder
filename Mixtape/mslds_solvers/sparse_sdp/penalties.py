@@ -12,7 +12,7 @@ simplifying steps.
     -) Remove M from argument of functions
 """
 
-def compute_scale_full(m, n, p, q, eps):
+def compute_scale(m, n, p, q, eps):
     """
     Compute the scaling factor required for m inequality and
     n equality constraints in the log_sum_exp penalty.

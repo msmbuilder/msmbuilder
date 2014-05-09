@@ -40,64 +40,30 @@ class BoundedTraceSolver(object):
 
     def rank_one_approximation(self, grad):
         epsj = 1e-9
-        # We usually try the following eigenvector finder,
-        # which is based off an Implicitly Restarted
-        # Arnoldi Method (essentially a stable version of
-        # Lanczos's algorithm)
-        try:
-            # shift matrices upwards by a positive quantity to
-            # avoid common issues with small eigenvalues
-            w, _ = scipy.sparse.linalg.eigsh(grad, k=1,
-                                        tol=epsj, which='LM')
-            if np.isnan(w) or w == -np.inf or w == np.inf:
-                shift = 1
-            else:
-                shift = 1.5*np.abs(w)
-        except (scipy.sparse.linalg.ArpackError,
-                scipy.sparse.linalg.ArpackNoConvergence):
-            shift = 1
+        # Use Implicitly Restarted Arnoldi Method (IRAM)
+        # (essentially a stable version of Lanczos's algorithm)
+        shifts = [1., 10., 100., 1000.]
         vj = None
-        last = 0.
-        for i in range(num_tries):
+        for shift in shifts:
             try:
                 _, vj = scipy.sparse.linalg.eigsh(grad
-                        + (i+1)*shift*np.eye(dim),
+                        + shift*np.eye(self.dim),
                         k=1, tol=epsj, which='LA')
             except (scipy.sparse.linalg.ArpackError,
                     scipy.sparse.linalg.ArpackNoConvergence):
                 continue
-            last = i
             if not np.isnan(np.min(vj)):
                 break
         if vj == None or np.isnan(np.min(vj)):
-            # The gradient is singular. In this case resort
-            # to the more expensive, but more stable eigh method,
-            # which is based on a divide and conquer approach
-            # instead of Lanczos
-            print("Iteration %d: Gradient is singular" % j)
+            # IRAM failed. Use np.linalg.eigh
+            print("sparse.linalg.eigsh failed; going to np.linalg.eigh")
             # Going to try next smallest singular value
-            print "Looking for largest nonzero eigenvalue"
-            vj = None
-            for k in range(2,dim):
-                try:
-                    ws, vs = scipy.sparse.linalg.eigsh(grad
-                            + (i+1)*shift*np.eye(dim),
-                            k=k, tol=epsj, which='LA')
-                except (scipy.sparse.linalg.ArpackError,
-                        scipy.sparse.linalg.ArpackNoConvergence):
-                    continue
-                if not np.isnan(np.min(vs[:,k-1])):
-                    vj = vs[:,k-1]
-                    print "Picked %d-th eigenvalue" % k
-                    break
-            if vj == None:
-                print "switching to divide and conquer"
-                ws, vs = np.linalg.eigh(grad)
-                i = np.argmax(np.real(ws))
-                vj = vs[:, i]
+            ws, vs = np.linalg.eigh(grad)
+            i = np.argmax(np.real(ws))
+            vj = vs[:, i]
         return vj
 
-    def backtracking_line_search(self, X, step, gamma=1.,
+    def backtracking_line_search(self, X, step, grad, gamma=1.,
                                     scale=0.7, N_tries =30):
         """
         Implements simple backtracking line search for hill-climbing.
@@ -127,7 +93,7 @@ class BoundedTraceSolver(object):
             if f_best < f_cur:
                 method = 'Hazan'
                 f_best = f_cur
-                X_prop = (1. - gamma)*X + gamma*step
+                X_best = X_cur
                 gamma_best = gamma
             # The following lines implement projected gradient
             # in the backtracking line search. This will be
@@ -141,14 +107,12 @@ class BoundedTraceSolver(object):
             if f_best < f_cur_proj:
                 method = 'Proj'
                 f_best = f_cur_proj
-                X_prop = X_proj
+                X_best = X_cur_proj
                 gamma_best = gamma
             gamma = scale * gamma
-        return X_prop, method, gamma_best
+        return X_best, method, gamma_best
 
-
-    def solve(self, N_iter, X_init=None, disp=True,
-            num_tries=5, debug=False,):
+    def solve(self, N_iter, X_init=None, disp=True, debug=False,):
         """
         Parameters
         __________
@@ -165,20 +129,19 @@ class BoundedTraceSolver(object):
             X = np.copy(X_init)
         for j in range(N_iter):
             grad = gradf(X)
+            vj = self.rank_one_approximation(grad)
+            step = np.outer(vj, vj)
+            X_prop, method, gamma = self.backtracking_line_search(X,
+                    step, grad, gamma=1., scale=0.7, N_tries=20)
             if disp:
                 print "\tIteration %d" % j
+                print "\t\tf(X): ", f(X)
+                print "\t\t\tTr(X): ", np.trace(X)
+                print "\t\t\tgamma: ", gamma
+                print "\t\t\tmethod: ", method
             if debug:
-                print "\tOriginal X:\n", X
-                print "\tgrad X:\n", grad
-            vj = self.rank_one_approximation(grad)
-            O = np.outer(vj, vj)
-            step = (O - X)
-            X_prop, method = back_tracking_line_search(X, step,
-                    gamma=1., scale=0.7, N_tries=20)
-            if debug:
-                print "\t\tgamma: ", gamma_best
-                print "\t\t\tf(X): ", f(X)
-                print "\t\t\tBest Origin: ", method
+                print "X\n", X
+                print "grad\n", grad
             if f(X_prop) > f(X):
                 X = X_prop
         return X

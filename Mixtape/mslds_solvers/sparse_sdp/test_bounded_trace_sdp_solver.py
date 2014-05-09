@@ -15,15 +15,15 @@ TODOs:
 
 def test1():
     """
-    Do a simple test of the Bounded Trace Solver on function
-    f(x)  = -\sum_k x_kk^2 defined above.
+    Test bounded trace solver on function f(x)  = -\sum_k x_kk^2
+    defined above.
 
     Now do a dummy optimization problem. The
     problem we consider is
 
         max - sum_k x_k^2
         subject to
-            sum_k x_k = 1
+            Tr(X) = 1
 
     The optimal solution is -1/n, where
     n is the dimension.
@@ -31,14 +31,14 @@ def test1():
     N_iter = 50
     # dimension of square matrix X
     #dims = [1,4,16,64]
-    dims = [1]
+    dims = [16]
     for dim in dims:
         print("dim = %d" % dim)
-        Cf = 2. # Note that H(-f) = 2 I (H is the hessian of f)
         b = BoundedTraceSolver(neg_sum_squares, grad_neg_sum_squares, dim)
         X = b.solve(N_iter)
+        fX = neg_sum_squares(X)
         print("\tTr(X) = %f" % np.trace(X))
-        print("\tf(X) = %f" % f(X))
+        print("\tf(X) = %f" % fX)
         print("\tf* = %f" % (-1./dim))
         print("\t|f(X) - f*| = %f" % (np.abs(fX - (-1./dim))))
         print("\tError Tolerance 1/%d = %f" % (N_iter, 1./N_iter))
@@ -59,11 +59,8 @@ def simple_equality_constraint(N_iter):
     We should find penalty(X) >= -eps, and that the above constraints have
     a solution
     """
-    m = 0
-    n = 1
     dim = 2
     eps = 1./N_iter
-    M = compute_scale(m, n, eps)
     As = []
     bs = []
     Cs = [np.array([[ 1.,  0.],
@@ -73,17 +70,14 @@ def simple_equality_constraint(N_iter):
     gradFs = []
     Gs = []
     gradGs = []
-    return m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
-    #import pdb
-    #pdb.set_trace()
-    #run_experiment(f, gradf, dim, N_iter)
+    return dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
 def test2a():
     """
     Check equality constraints for log_sum_exp constraints
     """
     N_iter = 50
-    m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+    dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            simple_equality_constraint(N_iter)
     def f(X):
         return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
