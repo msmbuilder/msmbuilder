@@ -1,6 +1,8 @@
 from bounded_trace_sdp_solver import BoundedTraceSolver
+from objectives import neg_sum_squares, grad_neg_sum_squares
 import time
 import scipy
+import numpy as np
 """
 Tests for Hazan's core algorithm.
 
@@ -28,7 +30,8 @@ def test1():
     """
     N_iter = 50
     # dimension of square matrix X
-    dims = [1,4,16,64]
+    #dims = [1,4,16,64]
+    dims = [1]
     for dim in dims:
         print("dim = %d" % dim)
         Cf = 2. # Note that H(-f) = 2 I (H is the hessian of f)

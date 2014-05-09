@@ -6,10 +6,12 @@ Semidefinite Programs." LATIN 2008: Theoretical Informatics.
 Springer Berlin Heidelberg, 2008, 306:316.
 
 for approximate solution of sparse semidefinite programs.
+
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
 import numpy as np
+import scipy.linalg
 
 class BoundedTraceSolver(object):
     """
@@ -21,10 +23,46 @@ class BoundedTraceSolver(object):
     matrices with unit trace.
     NOTE: Should probably move f, gradf into constructor
     """
-    def __init__(self):
-        pass
+    def __init__(self, f, gradf, dim):
+        self.f = f
+        self.gradf = gradf
+        self.dim = dim
 
-    def solve(self, f, gradf, dim, N_iter, Cf=None, DEBUG=False,
+    def backtracking_line_search(X, gamma=1., scale=0.7, N_tries =30):
+        """
+        Implements simple backtracking line search for hill-climbing.
+        """
+        f, gradf = self.f, self.gradf
+        # Do simple back-tracking line search
+        X_best = X
+        f_best = f(X_best)
+        best_origin = None
+        for count in range(N_tries):
+            X_cur = (1. - gamma)*X + gamma*step
+            f_cur = f(X_cur)
+            if f_best < f_cur:
+                best_origin = 'Hazan'
+                f_best = f_cur
+                gamma_best = gamma
+                X_prop = (1. - gamma)*X + gamma*step
+            # The following lines implement projected gradient
+            # in the backtracking line search. This will be
+            # inefficient for large matrices. Figure out a way
+            # to get rid of it ......
+            X_cur_proj = X + gamma * grad
+            X_cur_proj = scipy.linalg.sqrtm(
+                            np.dot(X_cur_proj.T, X_cur_proj))
+            X_cur_proj = X_cur_proj / np.trace(X_cur_proj)
+            f_cur_proj = f(X_cur_proj)
+            if f_best < f_cur_proj:
+                best_origin = 'Proj'
+                f_best = f_cur_proj
+                X_prop = X_proj
+            gamma = scale * gamma
+        return X_prop, best_origin
+
+
+    def solve(self, dim, N_iter, Cf=None, DEBUG=False,
                 num_tries=5, alphas=None, X_init=None):
         """
         Parameters
@@ -40,7 +78,8 @@ class BoundedTraceSolver(object):
         Cf: float
             The curvature constant of function f (Optional).
         """
-        v = np.random.rand(dim, 1)
+        f, gradf = self.f, self.gradf
+        v = np.random.rand(self.dim, 1)
         # orthonormalize v
         v = v / np.linalg.norm(v)
         if X_init == None:
@@ -121,48 +160,12 @@ class BoundedTraceSolver(object):
 
             O = np.outer(vj, vj)
             step = (np.outer(vj,vj) - X)
-            gamma = 1.0
-            # Do simple back-tracking line search
-            scale_down = 0.7
-            f_X = f(X)
-            gamma_best = gamma
-            gamma_best_proj = gamma
-            f_best = f((1.-gamma)*X + gamma*step)
-            X_prop = (1 - gamma_best) * X + gamma_best*step
-            f_best_proj = f_X
-            N_tries = 30
-            best_origin = None
-            for count in range(N_tries):
-                if f_best < f_X and count > N_tries:
-                    break
-                gamma = scale_down * gamma
-                f_cur = f((1.-gamma)*X + gamma*step)
-                if f_best < f_cur:
-                    best_origin = 'Hazan'
-                    f_best = f_cur
-                    gamma_best = gamma
-                    X_prop = (1.-gamma)*X + gamma*step
-                # The following lines implement projected gradient
-                # in the backtracking line search. This will be
-                # inefficient for large matrices. Figure out a way
-                # to get rid of it ......
-                X_proj = X + gamma * grad
-                X_proj = scipy.linalg.sqrtm(np.dot(X_proj.T, X_proj))
-                f_cur_proj = f(X_proj)
-                if f_best < f_cur_proj:
-                    best_origin = 'Proj'
-                    f_best = f_cur_proj
-                    X_prop = X_proj
+            X_prop, best_origin = back_tracking_line_search(X, gamma=1.,
+                    scale=0.7, N_tries=20)
             if DEBUG:
-                print "\tf(X):\n", f(X)
-                print "\talphaj:\n", alphaj
-                print "\tvk vk.T:\n", np.outer(vj,vj)
-                print "\tstep:\n", step
+                print "\t\tgamma: ", gamma_best
+                print "\t\t\tf(X): ", f(X)
+                print "\t\t\tBest Origin: ", best_origin
             if f(X_prop) > f(X):
                 X = X_prop
-            print "\t\tgamma: ", gamma_best
-            print "\t\t\tf(X): ", f(X)
-            print "\t\t\tBest Origin: ", best_origin
         return X
-
-

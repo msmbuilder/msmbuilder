@@ -12,14 +12,13 @@ def get_entries(X, coords):
     x_low, x_hi, y_low, y_hi = coords
     return X[x_low:x_hi, y_low:y_hi]
 
-def numerical_derivative(f, X):
+def numerical_derivative(f, X, eps):
     """
     Numerical gradient of a matrix valued function that accepts
     dim by dim real matrices as arguments. Uses formula
 
     grad f[i,j] \approx (f(X + eps e_ij) - f(X - eps e_ij))/ (2 eps)
     """
-    eps = 1e-4
     (dim, _) = np.shape(X)
     grad = np.zeros((dim, dim))
     for i in range(dim):
