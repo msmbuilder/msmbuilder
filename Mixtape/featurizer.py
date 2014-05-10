@@ -25,6 +25,7 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
+import sklearn.base
 
 #-----------------------------------------------------------------------------
 # Code
@@ -88,7 +89,7 @@ def load(filename):
     return featurizer
 
 
-class Featurizer(object):
+class Featurizer(sklearn.base.TransformerMixin):
 
     """Base class for Featurizer objects."""
 
@@ -97,6 +98,12 @@ class Featurizer(object):
 
     def featurize(self, traj):
         pass
+    
+    def fit(self, traj, y=None):
+        return self
+
+    def transform(self, traj):
+        return self.featurize(traj)
 
     def save(self, filename):
         with open(filename, 'wb') as f:
