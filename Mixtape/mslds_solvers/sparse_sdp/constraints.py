@@ -141,9 +141,9 @@ def stress_equalities(dim):
     Fs, gradFs, Gs, gradGs = [], [], [], []
     return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
-def stress_inequalies_and_equalities(dim):
+def stress_inequalities_and_equalities(dim):
     """
-    Genearte specifation for the problem
+    Generate specification for the problem
 
     feasibility(X)
     subject to
@@ -153,8 +153,8 @@ def stress_inequalies_and_equalities(dim):
 
     The optimal solution should equal a diagonal matrix with zero entries
     for the first n-1 diagonal elements, but a 1 for the diagonal element.
-
     """
+    tol = 1e-3
     As = []
     for j in range(1,dim-1):
         Aj = np.zeros((dim,dim))
@@ -162,8 +162,7 @@ def stress_inequalies_and_equalities(dim):
         As.append(Aj)
     bs = []
     for j in range(1,dim-1):
-        bj = 1./N_iter
-        bs.append(bj)
+        bs.append(tol)
     Cs = []
     for i in range(dim):
         for j in range(dim):
@@ -180,6 +179,41 @@ def stress_inequalies_and_equalities(dim):
     Fs, gradFs, Gs, gradGs = [], [], [], []
     return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
+def basic_batch_equality(dim, A, B, D):
+    """
+    Explicity generates specification for the problem
+
+    feasibility(X)
+    subject to
+        [[ B   , A],
+         [ A.T , D]]  is PSD, where B, D are arbitrary, A given.
+
+        Tr(X) = Tr(B) + Tr(D) == 1
+    """
+    As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
+    block_dim = int(dim/2)
+    def g(X):
+        c1 = np.sum(np.abs(X[:block_dim, :block_dim] - B))
+        c2 = np.sum(np.abs(X[:block_dim,block_dim:] - A))
+        c3 = np.sum(np.abs(X[block_dim:,:block_dim] - A.T))
+        c4 = np.sum(np.abs(X[block_dim:, block_dim:] - D))
+        return c1 + c2 + c3 + c4
+    def gradg(X):
+        grad1 = np.sign(X[:block_dim, :block_dim] - B)
+        grad2 = np.sign(X[:block_dim,block_dim:] - A)
+        grad3 = np.sign(X[block_dim:,:block_dim] - A.T)
+        grad4 = np.sign(X[block_dim:, block_dim:] - D)
+
+        grad = np.zeros((dim, dim))
+        grad[:block_dim, :block_dim] = grad1
+        grad[:block_dim,block_dim:] = grad2
+        grad[block_dim:,:block_dim] = grad3
+        grad[block_dim:, block_dim:] = grad4
+        return grad
+
+    Gs = [g]
+    gradGs = [gradg]
+    return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
 def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
     c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))

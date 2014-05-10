@@ -41,3 +41,35 @@ def test_quadratic_equality():
             num_grad = numerical_derivative(g, X, eps)
             print "num_grad:\n", num_grad
             assert np.sum(np.abs(grad - num_grad)) < tol
+
+def test_basic_batch_equality():
+    """
+    Test basic batch equality specification.
+    """
+    dims = [4, 16]
+    for dim in dims:
+        block_dim = int(dim/2)
+        # Generate random configurations
+        A = np.random.rand(block_dim, block_dim)
+        B = np.random.rand(block_dim, block_dim)
+        B = np.dot(B.T, B)
+        D = np.random.rand(block_dim, block_dim)
+        D = np.dot(D.T, D)
+        tr_B_D = np.trace(B) + np.trace(D)
+        B = B / tr_B_D
+        D = D / tr_B_D
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                basic_batch_equality(dim, A, B, D)
+        tol = 1e-3
+        eps = 1e-4
+        N_rand = 10
+        for (g, gradg) in zip(Gs, gradGs):
+            for i in range(N_rand):
+                X = np.random.rand(dim, dim)
+                val = g(X)
+                grad = gradg(X)
+                print "grad:\n", grad
+                num_grad = numerical_derivative(g, X, eps)
+                print "num_grad:\n", num_grad
+                assert np.sum(np.abs(grad - num_grad)) < tol
+

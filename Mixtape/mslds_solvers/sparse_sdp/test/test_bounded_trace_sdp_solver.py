@@ -314,81 +314,44 @@ def test7c():
                     Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
-def stress_inequalies_and_equalities(dim, N_iter):
-    """
-    Stress test the bounded trace solver for both equalities and
-    inequalities.
-
-    With As and bs as below, we specify the problem
-
-    max neg_max_penalty(X)
-    subject to
-        x_ij == 0, i != j
-        x11
-        Tr(X) = x_11 + x_22 + ... + x_nn == 1
-
-    The optimal solution should equal a diagonal matrix with zero entries
-    for the first n-1 diagonal elements, but a 1 for the diagonal element.
-
-    """
-    eps = 1./N_iter
-    np.set_printoptions(precision=2)
-    m = dim - 2
-    n = dim**2 - dim
-    As = []
-    M = compute_scale(m, n, eps)
-    for j in range(1,dim-1):
-        Aj = np.zeros((dim,dim))
-        Aj[j,j] = 1
-        As.append(Aj)
-    bs = []
-    for j in range(1,dim-1):
-        bj = 1./N_iter
-        bs.append(bj)
-    Cs = []
-    for i in range(dim):
-        for j in range(dim):
-            if i != j:
-                Ci = np.zeros((dim,dim))
-                Ci[i,j] = 1
-                Cs.append(Ci)
-    ds = []
-    for i in range(dim):
-        for j in range(dim):
-            if i != j:
-                dij = 0.
-                ds.append(dij)
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
-
 def test8a():
     """
-    Stress test equality constraints for log_sum_exp_penalty
+    Stress test equality and inequality constraints for log_sum_exp_penalty
     """
+    eps = 1e-3
     dims = [4,16]
     N_iter = 200
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-               stress_inequalies_and_equalities(dim, N_iter)
-        def f(X):
-            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-        def gradf(X):
-            return log_sum_exp_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+               stress_inequalities_and_equalities(dim)
+        M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
+        def gen_f(M, As, bs, Cs, ds, Fs, Gs):
+            def f(X):
+                return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+            return f
+        f = gen_f(M, As, bs, Cs, ds, Fs, Gs)
+        def gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
+            def gradf(X):
+                return log_sum_exp_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            return gradf
+        gradf = gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        B = BoundedTraceSolver(f, gradf, dim)
+        X, elapsed  = run_experiment(B, N_iter)
+        succeed = not (f(X) < -eps)
+        print "\tComputation Time (s): ", elapsed
+        assert succeed == True
 
 def test8b():
     """
-    Stress test equality constraints for neg_max_penalty
+    BROKEN Stress test equality constraints for neg_max_penalty
     """
+    assert True == False
     dims = [4, 16]
     N_iter = 50
     for dim in dims:
         m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-               stress_inequalies_and_equalities(dim, N_iter)
+               stress_inequalities_and_equalities(dim, N_iter)
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
@@ -398,13 +361,14 @@ def test8b():
 
 def test8c():
     """
-    Stress test equality constraints for neg_max_penalty
+    BROKEN Stress test equality constraints for neg_max_penalty
     """
+    assert True == False
     dims = [4, 16]
     N_iter = 50
     for dim in dims:
         m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-               stress_inequalies_and_equalities(dim, N_iter)
+               stress_inequalities_and_equalities(dim, N_iter)
         def f(X):
             return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
@@ -412,95 +376,37 @@ def test8c():
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
         X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def batch_equality(A, dim, N_iter):
-    """
-    Check that the bounded trace implementation can handle batch
-    equality constraints in a matrix.
-
-    We specify the problem
-
-    feasibility(X)
-    subject to
-        [[ B   , A],
-         [ A.T , D]]  is PSD, where B, D are arbitrary, A given.
-
-        Tr(X) = Tr(B) + Tr(D) == 1
-    """
-    m = 0
-    As = []
-    bs = []
-    n = 0
-    Cs = []
-    ds = []
-    p = 0
-    Fs = []
-    gradFs = []
-    q = 1
-    block_dim = int(dim/2)
-    # TODO: Swap this out with generalized constraint
-    def g(X):
-        c1 = np.sum(np.abs(X[:block_dim,block_dim:] - A))
-        c2 = np.sum(np.abs(X[block_dim:,:block_dim] - A.T))
-        return c1 + c2
-    def gradg(X):
-        # TODO: Maybe speed this up and avoid allocating new matrix
-        #       of zeros every gradient computation.
-        # Upper right
-        grad1 = np.sign(X[:block_dim,block_dim:] - A)
-        # Lower left
-        grad2 = np.sign(X[block_dim:,:block_dim] - A.T)
-
-        grad = np.zeros((dim, dim))
-        grad[:block_dim,block_dim:] = grad1
-        grad[block_dim:,:block_dim] = grad2
-        # Not sure if this is right...
-        return grad
-
-    Gs = [g]
-    gradGs = [gradg]
-    eps = 1./N_iter
-    M = compute_scale_full(m, n, p, q, eps)
-    return M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
-
 def test9a():
     """
     Test block equality constraints.
     """
+    eps = 1e-3
     dims = [4, 16]
     N_iter = 200
-    #alphas = 0.01 * np.ones(N_iter)
-    #alphas = 5 * [1./(j+1) for j in range(N_iter)]
-    alphas = None
-    DEBUG = False
     for dim in dims:
-        A = (1./(2*dim)) * np.eye(int(dim/2))
-        M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
-                batch_equality(A, dim, N_iter)
+        block_dim = int(dim/2)
+        # Generate random configurations
+        A = np.random.rand(block_dim, block_dim)
+        B = np.random.rand(block_dim, block_dim)
+        B = np.dot(B.T, B)
+        D = np.random.rand(block_dim, block_dim)
+        D = np.dot(D.T, D)
+        tr_B_D = np.trace(B) + np.trace(D)
+        B = B / tr_B_D
+        D = D / tr_B_D
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                basic_batch_equality(dim, A, B, D)
+        M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
         def f(X):
-            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         def gradf(X):
-            return neg_max_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-        def z(X):
-            lambda_max = np.amax(np.linalg.eigh(gradf(X))[0])
-            return lambda_max
-        def frob(X):
-            tr = np.trace(np.dot(X, gradf(X)))
-            return tr
-        def w_dual(X):
-            zX = z(X)
-            fX = f(X)
-            tr = frob(X)
-            return zX + fX - tr
-        def grad_update(X):
-            G = gradf(X)
-            wj, vj = scipy.sparse.linalg.eigsh(G, k=1, which='LA',
-                        tol=0.)
-            return np.outer(vj, vj)
-        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter,
-                alphas=alphas,DEBUG=DEBUG)
-        g = Gs[0]
-        gradg = gradGs[0]
+            return log_sum_exp_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        B = BoundedTraceSolver(f, gradf, dim)
+        X, elapsed  = run_experiment(B, N_iter)
+        succeed = not (f(X) < -eps)
+        print "\tComputation Time (s): ", elapsed
+        assert succeed == True
 
 def run_experiment(B, N_iter, disp=True, debug=False):
     start = time.clock()
