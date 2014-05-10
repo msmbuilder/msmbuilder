@@ -89,7 +89,7 @@ def load(filename):
     return featurizer
 
 
-class Featurizer(sklearn.base.TransformerMixin):
+class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
 
     """Base class for Featurizer objects."""
 
