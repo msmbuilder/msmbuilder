@@ -1,9 +1,9 @@
+import sys
+sys.path.append("..")
 from bounded_trace_sdp_solver import BoundedTraceSolver
 from objectives import neg_sum_squares, grad_neg_sum_squares
-from constraints import simple_equality_constraint
-from constraints import simple_equality_and_inequality_constraint
-from penalties import compute_scale, log_sum_exp_penalty
-from penalties import log_sum_exp_grad_penalty
+from constraints import *
+from penalties import *
 import time
 import scipy
 import numpy as np
@@ -69,7 +69,7 @@ def test2a():
 
 def test2b():
     """
-    Check equality constraints for neg_max constraints
+    BROKEN: Check equality constraints for neg_max constraints
     TODO: Fix this test
     """
     N_iter = 50
@@ -105,7 +105,7 @@ def test3a():
 
 def test3b():
     """
-    Check equality and inequality constraints for neg_max penalty
+    BROKEN: Check equality and inequality constraints for neg_max penalty
     TODO: Fix this test
     """
     assert True == False
@@ -121,9 +121,9 @@ def test3b():
 
 def test3c():
     """
-    Check equality and inequality constraints for neg_max penalty
+    BROKEN: Check equality and inequality constraints for neg_max penalty
     with log_sum_exp gradients.
-    TODO: Fix this cost
+    TODO: Fix this test
     """
     assert True == False
     N_iter = 50
@@ -136,47 +136,13 @@ def test3c():
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
 
-def quadratic_inequality(N_iter):
-    """
-    Check that the bounded trace implementation can handle low-dimensional
-    quadratic inequality.
-
-    We specify the problem
-
-        max penalty(X)
-        subject to
-            x_11^2 + x_22^2 <= .5
-            Tr(X) = x_11 + x_22 == 1
-    """
-    dim = 2
-    eps = 1./N_iter
-    m = 0
-    As = []
-    bs = []
-    n = 0
-    Cs = []
-    ds = []
-    p = 1
-    def f(X):
-        return X[0,0]**2 + X[1,1]**2 - 0.5
-    def gradf(X):
-        grad = np.zeros(np.shape(X))
-        grad[0,0] = 2 * X[0,0]
-        grad[1,1] = 2 * X[1,1]
-        return grad
-    Fs = [f]
-    gradFs = [gradf]
-    q = 0
-    Gs = []
-    gradGs = []
-    M = compute_scale_full(m, n, p, q, eps)
-    return dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
-
 def test4a():
     """
-    Check quadratic inequality constraints for neg_max penalty
+    BROKEN: Check quadratic inequality constraints for neg_max penalty
     and gradients.
+    TODO: Fix this test
     """
+    assert True == False
     N_iter = 50
     dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
             quadratic_inequality(N_iter)
@@ -191,57 +157,28 @@ def test4b():
     """
     Check quadratic inequality for log_sum_exp penalty and gradients.
     """
+    eps = 1e-3
     N_iter = 50
-    dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
-            quadratic_inequality(N_iter)
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            quadratic_inequality()
+    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
     def f(X):
         return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
     def gradf(X):
         return log_sum_exp_grad_penalty(X, M,
-                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-def quadratic_equality(N_iter):
-    """
-    Check that the bounded trace implementation can handle
-    low-dimensional quadratic equalities
-
-    We specify the problem
-
-        feasibility(X)
-        subject to
-            x_11^2 + x_22^2 = 0.5
-            Tr(X) = x_11 + x_22 == 1
-    """
-    dim = 2
-    eps = 1./N_iter
-    m = 0
-    As = []
-    bs = []
-    n = 0
-    Cs = []
-    ds = []
-    p = 0
-    Fs = []
-    gradFs = []
-    q = 1
-    def g(X):
-        return X[0,0]**2 + X[1,1]**2 - 0.5
-    def gradg(X):
-        grad = np.zeros(np.shape(X))
-        grad[0,0] = 2 * X[0,0]
-        grad[1,1] = 2 * X[1,1]
-        return grad
-    Gs = [g]
-    gradGs = [gradg]
-    M = compute_scale_full(m, n, p, q, eps)
-    return dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    B = BoundedTraceSolver(f, gradf, dim)
+    X, elapsed  = run_experiment(B, N_iter)
+    succeed = not (f(X) < -eps)
+    print "\tComputation Time (s): ", elapsed
+    assert succeed == True
 
 def test5a():
     """
-    Check quadratic equality constraints for neg_max_general penalty
+    BROKEN: quadratic equality constraints for neg_max penalty
     and gradients.
     """
+    assert True == False
     N_iter = 50
     dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
             quadratic_equality(N_iter)
@@ -251,68 +188,41 @@ def test5a():
         return neg_max_grad_penalty(X, M,
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
     X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-    #import pdb
-    #pdb.set_trace()
-
-
-def stress_inequalities(dim, N_iter):
-    """
-    Stress test the bounded trace solver for
-    inequalities.
-
-    With As and bs as below, we specify the probelm
-
-    max penalty(X)
-    subject to
-        x_ii <= 1/2n
-        Tr(X) = x_11 + x_22 + ... + x_nn == 1
-
-    The optimal solution should equal a diagonal matrix with small entries
-    for the first n-1 diagonal elements, but a large element (about 1/2)
-    for the last element.
-    """
-    m = dim - 1
-    n = 0
-    eps = 1./N_iter
-    M = compute_scale(m, n, eps)
-    As = []
-    for i in range(dim-1):
-        Ai = np.zeros((dim,dim))
-        Ai[i,i] = 1
-        As.append(Ai)
-    bs = []
-    for i in range(dim-1):
-        bi = 1./(2*dim)
-        bs.append(bi)
-    Cs = []
-    ds = []
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
 
 def test6a():
     """
     Stress test inequality constraints for log_sum_exp penalty.
     """
+    eps = 1e-3
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-                stress_inequalities(dim, N_iter)
-        def f(X):
-            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-        def gradf(X):
-            return log_sum_exp_grad_penalty(X, M,
-                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-        run_experiment(f, gradf, dim, N_iter)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                stress_inequalities(dim)
+        M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
+        def gen_f(M, As, bs, Cs, ds, Fs, Gs):
+            def f(X):
+                return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+            return f
+        f = gen_f(M, As, bs, Cs, ds, Fs, Gs)
+        def gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
+            def gradf(X):
+                return log_sum_exp_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            return gradf
+        gradf = gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        B = BoundedTraceSolver(f, gradf, dim)
+        X, elapsed  = run_experiment(B, N_iter)
+        succeed = not (f(X) < -eps)
+        print "\tComputation Time (s): ", elapsed
+        assert succeed == True
 
 def test6b():
     """
-    Stress test inequality constraints for neg_max_sum penatly
+    BROKEN: Stress test inequality constraints for neg_max_sum penatly
     and log_sum_exp gradient.
     """
+    assert True == False
     dims = [4,16]
     N_iter = 50
     for dim in dims:
@@ -327,8 +237,9 @@ def test6b():
 
 def test6c():
     """
-    Stress test inequality constraints for neg_max_penalty
+    BROKEN: Stress test inequality constraints for neg_max_penalty
     """
+    assert True == False
     dims = [4,16]
     N_iter = 50
     for dim in dims:
@@ -341,61 +252,39 @@ def test6c():
                     Fs, gradFs, Gs, gradGs, eps)
         run_experiment(f, gradf, dim, N_iter)
 
-def stress_equalities(dim, N_iter):
-    """
-    Stress test the bounded trace solver for equalities.
-
-    With As and bs as below, we solve the problem
-
-    max penalty(X)
-    subject to
-        x_ii == 0, i < n
-        Tr(X) = x_11 + x_22 + ... + x_nn == 1
-
-    The optimal solution should equal a diagonal matrix with zero entries
-    for the first n-1 diagonal elements, but a 1 for the diagonal element.
-    """
-    m = 0
-    n = dim - 1
-    eps = 1./N_iter
-    M = compute_scale(m, n, eps)
-    As = []
-    bs = []
-    Cs = []
-    for j in range(dim-1):
-        Cj = np.zeros((dim,dim))
-        Cj[j,j] = 1
-        Cs.append(Cj)
-    ds = []
-    for j in range(dim-1):
-        dj = 0.
-        ds.append(dj)
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    return m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs
-
 def test7a():
     """
     Stress test equality constraints for log_sum_exp_penalty
     """
+    eps = 1e-3
     dims = [4,16]
     N_iter = 50
     for dim in dims:
-        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-                stress_equalities(dim, N_iter)
-        def f(X):
-            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-        def gradf(X):
-            return log_sum_exp_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-        run_experiment(f, gradf, dim, N_iter)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                stress_equalities(dim)
+        M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
+        def gen_f(M, As, bs, Cs, ds, Fs, Gs):
+            def f(X):
+                return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+            return f
+        f = gen_f(M, As, bs, Cs, ds, Fs, Gs)
+        def gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
+            def gradf(X):
+                return log_sum_exp_grad_penalty(X, M,
+                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            return gradf
+        gradf = gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        B = BoundedTraceSolver(f, gradf, dim)
+        X, elapsed  = run_experiment(B, N_iter)
+        succeed = not (f(X) < -eps)
+        print "\tComputation Time (s): ", elapsed
+        assert succeed == True
 
 def test7b():
     """
-    Stress test equality constraints for neg_max_penalty
+    BROKEN: Stress test equality constraints for neg_max_penalty
     """
+    assert True == False
     dims = [4,16]
     N_iter = 50
     for dim in dims:
@@ -410,8 +299,9 @@ def test7b():
 
 def test7c():
     """
-    Stress test equality constraints for neg_max_penalty
+    BROKEN: Stress test equality constraints for neg_max_penalty
     """
+    assert True == False
     dims = [4,16]
     N_iter = 50
     for dim in dims:

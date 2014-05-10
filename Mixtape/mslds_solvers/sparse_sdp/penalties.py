@@ -133,7 +133,7 @@ def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
         log_nums[k+n+m] = M*Fs[k](X)
         num_mats.append(M*gradFs[k](X))
     for l in range(q):
-        log_nums[l+n+m+p] = M*np.abs(Gl(X))
+        log_nums[l+n+m+p] = M*np.abs(Gs[l](X))
         val = Gs[l](X)
         if val < 0 :
             sgn = -1.

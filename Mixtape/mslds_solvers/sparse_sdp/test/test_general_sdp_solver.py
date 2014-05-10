@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 from hazan import *
 from hazan_penalties import *
 import scipy

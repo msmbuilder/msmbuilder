@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 from hazan import *
 from test_bounded_trace_sdp_solver import batch_equality
 import pdb

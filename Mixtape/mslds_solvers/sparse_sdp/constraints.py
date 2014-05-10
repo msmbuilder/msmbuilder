@@ -40,6 +40,146 @@ def simple_equality_and_inequality_constraint():
     Fs, gradFs, Gs, gradGs = [], [], [], []
     return dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
+def quadratic_inequality():
+    """
+    Generate constraints that specify the problem
+
+        max penalty(X)
+        subject to
+            x_11^2 + x_22^2 <= .5
+            Tr(X) = x_11 + x_22 == 1
+    """
+    dim = 2
+    As, bs, Cs, ds = [], [], [], []
+    def f(X):
+        return X[0,0]**2 + X[1,1]**2 - 0.5
+    def gradf(X):
+        grad = np.zeros(np.shape(X))
+        grad[0,0] = 2 * X[0,0]
+        grad[1,1] = 2 * X[1,1]
+        return grad
+    Fs = [f]
+    gradFs = [gradf]
+    Gs, gradGs = [], []
+    return dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
+def quadratic_equality():
+    """
+    Check that the bounded trace implementation can handle
+    low-dimensional quadratic equalities
+
+    We specify the problem
+
+        feasibility(X)
+        subject to
+            x_11^2 + x_22^2 = 0.5
+            Tr(X) = x_11 + x_22 == 1
+    """
+    dim = 2
+    As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
+    def g(X):
+        return X[0,0]**2 + X[1,1]**2 - 0.5
+    def gradg(X):
+        grad = np.zeros(np.shape(X))
+        grad[0,0] = 2 * X[0,0]
+        grad[1,1] = 2 * X[1,1]
+        return grad
+    Gs = [g]
+    gradGs = [gradg]
+    return dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
+def stress_inequalities(dim):
+    """
+    Stress test the bounded trace solver for
+    inequalities.
+
+    With As and bs as below, we specify the problem
+
+    max penalty(X)
+    subject to
+        x_ii <= 1/2n
+        Tr(X) = x_11 + x_22 + ... + x_nn == 1
+
+    The optimal solution should equal a diagonal matrix with small entries
+    for the first n-1 diagonal elements, but a large element (about 1/2)
+    for the last element.
+    """
+    As = []
+    for i in range(dim-1):
+        Ai = np.zeros((dim,dim))
+        Ai[i,i] = 1
+        As.append(Ai)
+    bs = []
+    for i in range(dim-1):
+        bi = 1./(2*dim)
+        bs.append(bi)
+    Cs, ds, Fs, gradFs, Gs, gradGs = [], [], [], [], [], []
+    return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
+def stress_equalities(dim):
+    """
+    Specify problem
+
+    max penalty(X)
+    subject to
+        x_ii == 0, i < n
+        Tr(X) = x_11 + x_22 + ... + x_nn == 1
+
+    The optimal solution should equal a diagonal matrix with zero entries
+    for the first n-1 diagonal elements, but a 1 for the diagonal element.
+    """
+    As, bs = [], []
+    Cs = []
+    for j in range(dim-1):
+        Cj = np.zeros((dim,dim))
+        Cj[j,j] = 1
+        Cs.append(Cj)
+    ds = []
+    for j in range(dim-1):
+        dj = 0.
+        ds.append(dj)
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+    return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
+def stress_inequalies_and_equalities(dim):
+    """
+    Genearte specifation for the problem
+
+    feasibility(X)
+    subject to
+        x_ij == 0, i != j
+        x11
+        Tr(X) = x_11 + x_22 + ... + x_nn == 1
+
+    The optimal solution should equal a diagonal matrix with zero entries
+    for the first n-1 diagonal elements, but a 1 for the diagonal element.
+
+    """
+    As = []
+    for j in range(1,dim-1):
+        Aj = np.zeros((dim,dim))
+        Aj[j,j] = 1
+        As.append(Aj)
+    bs = []
+    for j in range(1,dim-1):
+        bj = 1./N_iter
+        bs.append(bj)
+    Cs = []
+    for i in range(dim):
+        for j in range(dim):
+            if i != j:
+                Ci = np.zeros((dim,dim))
+                Ci[i,j] = 1
+                Cs.append(Ci)
+    ds = []
+    for i in range(dim):
+        for j in range(dim):
+            if i != j:
+                dij = 0.
+                ds.append(dij)
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+    return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
 
 def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
     c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))
