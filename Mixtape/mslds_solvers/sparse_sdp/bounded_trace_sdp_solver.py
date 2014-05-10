@@ -61,12 +61,20 @@ class BoundedTraceSolver(object):
             vj = vs[:, i]
         return vj
 
-    def project_spectrahedron(self, X, N_rounds=2):
+    def project_spectrahedron(self, X, N_rounds=4):
         """
         Project X onto the spectrahedron { Y | Y is PSD and Tr(Y) == 1}
         """
-        for r in N_rounds:
-            X = scipy.linalg.sqrtm(np.dot(X.T, X))
+        for r in range(N_rounds):
+            # Project onto semidefinite cone
+            Z = np.zeros(np.shape(X))
+            ws, vs = np.linalg.eigh(Z)
+            for i in range(len(ws)):
+                w = ws[i]
+                if w >= 0:
+                    Z += max(w, 0) * np.outer(vs[:, i], vs[:, i])
+            X = Z
+            # Project onto tr = 1 plane
             X = X / np.trace(X)
         return X
 
@@ -79,13 +87,13 @@ class BoundedTraceSolver(object):
 
         X: np.ndarray
             Current position
-        step: np.ndarray
+        gradX: np.ndarray
+            Gradient at X
+        stepX: np.ndarray
             Search direction
-        gamma: float
-            Initial step size
         c: float
             Magnitude used in Armijo conditions
-        scale: float
+        rho: float
             Geometric factor used to shrink step size
         N_tries: int
             Number of tries
@@ -93,23 +101,26 @@ class BoundedTraceSolver(object):
         f, gradf = self.f, self.gradf
         alpha = 1.
         # Calculate ascent magnitude
-        mag = np.trace(gradX.T, stepX)
+        mag = np.trace(np.dot(gradX.T, stepX))
         fX = f(X)
         for count in range(N_tries):
-            X_cur = X + gamma*step
-            f_cur = f(X_cur)
-            if fX > f_cur + c*mag:
+            X_cur = X + alpha*stepX
+            fX_cur = f(X_cur)
+            if fX_cur > fX + c*mag:
                 break
             alpha = rho * alpha
-        return X_cur, alpha
+        return fX_cur, X_cur, alpha
 
-    def solve(self, N_iter, X_init=None, disp=True, debug=False, modes=[]):
+    def solve(self, N_iter, X_init=None, disp=True, debug=False,
+            methods=[]):
         """
         Parameters
         __________
         N_iter: int
             The desired number of iterations
         """
+        import pdb
+        pdb.set_trace()
         f, gradf = self.f, self.gradf
         if X_init == None:
             v = np.random.rand(self.dim, 1)
@@ -121,31 +132,34 @@ class BoundedTraceSolver(object):
         for j in range(N_iter):
             grad = gradf(X)
             results = []
-            if 'frank_wolfe' in modes:
+            if 'frank_wolfe' in methods:
                 vj = self.rank_one_approximation(grad)
-                step = np.outer(vj, vj)
-                X_fw, gamma_fw = self.backtracking_line_search(X,
-                        step, gamma_init=1., scale=0.7)
-                results += [(X_fw, gamma_fw, 'frank_wolfe')]
-            if 'projected_gradient' in modes:
+                O = np.outer(vj, vj)
+                step = O - X
+                fX_fw, X_fw, alpha_fw = \
+                        self.backtracking_line_search(X, grad, step)
+                results += [(fX_fw, X_fw, alpha_fw, 'frank_wolfe')]
+            if 'projected_gradient' in methods:
                 step = grad
-                X_proj, gamma_proj = self.backtracking_line_search(X,
-                        step, gamma_init=1., scale=0.7)
+                fX_proj, X_proj, alpha_proj = \
+                        self.backtracking_line_search(X, grad, step)
                 X_proj = self.project_spectrahedron(X_proj)
-                results += [(X_proj, gamma_proj, 'projected_gradient')]
+                results += [(fX_proj, X_proj, alpha_proj,
+                                'projected_gradient')]
+            ind = np.argmax(np.array([result[0] for result in results]))
+            fX_prop,  X_prop, alpha, method = results[ind]
             if disp:
                 print "\tIteration %d" % j
                 print "\t\tf(X): ", f(X)
                 print "\t\t\tTr(X): ", np.trace(X)
-                print "\t\t\tgamma: ", gamma
-                #print "\t\t\tmethod: ", method
+                print "\t\t\talpha: ", alpha
+                print "\t\t\tmethod: ", method
             if debug:
                 print "X\n", X
                 print "grad\n", grad
-            if f(X_prop) > f(X):
+            if fX_prop > f(X):
                 X = X_prop
-            else:
-                if np.array_equal(X, X_prop):
-                    # We're stuck in fixed point.
-                    break
+            elif np.array_equal(X, X_prop):
+                # We're stuck in fixed point.
+                break
         return X

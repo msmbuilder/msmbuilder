@@ -62,26 +62,10 @@ def test2a():
         return log_sum_exp_grad_penalty(X, M, As,
                     bs, Cs, ds, Fs, gradFs, Gs, gradGs)
     B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter)
+    X, elapsed  = run_experiment(B, N_iter, ['projected_gradient'])
     succeed = not (f(X) < -eps)
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
-
-#def test2b():
-#    """
-#    BROKEN: Check equality constraints for neg_max constraints
-#    TODO: Fix this test
-#    """
-#    N_iter = 50
-#    assert True == False
-#    m, n, M, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-#           simple_equality_constraint(N_iter)
-#    def f(X):
-#        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
-#                Gs, gradGs, eps)
-#    run_experiment(f, gradf, dim, N_iter)
 
 def test3a():
     """
@@ -406,8 +390,8 @@ def test9a():
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
 
-def run_experiment(B, N_iter, disp=True, debug=False):
+def run_experiment(B, N_iter, methods=[], disp=True, debug=False):
     start = time.clock()
-    X = B.solve(N_iter, disp=disp, debug=debug)
+    X = B.solve(N_iter, disp=disp, debug=debug, methods=methods)
     elapsed = (time.clock() - start)
     return X, elapsed
