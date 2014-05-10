@@ -41,7 +41,7 @@ class BoundedTraceSolver(object):
     def rank_one_approximation(self, grad):
         epsj = 1e-9
         # Use Implicitly Restarted Arnoldi Method (IRAM)
-        # (essentially a stable version of Lanczos's algorithm)
+        # (stable version of Lanczos's algorithm)
         shifts = [1., 10., 100., 1000.]
         vj = None
         for shift in shifts:
@@ -55,16 +55,23 @@ class BoundedTraceSolver(object):
             if not np.isnan(np.min(vj)):
                 break
         if vj == None or np.isnan(np.min(vj)):
-            # IRAM failed. Use np.linalg.eigh
             print("sparse.linalg.eigsh failed; going to np.linalg.eigh")
-            # Going to try next smallest singular value
             ws, vs = np.linalg.eigh(grad)
             i = np.argmax(np.real(ws))
             vj = vs[:, i]
         return vj
 
-    def backtracking_line_search(self, X, step, grad, gamma=1.,
-                                    scale=0.7, N_tries =30):
+    def project_spectrahedron(self, X, N_rounds=2):
+        """
+        Project X onto the spectrahedron { Y | Y is PSD and Tr(Y) == 1}
+        """
+        for r in N_rounds:
+            X = scipy.linalg.sqrtm(np.dot(X.T, X))
+            X = X / np.trace(X)
+        return X
+
+    def backtracking_line_search(self, X, gradX, stepX, c=1e-4,
+                                    rho=0.7, N_tries =30):
         """
         Implements simple backtracking line search for hill-climbing.
         Parameters
@@ -76,43 +83,27 @@ class BoundedTraceSolver(object):
             Search direction
         gamma: float
             Initial step size
+        c: float
+            Magnitude used in Armijo conditions
         scale: float
             Geometric factor used to shrink step size
         N_tries: int
             Number of tries
         """
         f, gradf = self.f, self.gradf
-        # Do simple back-tracking line search
-        X_best = X
-        f_best = f(X_best)
-        method = None
-        gamma_best = gamma
+        alpha = 1.
+        # Calculate ascent magnitude
+        mag = np.trace(gradX.T, stepX)
+        fX = f(X)
         for count in range(N_tries):
-            X_cur = (1. - gamma)*X + gamma*step
+            X_cur = X + gamma*step
             f_cur = f(X_cur)
-            if f_best < f_cur:
-                method = 'Hazan'
-                f_best = f_cur
-                X_best = X_cur
-                gamma_best = gamma
-            # The following lines implement projected gradient
-            # in the backtracking line search. This will be
-            # inefficient for large matrices. Figure out a way
-            # to get rid of it ......
-            X_cur_proj = X + gamma * grad
-            X_cur_proj = scipy.linalg.sqrtm(
-                            np.dot(X_cur_proj.T, X_cur_proj))
-            X_cur_proj = X_cur_proj / np.trace(X_cur_proj)
-            f_cur_proj = f(X_cur_proj)
-            if f_best < f_cur_proj:
-                method = 'Proj'
-                f_best = f_cur_proj
-                X_best = X_cur_proj
-                gamma_best = gamma
-            gamma = scale * gamma
-        return X_best, method, gamma_best
+            if fX > f_cur + c*mag:
+                break
+            alpha = rho * alpha
+        return X_cur, alpha
 
-    def solve(self, N_iter, X_init=None, disp=True, debug=False,):
+    def solve(self, N_iter, X_init=None, disp=True, debug=False, modes=[]):
         """
         Parameters
         __________
@@ -129,16 +120,25 @@ class BoundedTraceSolver(object):
             X = np.copy(X_init)
         for j in range(N_iter):
             grad = gradf(X)
-            vj = self.rank_one_approximation(grad)
-            step = np.outer(vj, vj)
-            X_prop, method, gamma = self.backtracking_line_search(X,
-                    step, grad, gamma=1., scale=0.7, N_tries=20)
+            results = []
+            if 'frank_wolfe' in modes:
+                vj = self.rank_one_approximation(grad)
+                step = np.outer(vj, vj)
+                X_fw, gamma_fw = self.backtracking_line_search(X,
+                        step, gamma_init=1., scale=0.7)
+                results += [(X_fw, gamma_fw, 'frank_wolfe')]
+            if 'projected_gradient' in modes:
+                step = grad
+                X_proj, gamma_proj = self.backtracking_line_search(X,
+                        step, gamma_init=1., scale=0.7)
+                X_proj = self.project_spectrahedron(X_proj)
+                results += [(X_proj, gamma_proj, 'projected_gradient')]
             if disp:
                 print "\tIteration %d" % j
                 print "\t\tf(X): ", f(X)
                 print "\t\t\tTr(X): ", np.trace(X)
                 print "\t\t\tgamma: ", gamma
-                print "\t\t\tmethod: ", method
+                #print "\t\t\tmethod: ", method
             if debug:
                 print "X\n", X
                 print "grad\n", grad
