@@ -22,45 +22,53 @@ def _sklearn_estep():
     stats = refmodel._initialize_sufficient_statistics()
     stats['post[1:]'] = np.zeros(refmodel.n_components)
     stats['post[:-1]'] = np.zeros(refmodel.n_components)
-    stats['obs[1:]'] = np.zeros((refmodel.n_components, refmodel.n_features))
-    stats['obs[:-1]'] = np.zeros((refmodel.n_components, refmodel.n_features))
-    stats['obs*obs[t-1].T'] = np.zeros((refmodel.n_components, refmodel.n_features, refmodel.n_features))
-    stats['obs[1:]*obs[1:].T'] = np.zeros((refmodel.n_components, refmodel.n_features, refmodel.n_features))
-    stats['obs[:-1]*obs[:-1].T'] = np.zeros((refmodel.n_components, refmodel.n_features, refmodel.n_features))
+    stats['obs[1:]'] = np.zeros((refmodel.n_components,
+                                    refmodel.n_features))
+    stats['obs[:-1]'] = np.zeros((refmodel.n_components,
+                                    refmodel.n_features))
+    stats['obs*obs[t-1].T'] = np.zeros((refmodel.n_components,
+                            refmodel.n_features, refmodel.n_features))
+    stats['obs[1:]*obs[1:].T'] = np.zeros((refmodel.n_components,
+                            refmodel.n_features, refmodel.n_features))
+    stats['obs[:-1]*obs[:-1].T'] = np.zeros((refmodel.n_components,
+                            refmodel.n_features, refmodel.n_features))
 
-    for seq in data: 
+    for seq in data:
         framelogprob = refmodel._compute_log_likelihood(seq)
         lpr, fwdlattice = refmodel._do_forward_pass(framelogprob)
         bwdlattice = refmodel._do_backward_pass(framelogprob)
         gamma = fwdlattice + bwdlattice
         posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
         curr_logprob += lpr
-        refmodel._accumulate_sufficient_statistics(
-                            stats, seq, framelogprob, posteriors, fwdlattice,
+        refmodel._accumulate_sufficient_statistics(stats, seq,
+                            framelogprob, posteriors, fwdlattice,
                             bwdlattice, string.ascii_letters)
-                            
+
         # accumulate the extra stats that our model has but the
         # sklearn model doesn't
         stats['post[1:]'] += posteriors[1:].sum(axis=0)
         stats['post[:-1]'] += posteriors[:-1].sum(axis=0)
         stats['obs[1:]'] += np.dot(posteriors[1:].T, seq[1:])
         stats['obs[:-1]'] += np.dot(posteriors[:-1].T, seq[:-1])
-        
+
         for t in range(1, len(seq)):
             obsobsTminus1 = np.outer(seq[t], seq[t-1])
             for c in range(refmodel.n_components):
-                stats['obs*obs[t-1].T'][c] += posteriors[t, c] * obsobsTminus1
-        
+                stats['obs*obs[t-1].T'][c] += \
+                        posteriors[t, c] * obsobsTminus1
+
         for t in range(1, len(seq)):
             obsobsT = np.outer(seq[t], seq[t])
             for c in range(refmodel.n_components):
-                stats['obs[1:]*obs[1:].T'][c] += posteriors[t, c] * obsobsT
-        
+                stats['obs[1:]*obs[1:].T'][c] += \
+                        posteriors[t, c] * obsobsT
+
         for t in range(len(seq)-1):
             obsobsT = np.outer(seq[t], seq[t])
             for c in range(refmodel.n_components):
-                stats['obs[:-1]*obs[:-1].T'][c] += posteriors[t, c] * obsobsT
-             
+                stats['obs[:-1]*obs[:-1].T'][c] += \
+                        posteriors[t, c] * obsobsT
+
     return curr_logprob, stats
 
 def test_sufficient_statistics():
@@ -72,7 +80,7 @@ def test_sufficient_statistics():
     model.covars_ = refmodel.covars_
     model.transmat_ = refmodel.transmat_
     model.populations_ = refmodel.startprob_
-    
+
     logprob, stats = model._impl.do_estep()
     rlogprob, rstats = _sklearn_estep()
 

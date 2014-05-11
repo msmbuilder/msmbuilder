@@ -245,80 +245,129 @@ def grad_l1_batch_equals(X, A, coord):
     set_entries(grad, coord, grad_piece)
     return grad
 
+def l2_batch_equals(X, A, coord):
+    c = np.sum((get_entries(X,coord) - A)**2)
+    return c
+
+def grad_l2_batch_equals(X, A, coord):
+    # Upper right
+    grad_piece = 2*(get_entries(X,coord) - A)
+    grad = np.zeros(np.shape(X))
+    set_entries(grad, coord, grad_piece)
+    return grad
+
 def many_batch_equals(X, constraints):
     sum_c = 0
     for coord, mat in constraints:
-        c = np.sum((get_entries(X, coord) - mat)**2)
-        c += np.sum(np.abs(get_entries(X, coord) - mat))
+        c = l1_batch_equals(X, mat, coord)
+        c += l2_batch_equals(X, mat, coord)
         sum_c += c
-    return Scale * sum_c
+    return sum_c
 
 def grad_many_batch_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for coord, mat in constraints:
-        grad_piece = 2*(get_entries(X, coord) - mat)
-        grad_piece += L1Scale * np.sign(get_entries(X, coord) - mat)
-        set_entries(grad, coord, grad_piece)
-    return Scale * grad
+        grad += grad_l1_batch_equals(X, mat, coord)
+        grad += grad_l2_batch_equals(X, mat, coord)
+    return grad
 
 def batch_linear_equals(X, c, P_coords, Q, R_coords):
     """
     Performs operation R_coords = c * P_coords + Q
     """
-    #c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
-    #                - get_entries(X, R_coords)))
-    c += np.sum(np.abs(c * get_entries(X, P_coords) + Q
-                    - get_entries(X, R_coords)))
-    c += L1Scale * np.sum((c * get_entries(X, P_coords) + Q
-                    - get_entries(X, R_coords))**2)
+    c += l1_batch_equals(X, c*get_entries(X, P_coords) + Q, R_coords)
+    c += l2_batch_equals(X, c*get_entries(X, P_coords) + Q, R_coords)
     return c
+
+def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
+    grad = np.zeros(np.shape(X))
+    grad += grad_l1_batch_equals(X, R_coords,
+                                    c*get_entries(X, P_coords) + Q)
+    grad += grad_l2_batch_equals(X, R_coords,
+                                    c*get_entries(X, P_coords) + Q)
+    return grad
 
 def many_batch_linear_equals(X, constraints):
     sum_c = 0
     for c, P_coords, Q, R_coords in constraints:
-        #c = np.sum(np.abs(c * get_entries(X, P_coords) + Q
-        #                - get_entries(X, R_coords)))
-        c = np.sum((c * get_entries(X, P_coords) + Q
-                        - get_entries(X, R_coords))**2)
-        c += L1Scale * np.sum(np.abs(c * get_entries(X, P_coords) + Q
-                        - get_entries(X, R_coords)))
-        sum_c += c
+        sum_c += batch_linear_equals(X, c, P_coords, Q, R_coords)
     return sum_c
-
-def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
-    grad = np.zeros(np.shape(X))
-    #grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
-    #                    - get_entries(X, R_coords))
-    #grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
-    #                    - get_entries(X, R_coords))
-    grad_piece_P = c * 2*(c * get_entries(X, P_coords) + Q
-                        - get_entries(X, R_coords))
-    grad_piece_R = - 2*(c * get_entries(X, P_coords) + Q
-                        - get_entries(X, R_coords))
-    grad_piece_P += L1Scale * c * np.sign(c * get_entries(X, P_coords) + Q
-                        - get_entries(X, R_coords))
-    grad_piece_R += L1Scale * - np.sign(c * get_entries(X, P_coords) + Q
-                        - get_entries(X, R_coords))
-    set_entries(grad, P_coords, grad_piece_P)
-    set_entries(grad, R_coords, grad_piece_R)
-    return grad
 
 def grad_many_batch_linear_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for c, P_coords, Q, R_coords in constraints:
-        #grad_piece_P = c * np.sign(c * get_entries(X, P_coords) + Q
-        #                    - get_entries(X, R_coords))
-        #grad_piece_R = - np.sign(c * get_entries(X, P_coords) + Q
-        #                    - get_entries(X, R_coords))
-        grad_piece_P = c * 2*(c * get_entries(X, P_coords) + Q
-                            - get_entries(X, R_coords))
-        grad_piece_R = - 2*(c * get_entries(X, P_coords) + Q
-                            - get_entries(X, R_coords))
-        grad_piece_P += L1Scale*c*np.sign(c * get_entries(X, P_coords) + Q
-                            - get_entries(X, R_coords))
-        grad_piece_R += L1Scale * -np.sign(c * get_entries(X, P_coords) + Q
-                            - get_entries(X, R_coords))
-        set_entries(grad, P_coords, grad_piece_P)
-        set_entries(grad, R_coords, grad_piece_R)
+        grad += grad_l1_batch_equals(X, c*get_entries(X, P_coords) + Q,
+                                        R_coords)
+
+        grad += grad_l2_batch_equals(X, c*get_entries(X, P_coords) + Q,
+                                        R_coords)
+
     return grad
 
+def Q_constraints(dim, A, B, D):
+    """
+    Specifies the convex program required for Q optimization.
+
+    minimize -log det R + Tr(RB)
+          --------------
+         |D-ADA.T  I    |
+    X =  |   I     R    |
+         |            R |
+          --------------
+    X is PSD
+    """
+    As, bs, Cs, ds, = [], [], [], []
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+
+    """
+    We need to enforce zero equalities in X.
+      -------------
+     | -        -    0 |
+C =  | -        _    0 |
+     | 0        0    _ |
+      -------------
+    """
+    constraints = [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
+            ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
+    """
+    We need to enforce constant equalities in X.
+      -------------
+     |D-ADA.T   I    _ |
+C =  | I        _    _ |
+     | _        _    _ |
+      -------------
+    """
+    D_ADA_T_cds = (0, dim, 0, dim)
+    D_ADA_T = D - np.dot(A, np.dot(D, A.T))
+    I_1_cds = (0, dim, dim, 2*dim)
+    I_2_cds = (dim, 2*dim, 0, dim)
+    constraints += [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
+            (I_2_cds, np.eye(dim))]
+
+    # Add constraints to Gs
+    def const_regions(X):
+        return many_batch_equals(X, constraints)
+    def grad_const_regions(X):
+        return grad_many_batch_equals(X, constraints)
+    Gs.append(const_regions)
+    gradGs.append(grad_const_regions)
+
+    """ We need to enforce linear inequalities
+          ----------
+         |          |
+    C =  |     R    |
+         |        R |
+          ----------
+    """
+    R_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    block_1_R_cds = (dim, 2*dim, dim, 2*dim)
+    linear_constraints = [(1., R_cds, np.zeros((dim,dim)), block_1_R_cds)]
+
+    def linear_regions(X):
+        return many_batch_linear_equals(X, linear_constraints)
+    def grad_linear_regions(X):
+        return grad_many_batch_linear_equals(X, linear_constraints)
+    Gs.append(linear_regions)
+    gradGs.append(grad_linear_regions)
+
+    return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs

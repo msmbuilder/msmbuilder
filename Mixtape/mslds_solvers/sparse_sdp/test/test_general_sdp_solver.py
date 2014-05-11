@@ -61,7 +61,7 @@ def test1():
 
 def testQ():
     """
-    Specifies the convex program required for Q optimization.
+    Tests Q optimization.
 
     minimize -log det R + Tr(RB)
           --------------
@@ -74,67 +74,12 @@ def testQ():
     dim = 1
     cdim = 3 * dim
     g = GeneralSDPHazanSolver()
-    As, bs, Cs, ds, = [], [], [], []
-    Fs, gradFs, Gs, gradGs = [], [], [], []
 
     # Generate initial data
     D = np.eye(dim)
     Dinv = np.linalg.inv(D)
     B = np.eye(dim)
     A = 0.5 * np.eye(dim)
-
-    """
-    We need to enforce zero equalities in X.
-      -------------
-     | -        -    0 |
-C =  | -        _    0 |
-     | 0        0    _ |
-      -------------
-    """
-    constraints = [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
-            ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
-
-    """
-    We need to enforce constant equalities in X.
-      -------------
-     |D-ADA.T   I    _ |
-C =  | I        _    _ |
-     | _        _    _ |
-      -------------
-    """
-    D_ADA_T_cds = (0, dim, 0, dim)
-    D_ADA_T = D - np.dot(A, np.dot(D, A.T))
-    I_1_cds = (0, dim, dim, 2*dim)
-    I_2_cds = (dim, 2*dim, 0, dim)
-    constraints += [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
-            (I_2_cds, np.eye(dim))]
-
-    # Add constraints to Gs
-    def const_regions(X):
-        return many_batch_equals(X, constraints)
-    def grad_const_regions(X):
-        return grad_many_batch_equals(X, constraints)
-    Gs.append(const_regions)
-    gradGs.append(grad_const_regions)
-
-
-    """ We need to enforce linear inequalities
-          ----------
-         |          |
-    C =  |     R    |
-         |        R |
-          ----------
-    """
-    R_cds = (2*dim, 3*dim, 2*dim, 3*dim)
-    block_1_R_cds = (dim, 2*dim, dim, 2*dim)
-    linear_constraints = [(1., R_cds, np.zeros((dim,dim)), block_1_R_cds)]
-
-    def linear_regions(X):
-        return many_batch_linear_equals(X, linear_constraints)
-    def grad_linear_regions(X):
-        return grad_many_batch_linear_equals(X, linear_constraints)
-    Gs.append(linear_regions)
-    gradGs.append(grad_linear_regions)
 
     # - log det R + Tr(RB)
     def h(X):
