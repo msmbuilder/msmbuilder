@@ -1,6 +1,9 @@
 import numpy as np
+from penalties import *
+from bounded_trace_sdp_solver import BoundedTraceSolver
 
-class FeasibilitySDPSolver(object):
+
+class FeasibilitySolver(object):
     """ Solves optimization problem
 
         feasibility(X)
@@ -60,7 +63,7 @@ class FeasibilitySDPSolver(object):
         self.gradf = self.get_feasibility_grad(Aprimes, bprimes,
                 Cprimes, dprimes, Fprimes, gradFprimes,
                 Gprimes, gradGprimes, self.eps)
-        self._solver = BoundedTraceSDPHazanSolver(self.f, self.gradf, dim)
+        self._solver = BoundedTraceSolver(self.f, self.gradf, self.dim+1)
 
     def transform_input(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
         """
@@ -119,15 +122,6 @@ class FeasibilitySDPSolver(object):
         return (Aprimes, bprimes, Cprimes, dprimes,
                     Fprimes, gradFprimes, Gprimes, gradGprimes)
 
-    def get_feasibility_grad(self, As, bs, Cs, ds, Fs, gradFs, Gs,
-            gradGs, eps):
-        m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
-        M = compute_scale_full(m, n, p, q, eps)
-        def gradf(X):
-            return log_sum_exp_penalty(X, M, As, bs, Cs, ds,
-                    Fs, gradFs, Gs, gradGs)
-        return gradf
-
     def get_feasibility(self, As, bs, Cs, ds, Fs, Gs, eps):
         m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
         M = compute_scale(m, n, p, q, eps)
@@ -135,7 +129,17 @@ class FeasibilitySDPSolver(object):
             return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
         return f
 
-    def feasibility_solve(self, N_iter, tol, X_init=None):
+    def get_feasibility_grad(self, As, bs, Cs, ds, Fs, gradFs, Gs,
+            gradGs, eps):
+        m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
+        M = compute_scale(m, n, p, q, eps)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+        return gradf
+
+    def feasibility_solve(self, N_iter, tol, X_init=None,
+            methods=['frank_wolfe'], early_exit=True):
         """
         Solves feasibility problems of the type
 
@@ -153,8 +157,9 @@ class FeasibilitySDPSolver(object):
             Y_init[dim, dim] = 1 - init_trace
         else:
             Y_init = None
-        Y = self._solver.solve(N_iter, X_init=Y_init)
-        X = Y[self.dim:, self.dim:]
-        fX = f(X)
-        SUCCEED = not (fX < -tol)
-        return X, fX, SUCCEED
+        Y = self._solver.solve(N_iter, X_init=Y_init,
+                methods=methods, early_exit=early_exit)
+        fY = self.f(Y)
+        X, fX = Y[:self.dim, :self.dim], fY
+        succeed = not (fX < -tol)
+        return X, fX, succeed
