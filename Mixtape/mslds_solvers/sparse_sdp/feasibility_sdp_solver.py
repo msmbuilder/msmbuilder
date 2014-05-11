@@ -99,7 +99,7 @@ class FeasibilitySolver(object):
                 def gradfprime(Y):
                     ret_grad = np.zeros((dim+1,dim+1))
                     ret_grad[:dim,:dim] = gradfk(R * Y[:dim,:dim])
-                    ret_grad = (1./R) * ret_grad
+                    #ret_grad = (1./R) * ret_grad
                     return ret_grad
                 return gradgfprime
             gradFprimes.append(gradfprime)
@@ -114,7 +114,7 @@ class FeasibilitySolver(object):
                 def gradgprime(Y):
                     ret_grad = np.zeros((dim+1,dim+1))
                     ret_grad[:dim, :dim] = gradgl(R * Y[:dim,:dim])
-                    ret_grad = (1./R) * ret_grad
+                    #ret_grad = (1./R) * ret_grad
                     return ret_grad
                 return gradgprime
             gradgprime = make_gradgprime(gradgl)

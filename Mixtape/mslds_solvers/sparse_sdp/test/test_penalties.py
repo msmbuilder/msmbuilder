@@ -110,7 +110,7 @@ def test5():
     tol = 1e-3
     eps = 1e-4
     N_rand = 10
-    dims = [4, 16]
+    dims = [4, 8]
     for dim in dims:
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                 stress_inequalities(dim)
@@ -222,19 +222,19 @@ def test8():
             print "diff: ", diff
             assert diff < tol
 
-def test1b():
-    """
-    Check gradients of neg_max on simple equality constraint problem.
-    TODO: Think about how to test correctness of the drawn subgradient.
-    """
-    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-           simple_equality_constraint()
-    tol = 1e-3
-    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), tol)
-    def f(X):
-        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-    def gradf(X):
-        return neg_max_grad_penalty(X, M, As,
-                    bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-    assert True == False
-
+#def test1b():
+#    """
+#    Check gradients of neg_max on simple equality constraint problem.
+#    TODO: Think about how to test correctness of the drawn subgradient.
+#    """
+#    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+#           simple_equality_constraint()
+#    tol = 1e-3
+#    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), tol)
+#    def f(X):
+#        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+#    def gradf(X):
+#        return neg_max_grad_penalty(X, M, As,
+#                    bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+#    assert True == False
+#

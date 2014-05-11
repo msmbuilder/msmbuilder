@@ -192,24 +192,6 @@ def basic_batch_equality(dim, A, B, D):
     """
     As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
     block_dim = int(dim/2)
-    def g(X):
-        c1 = np.sum(np.abs(X[:block_dim, :block_dim] - B))
-        c2 = np.sum(np.abs(X[:block_dim,block_dim:] - A))
-        c3 = np.sum(np.abs(X[block_dim:,:block_dim] - A.T))
-        c4 = np.sum(np.abs(X[block_dim:, block_dim:] - D))
-        return c1 + c2 + c3 + c4
-    def gradg(X):
-        grad1 = np.sign(X[:block_dim, :block_dim] - B)
-        grad2 = np.sign(X[:block_dim,block_dim:] - A)
-        grad3 = np.sign(X[block_dim:,:block_dim] - A.T)
-        grad4 = np.sign(X[block_dim:, block_dim:] - D)
-
-        grad = np.zeros((dim, dim))
-        grad[:block_dim, :block_dim] = grad1
-        grad[:block_dim,block_dim:] = grad2
-        grad[block_dim:,:block_dim] = grad3
-        grad[block_dim:, block_dim:] = grad4
-        return grad
 
     def h(X):
         c1 = np.sum((X[:block_dim, :block_dim] - B)**2)
@@ -230,8 +212,8 @@ def basic_batch_equality(dim, A, B, D):
         grad[block_dim:, block_dim:] = grad4
         return grad
 
-    Gs = [g, h]
-    gradGs = [gradg, gradh]
+    Gs = [h]
+    gradGs = [gradh]
     return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
 def l1_batch_equals(X, A, coord):
@@ -259,15 +241,13 @@ def grad_l2_batch_equals(X, A, coord):
 def many_batch_equals(X, constraints):
     sum_c = 0
     for coord, mat in constraints:
-        c = l1_batch_equals(X, mat, coord)
-        c += l2_batch_equals(X, mat, coord)
+        c = l2_batch_equals(X, mat, coord)
         sum_c += c
     return sum_c
 
 def grad_many_batch_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for coord, mat in constraints:
-        grad += grad_l1_batch_equals(X, mat, coord)
         grad += grad_l2_batch_equals(X, mat, coord)
     return grad
 
@@ -275,16 +255,16 @@ def batch_linear_equals(X, c, P_coords, Q, R_coords):
     """
     Performs operation R_coords = c * P_coords + Q
     """
-    c += l1_batch_equals(X, c*get_entries(X, P_coords) + Q, R_coords)
-    c += l2_batch_equals(X, c*get_entries(X, P_coords) + Q, R_coords)
-    return c
+    val = l2_batch_equals(X, c*get_entries(X, P_coords) + Q, R_coords)
+    return val
 
 def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
     grad = np.zeros(np.shape(X))
-    grad += grad_l1_batch_equals(X, R_coords,
-                                    c*get_entries(X, P_coords) + Q)
-    grad += grad_l2_batch_equals(X, R_coords,
-                                    c*get_entries(X, P_coords) + Q)
+    grad += grad_l2_batch_equals(X, c*get_entries(X, P_coords) + Q,
+            R_coords)
+    if c != 0:
+        grad += grad_l2_batch_equals(X,(1./c)*get_entries(X, R_coords) - Q,
+                                    P_coords)
     return grad
 
 def many_batch_linear_equals(X, constraints):
@@ -296,11 +276,11 @@ def many_batch_linear_equals(X, constraints):
 def grad_many_batch_linear_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for c, P_coords, Q, R_coords in constraints:
-        grad += grad_l1_batch_equals(X, c*get_entries(X, P_coords) + Q,
-                                        R_coords)
-
         grad += grad_l2_batch_equals(X, c*get_entries(X, P_coords) + Q,
-                                        R_coords)
+                    R_coords)
+        if c != 0:
+            grad += grad_l2_batch_equals(X,
+                    (1./c)*get_entries(X, R_coords) - Q, P_coords)
 
     return grad
 

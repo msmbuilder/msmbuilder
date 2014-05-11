@@ -135,7 +135,6 @@ class BoundedTraceSolver(object):
         else:
             X = np.copy(X_init)
         fX = f(X)
-        num_frozen = 0
         for j in range(N_iter):
             grad = gradf(X)
             results = []
@@ -169,7 +168,6 @@ class BoundedTraceSolver(object):
                         or np.sum(np.abs(X_prop - X)) < tol)):
                 break
             elif fX_prop > fX:
-                num_frozen = 0
                 delta = fX_prop - fX
                 X = X_prop
                 fX = fX_prop

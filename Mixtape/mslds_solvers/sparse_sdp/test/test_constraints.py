@@ -124,7 +124,7 @@ def test_l2_batch_equals():
 def test_Q_constraints():
     dims = [3, 9]
     N_rand = 10
-    eps = 1e-4
+    eps = 1e-5
     tol = 1e-3
     for dim in dims:
         block_dim = int(dim/3)

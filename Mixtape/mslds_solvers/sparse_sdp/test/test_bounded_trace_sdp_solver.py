@@ -205,7 +205,7 @@ def test8():
     """
     eps = 1e-5
     tol = 1e-2
-    dims = [4]
+    dims = [6]
     N_iter = 200
     for dim in dims:
         block_dim = int(dim/2)

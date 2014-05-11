@@ -75,8 +75,7 @@ def test3():
 
 def test4():
     """
-    Check that the feasibility solver discerns feasibility of batch
-    equality problems like
+    test4: feasibility of batch equality
 
     feasibility(X)
     subject to
@@ -86,9 +85,8 @@ def test4():
     """
     eps = 1e-5
     tol = 1e-2
-    N_iter = 50
-    Rs = [1]
-    dims = [4]
+    Rs = [10]
+    dims = [8]
     N_iter = 200
     for R in Rs:
         for dim in dims:
@@ -103,7 +101,9 @@ def test4():
                     basic_batch_equality(dim, A, B, D)
             f = FeasibilitySolver(R, dim, eps)
             f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            #import pdb
+            #pdb.set_trace()
             X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable',
-                        'projected_gradient'])
+                    methods=['frank_wolfe', 'frank_wolfe_stable'])
+                    #    'projected_gradient'])
             assert succeed == True
