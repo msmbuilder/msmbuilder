@@ -47,7 +47,7 @@ def test1():
         print("\t|f(X) - f*| = %f" % (np.abs(fX - (-1./dim))))
         assert np.abs(fX - (-1./dim)) < eps
 
-def test2a():
+def test2():
     """
     Check equality constraints for log_sum_exp constraints
     """
@@ -67,12 +67,18 @@ def test2a():
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
 
+    B = BoundedTraceSolver(f, gradf, dim)
+    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+    succeed = not (f(X) < -eps)
+    print "\tComputation Time (s): ", elapsed
+    assert succeed == True
+
 def test3a():
     """
     Check equality and inequality constraints for log_sum_exp penalty
     """
     eps = 1e-3
-    N_iter = 50
+    N_iter = 100
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             simple_equality_and_inequality_constraint()
     M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
@@ -82,62 +88,33 @@ def test3a():
         return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
     B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter)
+    X, elapsed  = run_experiment(B, N_iter,
+            ['projected_gradient'],early_exit=False)
     succeed = not (f(X) < -eps)
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
 
-#def test3b():
-#    """
-#    BROKEN: Check equality and inequality constraints for neg_max penalty
-#    TODO: Fix this test
-#    """
-#    assert True == False
-#    N_iter = 50
-#    m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
-#            simple_constraint(N_iter)
-#    def f(X):
-#        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return neg_max_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs,
-#                Gs, gradGs, eps)
-#    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
+def test3b():
+    """
+    Check equality and inequality constraints for log_sum_exp penalty
+    """
+    eps = 1e-3
+    N_iter = 100
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            simple_equality_and_inequality_constraint()
+    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
+    def f(X):
+        return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+    def gradf(X):
+        return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+    B = BoundedTraceSolver(f, gradf, dim)
+    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+    succeed = not (f(X) < -eps)
+    print "\tComputation Time (s): ", elapsed
+    assert succeed == True
 
-#def test3c():
-#    """
-#    BROKEN: Check equality and inequality constraints for neg_max penalty
-#    with log_sum_exp gradients.
-#    TODO: Fix this test
-#    """
-#    assert True == False
-#    N_iter = 50
-#    m, n, M, As, bs, Cs, ds, dim, eps, Fs, gradFs, Gs, gradGs = \
-#            simple_constraint(N_iter)
-#    def f(X):
-#        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return log_sum_exp_grad_penalty(X, M,
-#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-#def test4a():
-#    """
-#    BROKEN: Check quadratic inequality constraints for neg_max penalty
-#    and gradients.
-#    TODO: Fix this test
-#    """
-#    assert True == False
-#    N_iter = 50
-#    dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
-#            quadratic_inequality(N_iter)
-#    def f(X):
-#        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return neg_max_grad_penalty(X, M,
-#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-def test4b():
+def test4():
     """
     Check quadratic inequality for log_sum_exp penalty and gradients.
     """
@@ -152,28 +129,12 @@ def test4b():
         return log_sum_exp_grad_penalty(X, M,
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
     B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter)
+    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
     succeed = not (f(X) < -eps)
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
 
-#def test5a():
-#    """
-#    BROKEN: quadratic equality constraints for neg_max penalty
-#    and gradients.
-#    """
-#    assert True == False
-#    N_iter = 50
-#    dim, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
-#            quadratic_equality(N_iter)
-#    def f(X):
-#        return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#    def gradf(X):
-#        return neg_max_grad_penalty(X, M,
-#                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#    X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-def test6a():
+def test5():
     """
     Stress test inequality constraints for log_sum_exp penalty.
     """
@@ -184,59 +145,18 @@ def test6a():
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                 stress_inequalities(dim)
         M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
-        def gen_f(M, As, bs, Cs, ds, Fs, Gs):
-            def f(X):
-                return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-            return f
-        f = gen_f(M, As, bs, Cs, ds, Fs, Gs)
-        def gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
-            def gradf(X):
-                return log_sum_exp_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            return gradf
-        gradf = gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        def f(X):
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, M,
+                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter)
+        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
         succeed = not (f(X) < -eps)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
 
-#def test6b():
-#    """
-#    BROKEN: Stress test inequality constraints for neg_max_sum penatly
-#    and log_sum_exp gradient.
-#    """
-#    assert True == False
-#    dims = [4,16]
-#    N_iter = 50
-#    for dim in dims:
-#        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-#                stress_inequalities(dim, N_iter)
-#        def f(X):
-#            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#        def gradf(X):
-#            return log_sum_exp_grad_penalty(X, M,
-#                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#        run_experiment(f, gradf, dim, N_iter)
-
-#def test6c():
-#    """
-#    BROKEN: Stress test inequality constraints for neg_max_penalty
-#    """
-#    assert True == False
-#    dims = [4,16]
-#    N_iter = 50
-#    for dim in dims:
-#        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-#                stress_inequalities(dim, N_iter)
-#        def f(X):
-#            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#        def gradf(X):
-#            return neg_max_grad_penalty(X, M, As, bs, Cs, ds,
-#                    Fs, gradFs, Gs, gradGs, eps)
-#        run_experiment(f, gradf, dim, N_iter)
-
-def test7a():
+def test6():
     """
     Stress test equality constraints for log_sum_exp_penalty
     """
@@ -247,124 +167,46 @@ def test7a():
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                 stress_equalities(dim)
         M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
-        def gen_f(M, As, bs, Cs, ds, Fs, Gs):
-            def f(X):
-                return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-            return f
-        f = gen_f(M, As, bs, Cs, ds, Fs, Gs)
-        def gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
-            def gradf(X):
-                return log_sum_exp_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            return gradf
-        gradf = gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        def f(X):
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, M,
+                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter)
+        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
         succeed = not (f(X) < -eps)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
 
-#def test7b():
-#    """
-#    BROKEN: Stress test equality constraints for neg_max_penalty
-#    """
-#    assert True == False
-#    dims = [4,16]
-#    N_iter = 50
-#    for dim in dims:
-#        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-#                stress_equalities(dim, N_iter)
-#        def f(X):
-#            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#        def gradf(X):
-#            return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
-#                    Fs, gradFs, Gs, gradGs, eps)
-#        run_experiment(f, gradf, dim, N_iter)
-
-#def test7c():
-#    """
-#    BROKEN: Stress test equality constraints for neg_max_penalty
-#    """
-#    assert True == False
-#    dims = [4,16]
-#    N_iter = 50
-#    for dim in dims:
-#        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-#                stress_equalities(dim, N_iter)
-#        def f(X):
-#            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#        def gradf(X):
-#            return neg_max_grad_penalty(X, M, As, bs, Cs, ds,
-#                    Fs, gradFs, Gs, gradGs, eps)
-#        run_experiment(f, gradf, dim, N_iter)
-
-def test8a():
+def test7():
     """
     Stress test equality and inequality constraints for log_sum_exp_penalty
     """
-    eps = 1e-3
+    eps = 1e-5
+    tol = 1e-2
     dims = [4,16]
-    N_iter = 200
+    N_iter = 300
     for dim in dims:
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                stress_inequalities_and_equalities(dim)
         M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
-        def gen_f(M, As, bs, Cs, ds, Fs, Gs):
-            def f(X):
-                return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-            return f
-        f = gen_f(M, As, bs, Cs, ds, Fs, Gs)
-        def gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
-            def gradf(X):
-                return log_sum_exp_grad_penalty(X, M,
-                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            return gradf
-        gradf = gen_gradf(M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+        def f(X):
+            return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
+        def gradf(X):
+            return log_sum_exp_grad_penalty(X, M,
+                    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter)
-        succeed = not (f(X) < -eps)
+        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+        succeed = not (f(X) < -tol)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
 
-#def test8b():
-#    """
-#    BROKEN Stress test equality constraints for neg_max_penalty
-#    """
-#    assert True == False
-#    dims = [4, 16]
-#    N_iter = 50
-#    for dim in dims:
-#        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-#               stress_inequalities_and_equalities(dim, N_iter)
-#        def f(X):
-#            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#        def gradf(X):
-#            return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
-#                    Fs, gradFs, Gs, gradGs, eps)
-#        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-#def test8c():
-#    """
-#    BROKEN Stress test equality constraints for neg_max_penalty
-#    """
-#    assert True == False
-#    dims = [4, 16]
-#    N_iter = 50
-#    for dim in dims:
-#        m, n, M, As, bs, Cs, ds, eps, Fs, gradFs, Gs, gradGs = \
-#               stress_inequalities_and_equalities(dim, N_iter)
-#        def f(X):
-#            return neg_max_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-#        def gradf(X):
-#            return neg_max_grad_penalty(X, M,
-#                        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps)
-#        X, fX, SUCCEED = run_experiment(f, gradf, dim, N_iter)
-
-def test9a():
+def test8():
     """
     Test block equality constraints.
     """
-    eps = 1e-3
+    eps = 1e-5
+    tol = 1e-2
     dims = [4]
     N_iter = 200
     for dim in dims:
@@ -385,13 +227,17 @@ def test9a():
             return log_sum_exp_grad_penalty(X, M,
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter)
-        succeed = not (f(X) < -eps)
+        X, elapsed  = run_experiment(B, N_iter,
+                methods=['frank_wolfe', 'frank_wolfe_stable',
+                    'projected_gradient'])
+        succeed = not (f(X) < -tol)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
 
-def run_experiment(B, N_iter, methods=[], disp=True, debug=False):
+def run_experiment(B, N_iter, methods=[], disp=True,
+        debug=False, early_exit=True):
     start = time.clock()
-    X = B.solve(N_iter, disp=disp, debug=debug, methods=methods)
+    X = B.solve(N_iter, disp=disp, debug=debug, methods=methods,
+            early_exit=early_exit)
     elapsed = (time.clock() - start)
     return X, elapsed

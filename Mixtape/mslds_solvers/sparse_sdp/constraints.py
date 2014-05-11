@@ -219,7 +219,7 @@ def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
     c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))
     return c
 
-def batch_equals_grad(X, A, x_low, x_hi, y_low, y_hi):
+def grad_batch_equals(X, A, x_low, x_hi, y_low, y_hi):
     # Upper right
     grad_piece = np.sign(X[x_low:x_hi,y_low:y_hi] - A)
     grad = np.zeros(np.shape(X))

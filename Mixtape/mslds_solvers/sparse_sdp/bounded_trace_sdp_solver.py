@@ -61,6 +61,12 @@ class BoundedTraceSolver(object):
             vj = vs[:, i]
         return vj
 
+    def stable_rank_one_approximation(self, grad):
+        ws, vs = np.linalg.eigh(grad)
+        i = np.argmax(np.real(ws))
+        vj = vs[:, i]
+        return vj
+
     def project_spectrahedron(self, X, N_rounds=4):
         """
         Project X onto the spectrahedron { Y | Y is PSD and Tr(Y) == 1}
@@ -68,7 +74,7 @@ class BoundedTraceSolver(object):
         for r in range(N_rounds):
             # Project onto semidefinite cone
             Z = np.zeros(np.shape(X))
-            ws, vs = np.linalg.eigh(Z)
+            ws, vs = np.linalg.eigh(X)
             for i in range(len(ws)):
                 w = ws[i]
                 if w >= 0:
@@ -112,15 +118,14 @@ class BoundedTraceSolver(object):
         return fX_cur, X_cur, alpha
 
     def solve(self, N_iter, X_init=None, disp=True, debug=False,
-            methods=[]):
+            methods=[], early_exit=True):
         """
         Parameters
         __________
         N_iter: int
             The desired number of iterations
         """
-        import pdb
-        pdb.set_trace()
+        tol=1e-6
         f, gradf = self.f, self.gradf
         if X_init == None:
             v = np.random.rand(self.dim, 1)
@@ -129,6 +134,8 @@ class BoundedTraceSolver(object):
             X = np.outer(v, v)
         else:
             X = np.copy(X_init)
+        fX = f(X)
+        num_frozen = 0
         for j in range(N_iter):
             grad = gradf(X)
             results = []
@@ -139,6 +146,13 @@ class BoundedTraceSolver(object):
                 fX_fw, X_fw, alpha_fw = \
                         self.backtracking_line_search(X, grad, step)
                 results += [(fX_fw, X_fw, alpha_fw, 'frank_wolfe')]
+            if 'frank_wolfe_stable' in methods:
+                vj = self.stable_rank_one_approximation(grad)
+                O = np.outer(vj, vj)
+                step = O - X
+                fX_fw, X_fw, alpha_fw = \
+                        self.backtracking_line_search(X, grad, step)
+                results += [(fX_fw, X_fw, alpha_fw, 'frank_wolfe_stable')]
             if 'projected_gradient' in methods:
                 step = grad
                 fX_proj, X_proj, alpha_proj = \
@@ -148,18 +162,25 @@ class BoundedTraceSolver(object):
                                 'projected_gradient')]
             ind = np.argmax(np.array([result[0] for result in results]))
             fX_prop,  X_prop, alpha, method = results[ind]
+            np.set_printoptions(precision=3)
+            delta = 0
+            if (early_exit and
+                    (fX_prop <= fX + tol
+                        or np.sum(np.abs(X_prop - X)) < tol)):
+                break
+            elif fX_prop > fX:
+                num_frozen = 0
+                delta = fX_prop - fX
+                X = X_prop
+                fX = fX_prop
             if disp:
                 print "\tIteration %d" % j
                 print "\t\tf(X): ", f(X)
+                print "\t\t\tdelta: ", delta
                 print "\t\t\tTr(X): ", np.trace(X)
                 print "\t\t\talpha: ", alpha
                 print "\t\t\tmethod: ", method
             if debug:
                 print "X\n", X
                 print "grad\n", grad
-            if fX_prop > f(X):
-                X = X_prop
-            elif np.array_equal(X, X_prop):
-                # We're stuck in fixed point.
-                break
         return X

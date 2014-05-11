@@ -73,3 +73,25 @@ def test_basic_batch_equality():
                 print "num_grad:\n", num_grad
                 assert np.sum(np.abs(grad - num_grad)) < tol
 
+def test_batch_equals():
+    """
+    Test batch equals operation.
+    """
+    dims = [4, 16]
+    N_rand = 10
+    eps = 1e-4
+    tol = 1e-3
+    for dim in dims:
+        block_dim = int(dim/2)
+        A = np.random.rand(block_dim, block_dim)
+        def f(X):
+            return batch_equals(X, A, 0, block_dim, 0, block_dim)
+        def gradf(X):
+            return grad_batch_equals(X, A, 0, block_dim, 0, block_dim)
+        A = np.dot(A.T, A)
+        for i in range(N_rand):
+            X = np.random.rand(dim, dim)
+            val = f(X)
+            grad = gradf(X)
+            num_grad = numerical_derivative(f, X, eps)
+            assert np.sum(np.abs(grad - num_grad)) < tol
