@@ -46,7 +46,7 @@ def test_basic_batch_equality():
     """
     Test basic batch equality specification.
     """
-    dims = [4, 16]
+    dims = [4, 8]
     for dim in dims:
         block_dim = int(dim/2)
         # Generate random configurations

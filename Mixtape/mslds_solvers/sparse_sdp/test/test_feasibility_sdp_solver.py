@@ -63,10 +63,10 @@ def test3():
     eps = 1e-3
     tol = 1e-2
     N_iter = 50
-    Rs = [1]
+    Rs = [1, 10, 100]
     for R in Rs:
         dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-               simple_equality_constraint()
+               simple_equality_and_inequality_constraint()
         f = FeasibilitySolver(R, dim, eps)
         f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         X, fX, succeed = f.feasibility_solve(N_iter, tol,
@@ -84,23 +84,26 @@ def test4():
          [ A.T , D]]  is PSD, where B, D are arbitrary, A given.
         Tr(X) = Tr(B) + Tr(D) == 1
     """
-    dims = [8]
-    N_iter = 400
-    f = FeasibilitySDPHazanSolver()
-    for dim in dims:
-        A = (1./(2*dim)) * np.eye(int(dim/2))
-        print "A\n", A
-        M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs, eps = \
-                batch_equality(A, dim, N_iter)
-        X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
-                Gs, gradGs, eps, dim)
-        #import pdb
-        #pdb.set_trace()
-        #assert SUCCEED == True
-
-if __name__ == "__main__":
-    #test1()
-    #test2()
-    #test3()
-    #test4()
-    pass
+    eps = 1e-5
+    tol = 1e-2
+    N_iter = 50
+    Rs = [1]
+    dims = [4]
+    N_iter = 200
+    for R in Rs:
+        for dim in dims:
+            block_dim = int(dim/2)
+            A = 0.25*np.eye(block_dim)
+            B = np.eye(block_dim)
+            D = np.eye(block_dim)
+            tr_B_D = np.trace(B) + np.trace(D)
+            B = B / tr_B_D
+            D = D / tr_B_D
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    basic_batch_equality(dim, A, B, D)
+            f = FeasibilitySolver(R, dim, eps)
+            f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            X, fX, succeed = f.feasibility_solve(N_iter, tol,
+                    methods=['frank_wolfe', 'frank_wolfe_stable',
+                        'projected_gradient'])
+            assert succeed == True

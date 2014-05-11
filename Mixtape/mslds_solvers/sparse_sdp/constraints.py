@@ -211,8 +211,27 @@ def basic_batch_equality(dim, A, B, D):
         grad[block_dim:, block_dim:] = grad4
         return grad
 
-    Gs = [g]
-    gradGs = [gradg]
+    def h(X):
+        c1 = np.sum((X[:block_dim, :block_dim] - B)**2)
+        c2 = np.sum((X[:block_dim,block_dim:] - A)**2)
+        c3 = np.sum((X[block_dim:,:block_dim] - A.T)**2)
+        c4 = np.sum((X[block_dim:, block_dim:] - D)**2)
+        return c1 + c2 + c3 + c4
+    def gradh(X):
+        grad1 = 2*(X[:block_dim, :block_dim] - B)
+        grad2 = 2*(X[:block_dim,block_dim:] - A)
+        grad3 = 2*(X[block_dim:,:block_dim] - A.T)
+        grad4 = 2*(X[block_dim:, block_dim:] - D)
+
+        grad = np.zeros((dim, dim))
+        grad[:block_dim, :block_dim] = grad1
+        grad[:block_dim,block_dim:] = grad2
+        grad[block_dim:,:block_dim] = grad3
+        grad[block_dim:, block_dim:] = grad4
+        return grad
+
+    Gs = [g, h]
+    gradGs = [gradg, gradh]
     return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
 def l1_batch_equals(X, A, coord):

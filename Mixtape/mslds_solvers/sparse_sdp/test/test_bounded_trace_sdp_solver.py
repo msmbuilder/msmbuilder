@@ -209,7 +209,6 @@ def test8():
     N_iter = 200
     for dim in dims:
         block_dim = int(dim/2)
-        # Generate random configurations
         A = 0.25*np.eye(block_dim)
         B = np.eye(block_dim)
         D = np.eye(block_dim)
