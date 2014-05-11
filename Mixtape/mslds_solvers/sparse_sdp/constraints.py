@@ -1,4 +1,5 @@
 import numpy as np
+from utils import get_entries, set_entries
 
 def simple_equality_constraint():
     """
@@ -7,7 +8,6 @@ def simple_equality_constraint():
         feasibility(X)
         subject to
           x_11 + 2 x_22 == 1.5
-          Tr(X) = x_11 + x_22 == 1.
 
     """
     dim = 2
@@ -26,7 +26,7 @@ def simple_equality_and_inequality_constraint():
         subject to
             x_11 + 2 x_22 <= 1
             x_11 + 2 x_22 + 2 x_33 == 5/3
-            Tr(X) = x_11 + x_22 + x_33 == 1
+            #Tr(X) = x_11 + x_22 + x_33 == 1
     """
     dim = 3
     As = [np.array([[ 1., 0., 0.],
@@ -215,32 +215,28 @@ def basic_batch_equality(dim, A, B, D):
     gradGs = [gradg]
     return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 
-def batch_equals(X, A, x_low, x_hi, y_low, y_hi):
-    c = np.sum(np.abs(X[x_low:x_hi,y_low:y_hi] - A))
+def l1_batch_equals(X, A, coord):
+    c = np.sum(np.abs(get_entries(X,coord) - A))
     return c
 
-def grad_batch_equals(X, A, x_low, x_hi, y_low, y_hi):
+def grad_l1_batch_equals(X, A, coord):
     # Upper right
-    grad_piece = np.sign(X[x_low:x_hi,y_low:y_hi] - A)
+    grad_piece = np.sign(get_entries(X,coord) - A)
     grad = np.zeros(np.shape(X))
-    grad[x_low:x_hi,y_low:y_hi] = grad_piece
+    set_entries(grad, coord, grad_piece)
     return grad
 
-Scale = 2.0
-L1Scale = 0.05
 def many_batch_equals(X, constraints):
     sum_c = 0
     for coord, mat in constraints:
-        #c = np.sum(np.abs(get_entries(X, coord) - mat))
         c = np.sum((get_entries(X, coord) - mat)**2)
-        c += L1Scale * np.sum(np.abs(get_entries(X, coord) - mat))
+        c += np.sum(np.abs(get_entries(X, coord) - mat))
         sum_c += c
     return Scale * sum_c
 
 def grad_many_batch_equals(X, constraints):
     grad = np.zeros(np.shape(X))
     for coord, mat in constraints:
-        #grad_piece = np.sign(get_entries(X, coord) - mat)
         grad_piece = 2*(get_entries(X, coord) - mat)
         grad_piece += L1Scale * np.sign(get_entries(X, coord) - mat)
         set_entries(grad, coord, grad_piece)

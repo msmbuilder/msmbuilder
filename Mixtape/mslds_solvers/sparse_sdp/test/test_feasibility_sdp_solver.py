@@ -1,35 +1,27 @@
 import sys
 sys.path.append("..")
-from hazan import *
-from test_bounded_trace_sdp_solver import batch_equality
-import pdb
+from feasibility_sdp_solver import FeasibilitySDPSolver
+from constraints import *
 
 def test1():
     """
-    Check that the feasibility solver with one inequality reports that a
-    feasible problem is feasible.  With As, bs defined as below, the
-    constraints translate to
-
-    x_11 + 2 x_22 <= 1.5
-    Tr(X) = x_11 + x_22 == 1.
+    Test
+    feasibility(X):
+        x_11 + 2 x_22 == 1.5
+        Tr(X) <= 10
 
     These two equations are simultaneously satisfiable.
     """
-    dim = 2
-    f = FeasibilitySDPHazanSolver()
-    As = [np.array([[1, 0.],
-                    [0., 2]])]
-    bs = [1.5]
-    eps = 1e-1
-    Cs = []
-    ds = []
-    Fs = []
-    gradFs = []
-    Gs = []
-    gradGs = []
-    X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
-            Gs, gradGs, eps, dim)
-    assert SUCCEED == True
+    eps = 1e-3
+    N_iter = 50
+    R = 10
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint()
+    f = FeasibilitySDPSolver(R, dim, eps)
+    f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    #X, fX, SUCCEED = f.feasibility_solve(As, bs, Cs, ds, Fs, gradFs,
+    #        Gs, gradGs, eps, dim)
+    #assert SUCCEED == True
 
 def test2():
     """

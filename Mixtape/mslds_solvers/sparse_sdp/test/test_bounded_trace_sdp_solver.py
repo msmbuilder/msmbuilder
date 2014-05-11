@@ -13,8 +13,6 @@ Tests for Hazan's core algorithm.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 
-TODOs:
-    -) Remove m, n from the test cases.
 """
 
 def test1():
