@@ -3,15 +3,16 @@ import itertools
 import numpy as np
 import mixtape.featurizer, mixtape.tica
 import mdtraj as md
+import sklearn.pipeline
 
 ATOM_NAMES = ["N", "CA", "CB", "C", "O", "H"]
 
-def get_atompair_indices(trj0, keep_atoms=ATOM_NAMES, exclude_atoms=None, reject_bonded=True):
+def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=None, reject_bonded=True):
     """Get a list of acceptable atom pairs.
 
     Parameters
     ----------
-    trj0 : mdtraj.Trajectory
+    reference_traj : mdtraj.Trajectory
         Trajectory to grab atom pairs from
     keep_atoms : np.ndarray, dtype=string, optional
         Select only these atom names
@@ -32,7 +33,7 @@ def get_atompair_indices(trj0, keep_atoms=ATOM_NAMES, exclude_atoms=None, reject
     This function has been optimized for speed.  A naive implementation
     can be slow (~minutes) for large proteins.
     """
-    top, bonds = trj0.top.to_dataframe()
+    top, bonds = reference_traj.top.to_dataframe()
     
     if keep_atoms is not None:
         atom_indices = top[top.name.isin(keep_atoms) == True].index.values
@@ -118,6 +119,11 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
         self.possible_pair_indices = possible_pair_indices
         self.periodic = periodic
         self.exponent = exponent
+        if subset is None:
+            self.subset = np.zeros(0, 'int')
+        else:
+            self.subset = subset
+            
 
     @property
     def n_max(self):
@@ -161,13 +167,13 @@ class SinMixin(object):
 class PhiMixin(object):
     @property
     def which_atom_ind(self):
-        atom_indices, dih = md.geometry.dihedral.compute_phi(self.trj0)
+        atom_indices, dih = md.geometry.dihedral.compute_phi(self.reference_traj)
         return atom_indices
 
 class PsiMixin(object):
     @property
     def which_atom_ind(self):
-        atom_indices, dih = md.geometry.dihedral.compute_psi(self.trj0)
+        atom_indices, dih = md.geometry.dihedral.compute_psi(self.reference_traj)
         return atom_indices
     
 
@@ -183,5 +189,21 @@ class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
         
+
+class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
+    def __init__(self, transformer_list, n_jobs=1, transformer_weights=None, subsets=None):
+        self.subsets = subsets
+        super(SubsetFeatureUnion, self).__init__(transformer_list, n_jobs=1, transformer_weights=None)
         
 
+    def set_subsets(self, subsets):
+        assert len(subsets) == len(self.transformer_list), "wrong len"
+        for k, (_, featurizer) in enumerate(self.transformer_list):
+            featurizer.subset = subsets[k]
+        self.subsets = subsets
+
+    @property
+    def n_features(self):
+        return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
+
+    def 
