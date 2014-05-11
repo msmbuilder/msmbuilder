@@ -46,9 +46,9 @@ class tICA(BaseEstimator, TransformerMixin):
     ----------
     n_components : int, None
         Number of components to keep.
-    offset : int
+    lag_time : int
         Delay time forward or backward in the input data. The time-lagged
-        correlations is computed between datas X[t] and X[t+offset].
+        correlations is computed between datas X[t] and X[t+lag_time].
     gamma : nonnegative float, default=0.05
         Regularization strength. Positive `gamma` entails incrementing
         the sample covariance matrix by a constant times the identity,
@@ -76,7 +76,7 @@ class tICA(BaseEstimator, TransformerMixin):
         give a set of "directions" through configuration space along
         which the system relaxes towards equilibrium. Each eigenvector
         is associated with characteritic timescale
-        :math:`- \frac{offset}/{ln \lambda_i}, where :math:`lambda_i` is
+        :math:`- \frac{lag_time}{ln \lambda_i}, where :math:`lambda_i` is
         the corresponding eigenvector. See [2] for more information.
     means_ : array, shape (n_features,)
         The mean of the data along each feature
@@ -112,9 +112,9 @@ class tICA(BaseEstimator, TransformerMixin):
     (1994): 3634.
     """
 
-    def __init__(self, n_components=None, offset=1, gamma=0.05, weighted_transform=False):
+    def __init__(self, n_components=None, lag_time=1, gamma=0.05, weighted_transform=False):
         self.n_components = n_components
-        self.offset = offset
+        self.lag_time = lag_time
         self.gamma = gamma
         self.weighted_transform = weighted_transform
 
@@ -124,18 +124,18 @@ class tICA(BaseEstimator, TransformerMixin):
 
         self._initialized = False
 
-        # X[:-self.offset].T dot X[self.offset:]
+        # X[:-self.lag_time].T dot X[self.lag_time:]
         self._outer_0_to_T_lagged = None
-        # X[:-self.offset].sum(axis=0)
-        self._sum_0_to_TminusOffset = None
-        # X[self.offset:].sum(axis=0)
+        # X[:-self.lag_time].sum(axis=0)
+        self._sum_0_to_TminusTau = None
+        # X[self.lag_time:].sum(axis=0)
         self._sum_tau_to_T = None
-        # X[self.offset:].sum(axis=0)
+        # X[:].sum(axis=0)
         self._sum_0_to_T = None
 
-        # X[:-self.offset].T dot X[:-self.offset])
-        self._outer_0_to_TminusOffset = None
-        # X[self.offset:].T dot X[self.offset:]
+        # X[:-self.lag_time].T dot X[:-self.lag_time])
+        self._outer_0_to_TminusTau = None
+        # X[self.lag_time:].T dot X[self.lag_time:]
         self._outer_offset_to_T = None
 
         # the tICs themselves
@@ -159,10 +159,10 @@ class tICA(BaseEstimator, TransformerMixin):
         self.n_observations_ = 0
         self.n_sequences_ = 0
         self._outer_0_to_T_lagged = np.zeros((n_features, n_features))
-        self._sum_0_to_TminusOffset = np.zeros(n_features)
+        self._sum_0_to_TminusTau = np.zeros(n_features)
         self._sum_tau_to_T = np.zeros(n_features)
         self._sum_0_to_T = np.zeros(n_features)
-        self._outer_0_to_TminusOffset = np.zeros((n_features, n_features))
+        self._outer_0_to_TminusTau = np.zeros((n_features, n_features))
         self._outer_offset_to_T = np.zeros((n_features, n_features))
         self._initialized = True
 
@@ -211,28 +211,30 @@ class tICA(BaseEstimator, TransformerMixin):
 
     @property
     def means_(self):
-        two_N = 2 * (self.n_observations_ - self.offset * self.n_sequences_)
-        means = (self._sum_0_to_TminusOffset + self._sum_tau_to_T) / float(two_N)
+        two_N = 2 * (self.n_observations_ - self.lag_time * self.n_sequences_)
+        means = (self._sum_0_to_TminusTau + self._sum_tau_to_T) / float(two_N)
         return means
 
     @property
     def offset_correlation_(self):
-        two_N = 2 * (self.n_observations_ - self.offset * self.n_sequences_)
+        two_N = 2 * (self.n_observations_ - self.lag_time * self.n_sequences_)
         term = (self._outer_0_to_T_lagged + self._outer_0_to_T_lagged.T) / two_N
 
         means = self.means_
-        return term - np.outer(means, means)
+        value = term - np.outer(means, means)
+        return value
 
     @property
     def covariance_(self):
-        two_N = 2 * (self.n_observations_ - self.offset * self.n_sequences_)
-        term = (self._outer_0_to_TminusOffset + self._outer_offset_to_T) / two_N
+        two_N = 2 * (self.n_observations_ - self.lag_time * self.n_sequences_)
+        term = (self._outer_0_to_TminusTau + self._outer_offset_to_T) / two_N
 
         means = self.means_
-        return term - np.outer(means, means)
+        value = term - np.outer(means, means)
+        return value
 
-    def fit(self, X):
-        """Fit the model with X.
+    def fit(self, sequences, y=None):
+        """Fit the model with a collection of sequences.
 
         This method is not online.  Any state accumulated from previous calls to
         fit() or partial_fit() will be cleared. For online learning, use
@@ -240,9 +242,11 @@ class tICA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X: array-like, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
-            and n_features is the number of features.
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+        y : None
+            Ignored
 
         Returns
         -------
@@ -250,7 +254,8 @@ class tICA(BaseEstimator, TransformerMixin):
             Returns the instance itself.
         """
         self._initialized = False
-        self._fit(X)
+        for X in sequences:
+            self._fit(X)
         return self
 
     def partial_fit(self, X):
@@ -273,32 +278,36 @@ class tICA(BaseEstimator, TransformerMixin):
         self._fit(X)
         return self
 
-    def transform(self, X):
+    def transform(self, sequences):
         """Apply the dimensionality reduction on X.
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
-            New data, where n_samples is the number of samples
-            and n_features is the number of features.
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
 
         Returns
         -------
-        X_new : array-like, shape (n_samples, n_components)
+        sequence_new : list of array-like, each of shape (n_samples_i, n_components)
 
         """
-        X = array2d(X)
-        if self.means_ is not None:
-            X = X - self.means_
-        
-        X_transformed = np.dot(X, self.components_.T)
-        
-        if self.weighted_transform:        
-            X_transformed *= self.timescales_
-        
-        return X_transformed
+        sequences_new = []
 
-    def fit_transform(self, X):
+        for X in sequences:
+            X = array2d(X)
+            if self.means_ is not None:
+                X = X - self.means_
+            X_transformed = np.dot(X, self.components_.T)
+
+            if self.weighted_transform:        
+                X_transformed *= self.timescales_
+
+            sequences_new.append(X_transformed)
+
+        return sequences_new
+
+    def fit_transform(self, sequences, y=None):
         """Fit the model with X and apply the dimensionality reduction on X.
 
         This method is not online. Any state accumulated from previous calls to
@@ -307,32 +316,35 @@ class tICA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
-            Training data, where n_samples is the number of samples
-            and n_features is the number of features.
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+        y : None
+            Ignored
 
         Returns
         -------
-        X_new : array-like, shape (n_samples, n_components)
+        sequence_new : list of array-like, each of shape (n_samples_i, n_components)
         """
-        self.fit(X)
-        return self.transform(X)
+        self.fit(sequences)
+        return self.transform(sequences)
 
     def _fit(self, X):
         X = np.asarray(array2d(X), dtype=np.float64)
         self._initialize(X.shape[1])
-        if not len(X) > self.offset:
+        if not len(X) > self.lag_time:
             raise ValueError('First dimension must be longer than '
-                'offset=%d. X has shape (%d, %d)' % (self.offset + X.shape))
+                'lag_time=%d. X has shape (%d, %d)' % ((self.lag_time,) + X.shape))
 
         self.n_observations_ += X.shape[0]
         self.n_sequences_ += 1
 
-        self._outer_0_to_T_lagged += np.dot(X[:-self.offset].T, X[self.offset:])
-        self._sum_0_to_TminusOffset += X[:-self.offset].sum(axis=0)
-        self._sum_tau_to_T += X[self.offset:].sum(axis=0)
+        self._outer_0_to_T_lagged += np.dot(X[:-self.lag_time].T, X[self.lag_time:])
+        self._sum_0_to_TminusTau += X[:-self.lag_time].sum(axis=0)
+        self._sum_tau_to_T += X[self.lag_time:].sum(axis=0)
         self._sum_0_to_T += X.sum(axis=0)
-        self._outer_0_to_TminusOffset += np.dot(X[:-self.offset].T, X[:-self.offset])
-        self._outer_offset_to_T += np.dot(X[self.offset:].T, X[self.offset:])
+        self._outer_0_to_TminusTau += np.dot(X[:-self.lag_time].T, X[:-self.lag_time])
+        self._outer_offset_to_T += np.dot(X[self.lag_time:].T, X[self.lag_time:])
 
         self._is_dirty = True
+
