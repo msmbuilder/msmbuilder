@@ -424,7 +424,7 @@ setup(name='mixtape',
       scripts=['scripts/hmsm'],
       zip_safe=False,
       ext_modules=extensions,
-      install_requires=['IPython', 'scikit-learn>=0.14', 'six',
+      install_requires=['IPython', 'scikit-learn>=0.14', 'six', 'numpydoc',
                         'mdtraj>=0.8.0', 'scipy>=0.11.0',
                         'pandas>=0.9.0', 'cvxopt>=1.1.5'],
       cmdclass={'build_ext': custom_build_ext})

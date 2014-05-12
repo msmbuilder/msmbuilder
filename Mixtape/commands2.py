@@ -28,7 +28,6 @@ import sys
 import glob
 import numpy as np
 import mdtraj as md
-from sklearn.externals.joblib import load, dump
 
 from mixtape.tica import tICA
 from mixtape.ghmm import GaussianFusionHMM
@@ -38,18 +37,6 @@ from mixtape.featurizer import (ContactFeaturizer, DihedralFeaturizer,
                                 AtomPairsFeaturizer, SuperposeFeaturizer,
                                 DRIDFeaturizer)
 from mixtape.cmdline import NumpydocClassCommand, argument
-
-#-----------------------------------------------------------------------------
-# Utilities
-#-----------------------------------------------------------------------------
-
-def verbosedump(value, fn, compress=1):
-    print('Saving "%s"... (%s)' % (fn, type(value)))
-    dump(value, fn, compress=compress)
-
-def verboseload(fn):
-    print('loading "%s"...' % fn)
-    return load(fn)
 
 #-----------------------------------------------------------------------------
 # Featurizer Commands
@@ -99,6 +86,8 @@ class DihedralFeaturizerCommand(ContactFeaturizerCommand):
 class AtomPairsFeaturizerCommand(ContactFeaturizerCommand):
     klass = AtomPairsFeaturizer
     def _pair_indices_type(self, fn):
+        if fn is None:
+            return None
         return np.loadtxt(fn, dtype=int, ndmin=2)
 
 class SuperposeFeaturizerCommand(ContactFeaturizerCommand):
@@ -106,11 +95,15 @@ class SuperposeFeaturizerCommand(ContactFeaturizerCommand):
     def _reference_traj_type(self, fn):
         return md.load(fn)
     def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
         return np.loadtxt(fn, dtype=int, ndmin=1)
 
 class DRIDFeaturizerCommand(ContactFeaturizerCommand):
     klass = DRIDFeaturizer
     def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
         return np.loadtxt(fn, dtype=int, ndmin=1)
 
 
