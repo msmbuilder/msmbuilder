@@ -195,32 +195,14 @@ class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
         
-
-class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
+        
+class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion
     
     Notes
     -----
     Works on lists of trajectories.
-    Has a hacky convenience method to set all subsets at once.
     """
-
-    @property
-    def subsets(self):
-        return [featurizer.subset for (_, featurizer) in self.transformer_list]
-
-    @subsets.setter
-    def subsets(self, value):
-        assert len(value) == len(self.transformer_list), "wrong len"
-        for k, (_, featurizer) in enumerate(self.transformer_list):
-            featurizer.subset = value[k]
-
-
-    @property
-    def n_features(self):
-        return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
-
-
     def fit_transform(self, X, y=None, **fit_params):
         """Fit all transformers using X, transform the data and concatenate
         results.
@@ -240,7 +222,38 @@ class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
 
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
 
-        return X_i_stacked
+        return X_i_stacked    
+
+class SubsetFeatureUnion(TrajFeatureUnion):
+    """Mixtape version of sklearn.pipeline.FeatureUnion with feature subset selection.
+    
+    Notes
+    -----
+    Works on lists of trajectories.
+    Has a hacky convenience method to set all subsets at once.
+    """
+
+    @property
+    def subsets(self):
+        return [featurizer.subset for (_, featurizer) in self.transformer_list]
+
+    @subsets.setter
+    def subsets(self, value):
+        assert len(value) == len(self.transformer_list), "wrong len"
+        for k, (_, featurizer) in enumerate(self.transformer_list):
+            featurizer.subset = value[k]
+
+
+    @property
+    def n_max_i(self):
+        return [featurizer.n_max for (_, featurizer) in self.transformer_list]
+
+    @property
+    def n_features(self):
+        return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
+
+
+
 
 
 class DummyCV(object):
