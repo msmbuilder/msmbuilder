@@ -284,6 +284,18 @@ def grad_many_batch_linear_equals(X, constraints):
 
     return grad
 
+def Q_coords(dim):
+    """
+    Helper function that specifies useful coordinates for
+    the Q convex program.
+    """
+    D_ADA_T_cds = (0, dim, 0, dim)
+    I_1_cds = (0, dim, dim, 2*dim)
+    I_2_cds = (dim, 2*dim, 0, dim)
+    R_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    block_1_R_cds = (dim, 2*dim, dim, 2*dim)
+    return (D_ADA_T_cds, I_1_cds, I_2_cds, R_cds, block_1_R_cds)
+
 def Q_constraints(dim, A, B, D):
     """
     Specifies the convex program required for Q optimization.

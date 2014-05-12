@@ -91,7 +91,7 @@ def test4():
     for R in Rs:
         for dim in dims:
             block_dim = int(dim/2)
-            A = 0.25*np.eye(block_dim)
+            A = (1./dim)*np.eye(block_dim)
             B = np.eye(block_dim)
             D = np.eye(block_dim)
             tr_B_D = np.trace(B) + np.trace(D)

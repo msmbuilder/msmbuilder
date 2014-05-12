@@ -37,7 +37,7 @@ def test1():
     for dim in dims:
         print("dim = %d" % dim)
         b = BoundedTraceSolver(neg_sum_squares, grad_neg_sum_squares, dim)
-        X = b.solve(N_iter)
+        X = b.solve(N_iter, methods=['frank_wolfe'])
         fX = neg_sum_squares(X)
         print("\tTr(X) = %f" % np.trace(X))
         print("\tf(X) = %f" % fX)
@@ -59,11 +59,6 @@ def test2():
     def gradf(X):
         return log_sum_exp_grad_penalty(X, M, As,
                     bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-    B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter, ['projected_gradient'])
-    succeed = not (f(X) < -eps)
-    print "\tComputation Time (s): ", elapsed
-    assert succeed == True
 
     B = BoundedTraceSolver(f, gradf, dim)
     X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
@@ -71,28 +66,7 @@ def test2():
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
 
-def test3a():
-    """
-    Check equality and inequality constraints for log_sum_exp penalty
-    """
-    eps = 1e-3
-    N_iter = 100
-    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-            simple_equality_and_inequality_constraint()
-    M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
-    def f(X):
-        return log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs)
-    def gradf(X):
-        return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
-                Fs, gradFs, Gs, gradGs)
-    B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter,
-            ['projected_gradient'],early_exit=False)
-    succeed = not (f(X) < -eps)
-    print "\tComputation Time (s): ", elapsed
-    assert succeed == True
-
-def test3b():
+def test3():
     """
     Check equality and inequality constraints for log_sum_exp penalty
     """
@@ -205,11 +179,11 @@ def test8():
     """
     eps = 1e-5
     tol = 1e-2
-    dims = [6]
+    dims = [4,16]
     N_iter = 200
     for dim in dims:
         block_dim = int(dim/2)
-        A = 0.25*np.eye(block_dim)
+        A = (1./dim)*np.eye(block_dim)
         B = np.eye(block_dim)
         D = np.eye(block_dim)
         tr_B_D = np.trace(B) + np.trace(D)
@@ -225,8 +199,7 @@ def test8():
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
         X, elapsed  = run_experiment(B, N_iter,
-                methods=['frank_wolfe', 'frank_wolfe_stable',
-                    'projected_gradient'])
+                methods=['frank_wolfe', 'frank_wolfe_stable'])
         succeed = not (f(X) < -tol)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True

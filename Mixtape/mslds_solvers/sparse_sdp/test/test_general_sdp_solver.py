@@ -80,32 +80,9 @@ def testQ():
     Dinv = np.linalg.inv(D)
     B = np.eye(dim)
     A = 0.5 * np.eye(dim)
-
-    # - log det R + Tr(RB)
-    def h(X):
-        R = get_entries(X, R_cds)
-        # Move this out...
-        np.seterr(divide='raise')
-        np.seterr(invalid='raise')
-        np.seterr(over='raise')
-        np.seterr(divide='raise')
-        np.seterr(invalid='raise')
-        np.seterr(over='raise')
-        try:
-            val = -np.log(np.linalg.det(R)) + np.trace(np.dot(R, B))
-        except FloatingPointError:
-            return -np.inf
-        return val
-    # grad - log det R = -R^{-1} = -Q (see Boyd and Vandenberge, A4.1)
-    # grad tr(RB) = B^T
-    def gradh(X):
-        grad = np.zeros(np.shape(X))
-        R = get_entries(X, R_cds)
-        Q = np.linalg.inv(R)
-        gradR = -Q + B.T
-        set_entries(grad, R_cds, gradR)
-        set_entries(grad, block_1_R_cds, gradR)
-        return grad
+    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = Q_constraints(dim, A, B, D)
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_cds, block_1_R_cds) = \
+            Q_coords(dim)
 
     L = -20
     U = 20
@@ -120,8 +97,6 @@ def testQ():
     set_entries(X_init, I_1_cds, np.eye(dim))
     set_entries(X_init, I_2_cds, np.eye(dim))
     R = 2 * np.trace(X_init)
-    import pdb
-    pdb.set_trace()
     upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
                 Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
                 N_iter, X_init=X_init)

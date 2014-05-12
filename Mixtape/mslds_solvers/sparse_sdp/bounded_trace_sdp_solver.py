@@ -152,16 +152,8 @@ class BoundedTraceSolver(object):
                 fX_fw, X_fw, alpha_fw = \
                         self.backtracking_line_search(X, grad, step)
                 results += [(fX_fw, X_fw, alpha_fw, 'frank_wolfe_stable')]
-            if 'projected_gradient' in methods:
-                step = grad
-                fX_proj, X_proj, alpha_proj = \
-                        self.backtracking_line_search(X, grad, step)
-                X_proj = self.project_spectrahedron(X_proj)
-                results += [(fX_proj, X_proj, alpha_proj,
-                                'projected_gradient')]
             ind = np.argmax(np.array([result[0] for result in results]))
             fX_prop,  X_prop, alpha, method = results[ind]
-            np.set_printoptions(precision=3)
             delta = 0
             if (early_exit and
                     (fX_prop <= fX + tol

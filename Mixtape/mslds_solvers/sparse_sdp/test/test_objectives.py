@@ -3,6 +3,7 @@ sys.path.append("..")
 import numpy as np
 from utils import numerical_derivative
 from objectives import *
+from constraints import *
 
 def test_sum_squares():
     dims = [1, 5, 10]
@@ -16,3 +17,35 @@ def test_sum_squares():
             grad = grad_neg_sum_squares(X)
             num_grad = numerical_derivative(neg_sum_squares, X, eps)
             assert np.sum(np.abs(grad - num_grad)) < tol
+
+def test_log_det():
+    dims = [3]
+    N_rand = 10
+    tol = 1e-3
+    eps = 1e-4
+    for dim in dims:
+        block_dim = int(dim/3)
+        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+                Q_coords(block_dim)
+        # Generate initial data
+        B = np.random.rand(block_dim, block_dim)
+        #B = np.eye(block_dim)
+        def obj(X):
+            return log_det_tr(X, B)
+        def grad_obj(X):
+            return grad_log_det_tr(X, B)
+        for i in range(N_rand):
+            X = np.random.rand(dim, dim)
+            R1 = get_entries(X, R_1_cds)
+            R2 = get_entries(X, R_2_cds)
+            if (np.linalg.det(R1) <= 0 or np.linalg.det(R2) <= 0):
+                "Continue!"
+                continue
+            val = obj(X)
+            grad = grad_obj(X)
+            num_grad = numerical_derivative(obj, X, eps)
+            diff = np.sum(np.abs(grad - num_grad))
+            print "grad:\n", grad
+            print "num_grad:\n", num_grad
+            print "diff: ", diff
+            assert diff < tol
