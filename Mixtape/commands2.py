@@ -29,6 +29,7 @@ import glob
 import numpy as np
 import mdtraj as md
 
+from mixtape.utils import verboseload, verbosedump
 from mixtape.tica import tICA
 from mixtape.ghmm import GaussianFusionHMM
 from mixtape.sparsetica import SparseTICA
@@ -109,7 +110,7 @@ class DRIDFeaturizerCommand(ContactFeaturizerCommand):
 
 
 #-----------------------------------------------------------------------------
-# partial_fit() on each sequence and then transform() on each sequence
+# fit(), then transform()
 #-----------------------------------------------------------------------------
 
 class tICACommand(NumpydocClassCommand):
@@ -133,16 +134,13 @@ class tICACommand(NumpydocClassCommand):
         if not isinstance(dataset, list):
             self.error('--inp must contain a list of arrays. "%s" has type %s' % (self.inp, type(dataset)))
 
-        for i, sequence in enumerate(dataset):
-            print('partial_fit() on sequence %d shape %s...' % (i, str(sequence.shape)))
-            self.instance.partial_fit(sequence)
+        print('fit() on %d sequences of shape %s...' % (
+            len(dataset), ', '.join([str(dataset[e].shape) for e in range(min(3, len(dataset)))])))
+        self.instance.fit(dataset)
 
         if self.transformed is not '':
-            transformed = []
-            for sequence in dataset:
-                print('transform() sequence %d of shape %s...' % (i, str(sequence.shape)))
-                transformed.append(self.instance.transform(sequence))
-            verbosedump(transformeded, self.transformed)
+            transformed = self.instance.transform(dataset)
+            verbosedump(transformed, self.transformed)
 
         if self.out is not '':
             verbosedump(self.instance, self.out)
@@ -152,6 +150,18 @@ class tICACommand(NumpydocClassCommand):
 
 # class SparseTICACommand(tICACommand):
 #     klass = SparseTICA
+
+
+class KMeansCommand(tICACommand):
+    klass = KMeans
+    def _random_state_type(self, state):
+        if state is None:
+            return None
+        return int(state)
+
+
+class KCentersCommand(KMeansCommand):
+    klass = KCenters
 
 
 #-----------------------------------------------------------------------------
@@ -179,40 +189,3 @@ class GaussianFusionHMMCommand(NumpydocClassCommand):
 
         print('All done')
 
-
-#-----------------------------------------------------------------------------
-# fit_predict(dataset)
-#-----------------------------------------------------------------------------
-
-class KMeansCommand(NumpydocClassCommand):
-    klass = KMeans
-    inp = argument('--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True)
-    out = argument('--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object. (optional)''', default='')
-    labels = argument('--labels', help='''Output (transformed) dataset.
-        This will be a serialized list of 1D numpy arrays with the cluster
-        labels of each data point in the input dataset. (optional)''', default='')
-
-    def start(self):
-        print(self.instance)
-        if self.out is '' and self.labels is '':
-            self.error('One of --out or --labels should be specified')
-
-        dataset = verboseload(self.inp)
-        if not isinstance(dataset, list):
-            self.error('--inp must contain a list of arrays. "%s" has type %s' % (self.inp, type(dataset)))
-
-        print('fitting...')
-        labels = self.instance.fit_predict(dataset)
-
-        if self.labels is not '':
-            verbosedump(labels, self.labels)
-
-        if self.out is not '':
-            verbosedump(self.instance, self.out)
-
-        print('All done')
-
-class KCentersCommand(KMeansCommand):
-    klass = KCenters
