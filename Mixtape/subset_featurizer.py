@@ -241,3 +241,14 @@ class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
 
         return X_i_stacked
+
+
+class DummyCV(object):
+    def __init__(self, n):
+        self.n = n
+
+    def __iter__(self):
+            yield np.arange(self.n), np.arange(self.n)
+
+    def __len__(self):
+        return self.n
