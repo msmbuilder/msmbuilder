@@ -29,6 +29,19 @@ def grad_neg_sum_squares(x):
         G[i,i] += -2.*x[i,i]
     return G
 
+def trace_obj(X):
+    """
+    Computes tr(X)
+    """
+    return np.trace(X)
+
+def grad_trace_obj(X):
+    """
+    Computes grad tr(X) = I
+    """
+    (dim, _) = np.shape(X)
+    return np.eye(dim)
+
 # - log det R + Tr(RB)
 def log_det_tr(X, B):
     """

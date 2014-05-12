@@ -17,20 +17,42 @@ import numpy as np
 import pdb
 import time
 from numbers import Number
-from hazan_penalties import *
-from hazan_utils import *
+from feasibility_sdp_solver import *
 import scipy.optimize
 
 
-class GeneralSDPSolver(object):
-    """ Implementation of a SDP solver, which uses binary search
-        and the FeasibilitySDPSolver below to solve general SDPs.
+class GeneralSolver(object):
+    """ Implementation of a convex solver on the semidefinite cone, which
+    uses binary search and the FeasibilitySolver below to solve general
+    semidefinite cone convex programs.
     """
-    def __init__(self):
-        self._solver = FeasibilitySDPHazanSolver()
+    def __init__(self, R, L, U, dim, eps):
+        self.R = R
+        self.L = L
+        self.U = U
+        self.dim = dim
+        self.eps = eps
+        self._feasibility_solver = FeasibilitySolver(R, dim, eps)
 
-    def solve(self, h, gradh, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs,
-            eps, dim, R, U, L, N_iter, X_init=None):
+    def save_constraints(self, obj, grad_obj, As, bs, Cs, ds,
+            Fs, gradFs, Gs, gradGs):
+        (self.As, self.bs, self.Cs, self.ds,
+            self.Fs, self.gradFs, self.Gs, self.gradGs) = \
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+        self.obj = obj
+        self.grad_obj = grad_obj
+
+    def create_feasibility_solver(self, fs, grad_fs):
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            (self.As, self.bs, self.Cs, self.ds,
+                self.Fs, self.gradFs, self.Gs, self.gradGs)
+        newFs = Fs + fs
+        newGradFs = gradFs + grad_fs
+        f = FeasibilitySolver(self.R, self.dim, self.eps)
+        f.init_solver(As, bs, Cs, ds, newFs, newGradFs, Gs, gradGs)
+        return f
+
+    def solve(self, N_iter, tol, X_init=None):
         """
         Solves optimization problem
 
@@ -42,141 +64,79 @@ class GeneralSDPSolver(object):
         assuming
             L <= h(X) <= U
 
-        where h is convex.  Solution of this problem with Frank-Wolfe
-        methods requires two transformations.
-        h(Y)        := h(X)
-        grad h(Y)   := [[ grad h(X), 0], # Multiply this by 1/R?
-                        [      0   , 0]]
+        where h is convex.
 
-        Now we can constrain Tr(Y) == 1.  We assume that L
-        <= h(Y) <= U.  The next required operation is binary search.
-        Choose value alpha \in [U,L]. We ascertain whether alpha is a
-        feasible value of h(X) by performing two subproblems:
+        We perform binary search to minimize h(X). We choose alpha \in
+        [U,L]. We ascertain whether alpha is a feasible value of h(X) by
+        performing two subproblems:
 
         (1)
         Feasibility of X
         subject to
-            Tr(A_i Y) <= b_i, Tr(C_i Y) == d_i
-            f_k(Y) <= 0, g_l(Y) == 0
-            L <= h(Y) <= alpha
-            Tr(Y) == 1
+            Tr(A_i X) <= b_i, Tr(C_i X) == d_i
+            f_k(X) <= 0, g_l(X) == 0
+            L <= h(X) <= alpha
+            Tr(X) <= R
 
         and
 
         (2)
-        Feasibility of Y
+        Feasibility of X
         subject to
-            Tr(A_i Y) <= b_i, Tr(C_i Y) == d_i
-            f_k(Y) <= 0, g_l(Y) == 0
-            alpha <= h(Y) <= U
-            Tr(Y) == 1
+            Tr(A_i X) <= b_i, Tr(C_i X) == d_i
+            f_k(X) <= 0, g_l(X) == 0
+            alpha <= h(X) <= U
+            Tr(X) == 1
 
         If problem (1) is feasible, then we know that there is a solution
         in range [L, alpha]. If problem (2) is feasible, then there is a
-        solution in range [alpha, U]. We can perform binary search to find
-        optimum alpha*.
+        solution in range [alpha, U]. We then recurse.
 
         Parameters
         __________
-        h: np.ndarray
-            The convex objective function
-        As: list
-            inequality square (dim, dim) numpy.ndarray matrices
-        bs: list
-            inequality floats
-        Cs: list
-            equality squares
-        ds: list
-            equality floats
-        Fs: list
-            inequality convex functions
-        gradFs: list
-            gradients
-        Gs: list
-            equality convex functions
-        gradGs: list
-            equality gradients
-        eps: float
-            Allowed error tolerance. Must be > 0
-        dim: int
-            Dimension of input
-        R: float
-            Upper bound on trace of X: 0 <= Tr(X) <= R
+        N_iter: int
+            Max number of iterations for each feasibility search.
         """
-        hprime = lambda Y: h(R * Y[:dim, :dim])
-        def gradhprime(Y):
-            ret_grad = np.zeros((dim+1,dim+1))
-            ret_grad[:dim, :dim] = gradh(R * Y[:dim, :dim])
-            ret_grad = (1./R) * ret_grad #?
-            return ret_grad
-
-        bprimes = bs
-        dprimes = ds
-
         # Do the binary search
-        SUCCEED = False
         X_L = None
         X_U = None
-        while (U - L) >= eps:
-            print
-            print("upper: %f" % U)
-            print("lower: %f" % L)
+        succeed = False
+        U, L = self.U, self.L
+        # Test that problem is originally feasible
+        f_lower = self.create_feasibility_solver([], [])
+        _, _, succeed = f_lower.feasibility_solve(N_iter, tol,
+                methods=['frank_wolfe', 'frank_wolfe_stable'])
+        if not succeed:
+            print "Problem infeasible with obj in (%f, %f)" % (L, U)
+            wait = raw_input("Press ENTER to continue")
+            return (None, U, X_U, L, X_L, succeed)
+        # If we get here, then the problem is feasible
+        print "Problem feasible with obj in (%f, %f)" % (L, U)
+        wait = raw_input("Press ENTER to continue")
+        print
+        while (U - L) >= tol:
             alpha = (U + L) / 2.0
             print "Checking feasibility in (%f, %f)" % (L, alpha)
-            print
-            h_alpha = lambda Y: hprime(Y) - alpha
-            grad_h_alpha = lambda Y: gradhprime(Y)
-            h_lower = lambda Y: -hprime(Y) + L
-            grad_h_lower = lambda Y: -gradhprime(Y)
-
-            Fprimes += [h_lower, h_alpha]
-            gradFprimes += [grad_h_lower, grad_h_alpha]
-            import pdb
-            pdb.set_trace()
-            Y_L, fY_L, SUCCEED_L = self._solver.feasibility_solve(Aprimes,
-                    bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
-                    Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)
-            Fprimes = Fprimes[:-2]
-            gradFprimes = gradFprimes[:-2]
+            h_alpha = lambda X: self.obj(X) - alpha
+            grad_h_alpha = lambda X: self.grad_obj(X)
+            f_lower = self.create_feasibility_solver([h_alpha],
+                    [grad_h_alpha])
+            X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
+                    methods=['frank_wolfe', 'frank_wolfe_stable'])
             print "Checked feasibility in (%f, %f)" % (L, alpha)
-            import pdb
-            pdb.set_trace()
-            if SUCCEED_L:
-                X_L = R * Y_L[:dim, :dim]
+            if succeed_L:
                 U = alpha
+                print "Problem feasible with obj in (%f, %f)" % (L, U)
+                wait = raw_input("Press ENTER to continue")
                 continue
-
-            # Check feasibility in [alpha, U]
-            print
-            print "Checking feasibility in (%f, %f)" % (alpha, U)
-            print "alpha: ", -alpha
-            h_alpha = lambda Y: -hprime(Y) + alpha
-            grad_h_alpha = lambda(Y): -gradhprime(Y)
-            h_upper = lambda Y: hprime(Y) - U
-            grad_h_upper = lambda Y: gradhprime(Y)
-            Fprimes += [h_alpha, h_upper]
-            gradFprimes += [grad_h_alpha, grad_h_upper]
-            Y_U, fY_U, SUCCEED_U = self._solver.feasibility_solve(Aprimes,
-                    bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
-                    Gprimes, gradGprimes, eps, dim+1, N_iter, Y_init)
-            Fprimes = Fprimes[:-2]
-            gradFprimes = gradFprimes[:-2]
-            print "Checked feasibility in (%f, %f)" % (alpha, U)
-            import pdb
-            pdb.set_trace()
-            if SUCCEED_U:
-                X_U = R * Y_U[:dim,:dim]
-                L = alpha
-                continue
-
-            if fY_U >= fY_L:
-                X_U = R * Y_U[:dim,:dim]
-                L = alpha
             else:
-                X_L = R * Y_L[:dim, :dim]
-                U = alpha
-        if (U - L) <= eps:
-            fY = fY_L
-            if fY_L >= -eps:
-                SUCCEED = True
-        return (U, L, X_U, X_L, SUCCEED)
+                print "Problem infeasible with obj in (%f, %f)" % (L, U)
+                L = alpha
+                print "\tContinuing search in (%f, %f)" % (L, U)
+                wait = raw_input("Press ENTER to continue")
+                continue
+            break
+
+        if (U - L) <= tol:
+            succeed = True
+        return (alpha, U, X_U, L, X_L, succeed)

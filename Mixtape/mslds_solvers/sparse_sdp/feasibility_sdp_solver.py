@@ -58,6 +58,11 @@ class FeasibilitySolver(object):
                 Gprimes, gradGprimes) = \
                     self.transform_input(As, bs, Cs, ds,
                             Fs, gradFs, Gs, gradGs)
+        (self._Aprimes, self._bprimes, self._Cprimes, self._dprimes,
+            self._Fprimes, self._gradFprimes, self._Gprimes,
+            self_gradGprimes) = (Aprimes, bprimes, Cprimes, dprimes,
+                    Fprimes, gradFprimes, Gprimes, gradGprimes)
+
         self.f = self.get_feasibility(Aprimes, bprimes, Cprimes, dprimes,
                 Fprimes, Gprimes, self.eps)
         self.gradf = self.get_feasibility_grad(Aprimes, bprimes,
@@ -99,9 +104,9 @@ class FeasibilitySolver(object):
                 def gradfprime(Y):
                     ret_grad = np.zeros((dim+1,dim+1))
                     ret_grad[:dim,:dim] = gradfk(R * Y[:dim,:dim])
-                    #ret_grad = (1./R) * ret_grad
                     return ret_grad
-                return gradgfprime
+                return gradfprime
+            gradfprime = make_gradfprime(gradfk)
             gradFprimes.append(gradfprime)
         for l in range(q):
             gl = Gs[l]
@@ -114,7 +119,6 @@ class FeasibilitySolver(object):
                 def gradgprime(Y):
                     ret_grad = np.zeros((dim+1,dim+1))
                     ret_grad[:dim, :dim] = gradgl(R * Y[:dim,:dim])
-                    #ret_grad = (1./R) * ret_grad
                     return ret_grad
                 return gradgprime
             gradgprime = make_gradgprime(gradgl)
