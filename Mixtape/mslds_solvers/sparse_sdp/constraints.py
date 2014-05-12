@@ -293,11 +293,7 @@ def A_coords(dim):
      | 0        0    _   _ |
       ----------------------
     """
-    block_1_A_cds = (0, dim, dim, 2*dim)
-    block_1_A_T_cds = (dim, 2*dim, 0, dim)
-    block_2_A_cds = (2*dim, 3*dim, 3*dim, 4*dim)
-    block_2_A_T_cds = (3*dim, 4*dim, 2*dim, 3*dim)
-
+    # Should there be coordinates for the zeros?
     """
       ---------------------
      |D-Q       _    _   _ |
@@ -325,8 +321,7 @@ def A_coords(dim):
     A_2_cds = (2*dim, 3*dim, 3*dim, 4*dim)
     A_T_2_cds = (3*dim, 4*dim, 2*dim, 3*dim)
 
-    return (block_1_A_cds, block_1_A_T_cds, block_2_A_cds,
-            block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+    return (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
             A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds)
 
 def A_constraints(dim, D, Q):
@@ -334,9 +329,8 @@ def A_constraints(dim, D, Q):
     As, bs, Cs, ds, = [], [], [], []
     Fs, gradFs, Gs, gradGs = [], [], [], []
 
-    (block_1_A_cds, block_1_A_T_cds, block_2_A_cds,
-            block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+    (block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+        A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
 
     """
     We need to enforce zero equalities in X

@@ -49,3 +49,38 @@ def test_log_det():
             print "num_grad:\n", num_grad
             print "diff: ", diff
             assert diff < tol
+
+def test_A_dynamics():
+    dims = [4]
+    N_rand = 10
+    tol = 1e-3
+    eps = 1e-4
+    for dim in dims:
+        block_dim = int(dim/4)
+        (block_1_A_cds, block_1_A_T_cds, block_2_A_cds,
+                block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+
+        # Generate initial data
+        D = np.eye(block_dim)
+        Q = 0.5*np.eye(block_dim)
+        Qinv = np.linalg.inv(Q)
+        C = 2*np.eye(block_dim)
+        B = np.eye(block_dim)
+        E = np.eye(block_dim)
+        #B = np.eye(block_dim)
+        def obj(X):
+            return A_dynamics(X, block_dim, C, B, E, Qinv)
+        def grad_obj(X):
+            return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
+        for i in range(N_rand):
+            X = np.random.rand(dim, dim)
+            val = obj(X)
+            grad = grad_obj(X)
+            num_grad = numerical_derivative(obj, X, eps)
+            diff = np.sum(np.abs(grad - num_grad))
+            print "grad:\n", grad
+            print "num_grad:\n", num_grad
+            print "diff: ", diff
+            assert diff < tol
+
