@@ -29,7 +29,7 @@ from __future__ import print_function, division, absolute_import
 import time
 import warnings
 import numpy as np
-from sklearn import cluster
+from sklearn import cluster, base
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _ghmm, _reversibility
 from mdtraj.utils import ensure_type
@@ -47,7 +47,7 @@ EPS = np.finfo(np.float32).eps
 #-----------------------------------------------------------------------------
 
 
-class GaussianFusionHMM(object):
+class GaussianFusionHMM(base.BaseEstimator):
 
     """
     Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
@@ -143,6 +143,7 @@ class GaussianFusionHMM(object):
         self.init_params = init_params
         self.platform = platform
         self.timing = timing
+        self.precision = precision
         self.n_hotstart = n_hotstart
         self._impl = None
 
@@ -176,7 +177,7 @@ class GaussianFusionHMM(object):
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
 
-    def fit(self, sequences):
+    def fit(self, sequences, y=None):
         """Estimate model parameters.
 
         An initialization step is performed before entering the EM
