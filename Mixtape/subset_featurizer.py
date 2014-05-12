@@ -197,7 +197,13 @@ class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
         
 
 class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
-    """Has a hacky way to set all subsets at once."""
+    """Mixtape version of sklearn.pipeline.FeatureUnion
+    
+    Notes
+    -----
+    Works on lists of trajectories.
+    Has a hacky convenience method to set all subsets at once.
+    """
 
     @property
     def subsets(self):
@@ -205,8 +211,6 @@ class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
 
     @subsets.setter
     def subsets(self, value):
-        if value is None:
-            value = [np.zeros(0, 'int') for k in range(len(self.transformer_list))]
         assert len(value) == len(self.transformer_list), "wrong len"
         for k, (_, featurizer) in enumerate(self.transformer_list):
             featurizer.subset = value[k]
