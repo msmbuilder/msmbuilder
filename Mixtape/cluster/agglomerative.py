@@ -83,7 +83,14 @@ def cdist(XA, XB, metric='euclidean'):
 
 class _LandmarkAgglomerative(BaseEstimator, ClusterMixin, TransformerMixin):
     """Landmark-based agglomerative hierarchical clustering
-    
+
+    Landmark-based agglomerative clustering is a simple scalable version of
+    "standard" hierarchical clustering which doesn't require computing the full
+    matrix of pairwise distances between all data points. The idea is
+    basically to subsample only ``n_landmarks`` "landmark"
+    data points, cluster them, and then assign labels to the remaining data
+    points based on their distances to (and the labels of) the landmarks.
+
     Parameters
     ----------
     n_clusters : int
@@ -125,6 +132,11 @@ class _LandmarkAgglomerative(BaseEstimator, ClusterMixin, TransformerMixin):
         The generator used to select random landmarks. Only used if
         landmark_strategy=='random'. If an integer is given, it fixes the seed.
         Defaults to the global numpy random number generator.
+
+    References
+    ----------
+    .. [1] Mullner, D. "Modern hierarchical, agglomerative clustering
+        algorithms." arXiv:1109.2378 (2011).
 
     Attributes
     ----------
