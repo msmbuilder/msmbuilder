@@ -284,6 +284,114 @@ def grad_many_batch_linear_equals(X, constraints):
 
     return grad
 
+def A_coords(dim):
+    """
+      ----------------------
+     | _        _    0   0 |
+     | _        _    0   0 |
+     | 0        0    _   _ |
+     | 0        0    _   _ |
+      ----------------------
+    """
+    block_1_A_cds = (0, dim, dim, 2*dim)
+    block_1_A_T_cds = (dim, 2*dim, 0, dim)
+    block_2_A_cds = (2*dim, 3*dim, 3*dim, 4*dim)
+    block_2_A_T_cds = (3*dim, 4*dim, 2*dim, 3*dim)
+
+    """
+      ---------------------
+     |D-Q       _    _   _ |
+     | _     D^{-1}  _   _ |
+     | _        _    I   _ |
+     | _        _    _   I |
+      ---------------------
+    """
+    D_Q_cds = (0, dim, 0, dim)
+    Dinv_cds = (dim, 2*dim, dim, 2*dim)
+    I_1_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    I_2_cds = (3*dim, 4*dim, 3*dim, 4*dim)
+
+
+    """
+      --------------------
+     |  _     A     _   _ |
+     | A.T    _     _   _ |
+     |  _     _     _   A |
+     |  _     _    A.T  _ |
+      --------------------
+    """
+    A_1_cds = (0, dim, dim, 2*dim)
+    A_T_1_cds = (dim, 2*dim, 0, dim)
+    A_2_cds = (2*dim, 3*dim, 3*dim, 4*dim)
+    A_T_2_cds = (3*dim, 4*dim, 2*dim, 3*dim)
+
+    return (block_1_A_cds, block_1_A_T_cds, block_2_A_cds,
+            block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds)
+
+def A_constraints(dim, D, Q):
+
+    As, bs, Cs, ds, = [], [], [], []
+    Fs, gradFs, Gs, gradGs = [], [], [], []
+
+    (block_1_A_cds, block_1_A_T_cds, block_2_A_cds,
+            block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+
+    """
+    We need to enforce zero equalities in X
+      ----------------------
+     | _        _    0   0 |
+C =  | _        _    0   0 |
+     | 0        0    _   _ |
+     | 0        0    _   _ |
+      ----------------------
+    """
+    constraints = [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
+            ((0, 2*dim, 2*dim, 4*dim), np.zeros((2*dim, 2*dim)))]
+
+    """
+    We need to enforce constant equalities in X
+      ---------------------
+     |D-Q       _    _   _ |
+C =  | _     D^{-1}  _   _ |
+     | _        _    I   _ |
+     | _        _    _   I |
+      ---------------------
+    """
+    D_Q = D-Q
+    Dinv = np.linalg.inv(D)
+    constraints += [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
+            (I_1_cds, np.eye(dim)), (I_2_cds, np.eye(dim))]
+
+    # Add constraints to Gs
+    def const_regions(X):
+        return many_batch_equals(X, constraints)
+    def grad_const_regions(X):
+        return grad_many_batch_equals(X, constraints)
+    Gs.append(const_regions)
+    gradGs.append(grad_const_regions)
+
+    """ We need to enforce linear inequalities
+
+          --------------------
+         |  _     A     _   _ |
+    X =  | A.T    _     _   _ |
+         |  _     _     _   A |
+         |  _     _    A.T  _ |
+          --------------------
+    """
+    linear_constraints = [(1., A_1_cds, np.zeros((dim, dim)), A_2_cds)]
+
+    def linear_regions(X):
+        return many_batch_linear_equals(X, linear_constraints)
+    def grad_linear_regions(X):
+        return grad_many_batch_linear_equals(X, linear_constraints)
+    Gs.append(linear_regions)
+    gradGs.append(grad_linear_regions)
+
+    return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
+
 def Q_coords(dim):
     """
     Helper function that specifies useful coordinates for

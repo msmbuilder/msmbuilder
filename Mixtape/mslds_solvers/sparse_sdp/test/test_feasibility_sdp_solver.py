@@ -107,3 +107,51 @@ def test4():
                     methods=['frank_wolfe', 'frank_wolfe_stable'])
                     #    'projected_gradient'])
             assert succeed == True
+
+def test5():
+    """
+    Tests Q optimization.
+
+    minimize -log det R + Tr(RB)
+          --------------
+         |D-ADA.T  I    |
+    X =  |   I     R    |
+         |            R |
+          --------------
+    X is PSD
+    """
+    dim = 1
+    cdim = 3 * dim
+    g = GeneralSDPHazanSolver()
+
+    # Generate initial data
+    D = np.eye(dim)
+    Dinv = np.linalg.inv(D)
+    B = np.eye(dim)
+    A = 0.5 * np.eye(dim)
+    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = Q_constraints(dim, A, B, D)
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_cds, block_1_R_cds) = \
+            Q_coords(dim)
+
+    L, U = -20, 20
+    eps = 3e-2
+    N_iter = 100
+    X_init = np.zeros((cdim, cdim))
+    Q_init = 0.2 * np.eye(dim)
+    R_init = np.linalg.inv(Q_init)
+    set_entries(X_init, R_cds, R_init)
+    set_entries(X_init, block_1_R_cds, R_init)
+    set_entries(X_init, D_ADA_T_cds, D_ADA_T)
+    set_entries(X_init, I_1_cds, np.eye(dim))
+    set_entries(X_init, I_2_cds, np.eye(dim))
+    R = 2 * np.trace(X_init)
+    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+                Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
+                N_iter, X_init=X_init)
+    print "X_lower\n", X_lower
+    if X_lower != None:
+        print "h(X_lower)\n", h(X_lower)
+    print "X_upper\n", X_upper
+    if X_upper != None:
+        print "h(X_upper)\n", h(X_upper)
+

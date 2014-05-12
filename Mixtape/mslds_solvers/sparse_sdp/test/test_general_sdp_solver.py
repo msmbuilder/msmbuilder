@@ -59,54 +59,6 @@ def test1():
     print "X_lower:\n", X_lower
     print "lower: ", lower
 
-def testQ():
-    """
-    Tests Q optimization.
-
-    minimize -log det R + Tr(RB)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
-    X is PSD
-    """
-    dim = 1
-    cdim = 3 * dim
-    g = GeneralSDPHazanSolver()
-
-    # Generate initial data
-    D = np.eye(dim)
-    Dinv = np.linalg.inv(D)
-    B = np.eye(dim)
-    A = 0.5 * np.eye(dim)
-    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = Q_constraints(dim, A, B, D)
-    (D_ADA_T_cds, I_1_cds, I_2_cds, R_cds, block_1_R_cds) = \
-            Q_coords(dim)
-
-    L = -20
-    U = 20
-    eps = 3e-2
-    N_iter = 100
-    X_init = np.zeros((cdim, cdim))
-    Q_init = 0.2 * np.eye(dim)
-    R_init = np.linalg.inv(Q_init)
-    set_entries(X_init, R_cds, R_init)
-    set_entries(X_init, block_1_R_cds, R_init)
-    set_entries(X_init, D_ADA_T_cds, D_ADA_T)
-    set_entries(X_init, I_1_cds, np.eye(dim))
-    set_entries(X_init, I_2_cds, np.eye(dim))
-    R = 2 * np.trace(X_init)
-    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
-                Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
-                N_iter, X_init=X_init)
-    print "X_lower\n", X_lower
-    if X_lower != None:
-        print "h(X_lower)\n", h(X_lower)
-    print "X_upper\n", X_upper
-    if X_upper != None:
-        print "h(X_upper)\n", h(X_upper)
-
 def testA():
     """
     Specifies a simple version of the convex program required for
@@ -128,13 +80,7 @@ def testA():
     dim = 1
     cdim = 4 * dim
     g = GeneralSDPHazanSolver()
-    As, bs, Cs, ds, = [], [], [], []
-    Fs, gradFs, Gs, gradGs = [], [], [], []
 
-    block_1_A_coords = (0, dim, dim, 2*dim)
-    block_1_A_T_coords = (dim, 2*dim, 0, dim)
-    block_2_A_coords = (2*dim, 3*dim, 3*dim, 4*dim)
-    block_2_A_T_coords = (3*dim, 4*dim, 2*dim, 3*dim)
 
     # Generate random data
     D = np.eye(dim)
@@ -143,66 +89,6 @@ def testA():
     C = 2 * np.eye(dim)
     B = np.eye(dim)
     E = np.eye(dim)
-
-    """
-    We need to enforce zero equalities in X
-      ----------------------
-     | _        _    0   0 |
-C =  | _        _    0   0 |
-     | 0        0    _   _ |
-     | 0        0    _   _ |
-      ----------------------
-    """
-    constraints = [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
-            ((0, 2*dim, 2*dim, 4*dim), np.zeros((2*dim, 2*dim)))]
-
-    """
-    We need to enforce constant equalities in X
-      ---------------------
-     |D-Q       _    _   _ |
-C =  | _     D^{-1}  _   _ |
-     | _        _    I   _ |
-     | _        _    _   I |
-      ---------------------
-    """
-    D_Q_cds = (0, dim, 0, dim)
-    D_Q = D-Q
-    Dinv_cds = (dim, 2*dim, dim, 2*dim)
-    Dinv = np.linalg.inv(D)
-    I_1_cds = (2*dim, 3*dim, 2*dim, 3*dim)
-    I_2_cds = (3*dim, 4*dim, 3*dim, 4*dim)
-    constraints += [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
-            (I_1_cds, np.eye(dim)), (I_2_cds, np.eye(dim))]
-
-    # Add constraints to Gs
-    def const_regions(X):
-        return many_batch_equals(X, constraints)
-    def grad_const_regions(X):
-        return grad_many_batch_equals(X, constraints)
-    Gs.append(const_regions)
-    gradGs.append(grad_const_regions)
-
-    """ We need to enforce linear inequalities
-
-          --------------------
-         |  _     A     _   _ |
-    X =  | A.T    _     _   _ |
-         |  _     _     _   A |
-         |  _     _    A.T  _ |
-          --------------------
-    """
-    A_1_cds = (0, dim, dim, 2*dim)
-    A_T_1_cds = (dim, 2*dim, 0, dim)
-    A_2_cds = (2*dim, 3*dim, 3*dim, 4*dim)
-    A_T_2_cds = (3*dim, 4*dim, 2*dim, 3*dim)
-    linear_constraints = [(1., A_1_cds, np.zeros((dim, dim)), A_2_cds)]
-
-    def linear_regions(X):
-        return many_batch_linear_equals(X, linear_constraints)
-    def grad_linear_regions(X):
-        return grad_many_batch_linear_equals(X, linear_constraints)
-    Gs.append(linear_regions)
-    gradGs.append(grad_linear_regions)
 
     # Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
     def h(X):
@@ -252,10 +138,3 @@ C =  | _     D^{-1}  _   _ |
     print "X_upper\n", X_upper
     if X_upper != None:
         print "h(X_upper)\n", h(X_upper)
-
-
-if __name__ == "__main__":
-    #test1()
-    testQ()
-    #testA()
-    pass

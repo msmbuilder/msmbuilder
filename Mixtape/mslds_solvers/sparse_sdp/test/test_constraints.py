@@ -147,3 +147,28 @@ def test_Q_constraints():
                 num_grad = numerical_derivative(g, X, eps)
                 print "num_grad:\n", num_grad
                 assert np.sum(np.abs(grad - num_grad)) < tol
+
+def test_A_constraints():
+    dims = [4, 8]
+    N_rand = 10
+    eps = 1e-5
+    tol = 1e-3
+    for dim in dims:
+        block_dim = int(dim/3)
+        # Generate initial data
+        D = np.eye(block_dim)
+        Q = 0.5*np.eye(block_dim)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                A_constraints(block_dim, D, Q)
+        tol = 1e-3
+        eps = 1e-4
+        N_rand = 10
+        for (g, gradg) in zip(Gs, gradGs):
+            for i in range(N_rand):
+                X = np.random.rand(dim, dim)
+                val = g(X)
+                grad = gradg(X)
+                print "grad:\n", grad
+                num_grad = numerical_derivative(g, X, eps)
+                print "num_grad:\n", num_grad
+                assert np.sum(np.abs(grad - num_grad)) < tol
