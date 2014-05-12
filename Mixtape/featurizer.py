@@ -348,4 +348,4 @@ class DRIDFeaturizer(Featurizer):
         self.atom_indices = atom_indices
 
     def featurize(self, traj):
-        return mdtraj.geometry.compute_drid(traj, self.atom_indices)
+        return md.geometry.compute_drid(traj, self.atom_indices)
