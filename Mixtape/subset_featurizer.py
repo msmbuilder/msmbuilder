@@ -207,15 +207,13 @@ class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
 
     @property
     def subsets(self):
-        return self._subsets
+        return [featurizer.subset for (_, featurizer) in self.transformer_list]
 
     @subsets.setter
     def subsets(self, value):
         assert len(value) == len(self.transformer_list), "wrong len"
         for k, (_, featurizer) in enumerate(self.transformer_list):
             featurizer.subset = value[k]
-        self._subsets = value
-
 
 
     @property
