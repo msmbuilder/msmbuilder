@@ -46,6 +46,10 @@ class MarkovStateModel(BaseEstimator):
         The number of states in the model
     lag_time : int
         The lag time of the model
+    n_timescales : int, optional
+        The number of dynamical timescales to calculate when diagonalizing
+        the transition matrix. By default, the maximum number will be
+        calculated, which, for ARPACK, is n_states - 3.
     reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
@@ -93,7 +97,7 @@ class MarkovStateModel(BaseEstimator):
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, n_states=None, n_timescales=None, lag_time=1,
+    def __init__(self, n_states=None, lag_time=1, n_timescales=None,
                  reversible_type='mle', ergodic_trim=True, prior_counts=0):
         self.n_states = n_states
         self.reversible_type = reversible_type
@@ -181,7 +185,11 @@ class MarkovStateModel(BaseEstimator):
 
     @property
     def timescales_(self):
-        u, v = scipy.sparse.linalg.eigs(self.transmat_, k=self.n_timescales + 1)
+        n_timescales = self.n_timescales
+        if n_timescales is None:
+            n_timescales = n_states - 3
+
+        u, v = scipy.sparse.linalg.eigs(self.transmat_, k=n_timescales + 1)
         order = np.argsort(-np.real(u))
         u = np.real_if_close(u[order])
 
