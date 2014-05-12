@@ -83,35 +83,65 @@ def grad_log_det_tr(X, B):
 
 # Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
 def A_dynamics(X, dim, C, B, E, Qinv):
+    """
+    min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    X is PSD
+    """
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
 
     A_1 = get_entries(X, A_1_cds)
-    term1 = np.dot(C-B, A_1.T)
-    term2 = term1.T
-    term3 = np.dot(A_1, np.dot(E, A_1.T))
-    term = np.dot(Qinv, term1+term2+term3)
-    return np.trace(term)
+    A_T_1 = get_entries(X, A_T_1_cds)
+    A_2 = get_entries(X, A_2_cds)
+    A_T_2 = get_entries(X, A_T_2_cds)
+    def obj(A):
+        return np.dot(Qinv, (np.dot(C-B, A.T) + np.dot(C-B, A.T).T
+                            + np.dot(A, np.dot(E, A.T))))
+    term_1, term_T_1, term_2, term_T_2 = \
+            obj(A_1), obj(A_T_1.T), obj(A_2), obj(A_T_2)
+    return np.trace(term_1+term_T_1+term_2+term_T_2)
 
 # grad Tr [Q^{-1} (C - B) A.T] = Q^{-1} (C - B)
 # grad Tr [Q^{-1} A [C - B].T] = Q^{-T} (C - B)
 # grad Tr [Q^{-1} A E A.T] = Q^{-T} A E.T + Q^{-1} A E
 def grad_A_dynamics(X, dim, C, B, E, Qinv):
+    """
+    min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    X is PSD
+    """
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
-
     grad = np.zeros(np.shape(X))
     A_1 = get_entries(X, A_1_cds)
     A_T_1 = get_entries(X, A_T_1_cds)
     A_2 = get_entries(X, A_2_cds)
     A_T_2 = get_entries(X, A_T_2_cds)
-    grad_term1 = np.dot(Qinv, C-B)
-    grad_term2 = np.dot(Qinv.T, C-B)
-    grad_term3 = np.dot(Qinv.T, np.dot(A_1, E.T)) + \
-                    np.dot(Qinv, np.dot(A_1, E))
-    gradA = grad_term1 + grad_term2 + grad_term3
-    set_entries(grad, A_1_cds, gradA)
-    set_entries(grad, A_2_cds, gradA)
-    set_entries(grad, A_T_1_cds, gradA.T)
-    set_entries(grad, A_T_2_cds, gradA.T)
+    def grad_obj(A):
+        grad_term1 = np.dot(Qinv, C-B)
+        grad_term2 = np.dot(Qinv.T, C-B)
+        grad_term3 = np.dot(Qinv.T, np.dot(A, E.T)) + \
+                        np.dot(Qinv, np.dot(A, E))
+        gradA = grad_term1 + grad_term2 + grad_term3
+        return gradA
+    gradA_1, gradA_T_1, gradA_2, gradA_T_2 = \
+            (grad_obj(A_1), grad_obj(A_T_1.T),
+                grad_obj(A_2), grad_obj(A_T_2.T))
+    set_entries(grad, A_1_cds, gradA_1)
+    set_entries(grad, A_T_1_cds, gradA_T_1.T)
+    set_entries(grad, A_2_cds, gradA_2)
+    set_entries(grad, A_T_2_cds, gradA_T_2.T)
     return grad
