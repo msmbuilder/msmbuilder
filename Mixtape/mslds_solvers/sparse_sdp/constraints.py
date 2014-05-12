@@ -324,12 +324,12 @@ def A_coords(dim):
     return (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
             A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds)
 
-def A_constraints(dim, D, Q):
+def A_constraints(dim, D, Dinv, Q):
 
     As, bs, Cs, ds, = [], [], [], []
     Fs, gradFs, Gs, gradGs = [], [], [], []
 
-    (block_2_A_T_cds, D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+    (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
 
     """
@@ -354,7 +354,6 @@ C =  | _     D^{-1}  _   _ |
       ---------------------
     """
     D_Q = D-Q
-    Dinv = np.linalg.inv(D)
     constraints += [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
             (I_1_cds, np.eye(dim)), (I_2_cds, np.eye(dim))]
 

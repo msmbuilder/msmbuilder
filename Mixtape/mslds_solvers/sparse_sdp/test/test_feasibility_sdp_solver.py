@@ -110,7 +110,7 @@ def test5():
     """
     Tests feasibility Q optimization.
 
-    minimize -log det R + Tr(RB)
+    #minimize -log det R + Tr(RB)
           --------------
          |D-ADA.T  I    |
     X =  |   I     R    |
@@ -165,7 +165,7 @@ def test6():
     """
     Tests feasibility of A optimization.
 
-    min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
 
           --------------------
          | D-Q    A           |
@@ -178,40 +178,51 @@ def test6():
     If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
     The solution to this problem is A = 0 when dim = 1.
     """
-    dim = 1
-    cdim = 4 * dim
-    g = GeneralSDPHazanSolver()
-
-
-    # Generate random data
-    D = np.eye(dim)
-    Q = 0.5 * np.eye(dim)
-    Qinv = np.linalg.inv(Q)
-    C = 2 * np.eye(dim)
-    B = np.eye(dim)
-    E = np.eye(dim)
-
-    R = 5
-    L = 0
-    U = 5
-    eps = 1e-1
+    dims = [8]
+    eps = 1e-5
+    tol = 1e-2
+    Rs = [10]
     N_iter = 100
-    X_init = np.zeros((cdim, cdim))
-    set_entries(X_init, D_Q_cds, D_Q)
-    set_entries(X_init, Dinv_cds, Dinv)
-    set_entries(X_init, I_1_cds, np.eye(dim))
-    set_entries(X_init, I_2_cds, np.eye(dim))
-    A_init = (1./np.sqrt(2)) * np.eye(dim)
-    set_entries(X_init, A_1_cds, A_init)
-    set_entries(X_init, A_2_cds, A_init)
-    set_entries(X_init, A_T_1_cds, A_init.T)
-    set_entries(X_init, A_T_2_cds, A_init.T)
-    upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
-                Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
-                N_iter, X_init=X_init)
-    print "X_lower\n", X_lower
-    if X_lower != None:
-        print "h(X_lower)\n", h(X_lower)
-    print "X_upper\n", X_upper
-    if X_upper != None:
-        print "h(X_upper)\n", h(X_upper)
+    for R in Rs:
+        for dim in dims:
+            block_dim = int(dim/4)
+
+            # Generate random data
+            D = np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            Q = 0.5 * np.eye(block_dim)
+            C = 2 * np.eye(block_dim)
+            B = np.eye(block_dim)
+            E = np.eye(block_dim)
+
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    A_constraints(block_dim, D, Dinv, Q)
+
+            (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = \
+                    A_coords(block_dim)
+            f = FeasibilitySolver(R, dim, eps)
+            f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            X, fX, succeed = f.feasibility_solve(N_iter, tol,
+                    methods=['frank_wolfe', 'frank_wolfe_stable'])
+            assert succeed == True
+
+    #X_init = np.zeros((cdim, cdim))
+    #set_entries(X_init, D_Q_cds, D_Q)
+    #set_entries(X_init, Dinv_cds, Dinv)
+    #set_entries(X_init, I_1_cds, np.eye(dim))
+    #set_entries(X_init, I_2_cds, np.eye(dim))
+    #A_init = (1./np.sqrt(2)) * np.eye(dim)
+    #set_entries(X_init, A_1_cds, A_init)
+    #set_entries(X_init, A_2_cds, A_init)
+    #set_entries(X_init, A_T_1_cds, A_init.T)
+    #set_entries(X_init, A_T_2_cds, A_init.T)
+    #upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+    #            Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
+    #            N_iter, X_init=X_init)
+    #print "X_lower\n", X_lower
+    #if X_lower != None:
+    #    print "h(X_lower)\n", h(X_lower)
+    #print "X_upper\n", X_upper
+    #if X_upper != None:
+    #    print "h(X_upper)\n", h(X_upper)

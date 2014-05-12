@@ -154,12 +154,13 @@ def test_A_constraints():
     eps = 1e-5
     tol = 1e-3
     for dim in dims:
-        block_dim = int(dim/3)
+        block_dim = int(dim/4)
         # Generate initial data
         D = np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
         Q = 0.5*np.eye(block_dim)
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                A_constraints(block_dim, D, Q)
+                A_constraints(block_dim, D, Dinv, Q)
         tol = 1e-3
         eps = 1e-4
         N_rand = 10
