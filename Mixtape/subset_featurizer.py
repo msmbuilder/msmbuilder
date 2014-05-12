@@ -1,3 +1,6 @@
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.externals.joblib import Parallel, delayed
+
 from contextlib import contextmanager
 import itertools
 import numpy as np
@@ -180,29 +183,61 @@ class PsiMixin(object):
 class SubsetCosPhiFeaturizer(SubsetTrigFeaturizer, CosMixin, PhiMixin):
     pass
 
+
 class SubsetCosPsiFeaturizer(SubsetTrigFeaturizer, CosMixin, PhiMixin):
     pass
     
+
 class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
     
+
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
         
 
 class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
     def __init__(self, transformer_list, n_jobs=1, transformer_weights=None, subsets=None):
-        self.subsets = subsets
         super(SubsetFeatureUnion, self).__init__(transformer_list, n_jobs=1, transformer_weights=None)
-        
-
-    def set_subsets(self, subsets):
-        assert len(subsets) == len(self.transformer_list), "wrong len"
-        for k, (_, featurizer) in enumerate(self.transformer_list):
-            featurizer.subset = subsets[k]
         self.subsets = subsets
+
+    @property
+    def subsets(self):
+        return self._subsets
+
+    @subsets.setter
+    def subsets(self, value):
+        if value is None:
+            value = [np.zeros(0, 'int') for k in range(len(self.transformer_list))]
+        assert len(value) == len(self.transformer_list), "wrong len"
+        for k, (_, featurizer) in enumerate(self.transformer_list):
+            featurizer.subset = value[k]
+        self._subsets = value
+
+
 
     @property
     def n_features(self):
         return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
 
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit all transformers using X, transform the data and concatenate
+        results.
+
+        """
+        self.fit(X, y, **fit_params)
+        return self.transform(X)
+        
+        
+    def transform(self, X):
+        """Transform X separately by each transformer, concatenate results.
+
+        """
+        Xs = Parallel(n_jobs=self.n_jobs)(
+            delayed(sklearn.pipeline._transform_one)(trans, name, X, self.transformer_weights)
+            for name, trans in self.transformer_list)
+
+        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
+
+        return X_i_stacked
