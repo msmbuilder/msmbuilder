@@ -246,7 +246,19 @@ class SubsetFeatureUnion(TrajFeatureUnion):
 
     @property
     def n_max_i(self):
-        return [featurizer.n_max for (_, featurizer) in self.transformer_list]
+        return np.array([featurizer.n_max for (_, featurizer) in self.transformer_list])
+
+    @property
+    def n_features_i(self):
+        return np.array([featurizer.n_features for (_, featurizer) in self.transformer_list])
+
+    @property
+    def n_featurizers(self):
+        return len(self.transformer_list)
+
+    @property
+    def n_max(self):
+        return np.sum([featurizer.n_max for (_, featurizer) in self.transformer_list])
 
     @property
     def n_features(self):
