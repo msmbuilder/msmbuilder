@@ -21,7 +21,7 @@ Parts of the code is implemented in python, cython, c/c++, and cuda.
 python setup.py install
 ```
 
-Python dependencies include: `numpy`, `scipy`, `mdtraj`, `cython`, `pandas`, `sklearn`,  Some modules have further dependencies, including `msmbuilder`, `IPython`, and `cvxopt`. Obviously python is also required (2.6, 2.7, or 3.2+)
+Python dependencies include: `numpy`, `scipy`, `sklearn`, `mdtraj`, `cython`, `pandas`, `sklearn`,  Some modules have further dependencies, including `msmbuilder`, `IPython`, and `cvxopt`. Obviously python is also required (2.6, 2.7, or 3.2+)
 
 ### References
 1. [Prinz, Jan-Hendrik, et al. J. Chem. Phys. 134.17 (2011): 174105.](http://dx.doi.org/10.1063/1.3565032)
