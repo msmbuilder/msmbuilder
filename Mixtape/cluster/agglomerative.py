@@ -127,7 +127,7 @@ class _LandmarkAgglomerative(BaseEstimator, ClusterMixin, TransformerMixin):
     landmark_strategy : {'stride', 'random'}, default='stride'
         Method for determining landmark points. Only matters when n_landmarks
         is not None. "stride" takes landmarks every n-th data point in X, and
-        random selects them randomly.
+        random selects them  uniformly at random.
     random_state : integer or numpy.RandomState, optional
         The generator used to select random landmarks. Only used if
         landmark_strategy=='random'. If an integer is given, it fixes the seed.
