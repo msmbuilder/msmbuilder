@@ -206,4 +206,3 @@ class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
     def n_features(self):
         return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
 
-    def 

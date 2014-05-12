@@ -99,11 +99,11 @@ class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
     def featurize(self, traj):
         pass
     
-    def fit(self, traj, y=None):
+    def fit(self, traj_list, y=None):
         return self
 
-    def transform(self, traj):
-        return self.featurize(traj)
+    def transform(self, traj_list, y=None):
+        return [self.featurize(traj) for traj in traj_list]
 
     def save(self, filename):
         with open(filename, 'wb') as f:
