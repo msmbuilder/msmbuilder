@@ -24,10 +24,10 @@ python setup.py install
 Python dependencies include: `numpy`, `scipy`, `mdtraj`, `cython`, `pandas`, `sklearn`,  Some modules have further dependencies, including `msmbuilder`, `IPython`, and `cvxopt`. Obviously python is also required (2.6, 2.7, or 3.2+)
 
 ### References
-[1] [Prinz, Jan-Hendrik, et al. J. Chem. Phys. 134.17 (2011): 174105.](http://dx.doi.org/10.1063/1.3565032)
-[2] [Pande, Vijay S., Kyle Beauchamp, and Gregory R. Bowman. Methods 52.1 (2010): 99-105.](http://dx.doi.org/10.1016/j.ymeth.2010.06.002)
-[3] [Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 9.4 (2013): 2000-2009.](http://dx.doi.org/10.1021/ct300878a)
-[4] [Perez-Hernandez, Guillermo, et al. J Chem. Phys (2013): 015102.](http://dx.doi.org/10.1063/1.4811489)
-[5] [Naritomi, Yusuke, and Sotaro Fuchigami. J. Chem. Phys. 134.6 (2011): 065101.](http://dx.doi.org/10.1063/1.3554380)
-[6] [McGibbon, Robert T. et al., Proc. 31st Intl. Conf. on Machine Learning (ICML). 2014.](http://arxiv.org/abs/1405.1444)
+1. [Prinz, Jan-Hendrik, et al. J. Chem. Phys. 134.17 (2011): 174105.](http://dx.doi.org/10.1063/1.3565032)
+2. [Pande, Vijay S., Kyle Beauchamp, and Gregory R. Bowman. Methods 52.1 (2010): 99-105.](http://dx.doi.org/10.1016/j.ymeth.2010.06.002)
+3. [Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 9.4 (2013): 2000-2009.](http://dx.doi.org/10.1021/ct300878a)
+4. [Perez-Hernandez, Guillermo, et al. J Chem. Phys (2013): 015102.](http://dx.doi.org/10.1063/1.4811489)
+5. [Naritomi, Yusuke, and Sotaro Fuchigami. J. Chem. Phys. 134.6 (2011): 065101.](http://dx.doi.org/10.1063/1.3554380)
+6. [McGibbon, Robert T. et al., Proc. 31st Intl. Conf. on Machine Learning (ICML). 2014.](http://arxiv.org/abs/1405.1444)
 
