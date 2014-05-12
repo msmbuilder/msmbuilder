@@ -157,8 +157,8 @@ class tICACommand(NumpydocClassCommand):
         print('All done')
 
 
-class SparseTICACommand(tICACommand):
-    klass = SparseTICA
+# class SparseTICACommand(tICACommand):
+#     klass = SparseTICA
 
 
 #-----------------------------------------------------------------------------
