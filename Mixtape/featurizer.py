@@ -25,6 +25,7 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
+import mdtraj.geometry
 
 #-----------------------------------------------------------------------------
 # Code
@@ -105,7 +106,16 @@ class Featurizer(object):
 
 class SuperposeFeaturizer(Featurizer):
 
-    """Featurizer based on euclidian atom distances to reference structure."""
+    """Featurizer based on euclidian atom distances to reference structure.
+
+    Parameters
+    ----------
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with
+    reference_traj : md.Trajectory
+        The reference conformation to superpose each frame with respect to
+        (only the first frame in reference_traj is used)
+    """
 
     def __init__(self, atom_indices, reference_traj):
         self.atom_indices = atom_indices
@@ -113,7 +123,6 @@ class SuperposeFeaturizer(Featurizer):
         self.n_features = len(self.atom_indices)
 
     def featurize(self, traj):
-
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
@@ -124,14 +133,27 @@ class SuperposeFeaturizer(Featurizer):
 
 class AtomPairsFeaturizer(Featurizer):
 
-    """Featurizer based on atom pair distances."""
+    """Featurizer based on atom pair distances.
 
-    def __init__(self, pair_indices, reference_traj, periodic=False, exponent=1.):
+    Parameters
+    ----------
+    pair_indices : np.ndarray, shape=(n_pairs, 2), dtype=int
+        Each row gives the indices of two atoms involved in the interaction.
+    periodic : bool, default=False
+        If `periodic` is True and the trajectory contains unitcell
+        information, we will compute distances under the minimum image
+        convention.
+    exponent : float
+        Modify the distances by raising them to this exponent.
+    """
+
+    def __init__(self, pair_indices, periodic=False, exponent=1.):
+        # TODO: We might want to implement more error checking here. Or during
+        # featurize(). E.g. are the pair_indices supplied valid?
         self.pair_indices = pair_indices
-        self.reference_traj = reference_traj
         self.n_features = len(self.pair_indices)
         self.periodic = periodic
-        self.exponent = exponent 
+        self.exponent = exponent
 
     def featurize(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
@@ -139,8 +161,15 @@ class AtomPairsFeaturizer(Featurizer):
 
 
 class DihedralFeaturizer(Featurizer):
+    """Featurizer based on dihedral angles.
 
-    """Featurizer based on dihedral angles"""
+    Parameters
+    ----------
+    types : list of strings
+        One or more of ['phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4']
+    sincos : bool
+        Transform to sine and cosine (double the number of featurizers)
+    """
 
     def __init__(self, types, sincos=True):
         if isinstance(types, str):
@@ -167,7 +196,31 @@ class DihedralFeaturizer(Featurizer):
 
 class ContactFeaturizer(Featurizer):
 
-    """Featurizer based on residue-residue distances"""
+    """Featurizer based on residue-residue distances
+
+    Parameters
+    ----------
+    contacts : np.ndarray or 'all'
+        numpy array containing (0-indexed) residues to compute the
+        contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
+        the contact between residue 0 and residue 10 as well as
+        the contact between residue 0 and residue 11.) [NOTE: if no
+        array is passed then 'all' contacts are calculated. This means
+        that the result will contain all contacts between residues
+        separated by at least 3 residues.]
+    scheme : {'ca', 'closest', 'closest-heavy'}
+        scheme to determine the distance between two residues:
+            'ca' : distance between two residues is given by the distance
+                between their alpha carbons
+            'closest' : distance is the closest distance between any
+                two atoms in the residues
+            'closest-heavy' : distance is the closest distance between
+                any two non-hydrogen atoms in the residues
+    ignore_nonprotein : bool
+        When using `contact==all`, don't compute contacts between
+        "residues" which are not protein (i.e. do not contain an alpha
+        carbon).
+    """
 
     def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True):
         self.contacts = contacts
@@ -268,9 +321,25 @@ class RMSDFeaturizer(Featurizer):
 
     def featurize(self, traj):
         X = np.zeros((traj.n_frames, self.n_features))
-        
+
         for frame in range(self.n_features):
             X[:, frame] = md.rmsd(traj, self.trj0, atom_indices=self.atom_indices, frame=frame)
-        
+
         return X
 
+
+class DRIDFeaturizer(Featurizer):
+    """Featurizer based on distribution of reciprocal interatomic
+    distances (DRID)
+
+    Parameters
+    ----------
+    atom_indices : array-like of ints, default=None
+        Which atom indices to use during DRID featurization. If None,
+        all atoms are used
+    """
+    def __init__(self, atom_indices=None):
+        self.atom_indices = atom_indices
+
+    def featurize(self, traj):
+        return mdtraj.geometry.compute_drid(traj, self.atom_indices)
