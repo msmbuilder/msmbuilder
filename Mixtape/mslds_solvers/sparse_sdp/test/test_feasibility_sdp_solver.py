@@ -101,8 +101,6 @@ def test4():
                     basic_batch_equality(dim, A, B, D)
             f = FeasibilitySolver(R, dim, eps)
             f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            #import pdb
-            #pdb.set_trace()
             X, fX, succeed = f.feasibility_solve(N_iter, tol,
                     methods=['frank_wolfe', 'frank_wolfe_stable'])
                     #    'projected_gradient'])
@@ -110,7 +108,7 @@ def test4():
 
 def test5():
     """
-    Tests Q optimization.
+    Tests feasibility Q optimization.
 
     minimize -log det R + Tr(RB)
           --------------
@@ -120,31 +118,94 @@ def test5():
           --------------
     X is PSD
     """
+    dims = [3]
+    eps = 1e-5
+    tol = 1e-2
+    Rs = [10]
+    N_iter = 100
+    for R in Rs:
+        for dim in dims:
+            block_dim = int(dim/3)
+
+            # Generate initial data
+            D = np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            B = np.eye(block_dim)
+            A = 0.5*(1./dim) * np.eye(block_dim)
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    Q_constraints(block_dim, A, B, D)
+            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+                    Q_coords(block_dim)
+            f = FeasibilitySolver(R, dim, eps)
+            f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+            X, fX, succeed = f.feasibility_solve(N_iter, tol,
+                    methods=['frank_wolfe', 'frank_wolfe_stable'])
+            assert succeed == True
+
+    #X_init = np.zeros((cdim, cdim))
+    #Q_init = 0.2 * np.eye(dim)
+    #R_init = np.linalg.inv(Q_init)
+    #set_entries(X_init, R_cds, R_init)
+    #set_entries(X_init, block_1_R_cds, R_init)
+    #set_entries(X_init, D_ADA_T_cds, D_ADA_T)
+    #set_entries(X_init, I_1_cds, np.eye(dim))
+    #set_entries(X_init, I_2_cds, np.eye(dim))
+    #R = 2 * np.trace(X_init)
+    #upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
+    #            Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
+    #            N_iter, X_init=X_init)
+    #print "X_lower\n", X_lower
+    #if X_lower != None:
+    #    print "h(X_lower)\n", h(X_lower)
+    #print "X_upper\n", X_upper
+    #if X_upper != None:
+    #    print "h(X_upper)\n", h(X_upper)
+
+def test6():
+    """
+    Tests feasibility of A optimization.
+
+    min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    X is PSD
+
+    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    The solution to this problem is A = 0 when dim = 1.
+    """
     dim = 1
-    cdim = 3 * dim
+    cdim = 4 * dim
     g = GeneralSDPHazanSolver()
 
-    # Generate initial data
-    D = np.eye(dim)
-    Dinv = np.linalg.inv(D)
-    B = np.eye(dim)
-    A = 0.5 * np.eye(dim)
-    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = Q_constraints(dim, A, B, D)
-    (D_ADA_T_cds, I_1_cds, I_2_cds, R_cds, block_1_R_cds) = \
-            Q_coords(dim)
 
-    L, U = -20, 20
-    eps = 3e-2
+    # Generate random data
+    D = np.eye(dim)
+    Q = 0.5 * np.eye(dim)
+    Qinv = np.linalg.inv(Q)
+    C = 2 * np.eye(dim)
+    B = np.eye(dim)
+    E = np.eye(dim)
+
+    R = 5
+    L = 0
+    U = 5
+    eps = 1e-1
     N_iter = 100
     X_init = np.zeros((cdim, cdim))
-    Q_init = 0.2 * np.eye(dim)
-    R_init = np.linalg.inv(Q_init)
-    set_entries(X_init, R_cds, R_init)
-    set_entries(X_init, block_1_R_cds, R_init)
-    set_entries(X_init, D_ADA_T_cds, D_ADA_T)
+    set_entries(X_init, D_Q_cds, D_Q)
+    set_entries(X_init, Dinv_cds, Dinv)
     set_entries(X_init, I_1_cds, np.eye(dim))
     set_entries(X_init, I_2_cds, np.eye(dim))
-    R = 2 * np.trace(X_init)
+    A_init = (1./np.sqrt(2)) * np.eye(dim)
+    set_entries(X_init, A_1_cds, A_init)
+    set_entries(X_init, A_2_cds, A_init)
+    set_entries(X_init, A_T_1_cds, A_init.T)
+    set_entries(X_init, A_T_2_cds, A_init.T)
     upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
                 Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
                 N_iter, X_init=X_init)
@@ -154,4 +215,3 @@ def test5():
     print "X_upper\n", X_upper
     if X_upper != None:
         print "h(X_upper)\n", h(X_upper)
-

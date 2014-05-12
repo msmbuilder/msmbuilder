@@ -83,4 +83,3 @@ def test_A_dynamics():
             print "num_grad:\n", num_grad
             print "diff: ", diff
             assert diff < tol
-
