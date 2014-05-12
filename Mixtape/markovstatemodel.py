@@ -44,6 +44,12 @@ class MarkovStateModel(BaseEstimator):
     ----------
     n_states : int
         The number of states in the model
+    lag_time : int
+        The lag time of the model
+    n_timescales : int, optional
+        The number of dynamical timescales to calculate when diagonalizing
+        the transition matrix. By default, the maximum number will be
+        calculated, which, for ARPACK, is n_states - 3.
     reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
@@ -54,6 +60,14 @@ class MarkovStateModel(BaseEstimator):
         Trim states to achieve an ergodic model. The model is restricted
         to the largest strongly connected component in the undirected
         transition counts.
+    prior_counts : float, optional
+        Add a number of "pseudo counts" to each entry in the counts matrix,
+        `rawcounts_`. When prior_counts == 0 (default), the assigned transition
+        probability between two states with no observed transitions will be zero,
+        whereas when prior_counts > 0, even this unobserved transitions will be
+        given nonzero probability. Note that prior_counts _totally_ destroys
+        performance when the number of states is large, because none of the
+        matrices are sparse anymore.
 
     Attributes
     ----------
@@ -83,10 +97,14 @@ class MarkovStateModel(BaseEstimator):
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, n_states, reversible_type='mle', ergodic_trim=True):
+    def __init__(self, n_states=None, lag_time=1, n_timescales=None,
+                 reversible_type='mle', ergodic_trim=True, prior_counts=0):
         self.n_states = n_states
         self.reversible_type = reversible_type
         self.ergodic_trim = ergodic_trim
+        self.lag_time = lag_time
+        self.n_timescales = n_timescales
+        self.prior_counts = prior_counts
 
         available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
         if self.reversible_type not in available_reversible_type:
@@ -106,10 +124,17 @@ class MarkovStateModel(BaseEstimator):
         -------
         self
         """
+        if self.n_states is None:
+            self.n_states = np.max([np.max(x) for x in sequences]) + 1
+
+        from msmbuilder import MSMLib
+        MSMLib.logger.info = lambda *args : None
         from msmbuilder.msm_analysis import get_eigenvectors
         from msmbuilder.MSMLib import mle_reversible_count_matrix, estimate_transition_matrix, ergodic_trim
 
         self.rawcounts_ = self._count_transitions(sequences)
+        if self.prior_counts > 0:
+            self.rawcounts_ = scipy.sparse.csr_matrix(self.rawcounts_.todense() + self.prior_counts)
 
         # STEP (1): Ergodic trimming
         if self.ergodic_trim:
@@ -150,25 +175,25 @@ class MarkovStateModel(BaseEstimator):
         counts = scipy.sparse.coo_matrix((self.n_states, self.n_states), dtype=np.float32)
 
         for sequence in sequences:
-            from_states = sequence[: -1: 1]
-            to_states = sequence[1::1]
+            from_states = sequence[: -self.lag_time: 1]
+            to_states = sequence[self.lag_time::1]
             transitions = np.row_stack((from_states, to_states))
             C = scipy.sparse.coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions), shape=(self.n_states, self.n_states))
             counts = counts + C
 
         return counts
 
-    def timescales_(self, n_timescales=None):
-        from msmbuilder.msm_analysis import get_reversible_eigenvectors, get_eigenvectors
+    @property
+    def timescales_(self):
+        n_timescales = self.n_timescales
         if n_timescales is None:
-            n_timescales = self.n_states - 1
+            n_timescales = self.transmat_.shape[0] - 3
 
-        n_eigenvectors = n_timescales + 1
-        if self.reversible_type in ['mle', 'MLE', 'transpose', 'Transpose'] and self.transmat_.shape[0] > 50:
-            e_values = get_reversible_eigenvectors(self.transmat_, n_eigenvectors, populations=self.populations_)[0]
-        else:
-            e_values = get_eigenvectors(self.transmat_, n_eigenvectors, epsilon=1)[0]
+        u, v = scipy.sparse.linalg.eigs(self.transmat_, k=n_timescales + 1)
+        order = np.argsort(-np.real(u))
+        u = np.real_if_close(u[order])
 
         # make sure to leave off equilibrium distribution
-        timescales = -1 / np.log(e_values[1 : n_eigenvectors])
+        timescales = - self.lag_time / np.log(u[1:])
         return timescales
+

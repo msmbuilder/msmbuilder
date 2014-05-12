@@ -34,14 +34,13 @@ def test_3():
     counts = np.array([[8, 1, 1], [1, 3, 0], [1, 0, 3]])
     eq(todense(model.rawcounts_), counts)
     eq(todense(model.countsmat_), counts)
-    model.timescales_(n_timescales=2)
-    model.timescales_()
+    model.timescales_
 
     # test pickleable
     try:
         dump(model, 'test-msm-temp.npy', compress=1)
         model2 = load('test-msm-temp.npy')
-        eq(model2.timescales_(), model.timescales_())
+        eq(model2.timescales_, model.timescales_)
     finally:
         os.unlink('test-msm-temp.npy')
 

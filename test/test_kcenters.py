@@ -1,8 +1,10 @@
+import os
 import operator
 import numpy as np
 import mdtraj as md
 from functools import reduce
 from mdtraj.testing import eq
+from sklearn.externals.joblib import load
 from mixtape.cluster import KCenters
 import scipy.spatial.distance
 
@@ -69,10 +71,10 @@ def test_kcenters_4():
 def test_kcenters_5():
     # test custom metric. this is a euclidean metric vs. a squared euclidean metric (should give)
     # the same assignments
-    model1 = KCenters(n_clusters=10, metric='euclidean')
-    model2 = KCenters(n_clusters=10, metric=lambda target, ref, i: np.sum((target-ref[i])**2, axis=1))
+    model1 = KCenters(n_clusters=10, random_state=0, metric='euclidean')
+    model2 = KCenters(n_clusters=10, random_state=0, metric=lambda target, ref, i: np.sum((target-ref[i])**2, axis=1))
 
-    data = np.random.randn(100, 2)
+    data = np.random.RandomState(0).randn(100, 2)
     eq(model1.fit_predict([data])[0], model2.fit_predict([data])[0])
 
 
@@ -82,10 +84,22 @@ def test_kcenters_6():
     x = md.Trajectory(xyz=np.random.randn(100,1,3), topology=None)
     # just get the sqeuclidean for the first atom along the first coordinate
     metric = lambda target, ref, i: (target.xyz[:, 0, 0] - ref.xyz[i, 0, 0])**2
-    model1 = KCenters(n_clusters=10, metric=metric)
+    model1 = KCenters(n_clusters=10, metric=metric, random_state=0)
     model1.fit([x])
 
-    model2 = KCenters(n_clusters=10, metric='sqeuclidean')
+    model2 = KCenters(n_clusters=10, metric='sqeuclidean', random_state=0)
     model2.fit([x.xyz[:, :, 0]])
     eq(reduce(operator.add, model1.cluster_centers_).xyz[:, 0, 0],
        model2.cluster_centers_[:, 0])
+
+
+def test_kcenters_7():
+    # are fit_predict and fit().predict() consistent?
+    trj = np.random.RandomState(0).randn(30, 2)
+    k = KCenters(n_clusters=10, random_state=0).fit([trj])
+    l1 = KCenters(n_clusters=10, random_state=0).fit([trj]).predict([trj])[0]
+    l2 = KCenters(n_clusters=10, random_state=0).fit_predict([trj])[0]
+
+    eq(l1, l2)
+
+
