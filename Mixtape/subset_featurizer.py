@@ -197,9 +197,7 @@ class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
         
 
 class SubsetFeatureUnion(sklearn.pipeline.FeatureUnion):
-    def __init__(self, transformer_list, n_jobs=1, transformer_weights=None, subsets=None):
-        super(SubsetFeatureUnion, self).__init__(transformer_list, n_jobs=1, transformer_weights=None)
-        self.subsets = subsets
+    """Has a hacky way to set all subsets at once."""
 
     @property
     def subsets(self):
