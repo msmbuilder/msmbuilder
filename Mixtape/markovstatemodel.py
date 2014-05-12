@@ -187,7 +187,7 @@ class MarkovStateModel(BaseEstimator):
     def timescales_(self):
         n_timescales = self.n_timescales
         if n_timescales is None:
-            n_timescales = self.transmat.shape[0] - 3
+            n_timescales = self.transmat_.shape[0] - 3
 
         u, v = scipy.sparse.linalg.eigs(self.transmat_, k=n_timescales + 1)
         order = np.argsort(-np.real(u))
