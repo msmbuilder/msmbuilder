@@ -29,6 +29,15 @@ extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.autosumma
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 
+html_context = {
+    'github_user': 'rmcgibbo',
+    'display_github': True,
+    'github_repo': 'mixtape',
+    'github_version': 'master',
+    'conf_py_path': '/doc/'
+}
+
+
 
 import runipy
 import IPython.nbconvert.utils.pandoc
