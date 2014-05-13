@@ -2559,9 +2559,7 @@ li.wy-form-gallery-edit .arrow {
 .wy-table-responsive table {
     margin-bottom:0 !important
 }
-.wy-table-responsive table td,.wy-table-responsive table th {
-    white-space:nowrap
-}
+
 html {
     height:100%;
     overflow-x:hidden
@@ -3747,4 +3745,15 @@ span[id*='MathJax-Span'] {
     margin-bottom:0px;
     max-width:100%;
     overflow:auto
+}
+table.docutils {
+    table-layout: fixed;
+}
+
+table.docutils td {
+    word-wrap: break-word;
+}
+
+.wy-table-responsive table td,.wy-table-responsive table th {
+    white-space:normal;
 }
