@@ -43,7 +43,14 @@ MD trajectories (:class:`~md.Trajectory`) as opposed to a list of arrays.
 .. note::
 
     This is different from sklearn. In sklearn, estimators take a **single**
-    2D array as input in ``fit()``. Here we use a list of trajectories.
+    2D array as input in ``fit()``. Here we use a list of arrays or
+    trajectories.
+
+
+Some models like :class:`~tica.tICA` which only require a single pass over the
+data can also be fit in a potentially more memory efficient way, using the
+``partial_fit`` method, which can incrementally learn the model one trajectory
+at a time.
 
 Learned Attributes
 ~~~~~~~~~~~~~~~~~~
