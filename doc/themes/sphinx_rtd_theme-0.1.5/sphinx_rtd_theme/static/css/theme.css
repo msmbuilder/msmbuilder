@@ -3737,3 +3737,14 @@ span[id*='MathJax-Span'] {
 .admonition.warning span[id*='MathJax-Span'] {
     color:#fff
 }
+
+
+
+
+
+
+#references .wy-table-responsive {
+    margin-bottom:0px;
+    max-width:100%;
+    overflow:auto
+}
