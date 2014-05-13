@@ -77,7 +77,7 @@ class SparseTICA(tICA):
     ----------
     components_ : array-like, shape (n_components, n_features)
         Components with maximum autocorrelation.
-    offset_correlation_` : array-like, shape (n_features, n_features)
+    offset_correlation_ : array-like, shape (n_features, n_features)
         Symmetric time-lagged correlation matrix, `C=E[(x_t)^T x_{t+lag}]`.
     eigenvalues_ : array-like, shape (n_features,)
         Psuedo-eigenvalues of the tICA generalized eigenproblem, in decreasing
@@ -101,14 +101,14 @@ class SparseTICA(tICA):
 
     See Also
     --------
-    tICA
+    mixtape.tica.tICA
 
     References
     ----------
-    ..[1] Sriperumbudur, Bharath K., David A. Torres, and Gert RG Lanckriet.
-    "A majorization-minimization approach to the sparse generalized eigenvalue
-    problem." Machine learning 85.1-2 (2011): 3-39.
-    ..[2] Mackey, Lester. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
+    .. [1] Sriperumbudur, Bharath K., David A. Torres, and Gert RG Lanckriet.
+       "A majorization-minimization approach to the sparse generalized eigenvalue
+       problem." Machine learning 85.1-2 (2011): 3-39.
+    .. [2] Mackey, Lester. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
 
     """
 

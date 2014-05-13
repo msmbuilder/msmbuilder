@@ -3770,3 +3770,25 @@ table.docutils td {
     width: 110%;
     overflow: hidden;
 }
+
+p.rubric {
+    font-weight: bold;
+}
+
+table.docutils tr.field-odd th.field-name {
+    background: #F0F7FA;
+}
+
+table.docutils.field-list > tbody > tr > td {
+    padding-left: 5px !important;
+}
+
+table.docutils td.field-body, table.docutils th {
+    padding: 1px 8px 1px 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+}
+body > div.wy-grid-for-nav > section {
+    background: #fcfcfc;
+}

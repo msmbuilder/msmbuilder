@@ -38,12 +38,6 @@ __all__ = ['KCenters']
 class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
     """K-Centers clustering
 
-    K-Centers one of the most inexpensive possible clustering algorithms. It's
-    sometimes also called "max-min" clustering. The algorithm stats with a
-    single data point as a cluster center, and then at each iteration it chooses
-    as the next cluster center the data point which whose distance its nearest
-    cluster center is maximized.
-
     Parameters
     ----------
     n_clusters : int, optional, default: 8
@@ -63,6 +57,12 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
 
     Notes
     -----
+    K-Centers one of the most inexpensive possible clustering algorithms. It's
+    sometimes also called "max-min" clustering. The algorithm stats with a
+    single data point as a cluster center, and then at each iteration it chooses
+    as the next cluster center the data point which whose distance its nearest
+    cluster center is maximized.
+
     [Custom metrics] KCenters can accept an arbitrary metric
     function. In the interest of performance, the expected call
     signature of a custom metric is

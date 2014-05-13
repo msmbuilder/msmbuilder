@@ -34,6 +34,7 @@ MD trajectories (:class:`~md.Trajectory`) as opposed to a list of arrays.
 
 
 .. code-block:: python
+
     dataset = [np.load('traj-1-features.npy'), np.load('traj-2-featues.npy')]
     assert dataset[0].ndim == 2 and dataset[1].ndim == 2
 
