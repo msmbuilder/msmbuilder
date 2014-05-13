@@ -63,7 +63,7 @@ Where should I start with the MSM literature?
 
     In 2014, Greg Bowman, Vijay Pande, and Frank Noé edited the book
     `An Introduction to Markov State Models and Their Application to Long Timescale
-    Molecular Simulation <dx.doi.org/10.1007/978-94-007-7606-7>`_,
+    Molecular Simulation <http://dx.doi.org/10.1007/978-94-007-7606-7>`_,
     which features contributions from many of the authors above.
 
     Two outstanding reviews (the first is somewhat old, but still very much worth
@@ -81,7 +81,7 @@ Where should I start with the MSM literature?
     include: [#f1]_
 
     - Nüske, F., et al. `Variational approach to molecular kinetics
-      <dx.doi.org/10.1021/ct4009156>`_ J. Chem. Theory Comput. 10.4 (2014): 1739-1752.
+      <http://dx.doi.org/10.1021/ct4009156>`_ J. Chem. Theory Comput. 10.4 (2014): 1739-1752.
     - Schwantes, C. R., and V. S. Pande. `Improvements in markov state
       model construction reveal many non-native interactions in the folding of
       NTL9 <http://dx.doi.org/10.1021/ct300878a>`_ J. Chem. Theory Comput. 9.4 (2013):
