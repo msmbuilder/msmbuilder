@@ -1,5 +1,5 @@
 .. _tica:
-.. currentmodule:: mixtape.tica
+.. currentmodule:: mixtape
 
 Time-structure Independent Components Analysis (tICA)
 =====================================================
@@ -28,7 +28,8 @@ Algorithms
 .. autosummary::
     :toctree: generated/
 
-    tICA
+    ~tica.tICA
+    ~sparsetica.SparseTICA
 
 Combination with MSM
 --------------------

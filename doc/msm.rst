@@ -54,8 +54,6 @@ Analyzing an MSM
 3. lumping
 
 
-
-
 References
 ----------
 .. [#f1] Prinz, J.-H., et al. `Markov models of molecular kinetics: Generation and validation <http://dx.doi.org/10.1063/1.3565032>`_ J. Chem. Phys. 134.17 (2011): 174105.

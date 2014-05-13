@@ -17,22 +17,28 @@ The two central issues for clustering MD data are
 #. How should "structurally similar" be defined? What distance metric should be used?
 #. Given the distance metric, what algorithm should be used to actually cluster the data.
 
-On point 1, there is no consensus in the protein MD literature. Popular distance metrics include cartesian root-mean squared deviation of atomic positions (RMSD) [#f3]_, distances based on the number of native contacts formed, distances based on the difference in backbone dihedral angles, and probably others.
+On point 1, there is no consensus in the protein MD literature. Popular distanc
+metrics include cartesian root-mean squared deviation of atomic positions (RMSD)
+[#f3]_, distances based on the number of native contacts formed, distances based
+on the difference in backbone dihedral angles, and probably others.
 
-On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a tradeoff between clustering quality and computational cost. For that reason, Mixtape has a bunch of different clustering algorithms implemented.
+On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a
+tradeoff between clustering quality and computational cost. For that reason
+ Mixtape has a bunch of different clustering algorithms implemented.
 
 API and Implementation Notes
 ----------------------------
 
-All clustering algorithms in Mixtape follow the following basic API. Hyperparameters, including the number of clusters, random seeds, the distance
-metric (if applicable), etc are passed to the class constructor. Then, the heavy-lifting is done by calling ``fit(sequences)``. The argument to
+All clustering algorithms in Mixtape follow the following basic API.
+Hyperparameters, including the number of clusters, random seeds, the distance
+metric (if applicable), etc are passed to the class constructor. Then,
+the heavy-lifting is done by calling ``fit(sequences)``. The argument to
 ``fit`` should be a **list** of molecular dynamics trajectories or a list of 2D
 numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
 
 
 Algorithms
 ----------
-
 .. autosummary::
     :toctree: generated/
 
@@ -40,6 +46,18 @@ Algorithms
     KMeans
     LandmarkAgglomerative
     NDGrid
+
+Additional Algorithms
+---------------------
+.. autosummary::
+    :toctree: generated/
+
+    AffinityPropagation
+    GMM
+    MeanShift
+    MiniBatchKMeans
+    SpectralClustering
+    Ward
 
 Example
 -------

@@ -1,8 +1,8 @@
 .. _hmm:
-.. currentmodule:: mixtape.ghmm
+.. currentmodule:: mixtape
 
-L1-regularized reversible hidden Markov models
-==============================================
+Hidden Markov models
+====================
 
 
 .. figure:: _static/kde-vs-histogram.png
@@ -38,8 +38,8 @@ HMMs have been widely used in many many fields, from speech processing to
 bioinformatics. Many good reviews have been written, such as [#f1]_.
 
 
-Reversible Gaussian HMM
------------------------
+L1-Regularized Reversible Gaussian HMM
+--------------------------------------
 In [#f2]_, McGibbon et. al. introduced a reversible Gaussian HMM for studying
 protein dynamics. The class :class:`GaussianFusionHMM` implements the algorithm
 described in that paper. Compared to a "vanilla" HMM, it has a couple bells and
@@ -55,7 +55,7 @@ whistles.
     helps encourage a sense of sparisty where each state might be different
     from the other states along only a subset of the coordinates.
 
-The impementation is also quite fast. There is a backend for NVIDIA GPUs in CUDA
+The implementation is also quite fast. There is a backend for NVIDIA GPUs in CUDA
 as well as a multithreaded and explicitly vectorized CPU implementation. Compared
 to a default implementation, it can be ~10x-100x faster.
 
@@ -65,7 +65,8 @@ Algorithms
 .. autosummary::
     :toctree: generated/
 
-    GaussianFusionHMM
+    ~ghmm.GaussianFusionHMM
+    ~vmhmm.VonMisesHMM
 
 Example
 -------
@@ -86,6 +87,7 @@ Example
     hmm = GaussianFusionHMM(n_states=8, n_features=len(alpha_carbons))
     hmm.fit(dataset)
     print hmm.timescales_()
+
 
 References
 ----------
