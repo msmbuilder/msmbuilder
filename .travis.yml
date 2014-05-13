@@ -1,0 +1,16 @@
+language: c
+install:
+  - source tools/ci/install.sh
+  - export PYTHONUNBUFFERED=true
+script:
+  - python setup.py -q install
+env:
+  matrix:
+    - python=2.7
+  global:
+    - secure: "IIAoOvTm/9UltPPHZXvoCLVzg5nhdjzJlVt4D1kOn+j3G3ENO+AzuAYeev/xv+xxDe+bfhPKajYYGllFDxSsNo4/hiAUDTFg+xh8qkoR0zTt0AwmOBdl3bgOO5JuVB1cmkZ1QN2p94bS5ZNEXvbMiCRQEljuQ+W9dB+46uaZriA="
+    - secure: "bTJZNP0YcLhOoLk5mZnnKVvlf4gQjf3gk/av54ogN6HdNEEBXCPaY0cJ2cyTBSE8IW6aMj2l6+W1PObDKxvwKCKTDUvx8HgJ6PycySr/JdwKY4pILTCJxscAwTGkrgaRlCyhGAxF7teX0kePx0xjMpHBRPI3WHkhKasFWgcA2t8="
+
+after_success:
+  - echo "after_success"
+  - source tools/ci/after_sucess.sh
