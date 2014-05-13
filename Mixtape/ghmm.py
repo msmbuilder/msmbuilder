@@ -271,7 +271,7 @@ class GaussianFusionHMM(object):
             small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
         
         if self.init_algo == "GMM" and ("m" in init_params or "v" in init_params):
-            mixture = sklearn.mixture.GMM(self.n_states)
+            mixture = sklearn.mixture.GMM(self.n_states, n_init=1, random_state=self.random_state)
             mixture.fit(small_dataset)
             if "m" in init_params:
                 self.means_ = mixture.means_
