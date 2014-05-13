@@ -37,7 +37,6 @@ __all__ = ['MarkovStateModel']
 #-----------------------------------------------------------------------------
 
 class MarkovStateModel(BaseEstimator):
-
     """Reversible Markov State Model
 
     Parameters
@@ -71,30 +70,26 @@ class MarkovStateModel(BaseEstimator):
 
     Attributes
     ----------
-    mapping_ : dict
-        Mapping between "input" states and internal state indices for this
-        Markov state model. The indexing of the states in the labeled
-        sequences supplied to fit() may have gaps (i.e. the unique indices
-        are not continuous integers starting from zero), or, if
-        `ergodic_trim==True`, some of those "input states" may be excluded
-        from the model because they do not lie in the maximal ergodic subgraph.
-        In either case, the semantics of `mapping_[i] = j` is that state `i`
-        from the "input space" is represented by the index `j` in this Markov
-        state model.
-    rawcounts_ : array_like, shape(n_states, n_states)
-        Unsymmetrized transition counts. rawcounts_[i, j] is the observed
-        number of transitions from state i to state j. The indices `i` and
-        `j` are the "internal" indices described above.
-    countsmat_ : array_like, shape(n_states, n_states)
-         Symmetrized transition counts. countsmat_[i, j] is the expected
-         number of transitions from state i to state j after correcting
-         for reversibly. The indices `i` and `j` are the "internal" indices
-         described above.
     transmat_ : array_like, shape(n_states, n_states)
         Maximum likelihood estimate of the reversible transition matrix.
         The indices `i` and `j` are the "internal" indices described above.
     populations_ : array, shape(n_states)
         The equilibrium population (stationary eigenvector) of transmat_
+    mapping_ : dict
+        Mapping between "input" states and internal state indices for this
+        Markov state model.  This is necessary because of ergodic_trim.
+        The semantics of ``mapping_[i] = j`` is that state ``i`` from the
+        "input space" is represented by the index ``j`` in this MSM.
+    rawcounts_ : array_like, shape(n_states, n_states)
+        Unsymmetrized transition counts. rawcounts_[i, j] is the observed
+        number of transitions from state i to state j. The indices `i` and
+        `j` are the "internal" indices described above.
+    countsmat_ : array_like, shape(n_states, n_states)
+        Symmetrized transition counts. countsmat_[i, j] is the expected
+        number of transitions from state i to state j after correcting
+        for reversibly. The indices `i` and `j` are the "internal" indices
+        described above.
+
     """
 
     def __init__(self, n_states=None, lag_time=1, n_timescales=None,

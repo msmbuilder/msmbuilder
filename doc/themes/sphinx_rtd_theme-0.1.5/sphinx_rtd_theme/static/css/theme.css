@@ -2559,9 +2559,7 @@ li.wy-form-gallery-edit .arrow {
 .wy-table-responsive table {
     margin-bottom:0 !important
 }
-.wy-table-responsive table td,.wy-table-responsive table th {
-    white-space:nowrap
-}
+
 html {
     height:100%;
     overflow-x:hidden
@@ -3736,4 +3734,61 @@ span[id*='MathJax-Span'] {
 }
 .admonition.warning span[id*='MathJax-Span'] {
     color:#fff
+}
+
+
+
+
+/*
+
+==========================================================================
+RTM Customizations
+==========================================================================
+*/
+
+#references .wy-table-responsive {
+    /* prevent the references section from having extra padding between 
+    entries */
+    margin-bottom:0px;
+    max-width:100%;
+    overflow:auto
+}
+/*table.docutils {
+    table-layout: fixed;
+}
+
+table.docutils td {
+    word-wrap: break-word;
+}*/
+.wy-table-responsive table td,.wy-table-responsive table th {
+    white-space:normal;
+}
+.wy-menu-vertical li ul li a {
+    /* entries in the sidebar */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 110%;
+    overflow: hidden;
+}
+
+p.rubric {
+    font-weight: bold;
+}
+
+table.docutils tr.field-odd th.field-name {
+    background: #F0F7FA;
+}
+
+table.docutils.field-list > tbody > tr > td {
+    padding-left: 5px !important;
+}
+
+table.docutils td.field-body, table.docutils th {
+    padding: 1px 8px 1px 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+}
+body > div.wy-grid-for-nav > section {
+    background: #fcfcfc;
 }
