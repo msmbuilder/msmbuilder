@@ -102,6 +102,7 @@ class GeneralSolver(object):
         X_U = None
         succeed = False
         U, L = self.U, self.L
+        sleep_time=1.
         # Test that problem is originally feasible
         f_lower = self.create_feasibility_solver([], [])
         _, _, succeed = f_lower.feasibility_solve(N_iter, tol,
@@ -110,13 +111,15 @@ class GeneralSolver(object):
         if not succeed:
             if interactive:
                 print "Problem infeasible with obj in (%f, %f)" % (L, U)
-                wait = raw_input("Press ENTER to continue")
+                time.sleep(sleep_time)
+                #wait = raw_input("Press ENTER to continue")
                 pass
             return (None, U, X_U, L, X_L, succeed)
         # If we get here, then the problem is feasible
         if interactive:
             print "Problem feasible with obj in (%f, %f)" % (L, U)
-            wait = raw_input("Press ENTER to continue")
+            time.sleep(sleep_time)
+            #wait = raw_input("Press ENTER to continue")
             print
         while (U - L) >= tol:
             alpha = (U + L) / 2.0
@@ -137,14 +140,16 @@ class GeneralSolver(object):
                 U = alpha
                 if interactive:
                     print "Problem feasible with obj in (%f, %f)" % (L, U)
-                    wait = raw_input("Press ENTER to continue")
+                    time.sleep(sleep_time)
+                    #wait = raw_input("Press ENTER to continue")
                     pass
                 continue
             else:
                 if interactive:
                     print "Problem infeasible with obj in (%f, %f)" \
                             % (L, U)
-                    wait = raw_input("Press ENTER to continue")
+                    time.sleep(sleep_time)
+                    #wait = raw_input("Press ENTER to continue")
                     print "\tContinuing search in (%f, %f)" % (L, U)
                     L = alpha
                     pass

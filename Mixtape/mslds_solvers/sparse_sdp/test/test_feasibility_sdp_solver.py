@@ -110,7 +110,7 @@ def test5():
     """
     Tests feasibility Q optimization.
 
-    #minimize -log det R + Tr(RB)
+    feasibility(X)
           --------------
          |D-ADA.T  I    |
     X =  |   I     R    |
@@ -165,8 +165,7 @@ def test6():
     """
     Tests feasibility of A optimization.
 
-    #min Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
+    feasibility(X)
           --------------------
          | D-Q    A           |
     X =  | A.T  D^{-1}        |
