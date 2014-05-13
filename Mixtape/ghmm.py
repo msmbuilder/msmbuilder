@@ -504,7 +504,7 @@ class GaussianFusionHMM(object):
         return logprob, state_sequences
 
 
-    def find_means(self, sequences, trajectories=None):
+    def find_centroids(self, sequences, trajectories=None):
         """Find conformations most representative of model means.
 
         Parameters
