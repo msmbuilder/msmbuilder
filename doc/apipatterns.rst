@@ -7,7 +7,7 @@ Mixtape API Patterns
 Mixtape API
 -----------
 
-Hyperparamters
+Hyperparameters
 ~~~~~~~~~~~~~~
 Models in mixtape inherit from base classes in `scikit-learn
 <http://scikit-learn.org/stable/>`_, and follow a similar API. Like sklearn,
