@@ -130,7 +130,7 @@ class GaussianFusionHMM(object):
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
                  vars_weight=1, random_state=None, params='tmv',
                  init_params='tmv', platform='cpu', precision='mixed',
-                 timing=False, n_hotstart='all', init_algo="GMM"):
+                 timing=False, n_hotstart='all', init_algo="kmeans"):
         self.n_states = n_states
         self.n_init = n_init
         self.n_features = n_features
