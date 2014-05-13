@@ -56,7 +56,7 @@ at a time.
 Learned Attributes
 ~~~~~~~~~~~~~~~~~~
 Parameters of the model which are **learned or estimated** during ``fit()``
-are always set as instance attributed that are named with a trailing underscore
+are always set as instance attributes that are named with a trailing underscore
 
 .. code-block:: python
 
