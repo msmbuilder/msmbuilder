@@ -3,8 +3,22 @@
 Installation
 ============
 
+Basic Installation
+------------------
+
+.. code-block:: python
+    
+    git clone https://github.com/rmcgibbo/mixtape
+    cd mixtape
+    python setup.py install
+
+
 Dependencies
 ------------
+
+.. I copied a lot of this formatting and text from the Theano docs
+.. (http://deeplearning.net/software/theano/_sources/install.txt)
+.. Thanks guys!
 
 Mixtape is a python package that heavily leans on other components of the scientific python ecosystem. To use mixtape, the following libraries and software will need to be installed.
 
@@ -35,7 +49,7 @@ Mixtape is a python package that heavily leans on other components of the scient
     `cvxopt <http://cvxopt.org/>`_
         Only one module in mixtape uses cvxopt. TODO: make cvxopt optional.
 
-Recommended packages:
+Optional packages:
 
     `nose <http://somethingaboutorange.com/mrl/projects/nose/>`_
         Recommended, to run Theano's test-suite.
@@ -43,11 +57,9 @@ Recommended packages:
     `Git <http://git-scm.com>`_
         To download the source code
 
-Basic Installation
-------------------
+    `NVIDIA CUDA drivers and SDK`_
+        Required for GPU code generation/execution. Only NVIDIA GPUs using
+        32-bit floating point numbers are currently supported.
 
-.. code-block::
-    
-    git clone https://github.com/rmcgibbo/mixtape
-    cd mixtape
-    python setup.py install
+
+.. _NVIDIA CUDA drivers and SDK: http://developer.nvidia.com/object/gpucomputing.html

@@ -1,8 +1,8 @@
 .. _msm:
 .. currentmodule:: mixtape.markovstatemodel
 
-Markov state models
-===================
+Markov state models (MSMs)
+===========================
 
 Background
 ----------
