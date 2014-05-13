@@ -1,7 +1,7 @@
 import sys
 sys.path.append("..")
 from general_sdp_solver import *
-from objectives import trace_obj, grad_trace_obj
+from objectives import *
 from constraints import *
 import scipy
 import numpy as np
@@ -77,7 +77,11 @@ def test2():
             (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
                     Q_coords(block_dim)
             g = GeneralSolver(R, L, U, dim, eps)
-            g.save_constraints(trace_obj, grad_trace_obj, As, bs, Cs, ds,
+            def obj(X):
+                return log_det_tr(X, B)
+            def grad_obj(X):
+                return grad_log_det_tr(X, B)
+            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
             (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
                     interactive=True)
@@ -103,7 +107,7 @@ def test3():
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 100
-    Rs = [10]
+    Rs = [5]
     dims = [4]
     L, U = (-10, 10)
     for R in Rs:
@@ -114,6 +118,7 @@ def test3():
             D = np.eye(block_dim)
             Dinv = np.linalg.inv(D)
             Q = 0.5 * np.eye(block_dim)
+            Qinv = np.linalg.inv(Q)
             C = 2 * np.eye(block_dim)
             B = np.eye(block_dim)
             E = np.eye(block_dim)
@@ -124,8 +129,12 @@ def test3():
             (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
                 A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = \
                     A_coords(block_dim)
+            def obj(X):
+                return A_dynamics(X, block_dim, C, B, E, Qinv)
+            def grad_obj(X):
+                return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
             g = GeneralSolver(R, L, U, dim, eps)
-            g.save_constraints(trace_obj, grad_trace_obj, As, bs, Cs, ds,
+            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
             (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
                     interactive=True)
