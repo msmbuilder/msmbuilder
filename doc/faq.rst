@@ -179,7 +179,7 @@ How can statistical models like MSMs be used to accelerate MD?
     J. Chem. Theory Comput. (2014).
 
 
-What are the tradeoffs between running a large number of sort MD simulations vs. a few long ones?
+What are the tradeoffs between running a large number of short MD simulations vs. a few long ones?
 -------------------------------------------------------------------------------------------------
 
     Thats a good question.
