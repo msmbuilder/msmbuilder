@@ -203,7 +203,7 @@ class tICA(BaseEstimator, TransformerMixin):
     @property
     def timescales_(self):
         self._solve()
-        return -1. * self.offset / np.log(self._eigenvalues_)
+        return -1. * self.lag_time / np.log(self._eigenvalues_)
 
     @property
     def components_(self):
