@@ -76,8 +76,8 @@ The models in mixtape are designed to work together as part of a
     from mixtape.markovstatemodel import MarkovStateModel
     from sklearn.pipeline import Pipeline
     pipeline = Pipeline([
-        ('cluster': KMeans(n_clusters=100)),
-        ('msm': MarkovStateModel())
+        ('cluster', KMeans(n_clusters=100)),
+        ('msm', MarkovStateModel())
     ])
     pipeline.fit(dataset)
 
