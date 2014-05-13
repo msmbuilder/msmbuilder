@@ -24,7 +24,7 @@ On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a tradeof
 API and Implementation Notes
 ----------------------------
 
-All clustering algorithms in Mixtape follow the following basic API. Hyperparameters, including the number of clusters, random seeds, the distance 
+All clustering algorithms in Mixtape follow the following basic API. Hyperparameters, including the number of clusters, random seeds, the distance
 metric (if applicable), etc are passed to the class constructor. Then, the heavy-lifting is done by calling ``fit(sequences)``. The argument to
 ``fit`` should be a **list** of molecular dynamics trajectories or a list of 2D
 numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
@@ -35,7 +35,7 @@ Algorithms
 
 .. autosummary::
     :toctree: generated/
-    
+
     KCenters
     KMeans
     LandmarkAgglomerative
@@ -46,7 +46,7 @@ Example
 .. code-block:: python
 
     import mdtraj as md
-    
+
     # load two trajectories and create a "dataset" with their
     # phi dihedral angles
     dataset = []

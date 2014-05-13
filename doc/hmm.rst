@@ -73,12 +73,12 @@ Example
 
     from mixtape.featurizer import SuperposeFeaturizer
     from mixtape.ghmm import GaussianFusionHMM
-    
+
     xtal = md.load('crystal-structure.pdb')
     alpha_carbons = [a.index for a in xtal.topology.atoms if a.name == 'CA']
     f = SuperposeFeaturizer(alpha_carbons, xtal)
 
-    dataset = []    
+    dataset = []
     for trajectory_file in ['trj0.xtc', 'trj1.xtc']:
         t = md.load(trajectory_file, top=xtal)
         dataset.append(f.featurize(t))
