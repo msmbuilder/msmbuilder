@@ -110,6 +110,9 @@ class GaussianFusionHMM(object):
     n_hotstart : {int, 'all'}
         Number of sequences to use when hotstarting the EM with kmeans.
         Default='all'
+    init_algo : str
+        Use this algorithm to hotstart the means and covariances.  Must
+        be one of "kmeans" or "GMM"
 
     Attributes
     ----------
@@ -128,7 +131,7 @@ class GaussianFusionHMM(object):
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
                  vars_weight=1, random_state=None, params='tmv',
                  init_params='tmv', platform='cpu', precision='mixed',
-                 timing=False, n_hotstart='all'):
+                 timing=False, n_hotstart='all', init_algo="kmeans"):
         self.n_states = n_states
         self.n_init = n_init
         self.n_features = n_features
@@ -146,6 +149,7 @@ class GaussianFusionHMM(object):
         self.platform = platform
         self.timing = timing
         self.n_hotstart = n_hotstart
+        self.init_algo = init_algo
         self._impl = None
 
         if not reversible_type in ['mle', 'transpose']:
@@ -153,9 +157,9 @@ class GaussianFusionHMM(object):
                              'Must be either "mle" or "transpose"'
                              % reversible_type)
         if n_init < 1:
-            raise ValueError('GMM estimation requires at least one run')
+            raise ValueError('HMM estimation requires at least one run')
         if n_em_iter < 1:
-            raise ValueError('GMM estimation requires at least one em iter')
+            raise ValueError('HMM estimation requires at least one em iter')
 
         if self.platform == 'cpu':
             self._impl = _ghmm.GaussianHMMCPUImpl(
@@ -174,9 +178,12 @@ class GaussianFusionHMM(object):
         else:
             raise ValueError('Invalid platform "%s". Available platforms are '
                              '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))
-
+        
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
+
+        if self.init_algo not in ["GMM", "kmeans"]:
+            raise ValueError("init_algo must be either GMM or kmeans")
 
     def fit(self, sequences):
         """Estimate model parameters.
@@ -263,16 +270,24 @@ class GaussianFusionHMM(object):
             small_dataset = np.vstack(sequences)
         else:
             small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
-
-        if 'm' in init_params:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                self.means_ = cluster.KMeans(
-                    n_clusters=self.n_states, n_init=1, init='random',
-                    n_jobs=-1, random_state=self.random_state).fit(
-                    small_dataset).cluster_centers_
-        if 'v' in init_params:
-            self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
+        
+        if self.init_algo == "GMM" and ("m" in init_params or "v" in init_params):
+            mixture = sklearn.mixture.GMM(self.n_states, n_init=1, random_state=self.random_state)
+            mixture.fit(small_dataset)
+            if "m" in init_params:
+                self.means_ = mixture.means_
+            if "v" in init_params:
+                self.vars_ = mixture.covars_
+        else:
+            if 'm' in init_params:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    self.means_ = cluster.KMeans(
+                        n_clusters=self.n_states, n_init=1, init='random',
+                        n_jobs=-1, random_state=self.random_state).fit(
+                        small_dataset).cluster_centers_
+            if 'v' in init_params:
+                self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         if 't' in init_params:
             transmat_ = np.empty((self.n_states, self.n_states))
             transmat_.fill(1.0 / self.n_states)
