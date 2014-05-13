@@ -236,6 +236,7 @@ class SubsetFeatureUnion(mixtape.featurizer.TrajFeatureUnion):
 
 
 class DummyCV(object):
+    """A cross-validation object that returns identical training and test sets."""
     def __init__(self, n):
         self.n = n
 
