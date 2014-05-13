@@ -77,8 +77,7 @@ Where should I start with the MSM literature?
       Generation and validation. <http://dx.doi.org/10.1063/1.3565032>`_
       J. Chem. Phys. 134.17 (2011): 174105.
 
-    Methodologically, the most important recent papers (2013-) in my opinions
-    include: [#f1]_
+    Methodologically, some of my favorite recent papers (2013-) include: [#f1]_
 
     - Nüske, F., et al. `Variational approach to molecular kinetics
       <http://dx.doi.org/10.1021/ct4009156>`_ J. Chem. Theory Comput. 10.4 (2014): 1739-1752.
