@@ -1,5 +1,6 @@
 import numpy as np
 import simtk.openmm as mm
+from simtk.unit import kelvin, picosecond, femtosecond, nanometer, dalton
 import warnings
 from mixtape.mslds import MetastableSwitchingLDS
 
@@ -101,3 +102,51 @@ class MullerForce(mm.CustomExternalForce):
             ax = pp
         ax.contourf(xx, yy, V.clip(max=200), 40, **kwargs)
 
+class MullerModel():
+    def __init__(self):
+        # each particle is totally independent
+        self.nParticles = 1
+        self.mass = 1.0 * dalton
+        # temps  = 200 300 500 750 1000 1250 1500 1750 2000
+        self.temperature = 500 * kelvin
+        self.friction = 100 / picosecond
+        self.timestep = 10.0 * femtosecond
+
+        self.x_dim = 2
+        self.y_dim = 2
+        self.K = 3
+
+    def generate_dataset(self, n_seq, num_trajs, T):
+        # Choose starting conformations uniform on the grid
+        # between (-1.5, -0.2) and (1.2, 2)
+        start = T / 4 # Not sure if this is necessary
+        xs = np.zeros((n_seq, num_trajs * (T - start), self.y_dim))
+        for traj in range(n_seq):
+            system = mm.System()
+            mullerforce = MullerForce()
+            for i in range(self.nParticles):
+                system.addParticle(self.mass)
+                mullerforce.addParticle(i, [])
+            system.addForce(mullerforce)
+
+            integrator = mm.LangevinIntegrator(self.temperature,
+                    self.friction, self.timestep)
+            context = mm.Context(system, integrator)
+            startingPositions = ((np.random.rand(self.nParticles, 3)
+                                    * np.array([2.7, 1.8, 1]))
+                                + np.array([-1.5, -0.2, 0]))
+
+            context.setPositions(startingPositions)
+            context.setVelocitiesToTemperature(self.temperature)
+
+            trajectory = np.zeros((T, 2))
+            for i in range(T):
+                x = (context.getState(getPositions=True)
+                        .getPositions(asNumpy=True)
+                        .value_in_unit(nanometer))
+                # Save the state
+                if i > start:
+                    xs[0, traj * (T-start) + (i-start), :] = x[0, 0:2]
+                trajectory[i, :] = x[0, 0:2]
+                integrator.step(10)
+        return xs, trajectory, start
