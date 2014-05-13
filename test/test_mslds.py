@@ -10,7 +10,7 @@ from sklearn.utils.extmath import logsumexp
 from mixtape.mslds import MetastableSwitchingLDS
 from mixtape import _mslds
 from mixtape.ghmm import GaussianFusionHMM
-from mslds_examples import PlusminModel, MullerModel
+from mslds_examples import PlusminModel, MullerModel, MullerForce
 import matplotlib.pyplot as plt
 
 N_STATES = 2
@@ -82,6 +82,7 @@ def test_muller_potential():
     num_hotstart = 5
     num_iters = 10
     max_iters = 20
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     obs_sequences, trajectory, start = \
             muller.generate_dataset(n_seq, num_trajs, T)
     # Learn the MetastableSwitchingLDS

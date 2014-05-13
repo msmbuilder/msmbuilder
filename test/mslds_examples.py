@@ -3,6 +3,7 @@ import simtk.openmm as mm
 from simtk.unit import kelvin, picosecond, femtosecond, nanometer, dalton
 import warnings
 from mixtape.mslds import MetastableSwitchingLDS
+import matplotlib.pyplot as plt
 
 
 class PlusminModel():
@@ -99,7 +100,7 @@ class MullerForce(mm.CustomExternalForce):
         # clip off any values greater than 200, since they mess up
         # the color scheme
         if ax is None:
-            ax = pp
+            ax = plt
         ax.contourf(xx, yy, V.clip(max=200), 40, **kwargs)
 
 class MullerModel():
