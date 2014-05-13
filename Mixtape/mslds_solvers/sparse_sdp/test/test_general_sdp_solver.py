@@ -27,6 +27,7 @@ def test1():
     """
     eps = 1e-4
     tol = 1e-3
+    search_tol = 1e-2
     N_iter = 50
     dim = 2
     Rs = [10]
@@ -37,6 +38,7 @@ def test1():
         g = GeneralSolver(R, L, U, dim, eps)
         g.save_constraints(trace_obj, grad_trace_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
-        (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol)
+        (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
+                interactive=False)
         assert succeed == True
-        assert np.abs(alpha - 0.75) < tol
+        assert np.abs(alpha - 0.75) < search_tol

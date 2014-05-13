@@ -52,7 +52,7 @@ class GeneralSolver(object):
         f.init_solver(As, bs, Cs, ds, newFs, newGradFs, Gs, gradGs)
         return f
 
-    def solve(self, N_iter, tol, X_init=None):
+    def solve(self, N_iter, tol, X_init=None, interactive=False):
         """
         Solves optimization problem
 
@@ -105,35 +105,49 @@ class GeneralSolver(object):
         # Test that problem is originally feasible
         f_lower = self.create_feasibility_solver([], [])
         _, _, succeed = f_lower.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe', 'frank_wolfe_stable'])
+                methods=['frank_wolfe', 'frank_wolfe_stable'],
+                disp=True)
         if not succeed:
-            print "Problem infeasible with obj in (%f, %f)" % (L, U)
-            wait = raw_input("Press ENTER to continue")
+            if interactive:
+                print "Problem infeasible with obj in (%f, %f)" % (L, U)
+                wait = raw_input("Press ENTER to continue")
+                pass
             return (None, U, X_U, L, X_L, succeed)
         # If we get here, then the problem is feasible
-        print "Problem feasible with obj in (%f, %f)" % (L, U)
-        wait = raw_input("Press ENTER to continue")
-        print
+        if interactive:
+            print "Problem feasible with obj in (%f, %f)" % (L, U)
+            wait = raw_input("Press ENTER to continue")
+            print
         while (U - L) >= tol:
             alpha = (U + L) / 2.0
-            print "Checking feasibility in (%f, %f)" % (L, alpha)
+            if interactive:
+                print "Checking feasibility in (%f, %f)" % (L, alpha)
+                pass
             h_alpha = lambda X: self.obj(X) - alpha
             grad_h_alpha = lambda X: self.grad_obj(X)
             f_lower = self.create_feasibility_solver([h_alpha],
                     [grad_h_alpha])
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'])
-            print "Checked feasibility in (%f, %f)" % (L, alpha)
+                    methods=['frank_wolfe', 'frank_wolfe_stable'],
+                    disp=True)
+            if interactive:
+                print "Checked feasibility in (%f, %f)" % (L, alpha)
+                pass
             if succeed_L:
                 U = alpha
-                print "Problem feasible with obj in (%f, %f)" % (L, U)
-                wait = raw_input("Press ENTER to continue")
+                if interactive:
+                    print "Problem feasible with obj in (%f, %f)" % (L, U)
+                    wait = raw_input("Press ENTER to continue")
+                    pass
                 continue
             else:
-                print "Problem infeasible with obj in (%f, %f)" % (L, U)
-                L = alpha
-                print "\tContinuing search in (%f, %f)" % (L, U)
-                wait = raw_input("Press ENTER to continue")
+                if interactive:
+                    print "Problem infeasible with obj in (%f, %f)" \
+                            % (L, U)
+                    wait = raw_input("Press ENTER to continue")
+                    print "\tContinuing search in (%f, %f)" % (L, U)
+                    L = alpha
+                    pass
                 continue
             break
 

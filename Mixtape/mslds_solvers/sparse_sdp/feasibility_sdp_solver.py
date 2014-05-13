@@ -143,7 +143,7 @@ class FeasibilitySolver(object):
         return gradf
 
     def feasibility_solve(self, N_iter, tol, X_init=None,
-            methods=['frank_wolfe'], early_exit=True):
+            methods=['frank_wolfe'], early_exit=True, disp=True):
         """
         Solves feasibility problems of the type
 
@@ -162,7 +162,7 @@ class FeasibilitySolver(object):
         else:
             Y_init = None
         Y = self._solver.solve(N_iter, X_init=Y_init,
-                methods=methods, early_exit=early_exit)
+                methods=methods, early_exit=early_exit, disp=disp)
         fY = self.f(Y)
         X, fX = Y[:self.dim, :self.dim], fY
         succeed = not (fX < -tol)
