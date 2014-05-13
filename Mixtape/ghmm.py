@@ -30,6 +30,7 @@ import time
 import warnings
 import numpy as np
 from sklearn import cluster
+import sklearn.mixture
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _ghmm, _reversibility
 from mdtraj.utils import ensure_type
@@ -269,7 +270,7 @@ class GaussianFusionHMM(object):
         else:
             small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
         
-        if self.init_algo == "GMM" and ("m" in init_params or "v" in init_params"):
+        if self.init_algo == "GMM" and ("m" in init_params or "v" in init_params):
             mixture = sklearn.mixture.GMM(self.n_states)
             mixture.fit(small_dataset)
             if "m" in init_params:
