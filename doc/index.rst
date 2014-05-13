@@ -6,7 +6,9 @@ Mixtape -- Statistical models for Biomolecular Dynamics
 Mixtape is a python package which implements a series of statistical
 models for high-dimensional time-series -- the particular focus of the
 library is on the analysis of atomistic simulations of biomolecular
-dynamics such as protein folding and conformational change.
+dynamics such as protein folding and conformational change. Mixtape is the
+"code name" for the next release of `MSMBuilder <http://msmbuilder.org/>`_.
+
 
 Mixtape is under active development. Many of the algorithms and models
 implemented are "mature", but others are rapidly changing.
@@ -40,6 +42,8 @@ Mixtape is developed by primarily by researchers at Stanford University and Memo
     msm
     tica
     hmm
+    commandline
+    faq
 
 .. raw:: html
 
