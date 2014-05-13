@@ -30,9 +30,11 @@ import time
 import warnings
 import numpy as np
 from sklearn import cluster
+import sklearn.mixture
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _ghmm, _reversibility
 from mdtraj.utils import ensure_type
+
 try:
     from mixtape import _cuda_ghmm_single
     from mixtape import _cuda_ghmm_mixed
@@ -402,6 +404,7 @@ class GaussianFusionHMM(object):
         self._populations_ = value
         self._impl.startprob_ = value
 
+    @property
     def timescales_(self):
         """The implied relaxation timescales of the hidden Markov transition
         matrix
@@ -501,6 +504,52 @@ class GaussianFusionHMM(object):
         return logprob, state_sequences
 
 
+    def find_means(self, sequences, trajectories=None):
+        """Find conformations most representative of model means.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        trajectories : list(md.Trajectory), optional, default=None
+            Optionally provide the trajectories assocated with sequences,
+            which will be used to extract coordinates of the state centers
+            from the raw trajectory data
+
+        Returns
+        -------
+        trj_ind : np.ndarray, dtype=int, shape = (n_states)
+            trj_ind[state] gives the trajectory index associated with the 
+            mean of `state`
+        frame_ind : np.ndarray, dtype=int, shape = (n_states)
+            frame_ind[state] gives the frame index associated with the 
+            mean of `state`
+        mean_approx : np.ndarray, dtype=float, shape = (n_states, n_features)
+            mean_approx[state] gives the features at the representative 
+            point for `state`
+        mean_traj : mdtraj.Trajectory, optional
+            If trajectories is provided
+        """    
+        
+        logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
+
+        argm = np.array([lp.argmax(0) for lp in logprob])
+        probm = np.array([lp.max(0) for lp in logprob])
+
+        trj_ind = probm.argmax(0)
+        frame_ind = argm[trj_ind, np.arange(self.n_states)]
+
+        mean_approx = np.array([sequences[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)])
+        
+        if trajectories is None:
+            return trj_ind, frame_ind, mean_approx
+        else:
+            frames = [trajectories[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)]
+            mean_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
+            return trj_ind, frame_ind, mean_approx, mean_trj
+        
 class _SklearnGaussianHMMCPUImpl(object):
 
     def __init__(self, n_states, n_features):
