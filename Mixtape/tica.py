@@ -53,11 +53,8 @@ class tICA(BaseEstimator, TransformerMixin):
         Regularization strength. Positive `gamma` entails incrementing
         the sample covariance matrix by a constant times the identity,
         to ensure that it is positive definite. The exact form of the
-        regularized sample covariance matrix is ::
-
-            covariance + (gamma / n_features) * Tr(covariance) * Identity
-
-        where :math:`Tr` is the trace operator.
+        regularized sample covariance matrix is
+        :math:`covariance + (gamma / n_features) * Tr(covariance) * Identity`
     weighted_transform : bool, default=False
         If True, weight the projections by the implied timescales, giving
         a quantity that has units [Time].
@@ -96,22 +93,23 @@ class tICA(BaseEstimator, TransformerMixin):
 
     Notes
     -----
-    This method was introduced originally in [4], and has been applied to the
-    analysis of molecular dynamics data in [1], [2], and [3]. In [1] and [2],
+    This method was introduced originally in [4]_, and has been applied to the
+    analysis of molecular dynamics data in [1]_, [2]_, and [3]_. In [1]_ and [2]_,
     tICA was used as a dimensionality reduction technique before fitting
     other kinetic models.
 
+
     References
     ----------
-    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput.
-    9.4 (2013): 2000-2009.
+    .. [1] Schwantes, Christian R., and Vijay S. Pande. J.
+       Chem Theory Comput. 9.4 (2013): 2000-2009.
     .. [2] Perez-Hernandez, Guillermo, et al. J Chem. Phys (2013): 015102.
     .. [3] Naritomi, Yusuke, and Sotaro Fuchigami. J. Chem. Phys. 134.6
-    (2011): 065101.
+       (2011): 065101.
     .. [4] Molgedey, Lutz, and Heinz Georg Schuster. Phys. Rev. Lett. 72.23
-    (1994): 3634.
+       (1994): 3634.
     """
-
+    
     def __init__(self, n_components=None, lag_time=1, gamma=0.05, weighted_transform=False):
         self.n_components = n_components
         self.lag_time = lag_time

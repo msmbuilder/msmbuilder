@@ -29,6 +29,7 @@ metric (if applicable), etc are passed to the class constructor. Then, the heavy
 ``fit`` should be a **list** of molecular dynamics trajectories or a list of 2D
 numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
 
+
 Algorithms
 ----------
 
@@ -39,12 +40,6 @@ Algorithms
     KMeans
     LandmarkAgglomerative
     NDGrid
-    
-.. GMM
-.. MeanShift
-.. MiniBatchKMeans
-.. AffinityPropagation
-.. SpectralClustering
 
 Example
 -------

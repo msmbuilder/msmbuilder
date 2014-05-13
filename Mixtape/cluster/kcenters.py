@@ -81,14 +81,11 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
 
     Attributes
     ----------
-    `cluster_centers_` : array, [n_clusters, n_features]
+    cluster_centers_ : array, [n_clusters, n_features]
         Coordinates of cluster centers
-
-    `labels_` : array, [n_samples,]
-        Labels of each point. The label of each point is
-        an integer in [0, n_clusters).
-
-    `distances_` : array, [n_samples,]
+    labels_ : array, [n_samples,]
+        The label of each point is an integer in [0, n_clusters).
+    distances_ : array, [n_samples,]
         Distance from each sample to the cluster center it is
         assigned to.
     """

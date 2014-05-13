@@ -19,7 +19,9 @@ Algorithms available include:
 -  :ref:`hmm`
 
 
-Mixtape is developed by primarily by researchers at Stanford University and Memorial Sloan Kettering, but we welcome contributions. The development all takes place on `Github <https://github.com/rmcgibbo/mixtape>`_. Mixtake is licensed under the GNU LGPL (v2.1 or later).
+Mixtape is developed by primarily by researchers at Stanford University and Memorial Sloan Kettering, but we welcome contributions. The development all takes place on `Github <https://github.com/rmcgibbo/mixtape>`_. Mixtape is  licensed under the GNU LGPL (v2.1 or later).
+
+
 
 .. ===========================================================================
 .. ===========================================================================
