@@ -38,7 +38,6 @@ The switch posteriors are used in the M-step to update parameter estimates.
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
-
 import warnings
 import numpy as np
 from numpy.random import multivariate_normal
@@ -61,14 +60,11 @@ from mixtape.utils import iter_vars, categorical
 
 class MetastableSwitchingLDS(object):
 
-    """Metastable Switching Linear Dynamical System, fit via maximum
-    likelihood.
+    """Metastable Switching Linear Dynamical System (Mslds), fit via
+    maximum likelihood.
 
-    This model is an extension of a hidden Markov model. In the HMM, when
-    the system stays in a single metastable state, each sample is i.i.d
-    from the state's output distribution. Instead, in this model, the
-    within-state dynamics are modeled by a linear dynamical system. The
-    overall process can be thought of as a Markov jump process between
+    The mslds models within-state dynamics of metastable states by a
+    linear dynamical system. The model is a Markov jump process between
     different linear dynamical systems.
 
     The evolution is governed by the following relations. :math:`S_t` is
@@ -106,8 +102,8 @@ class MetastableSwitchingLDS(object):
         instead of the E-step for MSLDS to hotstart the parameters.
         Warning: This is not the same n_hotstart as in ghmm.py
     As : np.ndarray, shape=(n_states, n_features, n_features):
-        Each `A[i]` is the LDS evolution operator for the system, conditional
-        on it being in state `i`.
+        Each `A[i]` is the LDS evolution operator for the system,
+        conditional on it being in state `i`.
     bs : np.ndarray, shape=(n_states, n_features)
         Mean of the gaussian noise in each state.
     Qs : np.ndarray, shape=(n_states, n_features, n_features)
@@ -190,10 +186,11 @@ class MetastableSwitchingLDS(object):
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
         if self.platform == 'cpu':
-            self._impl = _mslds.MetastableSLDSCPUImpl(
-                self.n_states, self.n_features, self.n_hotstart, precision)
+            self._impl = _mslds.MetastableSLDSCPUImpl(self.n_states,
+                    self.n_features, self.n_hotstart, precision)
         else:
-            raise ValueError('Invalid platform "%s". Available platforms are ["cpu"]' % platform)
+            raise ValueError('Invalid platform "%s". '
+                    'Available platforms are ["cpu"]' % platform)
 
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)
@@ -208,8 +205,8 @@ class MetastableSwitchingLDS(object):
         if 'm' in self.init_params:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.means_ = cluster.KMeans(n_clusters=self.n_states).fit(
-                    small_dataset).cluster_centers_
+                self.means_ = (cluster.KMeans(n_clusters=self.n_states)
+                    .fit(small_dataset).cluster_centers_)
         if 'c' in self.init_params:
             cv = np.cov(small_dataset.T)
             self.covars_ = \
@@ -222,7 +219,8 @@ class MetastableSwitchingLDS(object):
             self.transmat_ = transmat_
             self.populations_ = np.ones(self.n_states) / self.n_states
         if 'a' in self.init_params:
-            self.As_ = np.zeros((self.n_states, self.n_features, self.n_features))
+            self.As_ = np.zeros((self.n_states, self.n_features,
+                self.n_features))
             for i in range(self.n_states):
                 self.As_[i] = np.eye(self.n_features) - self.eps
         if 'b' in self.init_params:
@@ -280,8 +278,7 @@ class MetastableSwitchingLDS(object):
             b = self.bs_[s]
             Q = self.Qs_[s]
             obs[t + 1] = multivariate_normal(np.dot(A, obs[t]) + b, Q)
-            hidden_state[t + 1] = \
-                categorical(self.transmat_[s])
+            hidden_state[t + 1] = categorical(self.transmat_[s])
 
         return obs, hidden_state
 
@@ -291,8 +288,8 @@ class MetastableSwitchingLDS(object):
         Parameters
         ----------
         sequences : list
-            List of 2-dimensional array observation sequences, each of which
-            has shape (n_samples_i, n_features), where n_samples_i
+            List of 2-dimensional array observation sequences, each of
+            which has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
@@ -318,7 +315,8 @@ class MetastableSwitchingLDS(object):
         _, vl = scipy.linalg.eig(self.transmat_, left=True, right=False)
         startprob = vl[:, 0] / np.sum(vl[:, 0])
 
-        model = GaussianHMM(n_components=self.n_states, covariance_type='full')
+        model = GaussianHMM(n_components=self.n_states,
+                covariance_type='full')
         model.startprob_ = startprob
         model.transmat_ = self.transmat_
         model.means_ = self.means_
@@ -335,8 +333,8 @@ class MetastableSwitchingLDS(object):
         Parameters
         ----------
         sequences : list
-            List of 2-dimensional array observation sequences, each of which
-            has shape (n_samples_i, n_features), where n_samples_i
+            List of 2-dimensional array observation sequences, each of
+            which has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
         """
         n_obs = sum(len(s) for s in sequences)
@@ -446,9 +444,11 @@ class MetastableSwitchingLDS(object):
                                     np.eye(self.n_features))
 
     def _transmat_update(self, stats):
-        counts = np.maximum(
-            stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
-        self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
+        counts = (np.maximum(stats['trans']
+                        + self.transmat_prior - 1.0, 1e-20)
+                    .astype(np.float64))
+        self.transmat_, self.populations_ = \
+                _reversibility.reversible_transmat(counts)
 
     def _A_update(self, stats):
         for i in range(self.n_states):
@@ -482,7 +482,7 @@ class MetastableSwitchingLDS(object):
                     np.dot(A, np.dot(stats['obs[:-1]*obs[:-1].T'][i],
                                      A.T)) +
                     np.dot(A, np.dot(np.reshape(stats['obs[:-1]'][i],
-                                                (self.n_features, 1)), b.T)))
+                                            (self.n_features, 1)), b.T)))
                  + (-np.dot(b, np.reshape(stats['obs[1:]'][i],
                                           (self.n_features, 1)).T) +
                     np.dot(b, np.dot(np.reshape(stats['obs[:-1]'][i],
@@ -492,7 +492,8 @@ class MetastableSwitchingLDS(object):
             sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
                     self.max_iters, self.display_solver_output)
             qvec = np.array(sol['x'])
-            qvec = qvec[int(1 + self.n_features * (self.n_features + 1) / 2):]
+            qvec = qvec[int(1 + self.n_features
+                                    * (self.n_features + 1) / 2):]
             Q = np.zeros((self.n_features, self.n_features))
             for j in range(self.n_features):
                 for k in range(j + 1):
@@ -601,7 +602,11 @@ class MetastableSwitchingLDS(object):
         return covs
 
     def compute_eigenspectra(self):
-        eigenspectra = np.zeros((self.n_states, self.n_features, self.n_features))
+        """
+        Compute the eigenspectra of operators A_i
+        """
+        eigenspectra = np.zeros((self.n_states,
+                                self.n_features, self.n_features))
         for k in range(self.n_states):
             eigenspectra[k] = np.diag(np.linalg.eigvals(self.As_[k]))
         return eigenspectra
