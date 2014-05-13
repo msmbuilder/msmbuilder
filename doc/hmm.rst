@@ -1,9 +1,8 @@
 .. _hmm:
 .. currentmodule:: mixtape
 
-Hidden Markov models
-====================
-
+Hidden Markov models (HMMs)
+===========================
 
 .. figure:: _static/kde-vs-histogram.png
     :height: 300 px
