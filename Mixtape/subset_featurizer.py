@@ -1,12 +1,7 @@
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.externals.joblib import Parallel, delayed
-
-from contextlib import contextmanager
 import itertools
 import numpy as np
 import mixtape.featurizer, mixtape.tica
 import mdtraj as md
-import sklearn.pipeline
 
 ATOM_NAMES = ["N", "CA", "CB", "C", "O", "H"]
 
@@ -194,37 +189,9 @@ class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
-        
-        
-class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
-    """Mixtape version of sklearn.pipeline.FeatureUnion
-    
-    Notes
-    -----
-    Works on lists of trajectories.
-    """
-    def fit_transform(self, X, y=None, **fit_params):
-        """Fit all transformers using X, transform the data and concatenate
-        results.
 
-        """
-        self.fit(X, y, **fit_params)
-        return self.transform(X)
-        
-        
-    def transform(self, X):
-        """Transform X separately by each transformer, concatenate results.
 
-        """
-        Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(sklearn.pipeline._transform_one)(trans, name, X, self.transformer_weights)
-            for name, trans in self.transformer_list)
-
-        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
-
-        return X_i_stacked    
-
-class SubsetFeatureUnion(TrajFeatureUnion):
+class SubsetFeatureUnion(mixtape.featurizer.TrajFeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion with feature subset selection.
     
     Notes

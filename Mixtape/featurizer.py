@@ -25,7 +25,8 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
-import sklearn.base
+import sklearn.base, sklearn.pipeline
+from sklearn.externals.joblib import Parallel, delayed
 
 #-----------------------------------------------------------------------------
 # Code
@@ -349,3 +350,32 @@ class DRIDFeaturizer(Featurizer):
 
     def featurize(self, traj):
         return md.geometry.compute_drid(traj, self.atom_indices)
+
+
+class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
+    """Mixtape version of sklearn.pipeline.FeatureUnion
+    
+    Notes
+    -----
+    Works on lists of trajectories.
+    """
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit all transformers using X, transform the data and concatenate
+        results.
+
+        """
+        self.fit(X, y, **fit_params)
+        return self.transform(X)
+        
+        
+    def transform(self, X):
+        """Transform X separately by each transformer, concatenate results.
+
+        """
+        Xs = Parallel(n_jobs=self.n_jobs)(
+            delayed(sklearn.pipeline._transform_one)(trans, name, X, self.transformer_weights)
+            for name, trans in self.transformer_list)
+
+        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
+
+        return X_i_stacked    
