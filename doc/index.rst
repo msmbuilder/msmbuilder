@@ -40,6 +40,7 @@ licensed under the GNU LGPL (v2.1 or later).
 
     background
     installation
+    examples/index
     featurization
     cluster
     msm
