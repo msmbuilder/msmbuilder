@@ -137,9 +137,8 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
         Reference Trajectory for checking consistency
     subset : np.ndarray, default=None, dtype=int
         The values in subset specify which of all possible features are
-        to be enabled.  Specifically, if `i` is in `subsets`, then 
-        the atom pair distance between atom indices `possible_pair_indices[i]`
-        is enabled.
+        to be enabled.  Specifically, atom pair distances are calculated
+        for the pairs `possible_pair_indices[subset]`
     periodic : bool, optional, default=False
         if True, use periodic boundary condition wrapping
     exponent : float, optional, default=1.0
