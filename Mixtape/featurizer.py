@@ -99,6 +99,9 @@ class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
 
     def featurize(self, traj):
         pass
+
+    def partial_transform(self, traj):
+        pass
     
     def fit(self, traj_list, y=None):
         return self
