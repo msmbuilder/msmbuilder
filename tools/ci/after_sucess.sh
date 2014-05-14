@@ -1,5 +1,5 @@
-PYTHON_VERSION=`python -c 'import sys; print("%d.%d" % sys.version_info[:2])'`
-coveralls
+# PYTHON_VERSION=`python -c 'import sys; print("%d.%d" % sys.version_info[:2])'`
+# coveralls
 
 echo $TRAVIS_PULL_REQUEST $TRAVIS_BRANCH
 

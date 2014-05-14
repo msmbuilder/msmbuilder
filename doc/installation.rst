@@ -30,11 +30,14 @@ software will need to be installed.
 
     `Python <http://python.org>`_ >= 2.6
         The development package (``python-dev`` or ``python-devel``
-        on most Linux distributions) is recommended (see just below).
+        on most Linux distributions) is recommended.
 
     `NumPy <http://numpy.scipy.org/>`_ >= 1.6.0
+        Numpy is the base package for numerical computing in python.
 
     `SciPy <http://scipy.org>`_ >= 0.11.0
+        We use scipy for sparse matrix, numerical linear algebra and
+        optimization.
 
     `scikit-learn <http://sklearn.org>`_ >= 0.14.0
         Many of the models in mixtape build off base classes in scikit-learn.
