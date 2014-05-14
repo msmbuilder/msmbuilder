@@ -24,7 +24,7 @@ How should I get started?
 How do I report a bug?
 ----------------------
 
-    Post a note on the `github issue tracker <https://github.com/rmcgibbo/mixtape/issue>`_.
+    Post a note on the `github issue tracker <https://github.com/rmcgibbo/mixtape/issues>`_.
 
 
 How do I contribute a new feature?
