@@ -398,6 +398,21 @@ class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
         """Fit all transformers using X, transform the data and concatenate
         results.
 
+        Parameters
+        ----------
+        X : list (of mdtraj.Trajectory objects)
+            Trajectories to featurize
+        y : Unused
+            Unused
+            
+        Returns
+        -------
+        Y : list (of np.ndarray)
+            Y[i] is the featurized version of X[i]
+            Y[i] will have shape (n_samples_i, n_features), where 
+            n_samples_i is the length of trajectory i and n_features
+            is the total (concatenated) number of features in the 
+            concatenated list of featurizers.
         """
         self.fit(X, y, **fit_params)
         return self.transform(X)
@@ -405,6 +420,20 @@ class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
         
     def transform(self, X):
         """Transform X separately by each transformer, concatenate results.
+
+        Parameters
+        ----------
+        X : list (of mdtraj.Trajectory objects)
+            Trajectories to featurize
+
+        Returns
+        -------
+        Y : list (of np.ndarray)
+            Y[i] is the featurized version of X[i]
+            Y[i] will have shape (n_samples_i, n_features), where 
+            n_samples_i is the length of trajectory i and n_features
+            is the total (concatenated) number of features in the 
+            concatenated list of featurizers.            
 
         """
         Xs = Parallel(n_jobs=self.n_jobs)(
