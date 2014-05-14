@@ -24,5 +24,5 @@ sudo apt-get install -qq pandoc         # notebook -> rst
 conda install --yes matplotlib scikit-learn sphinx boto ipython-notebook jinja2
 pip install runipy==0.0.4                      # example notebooks
 
-cd docs && make html && cd -
+cd doc && make html && cd -
 python tools/ci/push-docs-to-s3.py
