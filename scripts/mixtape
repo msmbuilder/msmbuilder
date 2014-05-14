@@ -12,9 +12,8 @@ class MixtapeApp(App):
             if issubclass(e, NumpydocClassCommand):
                 cmds.append(e)
 
-        # sort the commands in some order.
-        # return sorted(cmds, key=lambda e : e.klass.__module__ + e.klass.__name__)
-        return sorted(cmds, key=lambda e : e.mro())
+        # sort the commands in some arbitrary order.
+        return sorted(cmds, key=lambda e : ''.join(x.__name__ for x in e.mro()))
 
 
 app = MixtapeApp(name='mixtape', description=__doc__)

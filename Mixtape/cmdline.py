@@ -58,7 +58,7 @@ import sys
 import abc
 import argparse
 import inspect
-import numpydoc
+import numpydoc.docscrape
 from IPython.utils.text import wrap_paragraphs
 
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
