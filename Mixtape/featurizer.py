@@ -91,19 +91,54 @@ def load(filename):
 
 
 class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
+    """Base class for objects that featurize Trajectories.
 
-    """Base class for Featurizer objects."""
+    Notes
+    -----
+    At the bare minimum, a featurizer must implement the `partial_transform(traj)`
+    member function.  A `transform(traj_list)` for featurizing multiple
+    trajectories in batch will be provided.
+    """
 
     def __init__(self):
         pass
 
     def featurize(self, traj):
         pass
+
+    def partial_transform(self, traj):
+        """Featurize a single trajectory.
+        
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to be featurized.
+        
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            The featurized trajectory.
+        """
+        pass
     
     def fit(self, traj_list, y=None):
         return self
 
     def transform(self, traj_list, y=None):
+        """Featurize a several trajectories.
+        
+        Parameters
+        ----------
+        traj_list : list(mdtraj.Trajectory)
+            Trajectories to be featurized.
+        
+        Returns
+        -------
+        features : list(np.ndarray), length = len(traj_list)
+            The featurized trajectories.  features[i] is the featurized
+            version of traj_list[i] and has shape 
+            (n_samples_i, n_features)
+        """        
         return [self.featurize(traj) for traj in traj_list]
 
     def save(self, filename):

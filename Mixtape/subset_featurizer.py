@@ -58,7 +58,7 @@ def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=No
     return atom_indices, pair_indices
 
 
-def lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
+def _lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
     """Convert pairs of atom indices into a list of indices
 
     Parameters
@@ -76,6 +76,15 @@ def lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
         A numpy array with the integer indices that map subset_pair_indices
         onto all_pair_indices.  That is, subset[k] indices the value of 
         all_pair_indices that matches subset_pair_indices[k] 
+        
+    
+    Notes
+    -----
+    This function is mostly useful when you have two lists of atom_pair
+    indices and you want to find "indices" mapping the smaller to the larger
+    list.  This could occur when you are looking at different atom_pair
+    featurizers.
+    
     """
 
 
@@ -95,7 +104,22 @@ class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
     """Base class for featurizers that have a subset of active features.
     n_features refers to the number of active features.  n_max refers to the 
     number of possible features.
+
+    Parameters
+    ----------
+    reference_traj : mdtraj.Trajectory
+        Reference Trajectory for checking consistency
+    subset : np.ndarray, default=None, dtype=int
+        The values in subset specify which of all possible features 
     
+    Notes
+    -----
+    
+    As an example, suppose we have an instance that has `n_max` = 5.  This
+    means that the possible features are subsets of [0, 1, 2, 3, 4].  One possible
+    subset is then [0, 1, 3].  The allowed values of subset (e.g. `n_max`)
+    will be determined by the subclass--e.g. for example, `n_max` might be
+    the number of phi backbone angles.
     """
 
     def __init__(self, reference_traj, subset=None):
@@ -111,7 +135,31 @@ class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
 
 
 class SubsetAtomPairs(BaseSubsetFeaturizer):
-    """Subset featurizer based on atom pair distances."""
+    """Subset featurizer based on atom pair distances.
+
+    Parameters
+    ----------
+    possible_pair_indices : np.ndarray, dtype=int, shape=(n_max, 2)
+        These are the possible atom indices to use for calculating interatomic
+        distances.  
+    reference_traj : mdtraj.Trajectory
+        Reference Trajectory for checking consistency
+    subset : np.ndarray, default=None, dtype=int
+        The values in subset specify which of all possible features are
+        to be enabled.  Specifically, atom pair distances are calculated
+        for the pairs `possible_pair_indices[subset]`
+    periodic : bool, optional, default=False
+        if True, use periodic boundary condition wrapping
+    exponent : float, optional, default=1.0
+        Use the distances to this power as the output feature.
+    
+    See Also
+    --------
+    
+    See `get_atompair_indices` for how one might generate acceptable atom pair
+    indices.
+    
+    """    
     def __init__(self, possible_pair_indices, reference_traj, subset=None, periodic=False, exponent=1.0):
         super(SubsetAtomPairs, self).__init__(reference_traj, subset=subset)
         self.possible_pair_indices = possible_pair_indices
@@ -140,7 +188,16 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
 
 
 class SubsetTrigFeaturizer(BaseSubsetFeaturizer):
-    """Featurizer based on atom pair distances."""
+    """Base class for featurizer based on dihedral sine or cosine.
+    
+    Notes
+    -----
+    
+    Subsets must be a subset of 0, ..., n_max - 1, where n_max is determined
+    by the number of respective phi / psi dihedrals in your protein, as
+    calcualted by mdtraj.compute_phi and mdtraj.compute_psi
+    
+    """    
     
     def featurize(self, traj):
         if self.n_features > 0:
