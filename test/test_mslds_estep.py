@@ -1,7 +1,3 @@
-"""
-Then, afterwards, the A, b and Q are estimated. So, we can do a lot of
-testing by comparing to a reference gaussian HMM implementation
-"""
 import string
 import numpy as np
 import warnings
@@ -80,10 +76,12 @@ def test_plusmin_estep():
     n_features = plusmin.x_dim
     n_components = plusmin.K
 
-    # Fit reference model and initial MSLDS model
+    # Fit reference model
     refmodel = GaussianHMM(n_components=n_components,
                         covariance_type='full').fit(data)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    # Fit initial MSLDS model from reference model
     model = MetastableSwitchingLDS(n_components, n_features,
                                 n_hotstart=0)
     model._impl._sequences = data
@@ -221,7 +219,7 @@ def test_alanine_estep():
     gen_movie(out_x_tTs[NUM_SCHED-1,NUM_ITERS-1],
       topology, 'alanine2', T, N_atoms, dim)
 
-def test_sufficient_statistics_basic():
+def test_randn_estep():
     """
     Sanity test MSLDS sufficient statistic gathering by setting
     dynamics model to 0 and testing that E-step matches that of

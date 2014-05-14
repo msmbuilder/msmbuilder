@@ -1,4 +1,59 @@
+import numpy as np
+import warnings
+from mslds_examples import PlusminModel, MullerModel, MullerForce
+from mixtape.mslds import MetastableSwitchingLDS
+from sklearn.hmm import GaussianHMM
+
 def test_plusmin_mstep():
+    # Set constants
+    num_hotstart = 3
+    n_seq = 1
+    T = 2000
+
+    # Generate data
+    plusmin = PlusminModel()
+    data, hidden = plusmin.generate_dataset(n_seq, T)
+    n_features = plusmin.x_dim
+    n_components = plusmin.K
+
+    # Fit reference model and initial MSLDS model
+    refmodel = GaussianHMM(n_components=n_components,
+                        covariance_type='full').fit(data)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    # Fit initial MSLDS model from reference model
+    model = MetastableSwitchingLDS(n_components, n_features,
+                                n_hotstart=0)
+    model._impl._sequences = data
+    model.means_ = refmodel.means_
+    model.covars_ = refmodel.covars_
+    model.transmat_ = refmodel.transmat_
+    model.populations_ = refmodel.startprob_
+    model.As_ = [np.zeros((n_features, n_features)),
+                    np.zeros((n_features, n_features))]
+    model.Qs_ = refmodel.covars_
+    model.bs_ = refmodel.means_
+
+    # Do one mstep
+    params = 'aqb' # With param t is broken!
+    iteration = 0 # Remove this step once hot_start is factored out
+    logprob, stats = model._impl.do_estep(iteration)
+    model._do_mstep(stats, params, iteration)
+
+    #import pdb
+    #pdb.set_trace()
+    for i in range(n_components):
+        yield lambda: np.testing.assert_array_almost_equal(
+                model.Qs_[i], refmodel.covars_[i], decimal=2)
+        yield lambda: np.testing.assert_array_almost_equal(
+                model.bs_[i], model.means_[i], decimal=2)
+        yield lambda: np.testing.assert_array_almost_equal(
+                model.As_[i], np.zeros((n_features, n_features)),
+                decimal=1)
+
+
+
+def test_plusmin_scores():
     l = MetastableSwitchingLDS(plusmin.K, plusmin.x_dim,
             n_hotstart=0)
     l.fit(obs_sequences)
@@ -56,27 +111,3 @@ def test_muller_potential_mstep():
             miny=miny, maxy=maxy)
     plt.show()
     pass
-def test_sample():
-    assert True == False
-
-def test_predict():
-    assert True == False
-
-def test_fit():
-    assert True == False
-
-def test_means_update():
-    assert True == False
-
-def test_transmat_update():
-    assert True == False
-
-def test_A_update():
-    assert True == False
-
-def test_Q_update():
-    assert True == False
-
-def test_b_update():
-    assert True == False
-
