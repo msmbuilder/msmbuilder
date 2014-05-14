@@ -91,7 +91,7 @@ def load(filename):
 
 
 class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
-    """Base class for Featurizer objects.
+    """Base class for objects that featurize Trajectories.
 
     Notes
     -----
