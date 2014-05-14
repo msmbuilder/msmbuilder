@@ -17,33 +17,63 @@ import matplotlib.pyplot as plt
 
 
 def test_plusmin_estep():
+    # Set constants
     num_hotstart = 3
     num_iters = 6
     n_seq = 1
     T = 2000
+
+    # Generate data
     plusmin = PlusminModel()
-    obs_sequences, hidden_sequences = plusmin.generate_dataset(n_seq, T)
+    data, hidden = plusmin.generate_dataset(n_seq, T)
+    n_features = 1
+    n_components = plusmin.K
+
+    # Fit reference model and initial MSLDS model
+    refmodel = GaussianHMM(n_components=n_components,
+                        covariance_type='full').fit(data)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    l = MetastableSwitchingLDS(plusmin.K, plusmin.x_dim,
-            n_hotstart=num_hotstart, n_em_iter=num_iters)
-    l.fit(obs_sequences)
-    mslds_score = l.score(obs_sequences)
-    print("MSLDS Log-Likelihood = %f" %  mslds_score)
+    model = MetastableSwitchingLDS(plusmin.K, plusmin.x_dim,
+                                n_hotstart=0)
+    model._impl._sequences = data
+    model.means_ = refmodel.means_
+    model.covars_ = refmodel.covars_
+    model.transmat_ = refmodel.transmat_
+    model.populations_ = refmodel.startprob_
+    model.As_ = [np.zeros((n_features, n_features)),
+                    np.zeros((n_features, n_features))]
+    model.Qs_ = refmodel.covars_
+    model.bs_ = refmodel.means_
 
-    # Fit Gaussian HMM for comparison
-    g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
-    g.fit(obs_sequences)
-    hmm_score = g.score(obs_sequences)
-    print("HMM Log-Likelihood = %f" %  hmm_score)
-    sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=plusmin.mus[0])
-    sim_xs = np.reshape(sim_xs, (n_seq, T, plusmin.x_dim))
+    iteration = 0 # Remove this step once hot_start is factored out
+    logprob, stats = model._impl.do_estep(iteration)
+    rlogprob, rstats = reference_estep(refmodel, data)
 
-    plt.close('all')
-    plt.figure(1)
-    plt.plot(range(T), obs_sequences[0], label="Observations")
-    plt.plot(range(T), sim_xs[0], label='Sampled Observations')
-    plt.legend()
-    plt.show()
+    yield lambda: np.testing.assert_array_almost_equal(stats['post'],
+            rstats['post'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['post[1:]'],
+            rstats['post[1:]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['post[:-1]'],
+            rstats['post[:-1]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs'],
+            rstats['obs'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs[1:]'],
+            rstats['obs[1:]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs[:-1]'],
+            rstats['obs[:-1]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs*obs.T'],
+            rstats['obs*obs.T'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['obs*obs[t-1].T'], rstats['obs*obs[t-1].T'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['obs[1:]*obs[1:].T'], rstats['obs[1:]*obs[1:].T'],
+            decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['obs[:-1]*obs[:-1].T'], rstats['obs[:-1]*obs[:-1].T'],
+            decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['trans'], rstats['trans'], decimal=3)
+
 
 def test_muller_potential_estep():
     muller = MullerModel()
@@ -213,8 +243,7 @@ def test_sufficient_statistics_basic():
     model.Qs_ = refmodel.covars_
     model.bs_ = refmodel.means_
 
-    # Remove this step once hot_start is factored out
-    iteration = 0
+    iteration = 0 # Remove this step once hot_start is factored out
     logprob, stats = model._impl.do_estep(iteration)
     rlogprob, rstats = reference_estep(refmodel, data)
 
