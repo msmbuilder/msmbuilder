@@ -177,7 +177,6 @@ cdef class MetastableSLDSCPUImpl:
 
     
     def do_estep(self, iteration):
-        #starttime = time.time()
         cdef np.ndarray[ndim=2, mode='c', 
                 dtype=np.float32_t] log_transmat = self.log_transmat
         cdef np.ndarray[ndim=2, mode='c', 
@@ -198,21 +197,21 @@ cdef class MetastableSLDSCPUImpl:
                 dtype=np.int32_t] seq_lengths = self.seq_lengths
 
         # All of the sufficient statistics
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts \
-                = np.zeros((self.n_states, self.n_states), 
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                transcounts = np.zeros((self.n_states, self.n_states), 
                         dtype=np.float32)
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs \
-                = np.zeros((self.n_states, self.n_features), 
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                obs = np.zeros((self.n_states, self.n_features), 
                         dtype=np.float32)
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
                 obs_but_first = np.zeros((self.n_states, self.n_features),
                         dtype=np.float32)
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs_but_last\
-                = np.zeros((self.n_states, self.n_features), 
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                obs_but_last = np.zeros((self.n_states, self.n_features), 
                         dtype=np.float32)
 
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T = \
-                np.zeros((self.n_states, self.n_features,
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
+                obs_obs_T = np.zeros((self.n_states, self.n_features,
                     self.n_features), dtype=np.float32)
         cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
                 obs_obs_T_offset = np.zeros((self.n_states, 
@@ -224,8 +223,8 @@ cdef class MetastableSLDSCPUImpl:
                 obs_obs_T_but_last = np.zeros((self.n_states, 
                     self.n_features, self.n_features), dtype=np.float32)
 
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post = \
-                np.zeros(self.n_states, dtype=np.float32)
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
+                post = np.zeros(self.n_states, dtype=np.float32)
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
                 post_but_first = np.zeros(self.n_states, dtype=np.float32)
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
@@ -318,11 +317,11 @@ def test_gaussian_loglikelihood_full():
     cdef int n_states = 2
     cdef int n_features = 3
     
-    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] sequence\ 
+    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] sequence \
             = np.random.randn(length, n_features).astype(np.float32)
-    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means\
+    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means \
             = np.random.randn(n_states, n_features).astype(np.float32)
-    cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covariances\
+    cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covariances \
             = (np.random.rand(n_states, n_features, n_features)
                     .astype(np.float32))
     for i in range(n_states):
