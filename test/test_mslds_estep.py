@@ -5,43 +5,18 @@ testing by comparing to a reference gaussian HMM implementation
 import string
 import numpy as np
 import warnings
+import os
 from sklearn.hmm import GaussianHMM
 from sklearn.utils.extmath import logsumexp
 from mixtape.mslds import MetastableSwitchingLDS
 from mixtape import _mslds
 from mixtape.ghmm import GaussianFusionHMM
 from mslds_examples import PlusminModel, MullerModel, MullerForce
+from mslds_examples import AlanineDipeptideModel
 import matplotlib.pyplot as plt
 
 
-def test_sample():
-    assert True == False
-
-def test_predict():
-    assert True == False
-
-def test_fit():
-    assert True == False
-
-def test_means_update():
-    assert True == False
-
-def test_transmat_update():
-    assert True == False
-
-def test_A_update():
-    assert True == False
-
-def test_Q_update():
-    assert True == False
-
-def test_b_update():
-    assert True == False
-
-def gen_plusmin_model():
-    return n_seq, mus, K, x_dim, T, s, xs, Ss
-
-def test_plusmin():
+def test_plusmin_estep():
     num_hotstart = 3
     num_iters = 6
     n_seq = 1
@@ -70,7 +45,7 @@ def test_plusmin():
     plt.legend()
     plt.show()
 
-def test_muller_potential():
+def test_muller_potential_estep():
     muller = MullerModel()
     n_seq = 1
     num_trajs = 1
@@ -117,10 +92,45 @@ def test_muller_potential():
     plt.plot(sim_xs[:, 0], sim_xs[:, 1], zorder=5, color='g')
 
 
-    MullerForce.plot(ax=plt.gca(), minx=minx, maxx=maxx, miny=miny, maxy=maxy)
+    MullerForce.plot(ax=plt.gca(), minx=minx, maxx=maxx,
+            miny=miny, maxy=maxy)
     plt.show()
 
-def reference_estep(refmodel):
+def test_alanine_estep():
+    K = 2
+    T = 1000
+    num_trajs = 1
+    traj_filename = 'ala2.h5'
+    a = AlanineDipeptideModel()
+    if not os.path.exists(traj_filename):
+        a.generate_dataset(traj_filename, T)
+    xs, x_dim = a.load_dataset(traj_filename)
+    sequences = [xs]
+    import pdb
+    pdb.set_trace()
+
+    # Fit Metastable Switcher
+    num_hotstart = 1
+    num_iters = 2
+    l = MetastableSwitchingLDS(K, x_dim, n_hotstart=num_hotstart,
+            n_em_iter=num_iters)
+    l.fit(sequences)
+    mslds_score = l.score(sequences)
+    print("MSLDS Log-Likelihood = %f" %  mslds_score)
+
+    # Fit Gaussian HMM for comparison
+    g = GaussianFusionHMM(K, x_dim)
+    g.fit(sequences)
+    hmm_score = g.score(sequences)
+    print("HMM Log-Likelihood = %f" %  hmm_score)
+
+    sim_xs,sim_Ss,sim_ys = l.simulate(sim_T,s_init=0, x_init=means[0],
+      y_init=means[0])
+    gen_movie(sim_ys, topology, 'alanine', sim_T, N_atoms, dim)
+    gen_movie(out_x_tTs[NUM_SCHED-1,NUM_ITERS-1],
+      topology, 'alanine2', T, N_atoms, dim)
+
+def reference_estep(refmodel, data):
     curr_logprob = 0
     stats = refmodel._initialize_sufficient_statistics()
     stats['post[1:]'] = np.zeros(refmodel.n_components)
@@ -174,7 +184,12 @@ def reference_estep(refmodel):
 
     return curr_logprob, stats
 
-def test_sufficient_statistics():
+def test_sufficient_statistics_basic():
+    """
+    Sanity test MSLDS sufficient statistic gathering by setting
+    dynamics model to 0 and testing that E-step matches that of
+    HMM
+    """
     # Generate reference data
     n_states = 2
     n_features = 3
@@ -201,32 +216,32 @@ def test_sufficient_statistics():
     # Remove this step once hot_start is factored out
     iteration = 0
     logprob, stats = model._impl.do_estep(iteration)
-    rlogprob, rstats = reference_estep(refmodel)
+    rlogprob, rstats = reference_estep(refmodel, data)
 
     yield lambda: np.testing.assert_array_almost_equal(stats['post'],
             rstats['post'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(stats['post[1:]'],
-    #        rstats['post[1:]'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(stats['post[:-1]'],
-    #        rstats['post[:-1]'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(stats['obs'],
-    #        rstats['obs'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(stats['obs[1:]'],
-    #        rstats['obs[1:]'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(stats['obs[:-1]'],
-    #        rstats['obs[:-1]'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(stats['obs*obs.T'],
-    #        rstats['obs*obs.T'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(
-    #        stats['obs*obs[t-1].T'], rstats['obs*obs[t-1].T'], decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(
-    #        stats['obs[1:]*obs[1:].T'], rstats['obs[1:]*obs[1:].T'],
-    #        decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(
-    #        stats['obs[:-1]*obs[:-1].T'], rstats['obs[:-1]*obs[:-1].T'],
-    #        decimal=3)
-    #yield lambda: np.testing.assert_array_almost_equal(
-    #        stats['trans'], rstats['trans'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['post[1:]'],
+            rstats['post[1:]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['post[:-1]'],
+            rstats['post[:-1]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs'],
+            rstats['obs'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs[1:]'],
+            rstats['obs[1:]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs[:-1]'],
+            rstats['obs[:-1]'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(stats['obs*obs.T'],
+            rstats['obs*obs.T'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['obs*obs[t-1].T'], rstats['obs*obs[t-1].T'], decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['obs[1:]*obs[1:].T'], rstats['obs[1:]*obs[1:].T'],
+            decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['obs[:-1]*obs[:-1].T'], rstats['obs[:-1]*obs[:-1].T'],
+            decimal=3)
+    yield lambda: np.testing.assert_array_almost_equal(
+            stats['trans'], rstats['trans'], decimal=3)
 
 def test_gaussian_loglikelihood_full():
     _mslds.test_gaussian_loglikelihood_full()

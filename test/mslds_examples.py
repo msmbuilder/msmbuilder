@@ -1,5 +1,10 @@
 import numpy as np
 import simtk.openmm as mm
+import mdtraj as md
+import os
+import mdtraj.reporters
+from simtk.openmm import app
+from simtk import unit
 from simtk.unit import kelvin, picosecond, femtosecond, nanometer, dalton
 import warnings
 from mixtape.mslds import MetastableSwitchingLDS
@@ -151,3 +156,37 @@ class MullerModel():
                 trajectory[i, :] = x[0, 0:2]
                 integrator.step(10)
         return xs, trajectory, start
+
+class AlanineDipeptideModel:
+    """Generates a short Alanine Dipeptide Trajectory.
+    """
+    def __init__(self):
+        pass
+
+    def load_dataset(self, traj_filename):
+        traj = md.load(traj_filename)
+        topology = traj.topology
+        (T, N_atoms, dim) = np.shape(traj.xyz)
+        y_dim = N_atoms * dim
+        x_dim = y_dim
+        ys = np.reshape(traj.xyz, (T, y_dim))
+        return ys, x_dim
+
+    def generate_dataset(self, traj_filename, T):
+        pdb = md.load('native.pdb')
+        topology = pdb.topology.to_openmm()
+        forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
+        system = forcefield.createSystem(topology,
+                  nonbondedMethod=app.CutoffNonPeriodic)
+        integrator = mm.LangevinIntegrator(330*unit.kelvin,
+          1.0/unit.picoseconds, 2.0*unit.femtoseconds)
+        simulation = app.Simulation(topology, system, integrator)
+
+        simulation.context.setPositions(pdb.xyz[0])
+        simulation.context.setVelocitiesToTemperature(330*unit.kelvin)
+        if os.path.exists(traj_filename):
+            os.remove(traj_filename)
+        simulation.reporters.append(
+                md.reporters.HDF5Reporter(traj_filename, 10))
+        simulation.step(T)
+
