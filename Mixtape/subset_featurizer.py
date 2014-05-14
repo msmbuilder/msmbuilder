@@ -58,7 +58,7 @@ def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=No
     return atom_indices, pair_indices
 
 
-def lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
+def _lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
     """Convert pairs of atom indices into a list of indices
 
     Parameters
@@ -76,6 +76,15 @@ def lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
         A numpy array with the integer indices that map subset_pair_indices
         onto all_pair_indices.  That is, subset[k] indices the value of 
         all_pair_indices that matches subset_pair_indices[k] 
+        
+    
+    Notes
+    -----
+    This function is mostly useful when you have two lists of atom_pair
+    indices and you want to find "indices" mapping the smaller to the larger
+    list.  This could occur when you are looking at different atom_pair
+    featurizers.
+    
     """
 
 
