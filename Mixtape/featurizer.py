@@ -26,6 +26,7 @@ from six.moves import cPickle
 import numpy as np
 import mdtraj as md
 import mdtraj.geometry
+from sklearn.base import BaseEstimator
 
 #-----------------------------------------------------------------------------
 # Code
@@ -89,7 +90,7 @@ def load(filename):
     return featurizer
 
 
-class Featurizer(object):
+class Featurizer(BaseEstimator):
 
     """Base class for Featurizer objects."""
 

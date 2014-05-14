@@ -1,8 +1,16 @@
 #!/usr/bin/env python
 'Hidden Markov Models of Biomolecular Dynamics'
-from mixtape.cmdline import App
+from mixtape.cmdline import App, NumpydocClassCommand
 # the commands register themselves when they're imported
 from mixtape.commands import *
 
-app = App(name='hmsm', description=__doc__)
+
+class HMSMApp(App):
+    def _subcommands(self):
+        for e in super(HMSMApp, self)._subcommands():
+            if not issubclass(e, NumpydocClassCommand):
+                yield e
+
+
+app = HMSMApp(name='hmsm', description=__doc__)
 app.start()
