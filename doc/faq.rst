@@ -49,19 +49,19 @@ Where should I start with the MSM literature?
     `Peter Deuflhard <http://scholar.google.com/citations?user=xsx-ru4AAAAJ&hl=en>`_,
     `Ken Dill <http://scholar.google.com/citations?user=t3u4Y3EAAAAJ&hl=en&oi=ao>`_,
     `Gianni De Fabritiis <http://scholar.google.com/citations?user=-_kX4kMAAAAJ&hl=en&oi=ao>`_,
-    `Helmut Grubmüller <http://scholar.google.com/scholar?oi=bibs&hl=en&q=Helmut+Grubmuller>`_,
+    `Helmut Grubmuller <http://scholar.google.com/scholar?oi=bibs&hl=en&q=Helmut+Grubmuller>`_,
     `Xuhui Huang <http://scholar.google.com/citations?user=cDpFo0oAAAAJ&hl=en&oi=ao>`_,
     `Ronald Levy <http://scholar.google.com/citations?user=df7O5IkAAAAJ&hl=en>`_,
-    `Frank Noé <http://scholar.google.com/citations?user=QGiLc_cAAAAJ&hl=en&oi=ao>`_,
+    `Frank Noe <http://scholar.google.com/citations?user=QGiLc_cAAAAJ&hl=en&oi=ao>`_,
     `Vijay Pande <http://scholar.google.com/citations?user=cWe_xpUAAAAJ&hl=en&oi=ao>`_,
     `Jed Pitera <http://scholar.google.com/scholar?oi=bibs&hl=en&q=Jed+Pitera>`_,
-    `Benoît Roux <http://scholar.google.com/citations?user=hoGTGlMAAAAJ&hl=en>`_,
-    `Christof Schütte <http://scholar.google.com/scholar?q=Christof+Sch%C3%BCtte&btnG=&hl=en&as_sdt=0%2C5>`_,
+    `Benoit Roux <http://scholar.google.com/citations?user=hoGTGlMAAAAJ&hl=en>`_,
+    `Christof Schutte <http://scholar.google.com/scholar?q=Christof+Sch%C3%BCtte&btnG=&hl=en&as_sdt=0%2C5>`_,
     `Bill Swope <http://scholar.google.de/citations?user=pclnAzsAAAAJ&hl=de>`_,
     `Eric Vanden-Eijnden <http://scholar.google.com/citations?user=OZfliS4AAAAJ&hl=en&oi=ao>`_, and
     `Marcus Weber <http://scholar.google.de/citations?user=gBwM5-gAAAAJ>`_.
 
-    In 2014, Greg Bowman, Vijay Pande, and Frank Noé edited the book
+    In 2014, Greg Bowman, Vijay Pande, and Frank Noe edited the book
     `An Introduction to Markov State Models and Their Application to Long Timescale
     Molecular Simulation <http://dx.doi.org/10.1007/978-94-007-7606-7>`_,
     which features contributions from many of the authors above.
@@ -69,7 +69,7 @@ Where should I start with the MSM literature?
     Two outstanding reviews (the first is somewhat old, but still very much worth
     reading) of the field are
 
-    - Noé, F, and S. Fischer. `Transition networks for modeling the 
+    - Noe, F, and S. Fischer. `Transition networks for modeling the 
       kinetics of conformational change in macromolecules.
       <http://dx.doi.org/10.1016/j.sbi.2008.01.008>`_
       Curr. Opin. Struct. Biol. 18.2 (2008): 154-162.
@@ -79,7 +79,7 @@ Where should I start with the MSM literature?
 
     Methodologically, some of my favorite recent papers (2013-) include: [#f1]_
 
-    - Nüske, F., et al. `Variational approach to molecular kinetics
+    - Nuske, F., et al. `Variational approach to molecular kinetics
       <http://dx.doi.org/10.1021/ct4009156>`_ J. Chem. Theory Comput. 10.4 (2014): 1739-1752.
     - Schwantes, C. R., and V. S. Pande. `Improvements in markov state
       model construction reveal many non-native interactions in the folding of
@@ -88,7 +88,7 @@ Where should I start with the MSM literature?
     - Perez-Hernandez, G., et al. `Identification of slow molecular order
       parameters for Markov model construction <http://dx.doi.org/10.1063/1.4811489>`_
       J Chem. Phys. (2013): 015102.
-    - Noé, F., et al. `Projected and Hidden Markov Models for calculating
+    - Noe, F., et al. `Projected and Hidden Markov Models for calculating
       kinetics and metastable states of complex molecules.
       <http://dx.doi.org/10.1063/1.4828816>`_ J. Chem. Phys. 139.18 (2013): 184114.
     - McGibbon, R. T., et al. `Understanding Protein Dynamics with L1-Regularized
@@ -100,7 +100,7 @@ Where should I start with the MSM literature?
     - Shukla, D, et al. `Activation pathway of Src kinase reveals intermediate
       states as targets for drug design. <http://dx.doi.org/10.1038/ncomms4397>`_
       Nat. Commun. 5 (2014).
-    - Sadiq, S. K., F. Noé, and G. De Fabritiis. `Kinetic characterization of the
+    - Sadiq, S. K., F. Noe, and G. De Fabritiis. `Kinetic characterization of the
       critical step in HIV-1 protease maturation.
       <http://dx.doi.org/10.1073/pnas.1210983109>`_
       Proc. Natl. Acad. Sci. U.S.A 109.50 (2012): 20449-20454.
