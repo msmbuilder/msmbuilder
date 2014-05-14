@@ -123,6 +123,7 @@ class MullerModel():
         self.K = 3
 
     def generate_dataset(self, n_seq, num_trajs, T):
+        # TODO: Clean this function up
         # Choose starting conformations uniform on the grid
         # between (-1.5, -0.2) and (1.2, 2)
         start = T / 4 # Not sure if this is necessary
@@ -155,7 +156,9 @@ class MullerModel():
                     xs[0, traj * (T-start) + (i-start), :] = x[0, 0:2]
                 trajectory[i, :] = x[0, 0:2]
                 integrator.step(10)
-        return xs, trajectory, start
+        #import pdb
+        #pdb.set_trace()
+        return [xs[0]], trajectory, start
 
 class AlanineDipeptideModel:
     """Generates a short Alanine Dipeptide Trajectory.
