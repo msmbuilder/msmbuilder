@@ -25,4 +25,5 @@ conda install --yes matplotlib scikit-learn sphinx boto ipython-notebook jinja2
 pip install runipy==0.0.4                      # example notebooks
 
 cd doc && make html && cd -
+cat /tmp/sphinx-*
 python tools/ci/push-docs-to-s3.py
