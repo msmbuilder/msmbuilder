@@ -145,8 +145,8 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
     exponent : float, optional, default=1.0
         Use the distances to this power as the output feature.
     
-    Notes
-    -----
+    See Also
+    --------
     
     See `get_atompair_indices` for how one might generate acceptable atom pair
     indices.
