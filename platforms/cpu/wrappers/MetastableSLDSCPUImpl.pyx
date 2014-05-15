@@ -39,16 +39,14 @@ cdef class MetastableSLDSCPUImpl:
     cdef list sequences
     cdef int n_sequences
     cdef np.ndarray seq_lengths
-    cdef int n_states, n_features, n_hotstart
+    cdef int n_states, n_features
     cdef str precision
     cdef np.ndarray means, covars, Qs, As, bs
     cdef log_transmat, log_transmat_T, log_startprob, 
 
-    def __cinit__(self, n_states, n_features, n_hotstart,
-            precision='single'):
+    def __cinit__(self, n_states, n_features, precision='single'):
         self.n_states = n_states
         self.n_features = n_features
-        self.n_hotstart = n_hotstart
         self.precision = str(precision)
         if self.precision not in ['single', 'mixed']:
             raise ValueError('This platform only supports ',
@@ -176,7 +174,7 @@ cdef class MetastableSLDSCPUImpl:
             self.log_startprob = np.log(s)
 
     
-    def do_estep(self, iteration):
+    def do_estep(self, iteration, hmm_hotstart=False):
         cdef np.ndarray[ndim=2, mode='c', 
                 dtype=np.float32_t] log_transmat = self.log_transmat
         cdef np.ndarray[ndim=2, mode='c', 
@@ -236,8 +234,6 @@ cdef class MetastableSLDSCPUImpl:
         for i in range(self.n_sequences):
             sequence = self.sequences[i]
             seq_pointers[i] = &sequence[0,0]
-
-        hmm_hotstart = (iteration < self.n_hotstart)
 
         if self.precision == 'single':
             do_estep_single(

@@ -16,10 +16,7 @@ from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
 from mdtraj.utils import ensure_type
 
-from mixtape import _reversibility, _mslds
 from mixtape._mslds import MetastableSLDSCPUImpl
-from mixtape.mslds_solvers.mslds_A_sdp import solve_A
-from mixtape.mslds_solvers.mslds_Q_sdp import solve_Q
 from mixtape.utils import iter_vars, categorical
 
 class MetastableSwitchingLDS(object):

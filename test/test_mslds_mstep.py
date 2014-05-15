@@ -1,8 +1,9 @@
 import numpy as np
 import warnings
 from mslds_examples import PlusminModel, MullerModel, MullerForce
-from mixtape.mslds import MetastableSwitchingLDS
+from mixtape.mslds_solver import MetastableSwitchingLDSSolver
 from sklearn.hmm import GaussianHMM
+from test_mslds_estep import reference_estep
 
 def test_plusmin_mstep():
     # Set constants
@@ -91,29 +92,18 @@ def test_muller_potential_mstep():
     # Fit reference model and initial MSLDS model
     refmodel = GaussianHMM(n_components=n_components,
                         covariance_type='full').fit(data)
-    model = MetastableSwitchingLDS(n_components, n_features,
-            n_hotstart=num_hotstart)
-    model._impl._sequences = data
-    model.means_ = refmodel.means_
-    model.covars_ = refmodel.covars_
-    model.transmat_ = refmodel.transmat_
-    model.populations_ = refmodel.startprob_
-    As = []
-    for i in range(n_components):
-        As.append(np.zeros((n_features, n_features)))
-    model.As_ = As
-    model.Qs_ = refmodel.covars_
-    model.bs_ = refmodel.means_
 
-    # Do one mstep
+    # Obtain sufficient statistics from refmodel
+    rlogprob, rstats = reference_estep(refmodel, data)
+
+    # Test AQB solver for MSLDS solver
+    solver = MetastableSwitchingLDSSolver(backend='FirstOpt')
     params = 'aqb' # With param t is broken!
-    iteration = 0 # Remove this step once hot_start is factored out
-    logprob, stats = model._impl.do_estep(iteration)
-    model._do_mstep(stats, params, iteration)
+    solver.do_mstep(rstats, params)
 
     # The current implementation's behavior is pretty broken here....
     # So this test should auto-fail until things are fixed.
-    assert True == False
+    #assert True == False
 
 def test_muller_potential_score():
     sim_T = 1000

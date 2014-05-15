@@ -1,18 +1,21 @@
+import numpy as np
+from mixtape import _reversibility, _mslds
+
 class MetastableSwitchingLDSSolver(object):
-    def __init__(self, backend):
+    def __init__(self, backend, n_states):
         self.covars_prior = 1e-2
         self.covars_weight = 1.
-        self.transmat_prior = 1.0
+        self.transmat_prior = 2.0
         self.backend = backend
+        self.n_states = n_states
 
     def do_hmm_mstep(self, stats):
         self.means_update(stats)
         self.covars_update(stats)
 
     def do_mstep(self, stats, params):
-        self.transmat_update(stats)
-        self.AQ_update(stats)
-        self.b_update(stats)
+        transmat = self.transmat_update(stats)
+        self.AQb_update(stats)
 
     def covars_update(self, stats):
         cvweight = max(self.covars_weight - self.n_features, 0)
@@ -43,8 +46,20 @@ class MetastableSwitchingLDSSolver(object):
         counts = (np.maximum(stats['trans']
                         + self.transmat_prior - 1.0, 1e-20)
                     .astype(np.float64))
-        self.transmat_, self.populations_ = \
-                _reversibility.reversible_transmat(counts)
+        # Need to fix this......
+        #self.transmat_, self.populations_ = \
+        #        _reversibility.reversible_transmat(counts)
+        (dim, _) = np.shape(counts)
+        norms = np.zeros(dim)
+        for i in range(dim):
+            norms[i] = sum(counts[:,i])
+        revised_counts = np.copy(counts)
+        for i in range(dim):
+            revised_counts[:,i] /= norms[i]
+            print sum(revised_counts[:,i])
+        #print "counts\n", counts
+        #print "revised_counts\n", revised_counts
+        return revised_counts
 
     def compute_auxiliary_matrices(self, stats):
         b = np.reshape(self.bs_[i], (self.n_features, 1))
@@ -70,7 +85,7 @@ class MetastableSwitchingLDSSolver(object):
         E = stats['obs[:-1]*obs[:-1].T'][i]
         Sigma = self.covars_[i]
 
-    def AQ_update(self, stats):
+    def AQb_update(self, stats):
         for i in range(self.n_states):
             sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
                     self.max_iters, self.display_solver_output)
@@ -96,7 +111,5 @@ class MetastableSwitchingLDSSolver(object):
                     Q[k, j] = Q[j, k]
             self.Qs_[i] = Q
 
-    def b_update(self, stats):
-        for i in range(self.n_states):
             mu = self.means_[i]
             self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
