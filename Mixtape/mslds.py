@@ -34,7 +34,7 @@ class MetastableSwitchingLDS(object):
     ----------
     n_states : int
         The number of hidden states.
-    n_init : int
+    n_experiments : int
         Number of time the EM algorithm will be run with different
         random seeds.
     n_features : int
@@ -45,22 +45,22 @@ class MetastableSwitchingLDS(object):
         Number of iterations to perform during training
     params : string, optional, default
         Controls which parameters are updated in the training process.
+    backet: string
+        Either FirstOpt or cvxopt
     """
 
-    def __init__(self, n_states, n_features, n_init=5,
+    def __init__(self, n_states, n_features, n_experiments=5,
             n_hotstart_sequences=10, params='tmcqab', n_em_iter=10,
-            n_hotstart = 5):
+            n_hotstart = 5, backend='FirstOpt'):
 
         self.n_states = n_states
-        self.n_init = n_init
+        self.n_experiments = n_experiments
         self.n_features = n_features
         self.n_hotstart = n_hotstart
         self.n_hotstart_sequences = n_hotstart_sequences
         self.n_em_iter = n_em_iter
         self.params = params
         self.eps = .2
-        self._impl = None
-
         self._As_ = None
         self._bs_ = None
         self._Qs_ = None
@@ -69,16 +69,19 @@ class MetastableSwitchingLDS(object):
         self._transmat_ = None
         self._populations_ = None
 
-
-        self._impl = _mslds.MetastableSLDSCPUImpl(self.n_states,
+        self.solver = MetastableSwitchingLDSSolver(backend=backend)
+        self.inferrer = _mslds.MetastableSLDSCPUImpl(self.n_states,
                 self.n_features, self.n_hotstart, 'mixed')
+
+
+
 
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)
         """
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
                      for s in sequences]
-        self._impl._sequences = sequences
+        self.inferrer._sequences = sequences
 
         small_dataset = np.vstack(
             sequences[0:min(len(sequences), self.n_hotstart_sequences)])
@@ -157,8 +160,8 @@ class MetastableSwitchingLDS(object):
         """
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
                      for s in sequences]
-        self._impl._sequences = sequences
-        logprob, _ = self._impl.do_estep(self.n_em_iter)
+        self.inferrer._sequences = sequences
+        logprob, _ = self.inferrer.do_estep(self.n_em_iter)
         return logprob
 
     def fit(self, sequences):
@@ -167,15 +170,17 @@ class MetastableSwitchingLDS(object):
         n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
 
-        for r in range(self.n_init):
+        for r in range(self.n_experiments):
             fit_logprob = []
             self._init(sequences)
+            for i in range(self.n_hotstart):
+                curr_logprob, stats = \
+                        self.inferrer.do_estep(hmm_hotstart=True)
+                self.solver.do_mstep(stats, set(self.params))
             for i in range(self.n_em_iter):
-                curr_logprob, stats = self._impl.do_estep(i)
-                if i >= self.n_hotstart:
-                    fit_logprob.append(curr_logprob)
-
-                self._do_mstep(stats, set(self.params), i)
+                curr_logprob, stats = self.inferrer.do_estep()
+                fit_logprob.append(curr_logprob)
+                self.solver.do_mstep(stats, set(self.params))
             if curr_logprob > best_fit['loglikelihood']:
                 best_fit['loglikelihood'] = curr_logprob
                 best_fit['params'] = {'means': self.means_,
@@ -213,6 +218,7 @@ class MetastableSwitchingLDS(object):
         """Compute the emergent complexity D_i of metastable state i by
           solving the fixed point equation Q_i + A_i D_i A_i.T = D_i
           for D_i
+          Can this be deleted?
         """
         covs = np.zeros((self.n_states, self.n_features, self.n_features))
         for k in range(self.n_states):
@@ -221,16 +227,6 @@ class MetastableSwitchingLDS(object):
             V = iter_vars(A, Q, N)
             covs[k] = V
         return covs
-
-    def compute_eigenspectra(self):
-        """
-        Compute the eigenspectra of operators A_i
-        """
-        eigenspectra = np.zeros((self.n_states,
-                                self.n_features, self.n_features))
-        for k in range(self.n_states):
-            eigenspectra[k] = np.diag(np.linalg.eigvals(self.As_[k]))
-        return eigenspectra
 
     # Boilerplate setters and getters
     @property
@@ -241,7 +237,7 @@ class MetastableSwitchingLDS(object):
     def As_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._As_ = value
-        self._impl.As_ = value
+        self.inferrer.As_ = value
 
     @property
     def Qs_(self):
@@ -251,7 +247,7 @@ class MetastableSwitchingLDS(object):
     def Qs_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._Qs_ = value
-        self._impl.Qs_ = value
+        self.inferrer.Qs_ = value
 
     @property
     def bs_(self):
@@ -261,7 +257,7 @@ class MetastableSwitchingLDS(object):
     def bs_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._bs_ = value
-        self._impl.bs_ = value
+        self.inferrer.bs_ = value
 
     @property
     def means_(self):
@@ -271,7 +267,7 @@ class MetastableSwitchingLDS(object):
     def means_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._means_ = value
-        self._impl.means_ = value
+        self.inferrer.means_ = value
 
     @property
     def covars_(self):
@@ -281,7 +277,7 @@ class MetastableSwitchingLDS(object):
     def covars_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._covars_ = value
-        self._impl.covars_ = value
+        self.inferrer.covars_ = value
 
     @property
     def transmat_(self):
@@ -291,7 +287,7 @@ class MetastableSwitchingLDS(object):
     def transmat_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._transmat_ = value
-        self._impl.transmat_ = value
+        self.inferrer.transmat_ = value
 
     @property
     def populations_(self):
@@ -301,5 +297,4 @@ class MetastableSwitchingLDS(object):
     def populations_(self, value):
         value = np.asarray(value, order='c', dtype=np.float32)
         self._populations_ = value
-        self._impl.startprob_ = value
-
+        self.inferrer.startprob_ = value

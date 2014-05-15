@@ -1,25 +1,20 @@
 class MetastableSwitchingLDSSolver(object):
-    def __init__(self):
+    def __init__(self, backend):
         self.covars_prior = 1e-2
         self.covars_weight = 1.
         self.transmat_prior = 1.0
+        self.backend = backend
 
-    def _do_mstep(self, stats, params, iteration):
-        if iteration < self.n_hotstart:
-            if 'm' in params:
-                self._means_update(stats)
-            if 'c' in params:
-                self._covars_update(stats)
-        if 't' in params:
-            self._transmat_update(stats)
-        if 'a' in params:
-            self._A_update(stats)
-        if 'q' in params:
-            self._Q_update(stats)
-        if 'b' in params:
-            self._b_update(stats)
+    def do_hmm_mstep(self, stats):
+        self.means_update(stats)
+        self.covars_update(stats)
 
-    def _covars_update(self, stats):
+    def do_mstep(self, stats, params):
+        self.transmat_update(stats)
+        self.AQ_update(stats)
+        self.b_update(stats)
+
+    def covars_update(self, stats):
         cvweight = max(self.covars_weight - self.n_features, 0)
         for c in range(self.n_states):
             obsmean = np.outer(stats['obs'][c], self.means_[c])
@@ -41,10 +36,10 @@ class MetastableSwitchingLDSSolver(object):
                 self.covars_[c] += (2 * abs(min_eig) *
                                     np.eye(self.n_features))
 
-    def _means_update(self, stats):
+    def means_update(self, stats):
         self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
 
-    def _transmat_update(self, stats):
+    def transmat_update(self, stats):
         counts = (np.maximum(stats['trans']
                         + self.transmat_prior - 1.0, 1e-20)
                     .astype(np.float64))
@@ -75,7 +70,7 @@ class MetastableSwitchingLDSSolver(object):
         E = stats['obs[:-1]*obs[:-1].T'][i]
         Sigma = self.covars_[i]
 
-    def _A_update(self, stats):
+    def AQ_update(self, stats):
         for i in range(self.n_states):
             sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
                     self.max_iters, self.display_solver_output)
@@ -86,8 +81,6 @@ class MetastableSwitchingLDSSolver(object):
                            order='F')
             self.As_[i] = A
 
-    def _Q_update(self, stats):
-        for i in range(self.n_states):
             A = self.As_[i]
             b = np.reshape(self.bs_[i], (self.n_features, 1))
             sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
@@ -103,8 +96,7 @@ class MetastableSwitchingLDSSolver(object):
                     Q[k, j] = Q[j, k]
             self.Qs_[i] = Q
 
-    def _b_update(self, stats):
+    def b_update(self, stats):
         for i in range(self.n_states):
             mu = self.means_[i]
             self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
-

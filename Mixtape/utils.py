@@ -91,6 +91,17 @@ def iter_vars(A, Q, N):
     return V
 
 # TODO: FIX THIS!
+def compute_eigenspectra(self):
+    """
+    Compute the eigenspectra of operators A_i
+    """
+    eigenspectra = np.zeros((self.n_states,
+                            self.n_features, self.n_features))
+    for k in range(self.n_states):
+        eigenspectra[k] = np.diag(np.linalg.eigvals(self.As_[k]))
+    return eigenspectra
+
+# TODO: FIX THIS!
 def load_from_json_dict(model, model_dict):
     # Check that the num of states and features agrees
     n_features = float(model_dict['n_features'])
