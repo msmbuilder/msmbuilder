@@ -29,11 +29,14 @@ from __future__ import print_function, division, absolute_import
 import time
 import warnings
 import numpy as np
+import random
+from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from sklearn import cluster
 import sklearn.mixture
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _ghmm, _reversibility
 from mdtraj.utils import ensure_type
+from sklearn.utils import check_random_state
 
 try:
     from mixtape import _cuda_ghmm_single
@@ -521,7 +524,7 @@ class GaussianFusionHMM(object):
         return logprob, state_sequences
 
 
-    def find_centroids(self, sequences, trajectories=None):
+    def draw_centroids(self, sequences):
         """Find conformations most representative of model means.
 
         Parameters
@@ -530,24 +533,23 @@ class GaussianFusionHMM(object):
             List of 2-dimensional array observation sequences, each of which
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
-        trajectories : list(md.Trajectory), optional, default=None
-            Optionally provide the trajectories assocated with sequences,
-            which will be used to extract coordinates of the state centers
-            from the raw trajectory data
 
         Returns
         -------
-        trj_ind : np.ndarray, dtype=int, shape = (n_states)
-            trj_ind[state] gives the trajectory index associated with the 
+        centroid_pairs_by_state : np.ndarray, dtype=int, shape = (n_states, 1, 2)
+            centroid_pairs_by_state[state, 0] = (trj, frame) gives the 
+            trajectory and frame index associated with the 
             mean of `state`
-        frame_ind : np.ndarray, dtype=int, shape = (n_states)
-            frame_ind[state] gives the frame index associated with the 
-            mean of `state`
-        mean_approx : np.ndarray, dtype=float, shape = (n_states, n_features)
-            mean_approx[state] gives the features at the representative 
+        mean_approx : np.ndarray, dtype=float, shape = (n_states, 1, n_features)
+            mean_approx[state, 0] gives the features at the representative 
             point for `state`
-        mean_traj : mdtraj.Trajectory, optional
-            If trajectories is provided
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        GaussianFusionHMM.draw_samples : Draw samples from GHMM
+        
+
         """    
         
         logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
@@ -560,12 +562,92 @@ class GaussianFusionHMM(object):
 
         mean_approx = np.array([sequences[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)])
         
-        if trajectories is None:
-            return trj_ind, frame_ind, mean_approx
+        centroid_pairs_by_state = np.array(zip(trj_ind, frame_ind))
+        
+        return centroid_pairs_by_state[:, np.newaxis, :], mean_approx[:, np.newaxis, :]  # np.newaxis changes arrays from 2D to 3D for consistency with `sample_states()`
+
+
+    def draw_samples(self, sequences, n_samples, scheme="even", match_vars=False):
+        """Sample conformations from each state.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        n_samples : int
+            How many samples to return from each state
+        scheme : str, optional, default='even'
+            Must be one of ['even', "maxent"].  
+        match_vars : bool, default=False
+            Flag for matching variances in maxent discrete approximation
+
+        Returns
+        -------
+        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
+            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
+            pairs from the specified state.
+        sample_features : np.ndarray, dtype=float, shape = (n_states, n_samples, n_features)
+            sample_features[state, sample] gives the features for the given `sample` of 
+            `state`
+            
+        Notes
+        -----
+        With scheme='even', this function assigns frames to states crisply then samples from
+        the uniform distribution on the frames belonging to each state.
+        With scheme='maxent', this scheme uses a maximum entropy method to
+        determine a discrete distribution on samples whose mean (and possibly variance)
+        matches the GHMM means.
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        GaussianFusionHMM.draw_centroids : Draw centers from GHMM
+        
+        ToDo
+        ----
+        This function could be separated into several MixIns for
+        models with crisp and fuzzy state assignments.  Then we could have
+        an optional argument that specifies which way to do the sampling
+        from states--e.g. use either the base class function or a 
+        different one.
+        """
+        
+        random = check_random_state(self.random_state)
+        
+        if scheme == 'even':
+            logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
+            ass = [lp.argmax(1) for lp in logprob]
+            
+            selected_pairs_by_state = []
+            for state in range(self.n_states):
+                all_frames = [np.where(a == state)[0] for a in ass]
+                pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
+                selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
+        
+        elif scheme == "maxent":
+            X_concat = np.concatenate(sequences)
+            all_pairs = np.array([(trj, frame) for trj, X in enumerate(sequences) for frame in range(X.shape[0])])
+            selected_pairs_by_state = []
+            for k in range(self.n_states):
+                print('computing weights for k=%d...' % k)
+                try:
+                    weights = discrete_approx_mvn(X_concat, self.means_[k], self.vars_[k], match_vars)
+                except NotSatisfiableError:
+                    self.error('Satisfiability failure. Could not match the means & '
+                               'variances w/ discrete distribution. Try removing the '
+                               'constraint on the variances with --no-match-vars?')
+
+                weights /= weights.sum()
+                frames = random.choice(len(all_pairs), n_samples, p=weights)
+                selected_pairs_by_state.append(all_pairs[frames])
+
         else:
-            frames = [trajectories[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)]
-            mean_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
-            return trj_ind, frame_ind, mean_approx, mean_trj
+            raise(ValueError("scheme must be one of ['even', 'maxent'])"))
+        
+        return np.array(selected_pairs_by_state)
+
         
 class _SklearnGaussianHMMCPUImpl(object):
 
