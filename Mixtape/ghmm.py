@@ -601,9 +601,11 @@ class GaussianFusionHMM(object):
             
         Notes
         -----
-        This function assigns frames to states crisply then samples from
+        With scheme='even', this function assigns frames to states crisply then samples from
         the uniform distribution on the frames belonging to each state.
-        This is one of *several* ways to sample states.
+        With scheme='maxent', this scheme uses a maximum entropy method to
+        determine a discrete distribution on samples whose mean (and possibly variance)
+        matches the GHMM means.
         
         ToDo
         ----
