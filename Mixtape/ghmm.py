@@ -36,6 +36,7 @@ import sklearn.mixture
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
 from mixtape import _ghmm, _reversibility
 from mdtraj.utils import ensure_type
+from sklearn.utils import check_random_state
 
 try:
     from mixtape import _cuda_ghmm_single
@@ -611,7 +612,10 @@ class GaussianFusionHMM(object):
         an optional argument that specifies which way to do the sampling
         from states--e.g. use either the base class function or a 
         different one.
-        """    
+        """
+        
+        random = check_random_state(self.random_state)
+        
         if scheme == 'even':
             logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
             ass = [lp.argmax(1) for lp in logprob]
@@ -620,7 +624,7 @@ class GaussianFusionHMM(object):
             for state in range(self.n_states):
                 all_frames = [np.where(a == state)[0] for a in ass]
                 pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
-                selected_pairs_by_state.append([random.choice(pairs) for i in range(n_samples)])
+                selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
         
         elif scheme == "maxent":
             X_concat = np.concatenate(sequences)
@@ -636,7 +640,7 @@ class GaussianFusionHMM(object):
                                'constraint on the variances with --no-match-vars?')
 
                 weights /= weights.sum()
-                frames = np.random.choice(len(all_pairs), n_samples, p=weights)
+                frames = random.choice(len(all_pairs), n_samples, p=weights)
                 selected_pairs_by_state.append(all_pairs[frames])
 
         else:
