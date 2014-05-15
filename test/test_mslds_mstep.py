@@ -51,11 +51,9 @@ def test_plusmin_mstep():
                 model.As_[i], np.zeros((n_features, n_features)),
                 decimal=1)
 
-
-
 def test_plusmin_scores():
     l = MetastableSwitchingLDS(plusmin.K, plusmin.x_dim,
-            n_hotstart=0)
+           n_hotstart=0)
     l.fit(obs_sequences)
     mslds_score = l.score(obs_sequences)
     print("MSLDS Log-Likelihood = %f" %  mslds_score)
@@ -76,9 +74,52 @@ def test_plusmin_scores():
     pass
 
 def test_muller_potential_mstep():
+    # Set constants
+    n_seq = 1
+    num_trajs = 1
+    T = 2500
+    num_hotstart = 0
+
+    # Generate data
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    muller = MullerModel()
+    data, trajectory, start = \
+            muller.generate_dataset(n_seq, num_trajs, T)
+    n_features = muller.x_dim
+    n_components = muller.K
+
+    # Fit reference model and initial MSLDS model
+    refmodel = GaussianHMM(n_components=n_components,
+                        covariance_type='full').fit(data)
+    model = MetastableSwitchingLDS(n_components, n_features,
+            n_hotstart=num_hotstart)
+    model._impl._sequences = data
+    model.means_ = refmodel.means_
+    model.covars_ = refmodel.covars_
+    model.transmat_ = refmodel.transmat_
+    model.populations_ = refmodel.startprob_
+    As = []
+    for i in range(n_components):
+        As.append(np.zeros((n_features, n_features)))
+    model.As_ = As
+    model.Qs_ = refmodel.covars_
+    model.bs_ = refmodel.means_
+
+    # Do one mstep
+    params = 'aqb' # With param t is broken!
+    iteration = 0 # Remove this step once hot_start is factored out
+    logprob, stats = model._impl.do_estep(iteration)
+    model._do_mstep(stats, params, iteration)
+
+    # The current implementation's behavior is pretty broken here....
+    # So this test should auto-fail until things are fixed.
+    assert True == False
+
+def test_muller_potential_score():
     sim_T = 1000
     l.fit(obs_sequences)
     mslds_score = l.score(obs_sequences)
+
     print("MSLDS Log-Likelihood = %f" %  mslds_score)
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(muller.K, muller.x_dim)
@@ -111,3 +152,4 @@ def test_muller_potential_mstep():
             miny=miny, maxy=maxy)
     plt.show()
     pass
+
