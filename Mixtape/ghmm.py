@@ -546,6 +546,8 @@ class GaussianFusionHMM(object):
         See Also
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        GaussianFusionHMM.draw_samples : Draw samples from GHMM
+        
 
         """    
         
@@ -600,6 +602,7 @@ class GaussianFusionHMM(object):
         See Also
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        GaussianFusionHMM.draw_centroids : Draw centers from GHMM
         
         ToDo
         ----

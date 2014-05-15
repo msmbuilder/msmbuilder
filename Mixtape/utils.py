@@ -130,6 +130,12 @@ def map_drawn_samples(selected_pairs_by_state, trajectories):
     -----
     YOU are responsible for ensuring that selected_pairs_by_state and 
     trajectories correspond to the same dataset!
+    
+    See Also
+    --------
+    utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+    ghmm.GaussianFusionHMM.draw_samples : Draw samples from GHMM    
+    ghmm.GaussianFusionHMM.draw_centroids : Draw centroids from GHMM    
     """
 
     frames_by_state = []
