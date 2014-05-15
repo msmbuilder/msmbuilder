@@ -197,7 +197,6 @@ class SuperposeFeaturizer(Featurizer):
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
-
         return x
 
 
@@ -466,6 +465,7 @@ class RawPositionsFeaturizer(Featurizer):
         value = traj.xyz.reshape(len(traj), -1)
         if value.shape[1] != self.n_features:
             warnings.warn('wrong n_features in RawPositionsFeaturizer')
+        return value
 
 
 class RMSDFeaturizer(Featurizer):
@@ -512,7 +512,6 @@ class RMSDFeaturizer(Featurizer):
 
         for frame in range(self.n_features):
             X[:, frame] = md.rmsd(traj, self.trj0, atom_indices=self.atom_indices, frame=frame)
-
         return X
 
 

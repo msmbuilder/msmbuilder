@@ -81,7 +81,7 @@ Example
     dataset = []
     for trajectory_file in ['trj0.xtc', 'trj1.xtc']:
         t = md.load(trajectory_file, top=xtal)
-        dataset.append(f.featurize(t))
+        dataset.append(f.partial_transform(t))
 
     hmm = GaussianFusionHMM(n_states=8, n_features=len(alpha_carbons))
     hmm.fit(dataset)

@@ -173,7 +173,7 @@ class FitMSLDS(Command, MDTrajInputMixin):
         for tfn in self.filenames:
             kwargs = {} if tfn.endswith('h5') else {'top': self.top}
             for t in md.iterload(tfn, chunk=self.args.split, **kwargs):
-                features = self.featurizer.featurize(t)
+                features = self.featurizer.partial_transform(t)
                 data.append(features)
 
         print('Loading data into memory + vectorization: %f s' %
