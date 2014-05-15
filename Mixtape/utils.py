@@ -102,7 +102,7 @@ def iter_vars(A, Q, N):
 ##########################################################################
 
 def map_drawn_samples(selected_pairs_by_state, trajectories):
-    """Sample conformations from each state.
+    """Lookup trajectory frames using pairs of (trajectory, frame) indices.
 
     Parameters
     ----------
@@ -123,8 +123,8 @@ def map_drawn_samples(selected_pairs_by_state, trajectories):
     
     Examples
     --------
-    selected_pairs_by_state = hmm.sample_states(sequences, 3)
-    samples = map_drawn_samples(selected_pairs_by_state, trajectories)
+    >>> selected_pairs_by_state = hmm.draw_samples(sequences, 3)
+    >>> samples = map_drawn_samples(selected_pairs_by_state, trajectories)
     
     Notes
     -----
