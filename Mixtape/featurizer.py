@@ -71,7 +71,7 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         kwargs = {} if file.endswith('.h5') else {'top': topology}
         count = 0
         for t in md.iterload(file, chunk=chunk, stride=stride, **kwargs):
-            x = featurizer.featurize(t)
+            x = featurizer.partial_transform(t)
             n_frames = len(x)
 
             data.append(x)
@@ -106,7 +106,7 @@ class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
         pass
 
     def featurize(self, traj):
-        pass
+        raise NotImplementedError('This API was removed. Use partial_transform instead')
 
     def partial_transform(self, traj):
         """Featurize a single trajectory.
@@ -166,7 +166,7 @@ class SuperposeFeaturizer(Featurizer):
         self.reference_traj = reference_traj
         self.n_features = len(self.atom_indices)
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
@@ -199,7 +199,7 @@ class AtomPairsFeaturizer(Featurizer):
         self.periodic = periodic
         self.exponent = exponent
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d ** self.exponent
 
@@ -226,7 +226,7 @@ class DihedralFeaturizer(Featurizer):
             raise ValueError('angles must be a subset of %s. you supplied %s' % (
                 str(known), str(types)))
 
-    def featurize(self, trajectory):
+    def partial_transform(self, traj):
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
@@ -271,7 +271,7 @@ class ContactFeaturizer(Featurizer):
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
 
-    def featurize(self, trajectory):
+    def partial_transform(self, traj):
         distances, _ = md.compute_contacts(trajectory, self.contacts, self.scheme, self.ignore_nonprotein)
         return distances
 
@@ -314,7 +314,7 @@ class GaussianSolventFeaturizer(Featurizer):
         self.periodic = periodic
         self.n_features = len(self.solute_indices)
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         # The result vector
         fingerprints = np.zeros((traj.n_frames, self.n_features))
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
@@ -340,8 +340,10 @@ class RawPositionsFeaturizer(Featurizer):
     def __init__(self, n_features):
         self.n_features = n_features
 
-    def featurize(self, traj):
-        return traj.xyz.reshape(len(traj), -1)
+    def partial_transform(self, traj):
+        value = traj.xyz.reshape(len(traj), -1)
+        if value.shape[1] != self.n_features:
+            warnings.warn('wrong n_features in RawPositionsFeaturizer')
 
 
 class RMSDFeaturizer(Featurizer):
@@ -363,7 +365,7 @@ class RMSDFeaturizer(Featurizer):
         self.trj0 = trj0
         self.atom_indices = atom_indices
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         X = np.zeros((traj.n_frames, self.n_features))
 
         for frame in range(self.n_features):
@@ -385,7 +387,7 @@ class DRIDFeaturizer(Featurizer):
     def __init__(self, atom_indices=None):
         self.atom_indices = atom_indices
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         return md.geometry.compute_drid(traj, self.atom_indices)
 
 
@@ -396,13 +398,13 @@ class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
     -----
     Works on lists of trajectories.
     """
-    def fit_transform(self, X, y=None, **fit_params):
-        """Fit all transformers using X, transform the data and concatenate
-        results.
+    def fit_transform(self, traj_list, y=None, **fit_params):
+        """Fit all transformers using `trajectories`, transform the data
+        and concatenate results.
 
         Parameters
         ----------
-        X : list (of mdtraj.Trajectory objects)
+        traj_list : list (of mdtraj.Trajectory objects)
             Trajectories to featurize
         y : Unused
             Unused
@@ -416,16 +418,16 @@ class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
             is the total (concatenated) number of features in the 
             concatenated list of featurizers.
         """
-        self.fit(X, y, **fit_params)
-        return self.transform(X)
+        self.fit(traj_list, y, **fit_params)
+        return self.transform(traj_list)
         
         
-    def transform(self, X):
+    def transform(self, traj_list):
         """Transform X separately by each transformer, concatenate results.
 
         Parameters
         ----------
-        X : list (of mdtraj.Trajectory objects)
+        trajectories : list (of mdtraj.Trajectory objects)
             Trajectories to featurize
 
         Returns
@@ -439,7 +441,7 @@ class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
 
         """
         Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(sklearn.pipeline._transform_one)(trans, name, X, self.transformer_weights)
+            delayed(sklearn.pipeline._transform_one)(trans, name, traj_list, self.transformer_weights)
             for name, trans in self.transformer_list)
 
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
