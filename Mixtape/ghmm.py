@@ -185,7 +185,7 @@ class GaussianFusionHMM(object):
         if self.init_algo not in ["GMM", "kmeans"]:
             raise ValueError("init_algo must be either GMM or kmeans")
 
-    def fit(self, sequences):
+    def fit(self, sequences, y=None):
         """Estimate model parameters.
 
         An initialization step is performed before entering the EM
@@ -198,6 +198,8 @@ class GaussianFusionHMM(object):
             List of 2-dimensional array observation sequences, each of which
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
+        y : unused
+            Needed for sklearn API consistency.
         """
         n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
