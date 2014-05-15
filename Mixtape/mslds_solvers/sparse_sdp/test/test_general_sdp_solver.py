@@ -74,8 +74,6 @@ def test2():
             A = 0.5*(1./dim) * np.eye(block_dim)
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                     Q_constraints(block_dim, A, B, D)
-            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
-                    Q_coords(block_dim)
             g = GeneralSolver(R, L, U, dim, eps)
             def obj(X):
                 return log_det_tr(X, B)
@@ -126,9 +124,6 @@ def test3():
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                     A_constraints(block_dim, D, Dinv, Q)
 
-            (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = \
-                    A_coords(block_dim)
             def obj(X):
                 return A_dynamics(X, block_dim, C, B, E, Qinv)
             def grad_obj(X):

@@ -1,25 +1,35 @@
 import numpy as np
-from mixtape import _reversibility, _mslds
+from mixtape._reversibility import reversible_transmat
+from mixtape.mslds_solvers.sparse_sdp.constraints import A_constraints
+from mixtape.mslds_solvers.sparse_sdp.constraints import A_coords
+from mixtape.mslds_solvers.sparse_sdp.constraints import Q_constraints
+from mixtape.mslds_solvers.sparse_sdp.constraints import Q_coords
+from mixtape.mslds_solvers.sparse_sdp.objectives import A_dynamics
+from mixtape.mslds_solvers.sparse_sdp.objectives import grad_A_dynamics
+from mixtape.mslds_solvers.sparse_sdp.objectives import log_det_tr
+from mixtape.mslds_solvers.sparse_sdp.objectives import grad_log_det_tr
+from mixtape.mslds_solvers.sparse_sdp.general_sdp_solver \
+        import GeneralSolver
+from mixtape.mslds_solvers.sparse_sdp.utils import get_entries, set_entries
 
 class MetastableSwitchingLDSSolver(object):
-    def __init__(self, backend, n_states):
+    def __init__(self, n_components):
         self.covars_prior = 1e-2
         self.covars_weight = 1.
-        self.transmat_prior = 2.0
-        self.backend = backend
-        self.n_states = n_states
+        self.n_components = n_components
 
     def do_hmm_mstep(self, stats):
         self.means_update(stats)
         self.covars_update(stats)
 
-    def do_mstep(self, stats, params):
+    def do_mstep(self, stats):
         transmat = self.transmat_update(stats)
-        self.AQb_update(stats)
+        As, Qs, bs = AQb_solve(stats)
+        return transmat, As, Qs, bs
 
     def covars_update(self, stats):
         cvweight = max(self.covars_weight - self.n_features, 0)
-        for c in range(self.n_states):
+        for c in range(self.n_components):
             obsmean = np.outer(stats['obs'][c], self.means_[c])
 
             cvnum = (stats['obs*obs.T'][c]
@@ -43,12 +53,10 @@ class MetastableSwitchingLDSSolver(object):
         self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
 
     def transmat_update(self, stats):
-        counts = (np.maximum(stats['trans']
-                        + self.transmat_prior - 1.0, 1e-20)
-                    .astype(np.float64))
+        counts = (np.maximum(stats['trans'], 1e-20).astype(np.float64))
         # Need to fix this......
         #self.transmat_, self.populations_ = \
-        #        _reversibility.reversible_transmat(counts)
+        #        reversible_transmat(counts)
         (dim, _) = np.shape(counts)
         norms = np.zeros(dim)
         for i in range(dim):
@@ -57,14 +65,19 @@ class MetastableSwitchingLDSSolver(object):
         for i in range(dim):
             revised_counts[:,i] /= norms[i]
             print sum(revised_counts[:,i])
-        #print "counts\n", counts
+        print "counts\n", counts
         #print "revised_counts\n", revised_counts
         return revised_counts
 
-    def compute_auxiliary_matrices(self, stats):
-        b = np.reshape(self.bs_[i], (self.n_features, 1))
+def compute_aux_matrices(stats, n_components, bs):
+    Bs, Cs, Es, Ds, Fs = [], [], [], [], []
+    for i in range(n_components):
+        b = np.reshape(bs_[i], (self.n_features, 1))
         B = stats['obs*obs[t-1].T'][i]
-        Bp = ((stats['obs[1:]*obs[1:].T'][i]
+        C = np.dot(b, mean_but_last.T)
+        E = stats['obs[:-1]*obs[:-1].T'][i]
+        D = self.covars_[i]
+        F = ((stats['obs[1:]*obs[1:].T'][i]
               - np.dot(stats['obs*obs[t-1].T'][i], A.T)
               - np.dot(np.reshape(stats['obs[1:]'][i],
                                   (self.n_features, 1)), b.T))
@@ -81,35 +94,64 @@ class MetastableSwitchingLDSSolver(object):
                 stats['post[1:]'][i] * np.dot(b, b.T)))
         mean_but_last = np.reshape(stats['obs[:-1]'][i],
                                    (self.n_features, 1))
-        C = np.dot(b, mean_but_last.T)
-        E = stats['obs[:-1]*obs[:-1].T'][i]
-        Sigma = self.covars_[i]
+    return Bs, Cs, Es, Ds, Fs
 
-    def AQb_update(self, stats):
-        for i in range(self.n_states):
-            sol, _, G, _ = solve_A(self.n_features, B, C, E, Sigma, Q,
-                    self.max_iters, self.display_solver_output)
-            avec = np.array(sol['x'])
-            avec = avec[int(1 + self.n_features * (self.n_features + 1) /
-                2):]
-            A = np.reshape(avec, (self.n_features, self.n_features),
-                           order='F')
-            self.As_[i] = A
+def AQb_solve(As, Qs, n_features, stats):
+    B, C, E, D, F = compute_aux_matrices(stats)
+    Dinv = np.linalg.inv(D)
+    A_upds, Q_upds = [], []
 
-            A = self.As_[i]
-            b = np.reshape(self.bs_[i], (self.n_features, 1))
-            sol, _, _, _ = solve_Q(self.n_features, A, B, Sigma,
-                    self.max_iters, self.display_solver_output)
-            qvec = np.array(sol['x'])
-            qvec = qvec[int(1 + self.n_features
-                                    * (self.n_features + 1) / 2):]
-            Q = np.zeros((self.n_features, self.n_features))
-            for j in range(self.n_features):
-                for k in range(j + 1):
-                    vec_pos = int(j * (j + 1) / 2 + k)
-                    Q[j, k] = qvec[vec_pos]
-                    Q[k, j] = Q[j, k]
-            self.Qs_[i] = Q
+    for (A,Q) in range(n_components):
+        Q = self.Qs_[i]
+        A = A_solve(n_features, D, Dinv, Q)
+        self.As_[i] = A
 
-            mu = self.means_[i]
-            self.bs_[i] = np.dot(np.eye(self.n_features) - self.As_[i], mu)
+        Q = solve_Q(n_features, A, F, D)
+        self.Qs_[i] = Q
+
+        mu = self.means_[i]
+        b = self.b_solve(n_features, A, mu)
+
+def b_solve(n_features, A, mu):
+     b = np.dot(np.eye(n_features) - A, mu)
+     return b
+
+def A_solve(block_dim, D, Dinv, Q):
+    # Refactor this better somehow?
+    dim = 4*block_dim
+    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            A_constraints(block_dim, D, Dinv, Q)
+    (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+        A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+    def obj(X):
+        return A_dynamics(X, block_dim, C, B, E, Qinv)
+    def grad_obj(X):
+        return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
+    g = GeneralSolver(R, L, U, dim, eps)
+    g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+            Fs, gradFs, Gs, gradGs)
+    (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
+            interactive=True)
+    A_1 = get_entries(X_L, A_1_cds)
+    return A_1
+
+def Q_solve(block_dim, A, F, D):
+    # Refactor this better somehow?
+    dim = 3*block_dim
+    As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            Q_constraints(block_dim, A, F, D)
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
+            = Q_coords(block_dim)
+    g = GeneralSolver(R, L, U, dim, eps)
+    def obj(X):
+        return log_det_tr(X, F)
+    def grad_obj(X):
+        return grad_log_det_tr(X, F)
+    g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+            Fs, gradFs, Gs, gradGs)
+    (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
+            interactive=True)
+    R_1 = get_entries(X_L, R_1_cds)
+    Q_1 = np.linalg.inv(R_1)
+    return Q_1
+

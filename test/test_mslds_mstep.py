@@ -97,9 +97,8 @@ def test_muller_potential_mstep():
     rlogprob, rstats = reference_estep(refmodel, data)
 
     # Test AQB solver for MSLDS solver
-    solver = MetastableSwitchingLDSSolver(backend='FirstOpt')
-    params = 'aqb' # With param t is broken!
-    solver.do_mstep(rstats, params)
+    solver = MetastableSwitchingLDSSolver(n_components)
+    solver.do_mstep(rstats)
 
     # The current implementation's behavior is pretty broken here....
     # So this test should auto-fail until things are fixed.
