@@ -29,6 +29,8 @@ from __future__ import print_function, division, absolute_import
 import time
 import warnings
 import numpy as np
+import random
+from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from sklearn import cluster
 import sklearn.mixture
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
@@ -566,6 +568,101 @@ class GaussianFusionHMM(object):
             frames = [trajectories[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)]
             mean_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
             return trj_ind, frame_ind, mean_approx, mean_trj
+
+    def sample_states(self, sequences, n_samples, trajectories=None, scheme="even", match_vars=False):
+        """Find conformations sampled from each state.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        n_samples : int
+            How many samples to return from each state
+        trajectories : list(md.Trajectory), optional, default=None
+            Optionally provide the trajectories assocated with sequences,
+            which will be used to extract coordinates of the state centers
+            from the raw trajectory data
+        scheme : str, optional, default='even'
+            Must be one of ['even', "maxent"].  
+        match_vars : bool, default=False
+            Flag for matching variances in maxent discrete approximation
+
+        Returns
+        -------
+        selected_pairs_by_state : list, length = n_states
+            selected_pairs_by_state[state] gives a list of randomly selected (trj, frame)
+            pairs from the specified state.
+        frames_by_state : mdtraj.Trajectory, optional
+            If `trajectories` are provided, this output will be a list
+            of trajectories such that frames_by_state[state] is a trajectory
+            drawn from `state` of length `n_samples`
+            
+        Notes
+        -----
+        This function assigns frames to states crisply then samples from
+        the uniform distribution on the frames belonging to each state.
+        This is one of *several* ways to sample states.
+        
+        ToDo
+        ----
+        This function could be separated into several MixIns for
+        models with crisp and fuzzy state assignments.  Then we could have
+        an optional argument that specifies which way to do the sampling
+        from states--e.g. use either the base class function or a 
+        different one.
+        """    
+        if scheme == 'even':
+            logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
+            ass = [lp.argmax(1) for lp in logprob]
+            
+            selected_pairs_by_state = []
+            for state in range(self.n_states):
+                all_frames = [np.where(a == state)[0] for a in ass]
+                pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
+                selected_pairs_by_state.append([random.choice(pairs) for i in range(n_samples)])
+            
+            
+            if trajectories is None:
+                return selected_pairs_by_state
+            else:
+                frames_by_state = []
+                for state, pairs in enumerate(selected_pairs_by_state):
+                    frames = [trajectories[trj][frame] for trj, frame in pairs]
+                    state_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
+                    frames_by_state.append(state_trj)
+                return selected_pairs_by_state, frames_by_state
+        
+        elif scheme == "maxent":
+            X_concat = np.concatenate(sequences)
+            all_pairs = np.array([(trj, frame) for trj, X in enumerate(sequences) for frame in range(X.shape[0])])
+            selected_pairs_by_state = []
+            for k in range(self.n_states):
+                print('computing weights for k=%d...' % k)
+                try:
+                    weights = discrete_approx_mvn(X_concat, self.means_[k], self.vars_[k], match_vars)
+                except NotSatisfiableError:
+                    self.error('Satisfiability failure. Could not match the means & '
+                               'variances w/ discrete distribution. Try removing the '
+                               'constraint on the variances with --no-match-vars?')
+
+                weights /= weights.sum()
+                frames = np.random.choice(len(all_pairs), n_samples, p=weights)
+                selected_pairs_by_state.append(all_pairs[frames])
+                
+            if trajectories is None:
+                return selected_pairs_by_state
+            else:
+                frames_by_state = []
+                for state, pairs in enumerate(selected_pairs_by_state):
+                    frames = [trajectories[trj][frame] for trj, frame in pairs]
+                    state_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
+                    frames_by_state.append(state_trj)
+                return selected_pairs_by_state, frames_by_state
+        else:
+            raise(ValueError("scheme must be one of ['even', 'maxent'])"))
+
         
 class _SklearnGaussianHMMCPUImpl(object):
 
