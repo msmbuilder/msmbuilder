@@ -43,7 +43,7 @@ view:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)
 
 html:	builddir
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR) 2>&1 | grep -v "toctree contains reference to"
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)"
 
@@ -55,7 +55,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf $(TOOLSPATH)/hash_dict.pickle
 	rm -rf examples/generated/*.rst
-	rm -rf api/generated/*.rst
+	rm -rf generated/*.rst
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml

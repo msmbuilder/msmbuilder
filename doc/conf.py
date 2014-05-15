@@ -29,19 +29,28 @@ extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.autosumma
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 
+html_context = {
+    'github_user': 'rmcgibbo',
+    'display_github': True,
+    'github_repo': 'mixtape',
+    'github_version': 'master',
+    'conf_py_path': '/doc/'
+}
+
+
 
 import runipy
 import IPython.nbconvert.utils.pandoc
 extensions.append('notebook_sphinxext')
 extensions.append('notebookcell_sphinxext')
 
-_python_doc_base = 'http://docs.python.org/2.7'
-intersphinx_mapping = {
-    _python_doc_base: None,
-    'http://docs.scipy.org/doc/numpy': None,
-    'http://docs.scipy.org/doc/scipy/reference': None,
-    'http://scikit-learn.org/stable': None
-}
+# _python_doc_base = 'http://docs.python.org/2.7'
+# intersphinx_mapping = {
+#     _python_doc_base: None,
+#     'http://docs.scipy.org/doc/numpy': None,
+#     'http://docs.scipy.org/doc/scipy/reference': None,
+#     'http://scikit-learn.org/stable': None
+# }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

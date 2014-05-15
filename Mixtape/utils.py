@@ -25,11 +25,22 @@ from __future__ import print_function, division, absolute_import
 import json
 import numpy as np
 from sklearn.utils import check_random_state
+from sklearn.externals.joblib import load, dump
 from numpy.linalg import norm
 
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
+
+def verbosedump(value, fn, compress=1):
+    """verbose wrapper around joblib.dump"""
+    print('Saving "%s"... (%s)' % (fn, type(value)))
+    dump(value, fn, compress=compress)
+
+def verboseload(fn):
+    """verbose wrapper around joblib.load"""
+    print('loading "%s"...' % fn)
+    return load(fn)
 
 
 def iterobjects(fn):

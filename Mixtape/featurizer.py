@@ -28,6 +28,7 @@ import mdtraj as md
 import sklearn.base, sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
 
+
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
@@ -88,6 +89,7 @@ def load(filename):
     with open(filename, 'rb') as f:
         featurizer = cPickle.load(f)
     return featurizer
+
 
 
 class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):

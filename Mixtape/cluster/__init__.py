@@ -164,9 +164,7 @@ def _replace_labels(doc):
 
 
     replace  = '''\n    `labels_` : list of arrays, each of shape [sequence_length, ]
-        `labels_[i]` is an array of the labels of each point in
-        sequence `i`. The label of each point is an integer in
-        [0, n_clusters).
+        The label of each point is an integer in [0, n_clusters).
     '''
 
     return doc[:labelstart] + replace + doc[labelend:]
