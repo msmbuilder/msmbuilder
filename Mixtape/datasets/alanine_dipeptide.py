@@ -1,13 +1,13 @@
 """Alanine dipeptide dataset
 
 The dataset consists of ten 10ns trajectories of of alanine dipeptide,
-simulated using OpenMM 6.0.1 (CUDA platform, NVNDIA GTX660) with the
+simulated using OpenMM 6.0.1 (CUDA platform, NVIDIA GTX660) with the
 AMBER99SB-ILDN force field at 300K (langevin dynamics, friction coefficient
-of 91/ps, timestep of 2fs) with GBSA implicit solvent. The coodrinates are
+of 91/ps, timestep of 2fs) with GBSA implicit solvent. The coordinates are
 saved every 1ps. Each trajectory contains 9,999 snapshots.
 
-The dataset, including the scripts used to run the simulations themselves
-(with OpenMM) is available on figshare at
+The dataset, including the script used to generate the dataset
+is available on figshare at
 
     http://dx.doi.org/10.6084/m9.figshare.1026131
 """
