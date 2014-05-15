@@ -33,13 +33,10 @@ class MetastableSwitchingLDS(object):
     Parameters
     ----------
     n_states : int
-        The number of hidden states. Each state is characterized by a
-        separate stable linear dynamical system that the process can jump
-        between.
+        The number of hidden states.
     n_init : int
         Number of time the EM algorithm will be run with different
-        random seeds. The final results will be the best output of
-        n_init consecutive runs in terms of log likelihood.
+        random seeds.
     n_features : int
         Dimensionality of the space.
     n_hotstart : {int}
@@ -48,9 +45,6 @@ class MetastableSwitchingLDS(object):
         Number of iterations to perform during training
     params : string, optional, default
         Controls which parameters are updated in the training process.
-        Can contain any combination of 't' for transmat, 'm' for means,
-        and 'c' for covars, 'q' for Q matrices, 'a' for A matrices, and
-        'b' for b vectors. Defaults to all parameters.
     """
 
     def __init__(self, n_states, n_features, n_init=5,
@@ -64,9 +58,6 @@ class MetastableSwitchingLDS(object):
         self.n_hotstart_sequences = n_hotstart_sequences
         self.n_em_iter = n_em_iter
         self.params = params
-        self.precision = 'mixed'
-        self.covars_prior = 1e-2
-        self.covars_weight = covars_weight
         self.eps = .2
         self._impl = None
 
@@ -78,14 +69,9 @@ class MetastableSwitchingLDS(object):
         self._transmat_ = None
         self._populations_ = None
 
-        if n_em_iter <= n_hotstart:
-            raise ValueError('No MSLDS estimation steps; '
-            + 'need n_em_iter > n_hotstart')
-
-        self.transmat_prior = 1.0
 
         self._impl = _mslds.MetastableSLDSCPUImpl(self.n_states,
-                self.n_features, self.n_hotstart, precision)
+                self.n_features, self.n_hotstart, 'mixed')
 
     def _init(self, sequences):
         """Initialize the state, prior to fitting (hot starting)

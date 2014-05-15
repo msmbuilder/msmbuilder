@@ -1,4 +1,9 @@
 class MetastableSwitchingLDSSolver(object):
+    def __init__(self):
+        self.covars_prior = 1e-2
+        self.covars_weight = 1.
+        self.transmat_prior = 1.0
+
     def _do_mstep(self, stats, params, iteration):
         if iteration < self.n_hotstart:
             if 'm' in params:
