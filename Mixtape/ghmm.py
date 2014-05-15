@@ -570,7 +570,7 @@ class GaussianFusionHMM(object):
             return trj_ind, frame_ind, mean_approx, mean_trj
 
     def sample_states(self, sequences, n_samples, trajectories=None, scheme="even", match_vars=False):
-        """Find conformations sampled from each state.
+        """Sample conformations from each state.
 
         Parameters
         ----------
