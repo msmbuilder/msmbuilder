@@ -80,4 +80,4 @@ def test_that_all_featurizers_run():
     featurizer.subsets = [np.arange(1) for i in range(featurizer.n_featurizers)]
     
     X_all = featurizer.transform(trajectories)
-    eq(X_all[0].shape[1], 1 * featurizer.n_features)
+    eq(X_all[0].shape[1], 1 * featurizer.n_featurizers)
