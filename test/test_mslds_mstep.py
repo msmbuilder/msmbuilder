@@ -95,10 +95,18 @@ def test_muller_potential_mstep():
 
     # Obtain sufficient statistics from refmodel
     rlogprob, rstats = reference_estep(refmodel, data)
+    means = refmodel.means_
+    covars = refmodel.covars_
+    transmat = refmodel.transmat_
+    populations = refmodel.startprob_
+    As = [np.zeros((n_features, n_features)),
+              np.zeros((n_features, n_features))]
+    Qs = refmodel.covars_
+    bs = refmodel.means_
 
     # Test AQB solver for MSLDS solver
-    solver = MetastableSwitchingLDSSolver(n_components)
-    solver.do_mstep(rstats)
+    solver = MetastableSwitchingLDSSolver(n_components, n_features)
+    solver.do_mstep(As, Qs, means, rstats)
 
     # The current implementation's behavior is pretty broken here....
     # So this test should auto-fail until things are fixed.
