@@ -523,7 +523,7 @@ class GaussianFusionHMM(object):
         return logprob, state_sequences
 
 
-    def find_centroids(self, sequences, trajectories=None):
+    def draw_centroids(self, sequences):
         """Find conformations most representative of model means.
 
         Parameters
@@ -532,24 +532,21 @@ class GaussianFusionHMM(object):
             List of 2-dimensional array observation sequences, each of which
             has shape (n_samples_i, n_features), where n_samples_i
             is the length of the i_th observation.
-        trajectories : list(md.Trajectory), optional, default=None
-            Optionally provide the trajectories assocated with sequences,
-            which will be used to extract coordinates of the state centers
-            from the raw trajectory data
 
         Returns
         -------
-        trj_ind : np.ndarray, dtype=int, shape = (n_states)
-            trj_ind[state] gives the trajectory index associated with the 
+        centroid_pairs_by_state : np.ndarray, dtype=int, shape = (n_states, 1, 2)
+            centroid_pairs_by_state[state, 0] = (trj, frame) gives the 
+            trajectory and frame index associated with the 
             mean of `state`
-        frame_ind : np.ndarray, dtype=int, shape = (n_states)
-            frame_ind[state] gives the frame index associated with the 
-            mean of `state`
-        mean_approx : np.ndarray, dtype=float, shape = (n_states, n_features)
-            mean_approx[state] gives the features at the representative 
+        mean_approx : np.ndarray, dtype=float, shape = (n_states, 1, n_features)
+            mean_approx[state, 0] gives the features at the representative 
             point for `state`
-        mean_traj : mdtraj.Trajectory, optional
-            If trajectories is provided
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+
         """    
         
         logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
@@ -562,14 +559,12 @@ class GaussianFusionHMM(object):
 
         mean_approx = np.array([sequences[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)])
         
-        if trajectories is None:
-            return trj_ind, frame_ind, mean_approx
-        else:
-            frames = [trajectories[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)]
-            mean_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
-            return trj_ind, frame_ind, mean_approx, mean_trj
+        centroid_pairs_by_state = np.array(zip(trj_ind, frame_ind))
+        
+        return centroid_pairs_by_state[:, np.newaxis, :], mean_approx[:, np.newaxis, :]  # np.newaxis changes arrays from 2D to 3D for consistency with `sample_states()`
 
-    def sample_states(self, sequences, n_samples, trajectories=None, scheme="even", match_vars=False):
+
+    def draw_samples(self, sequences, n_samples, scheme="even", match_vars=False):
         """Sample conformations from each state.
 
         Parameters
@@ -580,10 +575,6 @@ class GaussianFusionHMM(object):
             is the length of the i_th observation.
         n_samples : int
             How many samples to return from each state
-        trajectories : list(md.Trajectory), optional, default=None
-            Optionally provide the trajectories assocated with sequences,
-            which will be used to extract coordinates of the state centers
-            from the raw trajectory data
         scheme : str, optional, default='even'
             Must be one of ['even', "maxent"].  
         match_vars : bool, default=False
@@ -591,13 +582,12 @@ class GaussianFusionHMM(object):
 
         Returns
         -------
-        selected_pairs_by_state : list, length = n_states
-            selected_pairs_by_state[state] gives a list of randomly selected (trj, frame)
+        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
+            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
             pairs from the specified state.
-        frames_by_state : mdtraj.Trajectory, optional
-            If `trajectories` are provided, this output will be a list
-            of trajectories such that frames_by_state[state] is a trajectory
-            drawn from `state` of length `n_samples`
+        sample_features : np.ndarray, dtype=float, shape = (n_states, n_samples, n_features)
+            sample_features[state, sample] gives the features for the given `sample` of 
+            `state`
             
         Notes
         -----
@@ -606,6 +596,10 @@ class GaussianFusionHMM(object):
         With scheme='maxent', this scheme uses a maximum entropy method to
         determine a discrete distribution on samples whose mean (and possibly variance)
         matches the GHMM means.
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
         
         ToDo
         ----
@@ -624,17 +618,6 @@ class GaussianFusionHMM(object):
                 all_frames = [np.where(a == state)[0] for a in ass]
                 pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
                 selected_pairs_by_state.append([random.choice(pairs) for i in range(n_samples)])
-            
-            
-            if trajectories is None:
-                return selected_pairs_by_state
-            else:
-                frames_by_state = []
-                for state, pairs in enumerate(selected_pairs_by_state):
-                    frames = [trajectories[trj][frame] for trj, frame in pairs]
-                    state_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
-                    frames_by_state.append(state_trj)
-                return selected_pairs_by_state, frames_by_state
         
         elif scheme == "maxent":
             X_concat = np.concatenate(sequences)
@@ -652,18 +635,11 @@ class GaussianFusionHMM(object):
                 weights /= weights.sum()
                 frames = np.random.choice(len(all_pairs), n_samples, p=weights)
                 selected_pairs_by_state.append(all_pairs[frames])
-                
-            if trajectories is None:
-                return selected_pairs_by_state
-            else:
-                frames_by_state = []
-                for state, pairs in enumerate(selected_pairs_by_state):
-                    frames = [trajectories[trj][frame] for trj, frame in pairs]
-                    state_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
-                    frames_by_state.append(state_trj)
-                return selected_pairs_by_state, frames_by_state
+
         else:
             raise(ValueError("scheme must be one of ['even', 'maxent'])"))
+        
+        return np.array(selected_pairs_by_state)
 
         
 class _SklearnGaussianHMMCPUImpl(object):
