@@ -305,6 +305,29 @@ class tICA(BaseEstimator, TransformerMixin):
 
         return sequences_new
 
+    def partial_transform(self, features):
+        """Apply the dimensionality reduction on X.
+
+        Parameters
+        ----------
+        features: array-like, shape (n_samples, n_features)
+            Training data, where n_samples in the number of samples
+            and n_features is the number of features.  This function
+            acts on a single featurized trajectory.
+
+        Returns
+        -------
+        sequence_new : array-like, shape (n_samples, n_components)
+            TICA-projected features
+            
+        Notes
+        -----
+        This function acts on a single featurized trajectory. 
+
+        """
+        sequences = [features]
+        return self.transform(sequences)[0]
+
     def fit_transform(self, sequences, y=None):
         """Fit the model with X and apply the dimensionality reduction on X.
 

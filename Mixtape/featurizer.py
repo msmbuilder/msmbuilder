@@ -25,8 +25,9 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
-import mdtraj.geometry
-from sklearn.base import BaseEstimator
+import sklearn.base, sklearn.pipeline
+from sklearn.externals.joblib import Parallel, delayed
+
 
 #-----------------------------------------------------------------------------
 # Code
@@ -90,15 +91,57 @@ def load(filename):
     return featurizer
 
 
-class Featurizer(BaseEstimator):
 
-    """Base class for Featurizer objects."""
+class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
+    """Base class for objects that featurize Trajectories.
+
+    Notes
+    -----
+    At the bare minimum, a featurizer must implement the `partial_transform(traj)`
+    member function.  A `transform(traj_list)` for featurizing multiple
+    trajectories in batch will be provided.
+    """
 
     def __init__(self):
         pass
 
     def featurize(self, traj):
         pass
+
+    def partial_transform(self, traj):
+        """Featurize a single trajectory.
+        
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to be featurized.
+        
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            The featurized trajectory.
+        """
+        pass
+    
+    def fit(self, traj_list, y=None):
+        return self
+
+    def transform(self, traj_list, y=None):
+        """Featurize a several trajectories.
+        
+        Parameters
+        ----------
+        traj_list : list(mdtraj.Trajectory)
+            Trajectories to be featurized.
+        
+        Returns
+        -------
+        features : list(np.ndarray), length = len(traj_list)
+            The featurized trajectories.  features[i] is the featurized
+            version of traj_list[i] and has shape 
+            (n_samples_i, n_features)
+        """        
+        return [self.featurize(traj) for traj in traj_list]
 
     def save(self, filename):
         with open(filename, 'wb') as f:
@@ -343,4 +386,62 @@ class DRIDFeaturizer(Featurizer):
         self.atom_indices = atom_indices
 
     def featurize(self, traj):
-        return mdtraj.geometry.compute_drid(traj, self.atom_indices)
+        return md.geometry.compute_drid(traj, self.atom_indices)
+
+
+class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
+    """Mixtape version of sklearn.pipeline.FeatureUnion
+    
+    Notes
+    -----
+    Works on lists of trajectories.
+    """
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit all transformers using X, transform the data and concatenate
+        results.
+
+        Parameters
+        ----------
+        X : list (of mdtraj.Trajectory objects)
+            Trajectories to featurize
+        y : Unused
+            Unused
+            
+        Returns
+        -------
+        Y : list (of np.ndarray)
+            Y[i] is the featurized version of X[i]
+            Y[i] will have shape (n_samples_i, n_features), where 
+            n_samples_i is the length of trajectory i and n_features
+            is the total (concatenated) number of features in the 
+            concatenated list of featurizers.
+        """
+        self.fit(X, y, **fit_params)
+        return self.transform(X)
+        
+        
+    def transform(self, X):
+        """Transform X separately by each transformer, concatenate results.
+
+        Parameters
+        ----------
+        X : list (of mdtraj.Trajectory objects)
+            Trajectories to featurize
+
+        Returns
+        -------
+        Y : list (of np.ndarray)
+            Y[i] is the featurized version of X[i]
+            Y[i] will have shape (n_samples_i, n_features), where 
+            n_samples_i is the length of trajectory i and n_features
+            is the total (concatenated) number of features in the 
+            concatenated list of featurizers.            
+
+        """
+        Xs = Parallel(n_jobs=self.n_jobs)(
+            delayed(sklearn.pipeline._transform_one)(trans, name, X, self.transformer_weights)
+            for name, trans in self.transformer_list)
+
+        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
+
+        return X_i_stacked    
