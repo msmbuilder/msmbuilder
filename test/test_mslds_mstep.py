@@ -99,18 +99,17 @@ def test_muller_potential_mstep():
     covars = refmodel.covars_
     transmat = refmodel.transmat_
     populations = refmodel.startprob_
-    As = [np.zeros((n_features, n_features)),
-              np.zeros((n_features, n_features))]
+    As = []
+    for i in range(n_components):
+        As.append(np.zeros((n_features, n_features)))
     Qs = refmodel.covars_
     bs = refmodel.means_
+    means = refmodel.means_
+    covars = refmodel.covars_
 
     # Test AQB solver for MSLDS solver
     solver = MetastableSwitchingLDSSolver(n_components, n_features)
-    solver.do_mstep(As, Qs, means, rstats)
-
-    # The current implementation's behavior is pretty broken here....
-    # So this test should auto-fail until things are fixed.
-    #assert True == False
+    solver.do_mstep(As, Qs, bs, means, covars, rstats)
 
 def test_muller_potential_score():
     sim_T = 1000
