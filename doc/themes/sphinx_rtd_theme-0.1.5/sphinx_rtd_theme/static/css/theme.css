@@ -3777,6 +3777,7 @@ p.rubric {
 
 table.docutils tr.field-odd th.field-name {
     background: #F0F7FA;
+    white-space: nowrap;
 }
 
 table.docutils.field-list > tbody > tr > td {

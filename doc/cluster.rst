@@ -24,7 +24,7 @@ on the difference in backbone dihedral angles, and probably others.
 
 On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a
 tradeoff between clustering quality and computational cost. For that reason
- Mixtape has a bunch of different clustering algorithms implemented.
+Mixtape has a bunch of different clustering algorithms implemented.
 
 API and Implementation Notes
 ----------------------------
@@ -41,6 +41,7 @@ Algorithms
 ----------
 .. autosummary::
     :toctree: generated/
+    :template: class.rst
 
     KCenters
     KMeans
