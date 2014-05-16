@@ -74,6 +74,8 @@ class MetastableSwitchingLDSSolver(object):
             Dinv = np.linalg.inv(D) # Should cache this to save time.
             A, Q, mu = As[i], Qs[i], means[i]
             Qinv = np.linalg.inv(Q)
+            import pdb
+            pdb.set_trace()
             A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, Qinv,
                     mu, B, C, D, Dinv, E, F)
             A_upds += [A_upd]
@@ -83,8 +85,8 @@ class MetastableSwitchingLDSSolver(object):
 
 def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
     # Should this be iterated for biconvex solution?
+    Q_upd = Q_solve(dim, A, D, Dinv, F)
     A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv)
-    Q_upd = Q_solve(dim, A, D, F)
     b_upd = b_solve(dim, A, mu)
 
 # FIX ME!
@@ -136,19 +138,35 @@ def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
         Fs += [F]
     return Bs, Cs, Es, Ds, Fs
 
-
-
 def b_solve(n_features, A, mu):
      b = np.dot(np.eye(n_features) - A, mu)
      return b
 
 def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
+    """
+    Solves A optimization.
+
+    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    X is PSD
+    """
     # Refactor this better somehow?
     dim = 4*block_dim
-    R = 10 # figure out more general R
-    L, U = (-10, 10) # figure out more general choice
+    R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
+    scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
+    C = C/scale_factor
+    B = B/scale_factor
+    E = E/scale_factor
+    U = np.linalg.norm(Qinv)
+    L = - U
     eps = 1e-4
-    tol = 1e-3
+    tol = 1e-2
     N_iter = 50
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q)
@@ -165,13 +183,30 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
             interactive=True)
     if succeed:
         A_1 = get_entries(X_L, A_1_cds)
-        return A_1
+        A_T_1 = get_entries(X_L, A_T_1_cds)
+        A_2 = get_entries(X_L, A_2_cds)
+        A_T_2 = get_entries(X_L, A_T_2_cds)
+        A = (A_1 + A_T_1 + A_2 + A_T_2) / 4.
+        return A
 
-def Q_solve(block_dim, A, D, F):
+def Q_solve(block_dim, A, D, Dinv, F):
+    """
+    Solves Q optimization.
+
+    min_Q -log det R + Tr(RF)
+          --------------
+         |D-ADA.T  I    |
+    X =  |   I     R    |
+         |            R |
+          --------------
+    X is PSD
+    """
     # Refactor this better somehow?
     dim = 3*block_dim
-    R = 10 # figure out more general R
-    L, U = (-10, 10) # figure out more general choice
+    Rs = [10, 100, 1000]
+    Us = []
+    L = -U
+    #L, U = (-10, 10) # figure out more general choice
     eps = 1e-4
     tol = 1e-3
     N_iter = 50
@@ -190,5 +225,7 @@ def Q_solve(block_dim, A, D, F):
             interactive=True)
     if succeed:
         R_1 = get_entries(X_L, R_1_cds)
-        Q_1 = np.linalg.inv(R_1)
+        R_2 = get_entries(X_L, R_2_cds)
+        R = (R_1 + R_2) / 2.
+        Q = np.linalg.inv(R1)
         return Q_1

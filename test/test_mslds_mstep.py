@@ -6,7 +6,7 @@ from mixtape.mslds_solver import AQb_solve
 from sklearn.hmm import GaussianHMM
 from test_mslds_estep import reference_estep
 
-def test_AQb_solve():
+def test_AQb_solve_simple():
     dim = 1
     A = np.array([[.5]])
     Q = np.array([[.1]])
@@ -18,6 +18,22 @@ def test_AQb_solve():
     Dinv = np.array([[1.]])
     E = np.array([[1.]])
     F = np.array([[1.]])
+    AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
+
+def test_AQb_solve_plusmin_sample():
+    # Numbers below were generated from a sample run of
+    # plusmin
+    dim = 1
+    A = np.array([[.0]])
+    Q = np.array([[.02]])
+    Qinv = np.array([[48.99]])
+    mu = np.array([[.991]])
+    B = np.array([[1238.916]])
+    C = np.array([[1225.025]])
+    D = np.array([[.0204]])
+    Dinv = np.array([[49.02]])
+    E = np.array([[48.99]])
+    F = np.array([[25.47]])
     AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
 
 def test_plusmin_mstep():
