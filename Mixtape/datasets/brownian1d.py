@@ -66,7 +66,7 @@ def load_doublewell(data_home=None, random_state=None):
     -----
     """
     random = check_random_state(random_state)
-    data_home = get_data_home(data_home=data_home)
+    data_home = join(get_data_home(data_home=data_home), 'doublewell')
     if not exists(data_home):
         makedirs(data_home)
 
@@ -74,7 +74,7 @@ def load_doublewell(data_home=None, random_state=None):
         trajectories = _simulate_doublewell(random)
     else:
         assert isinstance(random_state, numbers.Integral), 'random_state but be an int'
-        path = join(data_home, 'doublewell', 'version-1_random-state-%d.pkl' % random_state)
+        path = join(data_home, 'version-1_random-state-%d.pkl' % random_state)
         if exists(path):
             trajectories = verboseload(path)
         else:
