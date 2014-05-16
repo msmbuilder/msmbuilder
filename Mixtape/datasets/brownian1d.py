@@ -12,9 +12,8 @@ governed by the stochastic differential equation
 
     dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t)
 
-where R(t) is a standard normal white-noise process. A diffusion constant D=1
-was used. The timsetep was 1e-3. Each trajectory is 10^5 steps long, and starts
-at x_0 = 0.
+where R(t) is a standard normal white-noise process, and D=1e3. The timsetep
+is 1e-3. Each trajectory is 10^5 steps long, and starts at x_0 = 0.
 """
 
 #-----------------------------------------------------------------------------
@@ -38,7 +37,7 @@ from mixtape.datasets.base import get_data_home
 
 # DO NOT CHANGE THESE CONSTANTS WITHOUT UPDATING THE
 # "DOUBLEWELL_DESCRIPTION" VARIABLE
-DIFFUSION_CONST = 1
+DIFFUSION_CONST = 1e3
 DT = 1e-3
 DT_SQRT_2D = DT * np.sqrt(2 * DIFFUSION_CONST)
 
