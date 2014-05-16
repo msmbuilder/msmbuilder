@@ -57,14 +57,17 @@ def verbose_wait(amr, clientview, return_train_scores):
 
         for msg_id in finished:
             ar = clientview.get_result(msg_id)
-            for result in ar.result:
-                elapsed, params = result[-2], result[-1]
-                test_score = result[1] if return_train_scores else result[0]
-                left = '[CV engine={}] {}   '.format(ar.engine_id,
-                    ', '.join('{}={}'.format(k, v) for k, v in params.items()))
-                right = '  score = {:5f}  {}'.format(test_score, short_format_time(elapsed))
-                print(left + right.rjust(70-len(left), '-'))
-
+            try:
+                for result in ar.result:
+                    elapsed, params = result[-2], result[-1]
+                    test_score = result[1] if return_train_scores else result[0]
+                    left = '[CV engine={}] {}   '.format(ar.engine_id,
+                        ', '.join('{}={}'.format(k, v) for k, v in params.items()))
+                    right = '  score = {:5f}  {}'.format(test_score, short_format_time(elapsed))
+                    print(left + right.rjust(70-len(left), '-'))
+            except RemoteError as e:
+                e.print_traceback()
+                raise
         else:
             left = '\r[Parallel] {0:d}/{1:d}  tasks finished'.format(n_completed, N)
             right = 'elapsed {0}         '.format(short_format_time(amr.elapsed))
