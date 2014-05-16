@@ -74,7 +74,7 @@ def load_doublewell(data_home=None, random_state=None):
         trajectories = _simulate_doublewell(random)
     else:
         assert isinstance(random_state, numbers.Integral), 'random_state but be an int'
-        path = join(data_home, 'doublewell-rs-%d.pkl' % random_state)
+        path = join(data_home, 'doublewell', 'version-1_random-state-%d.pkl' % random_state)
         if exists(path):
             trajectories = verboseload(path)
         else:
