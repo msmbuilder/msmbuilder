@@ -37,7 +37,7 @@ def test1():
     for dim in dims:
         print("dim = %d" % dim)
         b = BoundedTraceSolver(neg_sum_squares, grad_neg_sum_squares, dim)
-        X = b.solve(N_iter, methods=['frank_wolfe'])
+        X = b.solve(N_iter, methods=['frank_wolfe'], disp=False)
         fX = neg_sum_squares(X)
         print("\tTr(X) = %f" % np.trace(X))
         print("\tf(X) = %f" % fX)
@@ -61,7 +61,7 @@ def test2():
                     bs, Cs, ds, Fs, gradFs, Gs, gradGs)
 
     B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'], disp=False)
     succeed = not (f(X) < -eps)
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
@@ -81,7 +81,7 @@ def test3():
         return log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
     B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'], disp=False)
     succeed = not (f(X) < -eps)
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
@@ -101,7 +101,7 @@ def test4():
         return log_sum_exp_grad_penalty(X, M,
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
     B = BoundedTraceSolver(f, gradf, dim)
-    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+    X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'], disp=False)
     succeed = not (f(X) < -eps)
     print "\tComputation Time (s): ", elapsed
     assert succeed == True
@@ -123,7 +123,8 @@ def test5():
             return log_sum_exp_grad_penalty(X, M,
                     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'],
+                disp=False)
         succeed = not (f(X) < -eps)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
@@ -145,7 +146,8 @@ def test6():
             return log_sum_exp_grad_penalty(X, M,
                     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'],
+                disp=False)
         succeed = not (f(X) < -eps)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
@@ -168,7 +170,8 @@ def test7():
             return log_sum_exp_grad_penalty(X, M,
                     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
-        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'])
+        X, elapsed  = run_experiment(B, N_iter, ['frank_wolfe'],
+                disp=False)
         succeed = not (f(X) < -tol)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
@@ -199,7 +202,7 @@ def test8():
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
         X, elapsed  = run_experiment(B, N_iter,
-                methods=['frank_wolfe', 'frank_wolfe_stable'])
+                methods=['frank_wolfe', 'frank_wolfe_stable'], disp=False)
         succeed = not (f(X) < -tol)
         print "\tComputation Time (s): ", elapsed
         assert succeed == True

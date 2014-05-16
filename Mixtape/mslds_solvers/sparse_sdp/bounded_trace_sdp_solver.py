@@ -38,7 +38,7 @@ class BoundedTraceSolver(object):
         self.gradf = gradf
         self.dim = dim
 
-    def rank_one_approximation(self, grad):
+    def rank_one_approximation(self, grad, disp=True):
         epsj = 1e-9
         # Use Implicitly Restarted Arnoldi Method (IRAM)
         # (stable version of Lanczos's algorithm)
@@ -55,7 +55,9 @@ class BoundedTraceSolver(object):
             if not np.isnan(np.min(vj)):
                 break
         if vj == None or np.isnan(np.min(vj)):
-            print("sparse.linalg.eigsh failed; going to np.linalg.eigh")
+            if disp:
+                print("sparse.linalg.eigsh failed; "
+                      "going to np.linalg.eigh")
             ws, vs = np.linalg.eigh(grad)
             i = np.argmax(np.real(ws))
             vj = vs[:, i]
@@ -139,7 +141,7 @@ class BoundedTraceSolver(object):
             grad = gradf(X)
             results = []
             if 'frank_wolfe' in methods:
-                vj = self.rank_one_approximation(grad)
+                vj = self.rank_one_approximation(grad, disp=disp)
                 O = np.outer(vj, vj)
                 step = O - X
                 fX_fw, X_fw, alpha_fw = \

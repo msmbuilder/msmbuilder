@@ -39,7 +39,7 @@ def test1():
         g.save_constraints(trace_obj, grad_trace_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
         (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
-                interactive=True)
+                interactive=False, disp=True)
         assert succeed == True
         assert np.abs(alpha - 0.75) < search_tol
 
@@ -82,7 +82,8 @@ def test2():
             g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
             (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
-                    interactive=True)
+                    disp=True, interactive=False)
+            assert succeed == True
 
 def test3():
     """
@@ -132,4 +133,49 @@ def test3():
             g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
             (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
+                    disp=True, interactive=False)
+            assert succeed == True
+
+def test4():
+    """
+    Tests feasibility Q optimization with realistic values for F,
+    D, A from the 1-d 2-well toy system.
+
+
+    min_Q -log det R + Tr(RF)
+          --------------
+         |D-ADA.T  I    |
+    X =  |   I     R    |
+         |            R |
+          --------------
+    X is PSD
+    """
+    eps = 1e-4
+    tol = 1e-3
+    search_tol = 1e-2
+    N_iter = 50
+    dim = 2
+    Rs = [10]
+    dims = [3]
+    L, U = (-10, 10)
+    for R in Rs:
+        for dim in dims:
+            block_dim = int(dim/3)
+
+            # Generate initial data
+            D = .0204 * np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            F = 25.47 * np.eye(block_dim)
+            A = np.zeros(block_dim)
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    Q_constraints(block_dim, A, F, D)
+            g = GeneralSolver(R, L, U, dim, eps)
+            def obj(X):
+                return log_det_tr(X, F)
+            def grad_obj(X):
+                return grad_log_det_tr(X, F)
+            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+            (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
                     interactive=True)
+            assert succeed == True

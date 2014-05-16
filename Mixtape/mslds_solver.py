@@ -203,8 +203,6 @@ def Q_solve(block_dim, A, D, Dinv, F):
     """
     # Refactor this better somehow?
     dim = 3*block_dim
-    Rs = [10, 100, 1000]
-    Us = []
     L = -U
     #L, U = (-10, 10) # figure out more general choice
     eps = 1e-4

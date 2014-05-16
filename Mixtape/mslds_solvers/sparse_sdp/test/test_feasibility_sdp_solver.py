@@ -22,7 +22,7 @@ def test1():
         f = FeasibilitySolver(R, dim, eps)
         f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe'])
+                methods=['frank_wolfe'], disp=False)
         assert succeed == True
 
 def test2():
@@ -45,7 +45,7 @@ def test2():
         f = FeasibilitySolver(R, dim, eps)
         f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe'])
+                methods=['frank_wolfe'], disp=False)
         assert succeed == False
 
 def test3():
@@ -70,7 +70,7 @@ def test3():
         f = FeasibilitySolver(R, dim, eps)
         f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe'])
+                methods=['frank_wolfe'], disp=False)
         assert succeed == True
 
 def test4():
@@ -102,7 +102,8 @@ def test4():
             f = FeasibilitySolver(R, dim, eps)
             f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
             X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'])
+                    methods=['frank_wolfe', 'frank_wolfe_stable'],
+                    disp=False)
                     #    'projected_gradient'])
             assert succeed == True
 
@@ -139,27 +140,9 @@ def test5():
             f = FeasibilitySolver(R, dim, eps)
             f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
             X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'])
+                    methods=['frank_wolfe', 'frank_wolfe_stable'],
+                    disp=False)
             assert succeed == True
-
-    #X_init = np.zeros((cdim, cdim))
-    #Q_init = 0.2 * np.eye(dim)
-    #R_init = np.linalg.inv(Q_init)
-    #set_entries(X_init, R_cds, R_init)
-    #set_entries(X_init, block_1_R_cds, R_init)
-    #set_entries(X_init, D_ADA_T_cds, D_ADA_T)
-    #set_entries(X_init, I_1_cds, np.eye(dim))
-    #set_entries(X_init, I_2_cds, np.eye(dim))
-    #R = 2 * np.trace(X_init)
-    #upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
-    #            Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
-    #            N_iter, X_init=X_init)
-    #print "X_lower\n", X_lower
-    #if X_lower != None:
-    #    print "h(X_lower)\n", h(X_lower)
-    #print "X_upper\n", X_upper
-    #if X_upper != None:
-    #    print "h(X_upper)\n", h(X_upper)
 
 def test6():
     """
@@ -203,25 +186,6 @@ def test6():
             f = FeasibilitySolver(R, dim, eps)
             f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
             X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'])
+                    methods=['frank_wolfe', 'frank_wolfe_stable'],
+                    disp=False)
             assert succeed == True
-
-    #X_init = np.zeros((cdim, cdim))
-    #set_entries(X_init, D_Q_cds, D_Q)
-    #set_entries(X_init, Dinv_cds, Dinv)
-    #set_entries(X_init, I_1_cds, np.eye(dim))
-    #set_entries(X_init, I_2_cds, np.eye(dim))
-    #A_init = (1./np.sqrt(2)) * np.eye(dim)
-    #set_entries(X_init, A_1_cds, A_init)
-    #set_entries(X_init, A_2_cds, A_init)
-    #set_entries(X_init, A_T_1_cds, A_init.T)
-    #set_entries(X_init, A_T_2_cds, A_init.T)
-    #upper, lower, X_upper, X_lower, SUCCEED = g.solve(h, gradh, As, bs,
-    #            Cs, ds, Fs, gradFs, Gs, gradGs, eps, cdim, R, U, L,
-    #            N_iter, X_init=X_init)
-    #print "X_lower\n", X_lower
-    #if X_lower != None:
-    #    print "h(X_lower)\n", h(X_lower)
-    #print "X_upper\n", X_upper
-    #if X_upper != None:
-    #    print "h(X_upper)\n", h(X_upper)
