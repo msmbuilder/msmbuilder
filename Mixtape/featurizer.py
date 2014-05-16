@@ -148,7 +148,7 @@ class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
             version of traj_list[i] and has shape
             (n_samples_i, n_features)
         """
-        return [self.featurize(traj) for traj in traj_list]
+        return [self.partial_transform(traj) for traj in traj_list]
 
     def save(self, filename):
         with open(filename, 'wb') as f:
@@ -295,7 +295,7 @@ class DihedralFeaturizer(Featurizer):
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
-            y = func(trajectory)[1]
+            y = func(traj)[1]
             if self.sincos:
                 x.extend([np.sin(y), np.cos(y)])
             else:
@@ -356,7 +356,7 @@ class ContactFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        distances, _ = md.compute_contacts(trajectory, self.contacts, self.scheme, self.ignore_nonprotein)
+        distances, _ = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
         return distances
 
 
@@ -529,6 +529,26 @@ class DRIDFeaturizer(Featurizer):
         self.atom_indices = atom_indices
 
     def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space using the distribution
+        of reciprocal interatomic distance (DRID) method.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         return md.geometry.compute_drid(traj, self.atom_indices)
 
 

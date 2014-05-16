@@ -73,7 +73,7 @@ class ContactFeaturizerCommand(NumpydocClassCommand):
                 for i, chunk in enumerate(md.iterload(trjfn, stride=self.stride, chunk=self.chunk, top=top)):
                     print('\r{} chunk {}'.format(os.path.basename(trjfn), i), end='')
                     sys.stdout.flush()
-                    trajectory.append(self.instance.featurize(chunk))
+                    trajectory.append(self.instance.partial_transform(chunk))
                 print()
                 dataset.append(np.concatenate(trajectory))
 

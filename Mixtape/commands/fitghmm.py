@@ -145,7 +145,7 @@ class FitGHMM(Command, MDTrajInputMixin):
 
         result = {
             'model': 'GaussianFusionHMM',
-            'timescales': (np.real(model.timescales_()) * train_lag_time).tolist(),
+            'timescales': (np.real(model.timescales_) * train_lag_time).tolist(),
             'transmat': np.real(model.transmat_).tolist(),
             'populations': np.real(model.populations_).tolist(),
             'n_states': model.n_states,
