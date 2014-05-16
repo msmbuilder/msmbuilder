@@ -210,6 +210,7 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     Returns
     -------
     log_likelihood : float
+        Mean log-likelihood per data point.
 
     Examples
     --------
@@ -233,7 +234,12 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     from mixtape import cluster
     grid = [model for (name, model) in estimator.steps if isinstance(model, cluster.NDGrid)][0]
     msm = [model for (name, model) in estimator.steps if isinstance(model, MarkovStateModel)][0]
-    assert grid.n_features == 1
+
+    # NDGrid supports min/max being different along different directions, which
+    # means that the bin widths are coordinate dependent. But I haven't
+    # implemented that because I've only been using this for 1D data
+    if grid.n_features != 1:
+        raise NotImplementedError("file an issue on github :)")
 
     transition_log_likelihood = 0
     emission_log_likelihood = 0
