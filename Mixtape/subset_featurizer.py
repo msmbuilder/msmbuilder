@@ -175,7 +175,7 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
     def n_max(self):
         return len(self.possible_pair_indices)
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         if self.n_features > 0:
             features = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic) ** self.exponent
         else:
@@ -199,7 +199,7 @@ class SubsetTrigFeaturizer(BaseSubsetFeaturizer):
     
     """    
     
-    def featurize(self, traj):
+    def partial_transform(self, traj):
         if self.n_features > 0:
             dih = md.geometry.dihedral.compute_dihedrals(traj, self.which_atom_ind[self.subset])
             features = self.trig_function(dih)

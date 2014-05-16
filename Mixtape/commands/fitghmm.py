@@ -145,7 +145,7 @@ class FitGHMM(Command, MDTrajInputMixin):
 
         result = {
             'model': 'GaussianFusionHMM',
-            'timescales': (np.real(model.timescales_()) * train_lag_time).tolist(),
+            'timescales': (np.real(model.timescales_) * train_lag_time).tolist(),
             'transmat': np.real(model.transmat_).tolist(),
             'populations': np.real(model.populations_).tolist(),
             'n_states': model.n_states,
@@ -182,7 +182,7 @@ class FitGHMM(Command, MDTrajInputMixin):
         for tfn in self.filenames:
             kwargs = {} if tfn.endswith('h5') else {'top': self.top}
             for t in md.iterload(tfn, chunk=self.args.split, **kwargs):
-                features = self.featurizer.featurize(t)
+                features = self.featurizer.partial_transform(t)
                 data.append(features)
 
         print('Loading data into memory + vectorization: %f s' % (time.time() - load_time_start))

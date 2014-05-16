@@ -71,7 +71,7 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         kwargs = {} if file.endswith('.h5') else {'top': topology}
         count = 0
         for t in md.iterload(file, chunk=chunk, stride=stride, **kwargs):
-            x = featurizer.featurize(t)
+            x = featurizer.partial_transform(t)
             n_frames = len(x)
 
             data.append(x)
@@ -106,42 +106,49 @@ class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
         pass
 
     def featurize(self, traj):
-        pass
+        raise NotImplementedError('This API was removed. Use partial_transform instead')
 
     def partial_transform(self, traj):
-        """Featurize a single trajectory.
-        
+        """Featurize an MD trajectory into a vector space.
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
-            Trajectory to be featurized.
-        
+            A molecular dynamics trajectory to featurize.
+
         Returns
         -------
         features : np.ndarray, dtype=float, shape=(n_samples, n_features)
-            The featurized trajectory.
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
         """
         pass
-    
+
     def fit(self, traj_list, y=None):
         return self
 
     def transform(self, traj_list, y=None):
         """Featurize a several trajectories.
-        
+
         Parameters
         ----------
         traj_list : list(mdtraj.Trajectory)
             Trajectories to be featurized.
-        
+
         Returns
         -------
         features : list(np.ndarray), length = len(traj_list)
             The featurized trajectories.  features[i] is the featurized
-            version of traj_list[i] and has shape 
+            version of traj_list[i] and has shape
             (n_samples_i, n_features)
-        """        
-        return [self.featurize(traj) for traj in traj_list]
+        """
+        return [self.partial_transform(traj) for traj in traj_list]
 
     def save(self, filename):
         with open(filename, 'wb') as f:
@@ -149,7 +156,6 @@ class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
 
 
 class SuperposeFeaturizer(Featurizer):
-
     """Featurizer based on euclidian atom distances to reference structure.
 
     Parameters
@@ -166,12 +172,31 @@ class SuperposeFeaturizer(Featurizer):
         self.reference_traj = reference_traj
         self.n_features = len(self.atom_indices)
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via distance
+        after superposition
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
-
         return x
 
 
@@ -199,7 +224,27 @@ class AtomPairsFeaturizer(Featurizer):
         self.periodic = periodic
         self.exponent = exponent
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via pairwise
+        atom-atom distances
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d ** self.exponent
 
@@ -226,11 +271,31 @@ class DihedralFeaturizer(Featurizer):
             raise ValueError('angles must be a subset of %s. you supplied %s' % (
                 str(known), str(types)))
 
-    def featurize(self, trajectory):
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via calculation
+        of dihedral (torsion) angles
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
-            y = func(trajectory)[1]
+            y = func(traj)[1]
             if self.sincos:
                 x.extend([np.sin(y), np.cos(y)])
             else:
@@ -239,7 +304,6 @@ class DihedralFeaturizer(Featurizer):
 
 
 class ContactFeaturizer(Featurizer):
-
     """Featurizer based on residue-residue distances
 
     Parameters
@@ -271,8 +335,28 @@ class ContactFeaturizer(Featurizer):
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
 
-    def featurize(self, trajectory):
-        distances, _ = md.compute_contacts(trajectory, self.contacts, self.scheme, self.ignore_nonprotein)
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via of residue-residue
+        distances
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        distances, _ = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
         return distances
 
 
@@ -297,9 +381,6 @@ class GaussianSolventFeaturizer(Featurizer):
     periodic : bool
         Whether to consider a periodic system in distance calculations
 
-    Returns
-    -------
-    fingerprints : np.ndarray, shape=(n_frames, n_solute)
 
     References
     ----------
@@ -314,7 +395,27 @@ class GaussianSolventFeaturizer(Featurizer):
         self.periodic = periodic
         self.n_features = len(self.solute_indices)
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via calculation
+        of solvent fingerprints
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         # The result vector
         fingerprints = np.zeros((traj.n_frames, self.n_features))
         atom_pairs = np.zeros((len(self.solvent_indices), 2))
@@ -340,8 +441,31 @@ class RawPositionsFeaturizer(Featurizer):
     def __init__(self, n_features):
         self.n_features = n_features
 
-    def featurize(self, traj):
-        return traj.xyz.reshape(len(traj), -1)
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space with the raw
+        cartesian coordinates.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        value = traj.xyz.reshape(len(traj), -1)
+        if value.shape[1] != self.n_features:
+            warnings.warn('wrong n_features in RawPositionsFeaturizer')
+        return value
 
 
 class RMSDFeaturizer(Featurizer):
@@ -363,12 +487,31 @@ class RMSDFeaturizer(Featurizer):
         self.trj0 = trj0
         self.atom_indices = atom_indices
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space by calculating
+        the RMSD to each frame in a reference trajectory.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         X = np.zeros((traj.n_frames, self.n_features))
 
         for frame in range(self.n_features):
             X[:, frame] = md.rmsd(traj, self.trj0, atom_indices=self.atom_indices, frame=frame)
-
         return X
 
 
@@ -385,63 +528,83 @@ class DRIDFeaturizer(Featurizer):
     def __init__(self, atom_indices=None):
         self.atom_indices = atom_indices
 
-    def featurize(self, traj):
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space using the distribution
+        of reciprocal interatomic distance (DRID) method.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         return md.geometry.compute_drid(traj, self.atom_indices)
 
 
 class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion
-    
+
     Notes
     -----
     Works on lists of trajectories.
     """
-    def fit_transform(self, X, y=None, **fit_params):
-        """Fit all transformers using X, transform the data and concatenate
-        results.
+    def fit_transform(self, traj_list, y=None, **fit_params):
+        """Fit all transformers using `trajectories`, transform the data
+        and concatenate results.
 
         Parameters
         ----------
-        X : list (of mdtraj.Trajectory objects)
+        traj_list : list (of mdtraj.Trajectory objects)
             Trajectories to featurize
         y : Unused
             Unused
-            
+
         Returns
         -------
         Y : list (of np.ndarray)
             Y[i] is the featurized version of X[i]
-            Y[i] will have shape (n_samples_i, n_features), where 
+            Y[i] will have shape (n_samples_i, n_features), where
             n_samples_i is the length of trajectory i and n_features
-            is the total (concatenated) number of features in the 
+            is the total (concatenated) number of features in the
             concatenated list of featurizers.
         """
-        self.fit(X, y, **fit_params)
-        return self.transform(X)
-        
-        
-    def transform(self, X):
-        """Transform X separately by each transformer, concatenate results.
+        self.fit(traj_list, y, **fit_params)
+        return self.transform(traj_list)
+
+
+    def transform(self, traj_list):
+        """Transform traj_list separately by each transformer, concatenate results.
 
         Parameters
         ----------
-        X : list (of mdtraj.Trajectory objects)
+        trajectories : list (of mdtraj.Trajectory objects)
             Trajectories to featurize
 
         Returns
         -------
         Y : list (of np.ndarray)
             Y[i] is the featurized version of X[i]
-            Y[i] will have shape (n_samples_i, n_features), where 
+            Y[i] will have shape (n_samples_i, n_features), where
             n_samples_i is the length of trajectory i and n_features
-            is the total (concatenated) number of features in the 
-            concatenated list of featurizers.            
+            is the total (concatenated) number of features in the
+            concatenated list of featurizers.
 
         """
         Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(sklearn.pipeline._transform_one)(trans, name, X, self.transformer_weights)
+            delayed(sklearn.pipeline._transform_one)(trans, name, traj_list, self.transformer_weights)
             for name, trans in self.transformer_list)
 
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
 
-        return X_i_stacked    
+        return X_i_stacked
