@@ -10,6 +10,7 @@ from sklearn.externals.joblib import load, dump
 from sklearn.externals.joblib.logger import short_format_time
 
 from IPython.parallel import Client
+from IPython.parallel.error import RemoteError
 from IPython.display import clear_output
 
 try:
@@ -165,7 +166,11 @@ class DistributedBaseSeachCV(BaseSearchCV):
             async.wait()
             if verbose > 0:
                 async.display_outputs()
-            out = async.result
+            try:
+                out = async.result
+            except RemoteError as e:
+                e.print_traceback()
+                raise
         finally:
             if self.tmp_dir:
                 if verbose:
@@ -374,20 +379,3 @@ class DistributedGridSearchCV(DistributedBaseSeachCV):
 
         """
         return self._fit(X, y, ParameterGrid(self.param_grid))
-
-
-if __name__ == '__main__':
-    from sklearn.cluster import KMeans
-    from sklearn.cross_validation import KFold
-    X = np.random.RandomState(0).randn(20000, 200)
-
-    print('X (MB)', X.nbytes / float(1024*1024))
-
-    # cv = KFold(len(X), n_folds=5)
-    # grid2 = GridSearchCV(SVC(), n_jobs=-1, verbose=10, cv=cv, param_grid={'C': range(1,100)})
-    # grid2.fit(X, y)
-
-    cv = KFold(len(X), n_folds=5)
-    grid1 = DistributedGridSearchCV(KMeans(max_iter=5, n_init=1), verbose=1,
-        cv=cv, refit=False, tmp_dir='.', param_grid={'n_clusters': range(100, 101)})
-    grid1.fit(X)
