@@ -4,14 +4,14 @@ DOUBLEWELL_DESCRIPTION="""Brownian dynamics on a 1D double well potential
 
 This dataset consists of 10 trajectories simulated with Brownian dynamics on
 the reduced potential function:
-    
+
     V(x) = 1 + cos(2x)
 
 with reflecting boundary conditions at x=-pi and x=pi. The simulations are
 governed by the stochastic differential equation
 
     dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t)
-    
+
 where R(t) is a standard normal white-noise process. A diffusion constant D=1
 was used. The timsetep was 1e-3. Each trajectory is 10^5 steps long, and starts
 at x_0 = 0.
@@ -49,7 +49,7 @@ DT_SQRT_2D = DT * np.sqrt(2 * DIFFUSION_CONST)
 
 def load_doublewell(data_home=None, random_state=None):
     """Loader for double-well dataset
-    
+
     Parameters
     ----------
     data_home : optional, default: None
@@ -62,7 +62,7 @@ def load_doublewell(data_home=None, random_state=None):
         ``data_home`` if simulations with that seed have been performed already.
         With random_state=None, new simulations will be performed and the
         trajectories will not be cached.
-    
+
     Notes
     -----
     """
@@ -81,7 +81,7 @@ def load_doublewell(data_home=None, random_state=None):
         else:
             trajectories = _simulate_doublewell(random)
             verbosedump(trajectories, path)
-    
+
     return Bunch(trajectories=trajectories, DESCR=DOUBLEWELL_DESCRIPTION)
 
 load_doublewell.__doc__ += DOUBLEWELL_DESCRIPTION
@@ -119,7 +119,7 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None):
         bc = lambda x : x
     else:
         bc = lambda x: _reflect_boundary_conditions(x, bc_min, bc_max)
-    
+
     rand = random.randn(n_steps)
     x = np.zeros(n_steps+1)
     x[0] = x0
@@ -129,4 +129,3 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None):
 
     print('%d steps/s' % (n_steps / (time.time() - start)))
     return x
-    
