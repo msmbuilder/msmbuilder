@@ -22,6 +22,7 @@ is 1e-3. Each trajectory is 10^5 steps long, and starts at x_0 = 0.
 
 import time
 import numbers
+from os import makedirs
 from os.path import join
 from os.path import exists
 import numpy as np
