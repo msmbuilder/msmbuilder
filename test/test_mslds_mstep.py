@@ -2,8 +2,23 @@ import numpy as np
 import warnings
 from mslds_examples import PlusminModel, MullerModel, MullerForce
 from mixtape.mslds_solver import MetastableSwitchingLDSSolver
+from mixtape.mslds_solver import AQb_solve
 from sklearn.hmm import GaussianHMM
 from test_mslds_estep import reference_estep
+
+def test_AQb_solve():
+    dim = 1
+    A = np.array([[.5]])
+    Q = np.array([[.1]])
+    Qinv = np.array([[10.]])
+    mu = np.array([[0.]])
+    B = np.array([[1.]])
+    C = np.array([[2.]])
+    D = np.array([[1.]])
+    Dinv = np.array([[1.]])
+    E = np.array([[1.]])
+    F = np.array([[1.]])
+    AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
 
 def test_plusmin_mstep():
     # Set constants
@@ -22,57 +37,23 @@ def test_plusmin_mstep():
                         covariance_type='full').fit(data)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-    # Fit initial MSLDS model from reference model
-    model = MetastableSwitchingLDS(n_components, n_features,
-                                n_hotstart=0)
-    model._impl._sequences = data
-    model.means_ = refmodel.means_
-    model.covars_ = refmodel.covars_
-    model.transmat_ = refmodel.transmat_
-    model.populations_ = refmodel.startprob_
-    model.As_ = [np.zeros((n_features, n_features)),
-                    np.zeros((n_features, n_features))]
-    model.Qs_ = refmodel.covars_
-    model.bs_ = refmodel.means_
-
-    # Do one mstep
-    params = 'aqb' # With param t is broken!
-    iteration = 0 # Remove this step once hot_start is factored out
-    logprob, stats = model._impl.do_estep(iteration)
-    model._do_mstep(stats, params, iteration)
-
-    #import pdb
-    #pdb.set_trace()
+    # Obtain sufficient statistics from refmodel
+    rlogprob, rstats = reference_estep(refmodel, data)
+    means = refmodel.means_
+    covars = refmodel.covars_
+    transmat = refmodel.transmat_
+    populations = refmodel.startprob_
+    As = []
     for i in range(n_components):
-        yield lambda: np.testing.assert_array_almost_equal(
-                model.Qs_[i], refmodel.covars_[i], decimal=2)
-        yield lambda: np.testing.assert_array_almost_equal(
-                model.bs_[i], model.means_[i], decimal=2)
-        yield lambda: np.testing.assert_array_almost_equal(
-                model.As_[i], np.zeros((n_features, n_features)),
-                decimal=1)
+        As.append(np.zeros((n_features, n_features)))
+    Qs = refmodel.covars_
+    bs = refmodel.means_
+    means = refmodel.means_
+    covars = refmodel.covars_
 
-def test_plusmin_scores():
-    l = MetastableSwitchingLDS(plusmin.K, plusmin.x_dim,
-           n_hotstart=0)
-    l.fit(obs_sequences)
-    mslds_score = l.score(obs_sequences)
-    print("MSLDS Log-Likelihood = %f" %  mslds_score)
-    # Fit Gaussian HMM for comparison
-    g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
-    g.fit(obs_sequences)
-    hmm_score = g.score(obs_sequences)
-    print("HMM Log-Likelihood = %f" %  hmm_score)
-    sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=plusmin.mus[0])
-    sim_xs = np.reshape(sim_xs, (n_seq, T, plusmin.x_dim))
-
-    plt.close('all')
-    plt.figure(1)
-    plt.plot(range(T), obs_sequences[0], label="Observations")
-    plt.plot(range(T), sim_xs[0], label='Sampled Observations')
-    plt.legend()
-    plt.show()
-    pass
+    # Test AQB solver for MSLDS
+    solver = MetastableSwitchingLDSSolver(n_components, n_features)
+    solver.do_mstep(As, Qs, bs, means, covars, rstats)
 
 def test_muller_potential_mstep():
     # Set constants
@@ -107,45 +88,6 @@ def test_muller_potential_mstep():
     means = refmodel.means_
     covars = refmodel.covars_
 
-    # Test AQB solver for MSLDS solver
+    # Test AQB solver for MSLDS
     solver = MetastableSwitchingLDSSolver(n_components, n_features)
     solver.do_mstep(As, Qs, bs, means, covars, rstats)
-
-def test_muller_potential_score():
-    sim_T = 1000
-    l.fit(obs_sequences)
-    mslds_score = l.score(obs_sequences)
-
-    print("MSLDS Log-Likelihood = %f" %  mslds_score)
-    # Fit Gaussian HMM for comparison
-    g = GaussianFusionHMM(muller.K, muller.x_dim)
-    g.fit(obs_sequences)
-    hmm_score = g.score(obs_sequences)
-    print("HMM Log-Likelihood = %f" %  hmm_score)
-    # Clear Display
-    plt.cla()
-    plt.plot(trajectory[start:, 0], trajectory[start:, 1], color='k')
-    plt.scatter(l.means_[:, 0], l.means_[:, 1], color='r', zorder=10)
-    plt.scatter(obs_sequences[0, :, 0], obs_sequences[0,:, 1],
-            edgecolor='none', facecolor='k', zorder=1)
-    Delta = 0.5
-    minx = min(obs_sequences[0, :, 0])
-    maxx = max(obs_sequences[0, :, 0])
-    miny = min(obs_sequences[0, :, 1])
-    maxy = max(obs_sequences[0, :, 1])
-    sim_xs, sim_Ss = l.sample(sim_T, init_state=0, init_obs=l.means_[0])
-
-    minx = min(min(sim_xs[:, 0]), minx) - Delta
-    maxx = max(max(sim_xs[:, 0]), maxx) + Delta
-    miny = min(min(sim_xs[:, 1]), miny) - Delta
-    maxy = max(max(sim_xs[:, 1]), maxy) + Delta
-    plt.scatter(sim_xs[:, 0], sim_xs[:, 1], edgecolor='none',
-               zorder=5, facecolor='g')
-    plt.plot(sim_xs[:, 0], sim_xs[:, 1], zorder=5, color='g')
-
-
-    MullerForce.plot(ax=plt.gca(), minx=minx, maxx=maxx,
-            miny=miny, maxy=maxy)
-    plt.show()
-    pass
-

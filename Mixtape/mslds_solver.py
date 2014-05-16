@@ -13,23 +13,29 @@ from mixtape.mslds_solvers.sparse_sdp.general_sdp_solver \
 from mixtape.mslds_solvers.sparse_sdp.utils import get_entries, set_entries
 
 class MetastableSwitchingLDSSolver(object):
+    """
+    This class should be a functional wrapper that takes in lists of
+    parameters As, Qs, bs, covars, means along with sufficient statistics
+    and returns updated lists. Not much state should stored.
+    """
     def __init__(self, n_components, n_features):
         self.covars_prior = 1e-2
         self.covars_weight = 1.
         self.n_components = n_components
         self.n_features = n_features
 
-    # Delete this and replace with sklearn?
-    #def do_hmm_mstep(self, stats):
-    #    self.means_update(stats)
-    #    self.covars_update(stats)
+    # TEST ME!
+    def do_hmm_mstep(self, stats):
+        self.means_update(stats)
+        self.covars_update(stats)
 
     def do_mstep(self, As, Qs, bs, means, covars, stats):
         transmat = transmat_solve(stats)
-        A_upds, Q_upds, b_upds = AQb_solve(self.n_components,
+        A_upds, Q_upds, b_upds = self.AQb_update(self.n_components,
                 self.n_features, As, Qs, bs, means, covars, stats)
         return transmat, A_upds, Q_upds, b_upds
 
+    # TEST ME!
     def covars_update(self, stats):
         cvweight = max(self.covars_weight - self.n_features, 0)
         for c in range(self.n_components):
@@ -52,9 +58,36 @@ class MetastableSwitchingLDSSolver(object):
                 self.covars_[c] += (2 * abs(min_eig) *
                                     np.eye(self.n_features))
 
+    # TEST ME!
     def means_update(self, stats):
         self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
 
+    def AQb_update(self, n_components, n_features,
+            As, Qs, bs, means, covars, stats):
+        Bs, Cs, Es, Ds, Fs = compute_aux_matrices(n_components, n_features,
+                As, bs, covars, stats)
+        A_upds, Q_upds, b_upds = [], [], []
+
+        for i in range(n_components):
+            # Why don't we use all these terms?
+            B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
+            Dinv = np.linalg.inv(D) # Should cache this to save time.
+            A, Q, mu = As[i], Qs[i], means[i]
+            Qinv = np.linalg.inv(Q)
+            A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, Qinv,
+                    mu, B, C, D, Dinv, E, F)
+            A_upds += [A_upd]
+            Q_upds += [Q_upd]
+            b_upds += [b_upd]
+        return A_upds, Q_upds, b_upds
+
+def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
+    # Should this be iterated for biconvex solution?
+    A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv)
+    Q_upd = Q_solve(dim, A, D, F)
+    b_upd = b_solve(dim, A, mu)
+
+# FIX ME!
 def transmat_solve(stats):
     counts = (np.maximum(stats['trans'], 1e-20).astype(np.float64))
     # Need to fix this......
@@ -72,6 +105,7 @@ def transmat_solve(stats):
     #print "revised_counts\n", revised_counts
     return revised_counts
 
+# TEST ME!
 def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
     Bs, Cs, Es, Ds, Fs = [], [], [], [], []
     for i in range(n_components):
@@ -102,31 +136,13 @@ def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
         Fs += [F]
     return Bs, Cs, Es, Ds, Fs
 
-def AQb_solve(n_components, n_features, As, Qs, bs, means, covars, stats):
-    Bs, Cs, Es, Ds, Fs = compute_aux_matrices(n_components, n_features,
-            As, bs, covars, stats)
-    A_upds, Q_upds, b_upds = [], [], []
-
-    for i in range(n_components):
-        # Why don't we use all these terms?
-        B, C, E, D, F = Bs[i], Cs[i], Es[i], Ds[i], Fs[i]
-        Dinv = np.linalg.inv(D) # Should cache this to save time.
-        A, Q, mu = As[i], Qs[i], means[i]
-        # Should this be iterated for biconvex solution?
-        A_upd = A_solve(n_features, D, Dinv, Q)
-        Q_upd = Q_solve(n_features, A, F, D)
-        b_upd = b_solve(n_features, A, mu)
-        A_upds += [A_upd]
-        Q_upds += [Q_upd]
-        b_upds += [b_upd]
-    return A_upds, Q_upds, b_upds
 
 
 def b_solve(n_features, A, mu):
      b = np.dot(np.eye(n_features) - A, mu)
      return b
 
-def A_solve(block_dim, D, Dinv, Q):
+def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     # Refactor this better somehow?
     dim = 4*block_dim
     R = 10 # figure out more general R
@@ -151,7 +167,7 @@ def A_solve(block_dim, D, Dinv, Q):
         A_1 = get_entries(X_L, A_1_cds)
         return A_1
 
-def Q_solve(block_dim, A, F, D):
+def Q_solve(block_dim, A, D, F):
     # Refactor this better somehow?
     dim = 3*block_dim
     R = 10 # figure out more general R

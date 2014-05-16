@@ -16,6 +16,7 @@ from sklearn.hmm import GaussianHMM
 from sklearn.mixture import distribute_covar_matrix_to_match_covariance_type
 from mdtraj.utils import ensure_type
 
+from mixtape.mslds_solver import MetastableSwitchingLDSSolver
 from mixtape._mslds import MetastableSLDSCPUImpl
 from mixtape.utils import iter_vars, categorical
 
@@ -66,11 +67,10 @@ class MetastableSwitchingLDS(object):
         self._transmat_ = None
         self._populations_ = None
 
-        self.solver = MetastableSwitchingLDSSolver(backend=backend)
-        self.inferrer = _mslds.MetastableSLDSCPUImpl(self.n_states,
-                self.n_features, self.n_hotstart, 'mixed')
-
-
+        self.solver = MetastableSwitchingLDSSolver(self.n_states,
+                self.n_features)
+        self.inferrer = MetastableSLDSCPUImpl(self.n_states,
+                self.n_features, precision='mixed')
 
 
     def _init(self, sequences):
