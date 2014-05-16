@@ -5,7 +5,7 @@ DOUBLEWELL_DESCRIPTION="""Brownian dynamics on a 1D double well potential
 This dataset consists of 10 trajectories simulated with Brownian dynamics on
 the reduced potential function:
     
-    V(x) = 1 + cos(2*x)
+    V(x) = 1 + cos(2x)
 
 with reflecting boundary conditions at x=-pi and x=pi. The simulations are
 governed by the stochastic differential equation
@@ -129,8 +129,4 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None):
 
     print('%d steps/s' % (n_steps / (time.time() - start)))
     return x
-
-
-
-
     
