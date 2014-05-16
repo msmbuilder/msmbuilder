@@ -63,6 +63,7 @@ Algorithms
 ----------
 .. autosummary::
     :toctree: generated/
+    :template: class.rst
 
     ~ghmm.GaussianFusionHMM
     ~vmhmm.VonMisesHMM

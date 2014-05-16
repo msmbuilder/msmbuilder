@@ -28,6 +28,7 @@ Algorithms
 
 .. autosummary::
     :toctree: generated/
+    :template: class.rst
 
     ~tica.tICA
     ~sparsetica.SparseTICA

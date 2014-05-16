@@ -24,6 +24,7 @@ Featurizations
 
 .. autosummary::
     :toctree: generated/
+    :template: class.rst
 
     AtomPairsFeaturizer
     ContactFeaturizer

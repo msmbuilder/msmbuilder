@@ -24,6 +24,7 @@ Algorithms
 
 .. autosummary::
     :toctree: generated/
+    :template: class.rst
 
     MarkovStateModel
 
