@@ -39,7 +39,9 @@ class GeneralSolver(object):
         (self.As, self.bs, self.Cs, self.ds,
             self.Fs, self.gradFs, self.Gs, self.gradGs) = \
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
-        self.obj = obj
+        #self.obj = obj
+        # FIXME FIXME FIXME FIXME
+        self.obj = lambda X: obj(self.R*X)
         self.grad_obj = grad_obj
 
     def create_feasibility_solver(self, fs, grad_fs):
@@ -103,8 +105,8 @@ class GeneralSolver(object):
         X_L, X_U = None, None
         succeed = False
         # Test that problem is originally feasible
-        f_lower = self.create_feasibility_solver([], [])
-        _, _, succeed = f_lower.feasibility_solve(N_iter, tol,
+        f_init = self.create_feasibility_solver([], [])
+        X_orig, fX_orig, succeed = f_init.feasibility_solve(N_iter, tol,
                 methods=['frank_wolfe', 'frank_wolfe_stable'],
                 disp=verbose)
         if not succeed:
@@ -115,24 +117,33 @@ class GeneralSolver(object):
             return (None, U, X_U, L, X_L, succeed)
         if disp:
             print "Problem feasible with obj in (%f, %f)" % (L, U)
+            print "X_orig:\n", X_orig
+            print "obj(X_orig): ", self.obj(X_orig)
+        U = 1.25*self.obj(X_orig)
+        X_U = X_orig
+        if disp:
+            print "New upper bound: ", U
         if interactive:
             wait = raw_input("Press ENTER to continue")
         while (U - L) >= tol:
             alpha = (U + L) / 2.0
             if disp:
                 print "Checking feasibility in (%f, %f)" % (L, alpha)
-            h_alpha = lambda X: self.obj(X) - alpha
-            grad_h_alpha = lambda X: self.grad_obj(X)
+            h_alpha = lambda X: (self.obj(X) - alpha)
+            #h_alpha = lambda X: (self.obj(X) - U)
+            grad_h_alpha = lambda X: (self.grad_obj(X))
             f_lower = self.create_feasibility_solver([h_alpha],
                     [grad_h_alpha])
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
                     methods=['frank_wolfe', 'frank_wolfe_stable'],
-                    disp=verbose)
+                    disp=verbose, X_init=self.R*X_U)
             if succeed_L:
                 U = alpha
                 if disp:
                     print "Problem feasible with obj in (%f, %f)" % (L, U)
                     print "X_L:\n", X_L
+                    print "obj(X_L): ", self.obj(X_L)
+                    print "h_alpha(X_L): ", h_alpha(X_L)
                 if interactive:
                     wait = raw_input("Press ENTER to continue")
                 continue
@@ -140,7 +151,11 @@ class GeneralSolver(object):
                 if disp:
                     print "Problem infeasible with obj in (%f, %f)" \
                             % (L, alpha)
-                    L = alpha
+                    print "X_L:\n", X_L
+                    print "obj(X_L): ", self.obj(X_L)
+                    print "h_alpha(X_L): ", h_alpha(X_L)
+                L = alpha
+                if disp:
                     print "\tContinuing search in (%f, %f)" % (L, U)
                 if interactive:
                     wait = raw_input("Press ENTER to continue")

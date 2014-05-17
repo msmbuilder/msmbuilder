@@ -182,7 +182,8 @@ def test8():
     """
     eps = 1e-5
     tol = 1e-2
-    dims = [4,16]
+    #dims = [4,16]
+    dims = [2]
     N_iter = 200
     for dim in dims:
         block_dim = int(dim/2)
@@ -192,6 +193,11 @@ def test8():
         tr_B_D = np.trace(B) + np.trace(D)
         B = B / tr_B_D
         D = D / tr_B_D
+        soln = np.zeros((dim, dim))
+        soln[:block_dim, :block_dim] = B
+        soln[:block_dim, block_dim:] = A
+        soln[block_dim:, :block_dim] = A.T
+        soln[block_dim:, block_dim:] = D
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                 basic_batch_equality(dim, A, B, D)
         M = compute_scale(len(As), len(Cs), len(Fs), len(Gs), eps)
@@ -202,8 +208,11 @@ def test8():
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
         X, elapsed  = run_experiment(B, N_iter,
-                methods=['frank_wolfe', 'frank_wolfe_stable'], disp=False)
+                methods=['frank_wolfe', 'frank_wolfe_stable'],
+                    disp=True)
         succeed = not (f(X) < -tol)
+        print "\tsoln\n", soln
+        print "\tX\n", X
         print "\tComputation Time (s): ", elapsed
         assert succeed == True
 

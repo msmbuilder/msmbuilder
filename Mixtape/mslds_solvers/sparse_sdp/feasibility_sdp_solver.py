@@ -154,11 +154,17 @@ class FeasibilitySolver(object):
             Tr(X) <= R
         """
         if X_init != None:
+            dim = self.dim
             Y_init = np.zeros((dim+1, dim+1))
             Y_init[:dim, :dim] = X_init
             Y_init = Y_init / self.R
             init_trace = np.trace(Y_init)
             Y_init[dim, dim] = 1 - init_trace
+            print "Y_init:\n", Y_init
+            import pdb
+            pdb.set_trace()
+            fY_init = self.f(Y_init)
+            print "f(Y_init): ", fY_init
         else:
             Y_init = None
         Y = self._solver.solve(N_iter, X_init=Y_init,

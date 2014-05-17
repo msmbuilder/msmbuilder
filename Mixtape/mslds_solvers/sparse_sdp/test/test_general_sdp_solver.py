@@ -151,31 +151,62 @@ def test4():
     X is PSD
     """
     eps = 1e-4
-    tol = 1e-3
+    tol = 5e-2
     search_tol = 1e-2
-    N_iter = 50
-    dim = 2
+    N_iter = 150
     Rs = [10]
     dims = [3]
-    L, U = (-10, 10)
+    L, U = (0, 1000)
+    scale = 10.
     for R in Rs:
         for dim in dims:
             block_dim = int(dim/3)
 
             # Generate initial data
             D = .0204 * np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
             F = 25.47 * np.eye(block_dim)
             A = np.zeros(block_dim)
+            # Rescaling
+            D *= scale
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                     Q_constraints(block_dim, A, F, D)
             g = GeneralSolver(R, L, U, dim, eps)
             def obj(X):
-                return log_det_tr(X, F)
+                return log_det_tr(scale*X, F)
             def grad_obj(X):
-                return grad_log_det_tr(X, F)
+                return grad_log_det_tr(scale*X, F)
             g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
-                    interactive=True)
+            (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
+                    verbose=True, interactive=True)
+            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
+                    = Q_coords(block_dim)
+            # Undo trace scaling
+            X_L, X_U = R*X_L, R*X_U
+            print "X_L\n", X_L
+            print "X_U\n", X_U
+            if X_L != None:
+                R_1_L  = get_entries(X_L, R_1_cds)
+                R_2_L  = get_entries(X_L, R_2_cds)
+                # Undo scaling
+                R_1_L, R_2_L = scale*R_1_L, scale*R_2_L
+                Q_1_L = np.linalg.inv(R_1_L)
+                print "Q_1_L:\n", Q_1_L
+                Q_2_L = np.linalg.inv(R_2_L)
+                print "Q_2_L:\n", Q_2_L
+            if X_U != None:
+                R_1_U  = get_entries(X_U, R_1_cds)
+                R_2_U  = get_entries(X_U, R_2_cds)
+                # Undo scaling
+                R_1_U, R_2_U = scale*R_1_U, scale*R_2_U
+                Q_1_U = np.linalg.inv(R_1_U)
+                print "Q_1_U:\n", Q_1_U
+                Q_2_U = np.linalg.inv(R_2_U)
+                print "Q_2_U:\n", Q_2_U
+            if X_L != None:
+                assert np.linalg.norm(Q_1_L, 2) < np.linalg.norm(D)
+                assert np.linalg.norm(Q_2_L, 2) < np.linalg.norm(D)
+            if X_U != None:
+                assert np.linalg.norm(Q_1_U, 2) < np.linalg.norm(D)
+                assert np.linalg.norm(Q_2_U, 2) < np.linalg.norm(D)
             assert succeed == True

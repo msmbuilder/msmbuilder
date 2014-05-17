@@ -87,7 +87,7 @@ class BoundedTraceSolver(object):
         return X
 
     def backtracking_line_search(self, X, gradX, stepX, c=1e-4,
-                                    rho=0.7, N_tries =30):
+                                    rho=0.7, N_tries=30):
         """
         Implements simple backtracking line search for hill-climbing.
         Parameters
@@ -120,14 +120,13 @@ class BoundedTraceSolver(object):
         return fX_cur, X_cur, alpha
 
     def solve(self, N_iter, X_init=None, disp=True, debug=False,
-            methods=[], early_exit=True):
+            methods=[], early_exit=True, tol=1e-6):
         """
         Parameters
         __________
         N_iter: int
             The desired number of iterations
         """
-        tol=1e-6
         f, gradf = self.f, self.gradf
         if X_init == None:
             v = np.random.rand(self.dim, 1)
@@ -160,6 +159,9 @@ class BoundedTraceSolver(object):
             if (early_exit and
                     (fX_prop <= fX + tol
                         or np.sum(np.abs(X_prop - X)) < tol)):
+                delta = fX_prop - fX
+                print "\t\t\tdelta: ", delta
+                print "\t\t\tEarly Stopping."
                 break
             elif fX_prop > fX:
                 delta = fX_prop - fX
