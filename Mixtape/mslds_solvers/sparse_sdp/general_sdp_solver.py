@@ -39,9 +39,7 @@ class GeneralSolver(object):
         (self.As, self.bs, self.Cs, self.ds,
             self.Fs, self.gradFs, self.Gs, self.gradGs) = \
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
-        #self.obj = obj
-        # FIXME FIXME FIXME FIXME
-        self.obj = lambda X: obj(self.R*X)
+        self.obj = lambda X: obj(X)
         self.grad_obj = grad_obj
 
     def create_feasibility_solver(self, fs, grad_fs):
@@ -55,7 +53,7 @@ class GeneralSolver(object):
         return f
 
     def solve(self, N_iter, tol, X_init=None, interactive=False,
-            disp=True, verbose=False):
+            disp=True, verbose=False, debug=False):
         """
         Solves optimization problem
 
@@ -108,18 +106,20 @@ class GeneralSolver(object):
         f_init = self.create_feasibility_solver([], [])
         X_orig, fX_orig, succeed = f_init.feasibility_solve(N_iter, tol,
                 methods=['frank_wolfe', 'frank_wolfe_stable'],
-                disp=verbose)
+                disp=verbose, X_init = X_init)
         if not succeed:
             if disp:
-                print "Problem infeasible with obj in (%f, %f)" % (L, U)
+                print "Problem infeasible"
             if interactive:
                 wait = raw_input("Press ENTER to continue")
+            import pdb
+            pdb.set_trace()
             return (None, U, X_U, L, X_L, succeed)
         if disp:
             print "Problem feasible with obj in (%f, %f)" % (L, U)
             print "X_orig:\n", X_orig
-            print "obj(X_orig): ", self.obj(X_orig)
-        U = 1.25*self.obj(X_orig)
+            print "obj(X_orig): ", self.obj(self.R*X_orig)
+        U = 1.25*self.obj(self.R*X_orig)
         X_U = X_orig
         if disp:
             print "New upper bound: ", U
@@ -130,7 +130,6 @@ class GeneralSolver(object):
             if disp:
                 print "Checking feasibility in (%f, %f)" % (L, alpha)
             h_alpha = lambda X: (self.obj(X) - alpha)
-            #h_alpha = lambda X: (self.obj(X) - U)
             grad_h_alpha = lambda X: (self.grad_obj(X))
             f_lower = self.create_feasibility_solver([h_alpha],
                     [grad_h_alpha])
@@ -142,17 +141,17 @@ class GeneralSolver(object):
                 if disp:
                     print "Problem feasible with obj in (%f, %f)" % (L, U)
                     print "X_L:\n", X_L
-                    print "obj(X_L): ", self.obj(X_L)
+                    print "obj(X_L): ", self.obj(self.R*X_L)
                     print "h_alpha(X_L): ", h_alpha(X_L)
                 if interactive:
                     wait = raw_input("Press ENTER to continue")
                 continue
             else:
-                if disp:
+                if disp and debug:
                     print "Problem infeasible with obj in (%f, %f)" \
                             % (L, alpha)
                     print "X_L:\n", X_L
-                    print "obj(X_L): ", self.obj(X_L)
+                    print "obj(X_L): ", self.obj(self.R*X_L)
                     print "h_alpha(X_L): ", h_alpha(X_L)
                 L = alpha
                 if disp:

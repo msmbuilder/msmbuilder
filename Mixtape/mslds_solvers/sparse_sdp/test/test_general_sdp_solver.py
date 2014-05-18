@@ -178,14 +178,13 @@ def test4():
             g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
             (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-                    verbose=True, interactive=True)
+                    verbose=False, interactive=False)
             (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
                     = Q_coords(block_dim)
             # Undo trace scaling
-            X_L, X_U = R*X_L, R*X_U
-            print "X_L\n", X_L
-            print "X_U\n", X_U
             if X_L != None:
+                X_L = R * X_L
+                print "X_L\n", X_L
                 R_1_L  = get_entries(X_L, R_1_cds)
                 R_2_L  = get_entries(X_L, R_2_cds)
                 # Undo scaling
@@ -195,6 +194,8 @@ def test4():
                 Q_2_L = np.linalg.inv(R_2_L)
                 print "Q_2_L:\n", Q_2_L
             if X_U != None:
+                X_U = R * X_U
+                print "X_U\n", X_U
                 R_1_U  = get_entries(X_U, R_1_cds)
                 R_2_U  = get_entries(X_U, R_2_cds)
                 # Undo scaling
@@ -203,10 +204,104 @@ def test4():
                 print "Q_1_U:\n", Q_1_U
                 Q_2_U = np.linalg.inv(R_2_U)
                 print "Q_2_U:\n", Q_2_U
+            # Undo rescaling
+            D *= (1./scale)
             if X_L != None:
-                assert np.linalg.norm(Q_1_L, 2) < np.linalg.norm(D)
-                assert np.linalg.norm(Q_2_L, 2) < np.linalg.norm(D)
+                print "nplinalg.norm(D, 2): ", np.linalg.norm(D, 2)
+                assert np.linalg.norm(Q_1_L, 2) < 1.1*np.linalg.norm(D, 2)
+                assert np.linalg.norm(Q_2_L, 2) < 1.1*np.linalg.norm(D, 2)
             if X_U != None:
-                assert np.linalg.norm(Q_1_U, 2) < np.linalg.norm(D)
-                assert np.linalg.norm(Q_2_U, 2) < np.linalg.norm(D)
+                assert np.linalg.norm(Q_1_U, 2) < 1.1*np.linalg.norm(D, 2)
+                assert np.linalg.norm(Q_2_U, 2) < 1.1*np.linalg.norm(D, 2)
+            assert succeed == True
+
+def test5():
+    """
+    Tests feasibility of A optimization.
+
+    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    X is PSD
+
+    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    The solution to this problem is A = 0 when dim = 1.
+    """
+    eps = 1e-4
+    tol = 1e-3
+    search_tol = 1e-2
+    N_iter = 100
+    Rs = [5]
+    dims = [4]
+    L, U = (-10, 10)
+    scale = 10.
+    for R in Rs:
+        for dim in dims:
+            block_dim = int(dim/4)
+
+            # Generate random data
+            D = .0204 * np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            Q = .02 * np.eye(block_dim)
+            Qinv = np.linalg.inv(Q)
+            C = 1225.025 * np.eye(block_dim)
+            B = 1238.916 * np.eye(block_dim)
+            E = 48.99 * np.eye(block_dim)
+
+            # Rescaling
+            D *= scale
+            Q *= scale
+            Dinv *= (1./scale)
+            Qinv *= (1./scale)
+            X_init = np.zeros((4*block_dim, 4*block_dim))
+            X_init[:block_dim,:block_dim] = D-Q
+            X_init[block_dim:2*block_dim,block_dim:2*block_dim] = Dinv
+            X_init[2*block_dim:3*block_dim,2*block_dim:3*block_dim] \
+                    = np.eye(block_dim)
+            X_init[3*block_dim:, 3*block_dim:] = np.eye(block_dim)
+            import pdb
+            pdb.set_trace()
+
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    A_constraints(block_dim, D, Dinv, Q)
+            (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+
+            def obj(X):
+                return A_dynamics(X, block_dim, C, B, E, Qinv)
+            def grad_obj(X):
+                return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
+            g = GeneralSolver(R, L, U, dim, eps)
+            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+            (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
+                    verbose=True, disp=True, interactive=False,
+                    X_init=X_init)
+            # Undo trace scaling
+            X_L, X_U = R*X_L, R*X_U
+            print "X_L\n", X_L
+            print "X_U\n", X_U
+            if X_L != None:
+                A_1_L = get_entries(X_L, A_1_cds)
+                A_T_1_L = get_entries(X_L, A_T_1_cds)
+                A_2_L = get_entries(X_L, A_2_cds)
+                A_T_2_L = get_entries(X_L, A_T_2_cds)
+                print "A_1_L:\n", A_1_L
+                print "A_T_1_L:\n", A_T_1_L
+                print "A_2_L:\n", A_2_L
+                print "A_T_2_L:\n", A_T_2_L
+            if X_U != None:
+                A_1_U = get_entries(X_U, A_1_cds)
+                A_T_1_U = get_entries(X_U, A_T_1_cds)
+                A_2_U = get_entries(X_U, A_2_cds)
+                A_T_2_U = get_entries(X_U, A_T_2_cds)
+                print "A_1_U:\n", A_1_U
+                print "A_T_1_U:\n", A_T_1_U
+                print "A_2_U:\n", A_2_U
+                print "A_T_2_U:\n", A_T_2_U
             assert succeed == True
