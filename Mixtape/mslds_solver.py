@@ -86,6 +86,9 @@ def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
     Q_upd = Q_solve(dim, A, D, Dinv, F)
     A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv)
     b_upd = b_solve(dim, A, mu)
+    print "Q_upd: ", Q_upd
+    print "A_upd: ", A_upd
+    print "b_upd: ", b_upd
 
 # FIX ME!
 def transmat_solve(stats):
@@ -162,7 +165,7 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     B = B/scale_factor
     E = E/scale_factor
     U = np.linalg.norm(Qinv)
-    L = - U
+    L, U = (-10, 10)
     eps = 1e-4
     tol = 1e-2
     N_iter = 50
@@ -175,7 +178,7 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-        A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+        A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
     def obj(X):
         return A_dynamics(X, block_dim, C, B, E, Qinv)
     def grad_obj(X):
@@ -186,6 +189,8 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
             interactive=False, disp=True, verbose=False)
     if succeed:
+        import pdb
+        pdb.set_trace()
         A_1 = R*get_entries(X_L, A_1_cds)
         A_T_1 = R*get_entries(X_L, A_T_1_cds)
         A_2 = R*get_entries(X_L, A_2_cds)
@@ -207,11 +212,12 @@ def Q_solve(block_dim, A, D, Dinv, F):
     """
     # Refactor this better somehow?
     dim = 3*block_dim
-    L = -U
+    L, U = (0, 1000)
     eps = 1e-4
-    tol = 1e-3
-    N_iter = 50
+    tol = 1e-2
+    N_iter = 100
     scale = 10.
+    R = 10
     # Rescaling
     D *= scale
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
@@ -226,10 +232,10 @@ def Q_solve(block_dim, A, D, Dinv, F):
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-            interactive=False, disp=True,verbose=False)
+            interactive=False, disp=True, verbose=True)
     if succeed:
         R_1 = scale*R*get_entries(X_L, R_1_cds)
         R_2 = scale*R*get_entries(X_L, R_2_cds)
-        R = (R_1 + R_2) / 2.
-        Q = np.linalg.inv(R1)
-        return Q_1
+        R_avg = (R_1 + R_2) / 2.
+        Q = np.linalg.inv(R_avg)
+        return Q
