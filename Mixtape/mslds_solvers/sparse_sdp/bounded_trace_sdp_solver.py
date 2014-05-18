@@ -160,8 +160,9 @@ class BoundedTraceSolver(object):
                     (fX_prop <= fX + tol
                         or np.sum(np.abs(X_prop - X)) < tol)):
                 delta = fX_prop - fX
-                print "\t\t\tdelta: ", delta
-                print "\t\t\tEarly Stopping."
+                if disp:
+                    print "\t\t\tdelta: ", delta
+                    print "\t\t\tEarly Stopping."
                 break
             elif fX_prop > fX:
                 delta = fX_prop - fX
@@ -174,7 +175,7 @@ class BoundedTraceSolver(object):
                 print "\t\t\tTr(X): ", np.trace(X)
                 print "\t\t\talpha: ", alpha
                 print "\t\t\tmethod: ", method
-            if debug:
+            if disp and debug:
                 print "X\n", X
                 print "grad\n", grad
         return X

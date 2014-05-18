@@ -24,10 +24,10 @@ class MetastableSwitchingLDSSolver(object):
         self.n_components = n_components
         self.n_features = n_features
 
-    # TEST ME!
     def do_hmm_mstep(self, stats):
-        self.means_update(stats)
-        self.covars_update(stats)
+        means = self.means_update(stats)
+        covars = self.covars_update(means, stats)
+        return means, covars
 
     def do_mstep(self, As, Qs, bs, means, covars, stats):
         transmat = transmat_solve(stats)
@@ -35,41 +35,44 @@ class MetastableSwitchingLDSSolver(object):
                 self.n_features, As, Qs, bs, means, covars, stats)
         return transmat, A_upds, Q_upds, b_upds
 
-    # TEST ME!
-    def covars_update(self, stats):
+    def covars_update(self, means, stats):
+        covars = []
         cvweight = max(self.covars_weight - self.n_features, 0)
         for c in range(self.n_components):
-            obsmean = np.outer(stats['obs'][c], self.means_[c])
+            covar = None
+            obsmean = np.outer(stats['obs'][c], means[c])
 
             cvnum = (stats['obs*obs.T'][c]
                         - obsmean - obsmean.T
-                        + np.outer(self.means_[c], self.means_[c])
+                        + np.outer(means[c], means[c])
                         * stats['post'][c]) \
                 + self.covars_prior * np.eye(self.n_features)
             cvdenom = (cvweight + stats['post'][c])
             if cvdenom > np.finfo(float).eps:
-                self.covars_[c] = ((cvnum) / cvdenom)
+                covar = ((cvnum) / cvdenom)
 
-            # Deal with numerical issues
-            # Might be slightly negative due to numerical issues
-            min_eig = min(np.linalg.eig(self.covars_[c])[0])
-            if min_eig < 0:
-                # Assume min_eig << 1
-                self.covars_[c] += (2 * abs(min_eig) *
-                                    np.eye(self.n_features))
+                # Deal with numerical issues
+                # Might be slightly negative due to numerical issues
+                min_eig = min(np.linalg.eig(covar)[0])
+                if min_eig < 0:
+                    # Assume min_eig << 1
+                    covar += (2 * abs(min_eig) *
+                                        np.eye(self.n_features))
+                covars.append(covar)
+            else:
+                covars.append(np.zeros(np.shape(obsmean)))
+        return covars
 
-    # TEST ME!
     def means_update(self, stats):
-        self.means_ = (stats['obs']) / (stats['post'][:, np.newaxis])
+        means = (stats['obs']) / (stats['post'][:, np.newaxis])
+        return means
 
-    def AQb_update(self, n_components, n_features,
-            As, Qs, bs, means, covars, stats):
+    def AQb_update(self, As, Qs, bs, means, covars, stats):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(n_components, n_features,
                 As, bs, covars, stats)
         A_upds, Q_upds, b_upds = [], [], []
 
-        for i in range(n_components):
-            # Why don't we use all these terms?
+        for i in range(self.n_components):
             B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
             Dinv = np.linalg.inv(D) # Should cache this to save time.
             A, Q, mu = As[i], Qs[i], means[i]
@@ -89,6 +92,7 @@ def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
     print "Q_upd: ", Q_upd
     print "A_upd: ", A_upd
     print "b_upd: ", b_upd
+    return Q_upd, A_upd, b_upd
 
 # FIX ME!
 def transmat_solve(stats):
@@ -167,7 +171,7 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     U = np.linalg.norm(Qinv)
     L, U = (-10, 10)
     eps = 1e-4
-    tol = 1e-2
+    tol = 5e-2
     N_iter = 50
     scale = 10.
     # Rescaling
@@ -189,8 +193,6 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
             interactive=False, disp=True, verbose=False)
     if succeed:
-        import pdb
-        pdb.set_trace()
         A_1 = R*get_entries(X_L, A_1_cds)
         A_T_1 = R*get_entries(X_L, A_T_1_cds)
         A_2 = R*get_entries(X_L, A_2_cds)
@@ -214,7 +216,7 @@ def Q_solve(block_dim, A, D, Dinv, F):
     dim = 3*block_dim
     L, U = (0, 1000)
     eps = 1e-4
-    tol = 1e-2
+    tol = 5e-2
     N_iter = 100
     scale = 10.
     R = 10
@@ -232,7 +234,7 @@ def Q_solve(block_dim, A, D, Dinv, F):
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-            interactive=False, disp=True, verbose=True)
+            interactive=False, disp=True, verbose=False)
     if succeed:
         R_1 = scale*R*get_entries(X_L, R_1_cds)
         R_2 = scale*R*get_entries(X_L, R_2_cds)

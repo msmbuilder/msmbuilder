@@ -158,7 +158,7 @@ class MetastableSwitchingLDS(object):
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
                      for s in sequences]
         self.inferrer._sequences = sequences
-        logprob, _ = self.inferrer.do_estep(self.n_em_iter)
+        logprob, _ = self.inferrer.do_mslds_estep()
         return logprob
 
     def fit(self, sequences):
@@ -171,23 +171,24 @@ class MetastableSwitchingLDS(object):
             fit_logprob = []
             self._init(sequences)
             for i in range(self.n_hotstart):
-                curr_logprob, stats = \
-                        self.inferrer.do_estep(hmm_hotstart=True)
-                self.solver.do_mstep(stats, set(self.params))
+                curr_logprob, stats = self.inferrer.do_hmm_estep()
+                self.means, self.covars = self.solver.do_hmm_mstep(stats)
             for i in range(self.n_em_iter):
-                curr_logprob, stats = self.inferrer.do_estep()
+                curr_logprob, stats = self.inferrer.do_mslds_estep()
                 fit_logprob.append(curr_logprob)
-                self.solver.do_mstep(stats, set(self.params))
-            if curr_logprob > best_fit['loglikelihood']:
-                best_fit['loglikelihood'] = curr_logprob
-                best_fit['params'] = {'means': self.means_,
-                                      'covars': self.covars_,
-                                      'As': self.As_,
-                                      'bs': self.bs_,
-                                      'Qs': self.Qs_,
-                                      'populations': self.populations_,
-                                      'transmat': self.transmat_,
-                                      'fit_logprob': fit_logprob}
+                self.transmat_, self.As_, self.Qs_, self.bs_ \
+                        = self.solver.do_mstep(self.As_, self.Qs_,
+                                self.bs_, self.means_, self.covars_, stats)
+                if curr_logprob > best_fit['loglikelihood']:
+                    best_fit['loglikelihood'] = curr_logprob
+                    best_fit['params'] = {'means': self.means_,
+                                          'covars': self.covars_,
+                                          'As': self.As_,
+                                          'bs': self.bs_,
+                                          'Qs': self.Qs_,
+                                          'populations': self.populations_,
+                                          'transmat': self.transmat_,
+                                          'fit_logprob': fit_logprob}
         # Set the final values
         self.means_ = best_fit['params']['means']
         self.vars_ = best_fit['params']['covars']

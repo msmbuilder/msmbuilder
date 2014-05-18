@@ -173,8 +173,13 @@ cdef class MetastableSLDSCPUImpl:
                                 (self.n_states, s.shape[0]))
             self.log_startprob = np.log(s)
 
+    def do_mslds_estep(self):
+        return self.do_estep(hmm_hotstart=False)
+
+    def do_hmm_estep(self):
+        return self.do_estep(hmm_hotstart=True)
     
-    def do_estep(self, iteration, hmm_hotstart=False):
+    def do_estep(self, hmm_hotstart=False):
         cdef np.ndarray[ndim=2, mode='c', 
                 dtype=np.float32_t] log_transmat = self.log_transmat
         cdef np.ndarray[ndim=2, mode='c', 
