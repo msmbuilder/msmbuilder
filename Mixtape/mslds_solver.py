@@ -74,8 +74,6 @@ class MetastableSwitchingLDSSolver(object):
             Dinv = np.linalg.inv(D) # Should cache this to save time.
             A, Q, mu = As[i], Qs[i], means[i]
             Qinv = np.linalg.inv(Q)
-            import pdb
-            pdb.set_trace()
             A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, Qinv,
                     mu, B, C, D, Dinv, E, F)
             A_upds += [A_upd]
@@ -168,6 +166,12 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     eps = 1e-4
     tol = 1e-2
     N_iter = 50
+    scale = 10.
+    # Rescaling
+    D *= scale
+    Q *= scale
+    Dinv *= (1./scale)
+    Qinv *= (1./scale)
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
@@ -180,12 +184,12 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-            interactive=True)
+            interactive=False, disp=True, verbose=False)
     if succeed:
-        A_1 = get_entries(X_L, A_1_cds)
-        A_T_1 = get_entries(X_L, A_T_1_cds)
-        A_2 = get_entries(X_L, A_2_cds)
-        A_T_2 = get_entries(X_L, A_T_2_cds)
+        A_1 = R*get_entries(X_L, A_1_cds)
+        A_T_1 = R*get_entries(X_L, A_T_1_cds)
+        A_2 = R*get_entries(X_L, A_2_cds)
+        A_T_2 = R*get_entries(X_L, A_T_2_cds)
         A = (A_1 + A_T_1 + A_2 + A_T_2) / 4.
         return A
 
@@ -204,26 +208,28 @@ def Q_solve(block_dim, A, D, Dinv, F):
     # Refactor this better somehow?
     dim = 3*block_dim
     L = -U
-    #L, U = (-10, 10) # figure out more general choice
     eps = 1e-4
     tol = 1e-3
     N_iter = 50
+    scale = 10.
+    # Rescaling
+    D *= scale
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             Q_constraints(block_dim, A, F, D)
     (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
             = Q_coords(block_dim)
     g = GeneralSolver(R, L, U, dim, eps)
     def obj(X):
-        return log_det_tr(X, F)
+        return log_det_tr(scale*X, F)
     def grad_obj(X):
-        return grad_log_det_tr(X, F)
+        return grad_log_det_tr(scale*X, F)
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-            interactive=True)
+            interactive=False, disp=True,verbose=False)
     if succeed:
-        R_1 = get_entries(X_L, R_1_cds)
-        R_2 = get_entries(X_L, R_2_cds)
+        R_1 = scale*R*get_entries(X_L, R_1_cds)
+        R_2 = scale*R*get_entries(X_L, R_2_cds)
         R = (R_1 + R_2) / 2.
         Q = np.linalg.inv(R1)
         return Q_1
