@@ -25,11 +25,18 @@ class MetastableSwitchingLDSSolver(object):
         self.n_features = n_features
 
     def do_hmm_mstep(self, stats):
+        transmat = transmat_solve(stats)
         means = self.means_update(stats)
         covars = self.covars_update(means, stats)
-        return means, covars
+        return transmat, means, covars
 
     def do_mstep(self, As, Qs, bs, means, covars, stats):
+        # Remove these copies once the memory error is isolated.
+        covars = np.copy(covars)
+        means = np.copy(means)
+        As = np.copy(As)
+        Qs = np.copy(Qs)
+        bs = np.copy(bs)
         transmat = transmat_solve(stats)
         A_upds, Q_upds, b_upds = self.AQb_update(As, Qs, bs,
                 means, covars, stats)

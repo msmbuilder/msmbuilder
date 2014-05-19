@@ -18,7 +18,8 @@ from mdtraj.utils import ensure_type
 
 from mixtape.mslds_solver import MetastableSwitchingLDSSolver
 from mixtape._mslds import MetastableSLDSCPUImpl
-from mixtape.utils import iter_vars, categorical
+from mixtape.utils import iter_vars, categorical, bcolors
+
 
 class MetastableSwitchingLDS(object):
 
@@ -167,6 +168,35 @@ class MetastableSwitchingLDS(object):
         logprob, _ = self.inferrer.do_mslds_estep()
         return logprob
 
+    def print_parameters(self, phase="", logprob=None):
+        display_string = """
+        ######################################################
+        Current Mslds Parameters. Phase: %s
+        ######################################################
+        """ % phase
+        display_string += ("self.transmat:\n"
+                             + str(self.transmat_) + "\n")
+        for i in range(self.n_states):
+            display_string += ("""
+            ++++++++++++++++++++++++ State %d++++++++++++++\n
+            """ % i)
+            display_string += (("\nself.As[%d]:\n"%i + str(self.As_[i])
+                                 + "\n")
+                            +  ("self.Qs[%d]:\n"%i + str(self.Qs_[i])
+                                 + "\n")
+                            +  ("self.bs[%d]:\n"%i + str(self.bs_[i])
+                                 + "\n")
+                            +  ("self.means[%d]:\n"%i + str(self.means_[i])
+                                 + "\n")
+                            +  ("self.covars[%d]:\n"%i
+                                 + str(self.covars_[i]) + "\n"))
+        if logprob != None:
+            display_string += ("\nLog-probability of model: %f\n"
+                                % logprob)
+        display_string = (bcolors.WARNING + display_string
+                            + bcolors.ENDC)
+        print(display_string)
+
     def fit(self, sequences):
         """Estimate model parameters.
         """
@@ -178,13 +208,18 @@ class MetastableSwitchingLDS(object):
             self._init(sequences)
             for i in range(self.n_hotstart):
                 curr_logprob, stats = self.inferrer.do_hmm_estep()
-                self.means, self.covars = self.solver.do_hmm_mstep(stats)
+                self.transmat_, self.means_, self.covars_ \
+                        = self.solver.do_hmm_mstep(stats)
+                self.print_parameters(phase="HMM Pretraining Step "
+                        + str(i), logprob=curr_logprob)
             for i in range(self.n_em_iter):
                 curr_logprob, stats = self.inferrer.do_mslds_estep()
                 fit_logprob.append(curr_logprob)
                 self.transmat_, self.As_, self.Qs_, self.bs_ \
                         = self.solver.do_mstep(self.As_, self.Qs_,
                                 self.bs_, self.means_, self.covars_, stats)
+                self.print_parameters(phase="Learning Step " + str(i),
+                        logprob=curr_logprob)
                 if curr_logprob > best_fit['loglikelihood']:
                     best_fit['loglikelihood'] = curr_logprob
                     best_fit['params'] = {'means': self.means_,
@@ -197,7 +232,7 @@ class MetastableSwitchingLDS(object):
                                           'fit_logprob': fit_logprob}
         # Set the final values
         self.means_ = best_fit['params']['means']
-        self.vars_ = best_fit['params']['covars']
+        self.covars_ = best_fit['params']['covars']
         self.As_ = best_fit['params']['As']
         self.bs_ = best_fit['params']['bs']
         self.Qs_ = best_fit['params']['Qs']
