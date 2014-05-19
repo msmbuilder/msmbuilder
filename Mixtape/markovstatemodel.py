@@ -42,7 +42,10 @@ class MarkovStateModel(BaseEstimator):
     Parameters
     ----------
     n_states : int
-        The number of states in the model
+        The number of states in the model. If not supplied, this will be
+        inferred, which works fine if every state is visited in the input data.
+        But the states visited in the input sequence passed in to fit() are
+        not in [0, ..., n_states-1], then all bets are off.
     lag_time : int
         The lag time of the model
     n_timescales : int, optional
@@ -192,3 +195,73 @@ class MarkovStateModel(BaseEstimator):
         timescales = - self.lag_time / np.log(u[1:])
         return timescales
 
+
+def ndgrid_msm_likelihood_score(estimator, sequences):
+    """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
+
+    Parameters
+    ----------
+    estimator : sklearn.pipeline.Pipeline
+        A pipeline estimator containing an NDGrid followed by a MarkovStateModel
+    sequences: list of array-like, each of shape (n_samples_i, n_features)
+        Data sequences, where n_samples_i in the number of samples
+        in sequence i and n_features is the number of features.
+
+    Returns
+    -------
+    log_likelihood : float
+        Mean log-likelihood per data point.
+
+    Examples
+    --------
+    >>> pipeline = Pipeline([
+    >>>    ('grid', NDGrid()),
+    >>>    ('msm', MarkovStateModel())
+    >>> ])
+    >>> grid = GridSearchCV(pipeline, param_grid={
+    >>>    'grid__n_bins_per_feature': [10, 20, 30, 40]
+    >>> }, scoring=ndgrid_msm_likelihood_score)
+    >>> grid.fit(dataset)
+    >>> print grid.grid_scores_
+
+    References
+    ----------
+    .. [1] McGibbon, R. T., C. R. Schwantes, and V. S. Pande. "Statistical
+       Model Selection for Markov Models of Biomolecular Dynamics." J. Phys.
+       Chem B. (2014)
+    """
+    import msmbuilder.MSMLib as msmlib
+    from mixtape import cluster
+    grid = [model for (name, model) in estimator.steps if isinstance(model, cluster.NDGrid)][0]
+    msm = [model for (name, model) in estimator.steps if isinstance(model, MarkovStateModel)][0]
+
+    # NDGrid supports min/max being different along different directions, which
+    # means that the bin widths are coordinate dependent. But I haven't
+    # implemented that because I've only been using this for 1D data
+    if grid.n_features != 1:
+        raise NotImplementedError("file an issue on github :)")
+
+    transition_log_likelihood = 0
+    emission_log_likelihood = 0
+    logtransmat = np.nan_to_num(np.log(np.asarray(msm.transmat_.todense())))
+    width = grid.grid[0,1] - grid.grid[0,0]
+
+    for X in grid.transform(sequences):
+        counts = np.asarray(_apply_mapping_to_matrix(
+            msmlib.get_counts_from_traj(X, n_states=grid.n_bins),
+            msm.mapping_).todense())
+        transition_log_likelihood += np.multiply(counts, logtransmat).sum()
+        emission_log_likelihood += -1 * np.log(width) * len(X)
+
+    return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
+
+
+def _apply_mapping_to_matrix(mat, mapping):
+    ndim_new = np.max(mapping.values()) + 1
+    mat_new = scipy.sparse.dok_matrix((ndim_new, ndim_new))
+    for (i, j), e in mat.todok().items():
+        try:
+            mat_new[mapping[i], mapping[j]] = e
+        except KeyError:
+            pass
+    return mat_new
