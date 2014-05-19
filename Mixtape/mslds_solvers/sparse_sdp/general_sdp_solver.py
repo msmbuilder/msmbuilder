@@ -1,11 +1,12 @@
 """
-Implementation of Hazan's algorithm
+Extended Implementation of Hazan's algorithmfor approximate solution of
+sparse semidefinite programs.
 
 Hazan, Elad. "Sparse Approximate Solutions to
 Semidefinite Programs." LATIN 2008: Theoretical Informatics.
 Springer Berlin Heidelberg, 2008, 306:316.
 
-for approximate solution of sparse semidefinite programs.
+
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
@@ -20,6 +21,13 @@ from numbers import Number
 from feasibility_sdp_solver import *
 import scipy.optimize
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
 
 class GeneralSolver(object):
     """ Implementation of a convex solver on the semidefinite cone, which
@@ -51,6 +59,15 @@ class GeneralSolver(object):
         f = FeasibilitySolver(self.R, self.dim, self.eps)
         f.init_solver(As, bs, Cs, ds, newFs, newGradFs, Gs, gradGs)
         return f
+
+    def print_banner(self):
+        display_string = """
+        #################################################
+                      CONVEX SOLVER STARTED
+        #################################################
+        """
+        display_string = bcolors.HEADER + display_string + bcolors.ENDC
+        print display_string
 
     def solve(self, N_iter, tol, X_init=None, interactive=False,
             disp=True, verbose=False, debug=False):
@@ -102,6 +119,8 @@ class GeneralSolver(object):
         U, L = self.U, self.L
         X_L, X_U = None, None
         succeed = False
+        if disp:
+            self.print_banner()
         # Test that problem is originally feasible
         f_init = self.create_feasibility_solver([], [])
         X_orig, fX_orig, succeed = f_init.feasibility_solve(N_iter, tol,
@@ -112,23 +131,22 @@ class GeneralSolver(object):
                 print "Problem infeasible"
             if interactive:
                 wait = raw_input("Press ENTER to continue")
-            import pdb
-            pdb.set_trace()
             return (None, U, X_U, L, X_L, succeed)
+        U = self.obj(self.R*X_orig)
+        L = min(-2 * np.abs(U), -10)
         if disp:
-            print "Problem feasible with obj in (%f, %f)" % (L, U)
-            print "X_orig:\n", X_orig
-            print "obj(X_orig): ", self.obj(self.R*X_orig)
-        U = 1.25*self.obj(self.R*X_orig)
+            print "Problem feasible"
+            print "Setting range to (%d, %d)" % (L, U)
+            if debug:
+                print "obj(X_orig): ", self.obj(self.R*X_orig)
+                print "X_orig:\n", X_orig
         X_U = X_orig
-        if disp:
-            print "New upper bound: ", U
         if interactive:
             wait = raw_input("Press ENTER to continue")
         while (U - L) >= tol:
             alpha = (U + L) / 2.0
             if disp:
-                print "Checking feasibility in (%f, %f)" % (L, alpha)
+                print "Checking in (%f, %f)" % (L, alpha)
             h_alpha = lambda X: (self.obj(X) - alpha)
             grad_h_alpha = lambda X: (self.grad_obj(X))
             f_lower = self.create_feasibility_solver([h_alpha],
@@ -139,23 +157,24 @@ class GeneralSolver(object):
             if succeed_L:
                 U = alpha
                 if disp:
-                    print "Problem feasible with obj in (%f, %f)" % (L, U)
-                    print "X_L:\n", X_L
-                    print "obj(X_L): ", self.obj(self.R*X_L)
-                    print "h_alpha(X_L): ", h_alpha(X_L)
+                    print "\tFeasible in (%f, %f)" % (L, U)
+                    if debug:
+                        print "\tobj(X_L): ", self.obj(self.R*X_L)
+                        print "\th_alpha(X_L): ", h_alpha(X_L)
+                        print "\tX_L:\n", X_L
                 if interactive:
                     wait = raw_input("Press ENTER to continue")
                 continue
             else:
                 if disp and debug:
-                    print "Problem infeasible with obj in (%f, %f)" \
+                    print "\tInfeasible in (%f, %f)" \
                             % (L, alpha)
-                    print "X_L:\n", X_L
-                    print "obj(X_L): ", self.obj(self.R*X_L)
-                    print "h_alpha(X_L): ", h_alpha(X_L)
+                    print "\tX_L:\n", X_L
+                    print "\tobj(X_L): ", self.obj(self.R*X_L)
+                    print "\th_alpha(X_L): ", h_alpha(X_L)
                 L = alpha
                 if disp:
-                    print "\tContinuing search in (%f, %f)" % (L, U)
+                    print "\t\tContinuing search in (%f, %f)" % (L, U)
                 if interactive:
                     wait = raw_input("Press ENTER to continue")
                 continue

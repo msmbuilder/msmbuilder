@@ -31,8 +31,8 @@ class MetastableSwitchingLDSSolver(object):
 
     def do_mstep(self, As, Qs, bs, means, covars, stats):
         transmat = transmat_solve(stats)
-        A_upds, Q_upds, b_upds = self.AQb_update(self.n_components,
-                self.n_features, As, Qs, bs, means, covars, stats)
+        A_upds, Q_upds, b_upds = self.AQb_update(As, Qs, bs,
+                means, covars, stats)
         return transmat, A_upds, Q_upds, b_upds
 
     def covars_update(self, means, stats):
@@ -68,8 +68,8 @@ class MetastableSwitchingLDSSolver(object):
         return means
 
     def AQb_update(self, As, Qs, bs, means, covars, stats):
-        Bs, Cs, Es, Ds, Fs = compute_aux_matrices(n_components, n_features,
-                As, bs, covars, stats)
+        Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
+                self.n_features, As, bs, covars, stats)
         A_upds, Q_upds, b_upds = [], [], []
 
         for i in range(self.n_components):
@@ -92,7 +92,7 @@ def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
     print "Q_upd: ", Q_upd
     print "A_upd: ", A_upd
     print "b_upd: ", b_upd
-    return Q_upd, A_upd, b_upd
+    return A_upd, Q_upd, b_upd
 
 # FIX ME!
 def transmat_solve(stats):
@@ -103,12 +103,12 @@ def transmat_solve(stats):
     (dim, _) = np.shape(counts)
     norms = np.zeros(dim)
     for i in range(dim):
-        norms[i] = sum(counts[:,i])
+        norms[i] = sum(counts[i])
     revised_counts = np.copy(counts)
     for i in range(dim):
-        revised_counts[:,i] /= norms[i]
-        print sum(revised_counts[:,i])
-    print "counts\n", counts
+        revised_counts[i] /= norms[i]
+        print sum(revised_counts[i])
+    #print "counts\n", counts
     #print "revised_counts\n", revised_counts
     return revised_counts
 
@@ -163,7 +163,6 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     """
     # Refactor this better somehow?
     dim = 4*block_dim
-    R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
     scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
     C = C/scale_factor
     B = B/scale_factor
@@ -173,12 +172,13 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     eps = 1e-4
     tol = 5e-2
     N_iter = 50
-    scale = 10.
+    scale = 1./np.amax(np.linalg.eigh(D)[0])
     # Rescaling
     D *= scale
     Q *= scale
     Dinv *= (1./scale)
     Qinv *= (1./scale)
+    R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,

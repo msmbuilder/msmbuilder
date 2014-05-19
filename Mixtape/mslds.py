@@ -142,13 +142,19 @@ class MetastableSwitchingLDS(object):
             obs[0] = init_obs
 
         # Perform time updates
-        for t in range(n_samples - 1):
-            s = hidden_state[t]
-            A = self.As_[s]
-            b = self.bs_[s]
-            Q = self.Qs_[s]
-            obs[t + 1] = multivariate_normal(np.dot(A, obs[t]) + b, Q)
-            hidden_state[t + 1] = categorical(self.transmat_[s])
+        import pdb, traceback, sys
+        try:
+            for t in range(n_samples - 1):
+                s = hidden_state[t]
+                A = self.As_[s]
+                b = self.bs_[s]
+                Q = self.Qs_[s]
+                obs[t + 1] = multivariate_normal(np.dot(A, obs[t]) + b, Q)
+                hidden_state[t + 1] = categorical(self.transmat_[s])
+        except:
+                type, value, tb = sys.exc_info()
+                traceback.print_exc()
+                pdb.post_mortem(tb)
 
         return obs, hidden_state
 
