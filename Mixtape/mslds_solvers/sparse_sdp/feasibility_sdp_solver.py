@@ -166,7 +166,7 @@ class FeasibilitySolver(object):
                 dim = self.dim
                 Y_init = np.zeros((dim+1, dim+1))
                 Y_init[:dim, :dim] = X_init
-                Y_init = Y_init / self.R
+                Y_init = Y_init / R
                 init_trace = np.trace(Y_init)
                 Y_init[dim, dim] = 1 - init_trace
                 fY_init = self.f(Y_init)
