@@ -153,14 +153,16 @@ def test_A_constraints():
     N_rand = 10
     eps = 1e-5
     tol = 1e-3
+    np.set_printoptions(precision=3)
     for dim in dims:
         block_dim = int(dim/4)
         # Generate initial data
         D = np.eye(block_dim)
         Dinv = np.linalg.inv(D)
         Q = 0.5*np.eye(block_dim)
+        mu = np.ones((block_dim, 1))
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                A_constraints(block_dim, D, Dinv, Q)
+                A_constraints(block_dim, D, Dinv, Q, mu)
         tol = 1e-3
         eps = 1e-4
         N_rand = 10

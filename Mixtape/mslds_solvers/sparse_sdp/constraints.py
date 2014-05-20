@@ -316,7 +316,7 @@ def A_coords(dim):
     return (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
             A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds)
 
-def A_constraints(dim, D, Dinv, Q):
+def A_constraints(dim, D, Dinv, Q, mu):
 
     As, bs, Cs, ds, = [], [], [], []
     Fs, gradFs, Gs, gradGs = [], [], [], []
@@ -357,7 +357,8 @@ C =  | _     D^{-1}  _   _ |
     Gs.append(const_regions)
     gradGs.append(grad_const_regions)
 
-    """ We need to enforce linear inequalities
+    """
+    We need to enforce linear inequalities
 
           --------------------
          |  _     A     _   _ |
@@ -374,6 +375,66 @@ C =  | _     D^{-1}  _   _ |
         return grad_many_batch_linear_equals(X, linear_constraints)
     Gs.append(linear_regions)
     gradGs.append(grad_linear_regions)
+
+    """
+    We need to enforce stability constraint
+
+    A mu == 0
+
+    We thus place constraint ||A mu||^2 = mu^T A^T A mu == 0
+
+    The gradient is matrix
+
+           [[ mu.T ]
+            [ mu.T ]
+    G =       ...
+            [ mu.T ]]
+    """
+    mu = np.reshape(mu, (dim, 1))
+    def stability(X):
+        A_1 = get_entries(X, A_1_cds)
+        diff1 = np.dot(A_1, mu)
+
+        A_T_1 = get_entries(X, A_T_1_cds)
+        diffT1 = np.dot(A_T_1.T, mu)
+
+        A_2 = get_entries(X, A_2_cds)
+        diff2 = np.dot(A_2, mu)
+
+        A_T_2 = get_entries(X, A_T_2_cds)
+        diffT2 = np.dot(A_T_2.T, mu)
+
+        return (np.dot(diff1.T, diff1) + np.dot(diffT1.T, diffT1)
+                    + np.dot(diff2.T, diff2) + np.dot(diffT2.T, diffT2))
+
+    def grad_stability(X):
+        G = np.zeros(np.shape(X))
+        A_1 = get_entries(X, A_1_cds)
+        diff1 = 2 * np.dot(A_1, mu)
+        grad1 = np.tile(mu.T, (dim, 1))
+        grad1 = diff1 * grad1 # (dim,1) * (dim,dim) across rows
+        set_entries(G, A_1_cds, grad1)
+
+        A_T_1 = get_entries(X, A_T_1_cds)
+        diffT1 = 2 * np.dot(A_T_1.T, mu)
+        gradT1 = np.tile(mu.T, (dim, 1))
+        gradT1 = diffT1 * gradT1 # (dim,1) * (dim,dim) across rows
+        set_entries(G, A_T_1_cds, gradT1.T)
+
+        A_2 = get_entries(X, A_2_cds)
+        diff2 = 2 * np.dot(A_2, mu)
+        grad2 = np.tile(mu.T, (dim, 1))
+        grad2 = diff2 * grad2 # (dim,1) * (dim,dim) across rows
+        set_entries(G, A_2_cds, grad2)
+
+        A_T_2 = get_entries(X, A_T_2_cds)
+        diffT2 = 2 * np.dot(A_T_2.T, mu)
+        gradT2 = np.tile(mu.T, (dim, 1))
+        gradT2 = diffT2 * gradT2 # (dim,1) * (dim,dim) across rows
+        set_entries(G, A_T_2_cds, gradT2.T)
+        return G
+    Gs.append(stability)
+    gradGs.append(grad_stability)
 
     return As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
 

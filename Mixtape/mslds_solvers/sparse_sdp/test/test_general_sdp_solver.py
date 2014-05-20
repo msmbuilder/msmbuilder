@@ -153,7 +153,7 @@ def test4():
         g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
         (L, U, X, succeed) = g.solve(N_iter, tol,
-                disp=True, interactive=False, debug=True)
+                disp=True, interactive=False, debug=True, Rs=Rs)
         assert succeed == True
 
 def test5():
@@ -194,16 +194,15 @@ def test5():
 
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                 A_constraints(block_dim, D, Dinv, Q)
-
         def obj(X):
             return A_dynamics(X, block_dim, C, B, E, Qinv)
         def grad_obj(X):
             return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-        g = GeneralSolver(R, L, U, dim, eps)
+        g = GeneralSolver(dim, eps)
         g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
-        (alpha, _, _, _, _, succeed) = g.solve(N_iter, tol,
-                disp=True, interactive=False)
+        (L, U, X, succeed) = g.solve(N_iter, tol,
+                disp=True, interactive=False, Rs=Rs)
         assert succeed == True
 
 def test4prev():
