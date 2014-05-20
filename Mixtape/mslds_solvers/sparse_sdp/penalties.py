@@ -92,8 +92,12 @@ def log_sum_exp_penalty(X, M, As, bs, Cs, ds, Fs, Gs):
     retval = 0.
     m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
     if m + n + p + q > 0:
-        retval = scipy.misc.logsumexp(M*np.array(pens), axis=0)
-        retval = -(1.0/M) * retval
+        try:
+            retval = scipy.misc.logsumexp(M*np.array(pens), axis=0)
+            retval = -(1.0/M) * retval
+        except FloatingPointError:
+            if np.amax(pens) == np.inf:
+                return -np.inf
     return retval
 
 def log_sum_exp_grad_penalty(X, M, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):

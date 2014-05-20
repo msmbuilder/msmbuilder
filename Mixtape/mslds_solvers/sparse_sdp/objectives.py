@@ -61,10 +61,15 @@ def log_det_tr(X, B):
     R2 = get_entries(X, R_2_cds)
     try:
         val1 = -np.log(np.linalg.det(R1)) + np.trace(np.dot(R1, B))
-        val2 = -np.log(np.linalg.det(R2)) + np.trace(np.dot(R2, B))
-        val = val1 + val2
     except FloatingPointError:
-        return -np.inf
+        if np.linalg.det(R1) < np.finfo(np.float).eps:
+            val1 = np.inf
+    try:
+        val2 = -np.log(np.linalg.det(R2)) + np.trace(np.dot(R2, B))
+    except FloatingPointError:
+        if np.linalg.det(R2) < np.finfo(np.float).eps:
+            val2 = np.inf
+    val = val1 + val2
     return val
 
 # grad - log det R = -R^{-1} = -Q (see Boyd and Vandenberge, A4.1)

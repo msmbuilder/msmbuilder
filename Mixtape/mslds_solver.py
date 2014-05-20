@@ -11,6 +11,7 @@ from mixtape.mslds_solvers.sparse_sdp.objectives import grad_log_det_tr
 from mixtape.mslds_solvers.sparse_sdp.general_sdp_solver \
         import GeneralSolver
 from mixtape.mslds_solvers.sparse_sdp.utils import get_entries, set_entries
+from mixtape.utils import bcolors
 
 class MetastableSwitchingLDSSolver(object):
     """
@@ -70,6 +71,29 @@ class MetastableSwitchingLDSSolver(object):
                 covars.append(np.zeros(np.shape(obsmean)))
         return covars
 
+    def print_aux_matrices(self, Bs, Cs, Es, Ds, Fs):
+        display_string = """
+        ++++++++++++++++++++++++++
+        Current Aux Matrices.
+        ++++++++++++++++++++++++++
+        """
+        for i in range(self.n_components):
+            B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
+            display_string += ("""
+            --------
+            State %d
+            --------
+            """ % i)
+            display_string += (("\nBs[%d]:\n"%i + str(Bs[i]) + "\n")
+                             + ("\nCs[%d]:\n"%i + str(Cs[i]) + "\n")
+                             + ("\nDs[%d]:\n"%i + str(Ds[i]) + "\n")
+                             + ("\nEs[%d]:\n"%i + str(Es[i]) + "\n")
+                             + ("\nFs[%d]:\n"%i + str(Fs[i]) + "\n"))
+        display_string = (bcolors.WARNING + display_string
+                            + bcolors.ENDC)
+        print(display_string)
+
+
     def means_update(self, stats):
         means = (stats['obs']) / (stats['post'][:, np.newaxis])
         return means
@@ -77,6 +101,7 @@ class MetastableSwitchingLDSSolver(object):
     def AQb_update(self, As, Qs, bs, means, covars, stats):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
                 self.n_features, As, bs, covars, stats)
+        self.print_aux_matrices(Bs, Cs, Es, Ds, Fs)
         A_upds, Q_upds, b_upds = [], [], []
 
         for i in range(self.n_components):
@@ -92,12 +117,17 @@ class MetastableSwitchingLDSSolver(object):
         return A_upds, Q_upds, b_upds
 
 def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
+    print "mu: ", mu
     # Should this be iterated for biconvex solution? Yes. Need to fix.
-    Q = Q_solve(dim, A, D, Dinv, F)
-    A = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu)
-    b = b_solve(dim, A, mu)
-    print "A_upd: ", A
+    Q_upd = Q_solve(dim, A, D, Dinv, F)
+    if Q_upd != None:
+        Q = Q_upd
     print "Q_upd: ", Q
+    A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu)
+    if A_upd != None:
+        A = A_upd
+    print "A_upd: ", A
+    b = b_solve(dim, A, mu)
     print "b_upd: ", b
     return A, Q, b
 
@@ -151,12 +181,12 @@ def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
     return Bs, Cs, Es, Ds, Fs
 
 def b_solve(n_features, A, mu):
-    print "mu:\n", mu
+    #print "mu:\n", mu
     b = np.dot(np.eye(n_features) - A, mu)
-    print "b:\n", b
-    import pdb
-    pdb.set_trace()
-    return b
+    #print "b:\n", b
+    #return b
+    # b = mu since constraint A mu == 0
+    return mu
 
 def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
     """
@@ -202,7 +232,7 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (L, U, X, succeed) = g.solve(N_iter, tol,
-            interactive=False, disp=True, verbose=False, debug=True)
+            interactive=False, disp=True, verbose=False, debug=False)
     if succeed:
         A_1 = get_entries(X, A_1_cds)
         A_T_1 = get_entries(X, A_T_1_cds)
@@ -211,7 +241,8 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
         A = (A_1 + A_T_1 + A_2 + A_T_2) / 4.
         return A
 
-def Q_solve(block_dim, A, D, Dinv, F):
+def Q_solve(block_dim, A, D, Dinv, F, interactive=False, disp=True,
+        verbose=False, debug=False, Rs=[10, 100, 1000]):
     """
     Solves Q optimization.
 
@@ -242,8 +273,8 @@ def Q_solve(block_dim, A, D, Dinv, F):
         return grad_log_det_tr(scale*X, F)
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, interactive=False,
-            disp=True, verbose=False)
+    (L, U, X, succeed) = g.solve(N_iter, tol, interactive=interactive,
+            disp=disp, verbose=verbose, debug=debug, Rs=Rs)
     if succeed:
         R_1 = scale*get_entries(X, R_1_cds)
         R_2 = scale*get_entries(X, R_2_cds)

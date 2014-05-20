@@ -335,3 +335,80 @@ def test7():
             print "A_2:\n", A_2
             print "A_T_2:\n", A_T_2
         assert succeed == True
+
+def test8():
+    """
+    Tests Q-solve on data generated from a run of Muller potential.
+
+    min_R -log det R + Tr(RF)
+          ------------------
+         |D-ADA.T  I        |
+    X =  |   I     R        |
+         |            R  cI |
+         |            cI  I |
+          ------------------
+    X is PSD
+    """
+    eps = 1e-4
+    tol = 7e-2
+    search_tol = 1e-2
+    N_iter = 100
+    dims = [6]
+    np.set_printoptions(precision=2)
+    np.seterr(divide='raise')
+    np.seterr(over='raise')
+    np.seterr(invalid='raise')
+    import pdb, traceback, sys
+    try:
+        for dim in dims:
+            block_dim = int(dim/3)
+
+            # Generate initial data
+            D = np.array([[0.00326556, 0.00196009],
+                          [0.00196009, 0.00322879]])
+            F = np.array([[2.62197238, 1.58163533],
+                          [1.58163533, 2.58977211]])
+            A = np.zeros((block_dim, block_dim))
+            scale = 1./np.amax(np.linalg.eigh(D)[0])
+            R = np.trace(D) + 2 * (1./scale) * np.trace(np.linalg.inv(D))
+            Rs = [R]
+            print "Rs: ", Rs
+            print "scale: ", scale
+            # Rescaling
+            D *= scale
+            print "D_scaled:\n", D
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    Q_constraints(block_dim, A, F, D)
+            g = GeneralSolver(dim, eps)
+            def obj(X):
+                return log_det_tr(scale*X, F)
+            def grad_obj(X):
+                return grad_log_det_tr(scale*X, F)
+            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+            (L, U, X, succeed) = g.solve(N_iter, tol, verbose=True,
+                    interactive=False, debug=True, Rs=Rs)
+            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
+                    = Q_coords(block_dim)
+            # Undo trace scaling
+            if X != None:
+                R_1  = scale*get_entries(X, R_1_cds)
+                R_2  = scale*get_entries(X, R_2_cds)
+                Q_1 = np.linalg.inv(R_1)
+                Q_2 = np.linalg.inv(R_2)
+                print "Q_1:\n", Q_1
+                print "Q_2:\n", Q_2
+                print "D_scaled:\n", D
+                # Undo rescaling
+                D *= (1./scale)
+                if X != None:
+                    print "nplinalg.norm(D, 2): ", np.linalg.norm(D, 2)
+                    print "np.linalg.norm(Q_1,2): ", np.linalg.norm(Q_1,2)
+                    print "np.linalg.norm(Q_2,2): ", np.linalg.norm(Q_2,2)
+                    assert np.linalg.norm(Q_1,2) < 1.1*np.linalg.norm(D,2)
+                    assert np.linalg.norm(Q_2,2) < 1.1*np.linalg.norm(D,2)
+            assert succeed == True
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)

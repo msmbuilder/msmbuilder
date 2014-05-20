@@ -151,7 +151,8 @@ class GeneralSolver(object):
                     [grad_h_alpha])
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
                     methods=['frank_wolfe', 'frank_wolfe_stable'],
-                    disp=disp, debug=debug, verbose=verbose, Rs=Rs)
+                    disp=disp, debug=debug, verbose=verbose, Rs=Rs,
+                    X_init=X)
 
             if succeed_L:
                 status = "Feasible"
