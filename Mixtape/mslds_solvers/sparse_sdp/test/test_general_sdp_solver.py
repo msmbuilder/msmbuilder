@@ -386,7 +386,7 @@ def test8():
                 return grad_log_det_tr(scale*X, F)
             g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol, verbose=True,
+            (L, U, X, succeed) = g.solve(N_iter, tol, verbose=False,
                     interactive=False, debug=True, Rs=Rs)
             (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
                     = Q_coords(block_dim)
@@ -407,6 +407,94 @@ def test8():
                     print "np.linalg.norm(Q_2,2): ", np.linalg.norm(Q_2,2)
                     assert np.linalg.norm(Q_1,2) < 1.1*np.linalg.norm(D,2)
                     assert np.linalg.norm(Q_2,2) < 1.1*np.linalg.norm(D,2)
+            assert succeed == True
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
+
+def test9():
+    """
+    Tests A-optimization on data generated from run of Muller potential.
+
+    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+
+          --------------------
+         | D-Q    A           |
+    X =  | A.T  D^{-1}        |
+         |              I   A |
+         |             A.T  I |
+          --------------------
+    A mu == 0
+    X is PSD
+
+    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    The solution to this problem is A = 0 when dim = 1.
+    """
+    eps = 1e-4
+    tol = 2e-2
+    search_tol = 1e-2
+    N_iter = 100
+    Rs = [10]
+    np.set_printoptions(precision=2)
+    dims = [8]
+    import pdb, traceback, sys
+    try:
+        for dim in dims:
+            block_dim = int(dim/4)
+
+            # Generate random data
+            D = np.array([[0.00326556, 0.00196009],
+                          [0.00196009, 0.00322879]])
+            Dinv = np.linalg.inv(D)
+            Q = 0.9 * D
+            Qinv = np.linalg.inv(Q)
+            C = np.array([[202.83070879, -600.32796941],
+                          [-601.76432584, 1781.07130791]])
+            B = np.array([[208.27749525,  -597.11827148],
+                          [ -612.99179464, 1771.25551671]])
+            E = np.array([[205.80695137, -599.79918374],
+                          [-599.79918374, 1782.52514543]])
+            mu =  np.array([[-0.7010104, 1.29133034]])
+            #mu =  np.array([[ 0.68616771, 0.02634688]])
+            #mu =  np.array([[ 0.59087205,  0.03185492]])
+            mu = np.reshape(mu, (block_dim, 1))
+
+            scale = 1./np.amax(np.linalg.eigh(D)[0])
+            # Rescaling
+            D *= scale
+            Q *= scale
+            Dinv *= (1./scale)
+            Qinv *= (1./scale)
+
+            (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) \
+                        = A_coords(block_dim)
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    A_constraints(block_dim, D, Dinv, Q, mu)
+            def obj(X):
+                return A_dynamics(X, block_dim, C, B, E, Qinv)
+            def grad_obj(X):
+                return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
+            g = GeneralSolver(dim, eps)
+            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+            (L, U, X, succeed) = g.solve(N_iter, tol,
+                    disp=True, interactive=False, debug=True,
+                    verbose=False, Rs=Rs)
+            # Undo trace scaling
+            print "X\n", X
+            if X != None:
+                A_1 = get_entries(X, A_1_cds)
+                A_T_1 = get_entries(X, A_T_1_cds)
+                A_2 = get_entries(X, A_2_cds)
+                A_T_2 = get_entries(X, A_T_2_cds)
+                A = (1./4) * (A_1 + A_T_1 + A_2 + A_T_2)
+                print "A_1:\n", A_1
+                print "A_T_1:\n", A_T_1
+                print "A_2:\n", A_2
+                print "A_T_2:\n", A_T_2
+                print "A:\n", A
             assert succeed == True
     except:
         type, value, tb = sys.exc_info()
