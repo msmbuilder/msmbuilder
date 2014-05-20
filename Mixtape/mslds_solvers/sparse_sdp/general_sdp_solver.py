@@ -34,13 +34,9 @@ class GeneralSolver(object):
     uses binary search and the FeasibilitySolver below to solve general
     semidefinite cone convex programs.
     """
-    def __init__(self, R, L, U, dim, eps):
-        self.R = R
-        self.L = L
-        self.U = U
+    def __init__(self, dim, eps):
         self.dim = dim
         self.eps = eps
-        self._feasibility_solver = FeasibilitySolver(R, dim, eps)
 
     def save_constraints(self, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs):
@@ -56,8 +52,8 @@ class GeneralSolver(object):
                 self.Fs, self.gradFs, self.Gs, self.gradGs)
         newFs = Fs + fs
         newGradFs = gradFs + grad_fs
-        f = FeasibilitySolver(self.R, self.dim, self.eps)
-        f.init_solver(As, bs, Cs, ds, newFs, newGradFs, Gs, gradGs)
+        f = FeasibilitySolver(self.dim, self.eps, As, bs, Cs, ds, newFs,
+                newGradFs, Gs, gradGs)
         return f
 
     def print_banner(self):
@@ -69,8 +65,20 @@ class GeneralSolver(object):
         display_string = bcolors.HEADER + display_string + bcolors.ENDC
         print display_string
 
+    def interactive_wait(self, interactive):
+        if interactive:
+            wait = raw_input("Press ENTER to continue")
+
+    def print_status(self, disp, debug, status, X, L, U):
+        if disp:
+            print "\t%s in (%f, %f)" % (status, L, U)
+            if debug:
+                print "\tobj(X): ", self.obj(X)
+                print "\tX:\n", X
+
     def solve(self, N_iter, tol, X_init=None, interactive=False,
-            disp=True, verbose=False, debug=False):
+            disp=True, verbose=False, debug=False, Lmin=-10,
+            Rs = [10, 100]):
         """
         Solves optimization problem
 
@@ -116,70 +124,46 @@ class GeneralSolver(object):
             Max number of iterations for each feasibility search.
         """
         # Do the binary search
-        U, L = self.U, self.L
-        X_L, X_U = None, None
+        X = None
         succeed = False
         if disp:
             self.print_banner()
         # Test that problem is originally feasible
         f_init = self.create_feasibility_solver([], [])
         X_orig, fX_orig, succeed = f_init.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe', 'frank_wolfe_stable'],
-                disp=verbose, X_init = X_init)
+                methods=['frank_wolfe', 'frank_wolfe_stable'], disp=disp,
+                verbose=verbose, debug=debug, X_init = X_init, Rs=Rs)
         if not succeed:
-            if disp:
-                print "Problem infeasible"
-            if interactive:
-                wait = raw_input("Press ENTER to continue")
-            return (None, U, X_U, L, X_L, succeed)
-        U = self.obj(self.R*X_orig)
-        L = min(-2 * np.abs(U), -10)
-        if disp:
-            print "Problem feasible"
-            print "Setting range to (%d, %d)" % (L, U)
-            if debug:
-                print "obj(X_orig): ", self.obj(self.R*X_orig)
-                print "X_orig:\n", X_orig
-        X_U = X_orig
-        if interactive:
-            wait = raw_input("Press ENTER to continue")
+            self.print_status(disp, debug, "Problem infeasible", X_orig,
+                    -np.inf, np.inf)
+            return (-np.inf, np.inf, X_orig, succeed)
+        X = X_orig
+        U = self.obj(X)
+        L = min(-2 * np.abs(U), Lmin)
+        self.print_status(disp, debug, "Problem feasible", X,
+                -np.inf, U)
+        self.interactive_wait(interactive)
         while (U - L) >= tol:
             alpha = (U + L) / 2.0
-            if disp:
-                print "Checking in (%f, %f)" % (L, alpha)
             h_alpha = lambda X: (self.obj(X) - alpha)
             grad_h_alpha = lambda X: (self.grad_obj(X))
             f_lower = self.create_feasibility_solver([h_alpha],
                     [grad_h_alpha])
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
                     methods=['frank_wolfe', 'frank_wolfe_stable'],
-                    disp=verbose, X_init=self.R*X_U)
+                    disp=disp, debug=debug, verbose=verbose, Rs=Rs)
+
             if succeed_L:
+                status = "Feasible"
+                self.print_status(disp, debug, status, X_L, L, alpha)
                 U = alpha
-                if disp:
-                    print "\tFeasible in (%f, %f)" % (L, U)
-                    if debug:
-                        print "\tobj(X_L): ", self.obj(self.R*X_L)
-                        print "\th_alpha(X_L): ", h_alpha(X_L)
-                        print "\tX_L:\n", X_L
-                if interactive:
-                    wait = raw_input("Press ENTER to continue")
-                continue
+                X = X_L
             else:
-                if disp and debug:
-                    print "\tInfeasible in (%f, %f)" \
-                            % (L, alpha)
-                    print "\tX_L:\n", X_L
-                    print "\tobj(X_L): ", self.obj(self.R*X_L)
-                    print "\th_alpha(X_L): ", h_alpha(X_L)
+                status = "Infeasible"
+                self.print_status(disp, debug, status, X_L, L, alpha)
                 L = alpha
-                if disp:
-                    print "\t\tContinuing search in (%f, %f)" % (L, U)
-                if interactive:
-                    wait = raw_input("Press ENTER to continue")
-                continue
-            break
+            self.interactive_wait(interactive)
 
         if (U - L) <= tol:
             succeed = True
-        return (alpha, U, X_U, L, X_L, succeed)
+        return (L, U, X, succeed)

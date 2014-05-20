@@ -15,15 +15,34 @@ def test1():
     eps = 1e-3
     tol = 1e-2
     N_iter = 50
-    Rs = [1, 10, 100, 1000]
-    for R in Rs:
-        dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-               simple_equality_constraint()
-        f = FeasibilitySolver(R, dim, eps)
-        f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-        X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe'], disp=False)
-        assert succeed == True
+    Rs = [10, 100, 1000]
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint()
+    f = FeasibilitySolver(dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    X, fX, succeed = f.feasibility_solve(N_iter, tol,
+            methods=['frank_wolfe'], disp=False, Rs=Rs)
+    assert succeed == True
+
+def test1b():
+    """
+    Test
+    feasibility(X):
+        x_11 + 2 x_22 == 50
+        Tr(X) <= R
+
+    These two equations are simultaneously satisfiable for R >= 0.75
+    """
+    eps = 1e-3
+    tol = 1e-2
+    N_iter = 50
+    Rs = [10, 100, 1000]
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint()
+    ds = [50.]
+    f = FeasibilitySolver(dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    X, fX, succeed = f.feasibility_solve(N_iter, tol,
+            methods=['frank_wolfe'], disp=True, Rs=Rs)
+    assert succeed == True
 
 def test2():
     """
@@ -39,14 +58,12 @@ def test2():
     tol = 1e-2
     N_iter = 50
     Rs = [0.1, 0.25, 0.5]
-    for R in Rs:
-        dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-               simple_equality_constraint()
-        f = FeasibilitySolver(R, dim, eps)
-        f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-        X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe'], disp=False)
-        assert succeed == False
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_constraint()
+    f = FeasibilitySolver(dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    X, fX, succeed = f.feasibility_solve(N_iter, tol,
+            methods=['frank_wolfe'], disp=True, Rs=Rs)
+    assert succeed == False
 
 def test3():
     """
@@ -64,14 +81,12 @@ def test3():
     tol = 1e-2
     N_iter = 50
     Rs = [1, 10, 100]
-    for R in Rs:
-        dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-               simple_equality_and_inequality_constraint()
-        f = FeasibilitySolver(R, dim, eps)
-        f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-        X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe'], disp=False)
-        assert succeed == True
+    dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+           simple_equality_and_inequality_constraint()
+    f = FeasibilitySolver(dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
+    X, fX, succeed = f.feasibility_solve(N_iter, tol,
+            methods=['frank_wolfe'], disp=True, Rs=Rs)
+    assert succeed == True
 
 def test4():
     """
@@ -88,24 +103,22 @@ def test4():
     Rs = [10]
     dims = [8]
     N_iter = 200
-    for R in Rs:
-        for dim in dims:
-            block_dim = int(dim/2)
-            A = (1./dim)*np.eye(block_dim)
-            B = np.eye(block_dim)
-            D = np.eye(block_dim)
-            tr_B_D = np.trace(B) + np.trace(D)
-            B = B / tr_B_D
-            D = D / tr_B_D
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    basic_batch_equality(dim, A, B, D)
-            f = FeasibilitySolver(R, dim, eps)
-            f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'],
-                    disp=False)
-                    #    'projected_gradient'])
-            assert succeed == True
+    for dim in dims:
+        block_dim = int(dim/2)
+        A = (1./dim)*np.eye(block_dim)
+        B = np.eye(block_dim)
+        D = np.eye(block_dim)
+        tr_B_D = np.trace(B) + np.trace(D)
+        B = B / tr_B_D
+        D = D / tr_B_D
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                basic_batch_equality(dim, A, B, D)
+        f = FeasibilitySolver(dim, eps, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        X, fX, succeed = f.feasibility_solve(N_iter, tol,
+                methods=['frank_wolfe', 'frank_wolfe_stable'],
+                disp=True, Rs=Rs)
+        assert succeed == True
 
 def test5():
     """
@@ -124,25 +137,24 @@ def test5():
     tol = 1e-2
     Rs = [10]
     N_iter = 100
-    for R in Rs:
-        for dim in dims:
-            block_dim = int(dim/3)
+    for dim in dims:
+        block_dim = int(dim/3)
 
-            # Generate initial data
-            D = np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
-            B = np.eye(block_dim)
-            A = 0.5*(1./dim) * np.eye(block_dim)
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, B, D)
-            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
-                    Q_coords(block_dim)
-            f = FeasibilitySolver(R, dim, eps)
-            f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'],
-                    disp=False)
-            assert succeed == True
+        # Generate initial data
+        D = np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
+        B = np.eye(block_dim)
+        A = 0.5*(1./dim) * np.eye(block_dim)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                Q_constraints(block_dim, A, B, D)
+        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+                Q_coords(block_dim)
+        f = FeasibilitySolver(dim, eps, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        X, fX, succeed = f.feasibility_solve(N_iter, tol,
+                methods=['frank_wolfe', 'frank_wolfe_stable'],
+                disp=False, Rs=Rs)
+        assert succeed == True
 
 def test6():
     """
@@ -165,27 +177,26 @@ def test6():
     tol = 1e-2
     Rs = [10]
     N_iter = 100
-    for R in Rs:
-        for dim in dims:
-            block_dim = int(dim/4)
+    for dim in dims:
+        block_dim = int(dim/4)
 
-            # Generate random data
-            D = np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
-            Q = 0.5 * np.eye(block_dim)
-            C = 2 * np.eye(block_dim)
-            B = np.eye(block_dim)
-            E = np.eye(block_dim)
+        # Generate random data
+        D = np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
+        Q = 0.5 * np.eye(block_dim)
+        C = 2 * np.eye(block_dim)
+        B = np.eye(block_dim)
+        E = np.eye(block_dim)
 
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    A_constraints(block_dim, D, Dinv, Q)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                A_constraints(block_dim, D, Dinv, Q)
 
-            (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = \
-                    A_coords(block_dim)
-            f = FeasibilitySolver(R, dim, eps)
-            f.init_solver(As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
-            X, fX, succeed = f.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'],
-                    disp=False)
-            assert succeed == True
+        (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = \
+                A_coords(block_dim)
+        f = FeasibilitySolver(dim, eps, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        X, fX, succeed = f.feasibility_solve(N_iter, tol,
+                methods=['frank_wolfe', 'frank_wolfe_stable'],
+                disp=False, Rs=Rs)
+        assert succeed == True

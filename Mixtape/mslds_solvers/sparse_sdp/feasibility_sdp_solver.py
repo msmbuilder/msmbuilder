@@ -48,16 +48,20 @@ class FeasibilitySolver(object):
                         [      0     , 0]]
 
     """
-    def __init__(self, R, dim, eps):
-        self.R = R
+    def __init__(self, dim, eps, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
         self.dim = dim
         self.eps = eps
+        (self.As, self.bs, self.Cs, self.ds, self.Fs, self.gradFs,
+                self.Gs, self.gradGs) = \
+                        (As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
 
-    def init_solver(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
+    def init_solver(self, R):
         (Aprimes, bprimes, Cprimes, dprimes, Fprimes, gradFprimes,
                 Gprimes, gradGprimes) = \
-                    self.transform_input(As, bs, Cs, ds,
-                            Fs, gradFs, Gs, gradGs)
+                    self.transform_input(R, self.As, self.bs, self.Cs,
+                            self.ds, self.Fs, self.gradFs,
+                            self.Gs, self.gradGs)
+        # Perhaps get rid of these?
         (self._Aprimes, self._bprimes, self._Cprimes, self._dprimes,
             self._Fprimes, self._gradFprimes, self._Gprimes,
             self_gradGprimes) = (Aprimes, bprimes, Cprimes, dprimes,
@@ -70,14 +74,14 @@ class FeasibilitySolver(object):
                 Gprimes, gradGprimes, self.eps)
         self._solver = BoundedTraceSolver(self.f, self.gradf, self.dim+1)
 
-    def transform_input(self, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
+    def transform_input(self, R, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs):
         """
         Transform input into correct form for feasibility solver.
         """
         m, n, p, q = len(As), len(Cs), len(Fs), len(Gs)
         Aprimes, Cprimes, Fprimes, gradFprimes, Gprimes, gradGprimes = \
                 [], [], [], [], [], []
-        R, dim = self.R, self.dim
+        dim = self.dim
 
         # Rescale the trace bound and expand all constraints to be
         # expressed in terms of Y
@@ -143,7 +147,8 @@ class FeasibilitySolver(object):
         return gradf
 
     def feasibility_solve(self, N_iter, tol, X_init=None,
-            methods=['frank_wolfe'], early_exit=True, disp=True):
+            methods=['frank_wolfe'], early_exit=True, disp=True,
+            verbose=False, Rs=[10, 100], debug=False):
         """
         Solves feasibility problems of the type
 
@@ -153,19 +158,25 @@ class FeasibilitySolver(object):
             f_k(X) <= 0, g_l(X) == 0
             Tr(X) <= R
         """
-        if X_init != None:
-            dim = self.dim
-            Y_init = np.zeros((dim+1, dim+1))
-            Y_init[:dim, :dim] = X_init
-            Y_init = Y_init / self.R
-            init_trace = np.trace(Y_init)
-            Y_init[dim, dim] = 1 - init_trace
-            fY_init = self.f(Y_init)
-        else:
-            Y_init = None
-        Y = self._solver.solve(N_iter, X_init=Y_init,
-                methods=methods, early_exit=early_exit, disp=disp)
-        fY = self.f(Y)
-        X, fX = Y[:self.dim, :self.dim], fY
-        succeed = not (fX < -tol)
+        for R in Rs:
+            if debug:
+                print "R: ", R
+            self.init_solver(R)
+            if X_init != None:
+                dim = self.dim
+                Y_init = np.zeros((dim+1, dim+1))
+                Y_init[:dim, :dim] = X_init
+                Y_init = Y_init / self.R
+                init_trace = np.trace(Y_init)
+                Y_init[dim, dim] = 1 - init_trace
+                fY_init = self.f(Y_init)
+            else:
+                Y_init = None
+            Y = self._solver.solve(N_iter, X_init=Y_init,
+                    methods=methods, early_exit=early_exit, disp=verbose)
+            fY = self.f(Y)
+            X, fX = R*Y[:self.dim, :self.dim], fY
+            succeed = not (fX < -tol)
+            if succeed:
+                break
         return X, fX, succeed
