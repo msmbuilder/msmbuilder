@@ -77,8 +77,8 @@ class GeneralSolver(object):
                 print "\tX:\n", X
 
     def solve(self, N_iter, tol, X_init=None, interactive=False,
-            disp=True, verbose=False, debug=False, Lmin=-10,
-            Rs = [10, 100]):
+            disp=True, verbose=False, debug=False, Lmin=-1000,
+            Rs = [10, 100, 1000]):
         """
         Solves optimization problem
 

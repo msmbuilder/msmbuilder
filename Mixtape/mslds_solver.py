@@ -92,14 +92,14 @@ class MetastableSwitchingLDSSolver(object):
         return A_upds, Q_upds, b_upds
 
 def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
-    # Should this be iterated for biconvex solution?
-    Q_upd = Q_solve(dim, A, D, Dinv, F)
-    A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv)
-    b_upd = b_solve(dim, A, mu)
-    print "Q_upd: ", Q_upd
-    print "A_upd: ", A_upd
-    print "b_upd: ", b_upd
-    return A_upd, Q_upd, b_upd
+    # Should this be iterated for biconvex solution? Yes. Need to fix.
+    Q = Q_solve(dim, A, D, Dinv, F)
+    A = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu)
+    b = b_solve(dim, A, mu)
+    print "A_upd: ", A
+    print "Q_upd: ", Q
+    print "b_upd: ", b
+    return A, Q, b
 
 # FIX ME!
 def transmat_solve(stats):
@@ -151,10 +151,14 @@ def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
     return Bs, Cs, Es, Ds, Fs
 
 def b_solve(n_features, A, mu):
-     b = np.dot(np.eye(n_features) - A, mu)
-     return b
+    print "mu:\n", mu
+    b = np.dot(np.eye(n_features) - A, mu)
+    print "b:\n", b
+    import pdb
+    pdb.set_trace()
+    return b
 
-def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
+def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
     """
     Solves A optimization.
 
@@ -166,6 +170,7 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
          |              I   A |
          |             A.T  I |
           --------------------
+    A mu == 0
     X is PSD
     """
     # Refactor this better somehow?
@@ -175,9 +180,8 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     B = B/scale_factor
     E = E/scale_factor
     U = np.linalg.norm(Qinv)
-    L, U = (-10, 10)
     eps = 1e-4
-    tol = 5e-2
+    tol = 1e-2
     N_iter = 50
     scale = 1./np.amax(np.linalg.eigh(D)[0])
     # Rescaling
@@ -187,23 +191,23 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv):
     Qinv *= (1./scale)
     R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-            A_constraints(block_dim, D, Dinv, Q)
+            A_constraints(block_dim, D, Dinv, Q, mu)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
     def obj(X):
         return A_dynamics(X, block_dim, C, B, E, Qinv)
     def grad_obj(X):
         return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-    g = GeneralSolver(R, L, U, dim, eps)
+    g = GeneralSolver(dim, eps)
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-            interactive=False, disp=True, verbose=False)
+    (L, U, X, succeed) = g.solve(N_iter, tol,
+            interactive=False, disp=True, verbose=False, debug=True)
     if succeed:
-        A_1 = R*get_entries(X_L, A_1_cds)
-        A_T_1 = R*get_entries(X_L, A_T_1_cds)
-        A_2 = R*get_entries(X_L, A_2_cds)
-        A_T_2 = R*get_entries(X_L, A_T_2_cds)
+        A_1 = get_entries(X, A_1_cds)
+        A_T_1 = get_entries(X, A_T_1_cds)
+        A_2 = get_entries(X, A_2_cds)
+        A_T_2 = get_entries(X, A_T_2_cds)
         A = (A_1 + A_T_1 + A_2 + A_T_2) / 4.
         return A
 
@@ -221,30 +225,28 @@ def Q_solve(block_dim, A, D, Dinv, F):
     """
     # Refactor this better somehow?
     dim = 3*block_dim
-    L, U = (0, 1000)
     eps = 1e-4
     tol = 5e-2
     N_iter = 100
     scale = 10.
-    R = 10
     # Rescaling
     D *= scale
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             Q_constraints(block_dim, A, F, D)
     (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
             = Q_coords(block_dim)
-    g = GeneralSolver(R, L, U, dim, eps)
+    g = GeneralSolver(dim, eps)
     def obj(X):
         return log_det_tr(scale*X, F)
     def grad_obj(X):
         return grad_log_det_tr(scale*X, F)
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (alpha, U, X_U, L, X_L, succeed) = g.solve(N_iter, tol,
-            interactive=False, disp=True, verbose=False)
+    (L, U, X, succeed) = g.solve(N_iter, tol, interactive=False,
+            disp=True, verbose=False)
     if succeed:
-        R_1 = scale*R*get_entries(X_L, R_1_cds)
-        R_2 = scale*R*get_entries(X_L, R_2_cds)
+        R_1 = scale*get_entries(X, R_1_cds)
+        R_2 = scale*get_entries(X, R_2_cds)
         R_avg = (R_1 + R_2) / 2.
         Q = np.linalg.inv(R_avg)
         return Q

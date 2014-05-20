@@ -2,7 +2,7 @@ import numpy as np
 import warnings
 from mslds_examples import PlusminModel, MullerModel, MullerForce
 from mixtape.mslds_solver import MetastableSwitchingLDSSolver
-from mixtape.mslds_solver import AQb_solve
+from mixtape.mslds_solver import AQb_solve, A_solve, Q_solve
 from sklearn.hmm import GaussianHMM
 from test_mslds_estep import reference_estep
 
@@ -20,7 +20,7 @@ def test_AQb_solve_simple():
     F = np.array([[1.]])
     AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
 
-def test_AQb_solve_plusmin_sample():
+def test_AQb_solve_plusmin():
     # Numbers below were generated from a sample run of
     # plusmin
     dim = 1
@@ -35,6 +35,26 @@ def test_AQb_solve_plusmin_sample():
     E = np.array([[48.99]])
     F = np.array([[25.47]])
     AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
+
+def test_A_solve_plusmin():
+    block_dim = 1
+    B = np.array([[1238.916]])
+    C = np.array([[1225.025]])
+    D = np.array([[.0204]])
+    Dinv = np.array([[49.02]])
+    E = np.array([[48.99]])
+    Q = np.array([[.02]])
+    Qinv = np.array([[48.99]])
+    mu = np.array([[1.]])
+    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu)
+
+def test_Q_solve_plusmin():
+    block_dim = 1
+    A = np.array([[.0]])
+    D = np.array([[.0204]])
+    Dinv = np.array([[49.02]])
+    F = np.array([[25.47]])
+    Q_solve(block_dim, A, D, Dinv, F)
 
 def test_plusmin_mstep():
     # Set constants
