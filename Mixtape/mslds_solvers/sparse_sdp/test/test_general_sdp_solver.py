@@ -370,7 +370,8 @@ def test8():
                           [1.58163533, 2.58977211]])
             A = np.zeros((block_dim, block_dim))
             scale = 1./np.amax(np.linalg.eigh(D)[0])
-            R = np.trace(D) + 2 * (1./scale) * np.trace(np.linalg.inv(D))
+            R = (scale*np.trace(D)
+                    + 2*(1./scale)*np.trace(np.linalg.inv(D)))
             Rs = [R]
             print "Rs: ", Rs
             print "scale: ", scale

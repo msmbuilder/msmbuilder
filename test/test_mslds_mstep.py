@@ -63,7 +63,7 @@ def test_A_solve_plusmin_2():
 
 def test_Q_solve_muller():
     block_dim = 2
-    np.set_printoptions(precision=2)
+    np.set_printoptions(precision=4)
 
     A = np.zeros((block_dim, block_dim))
     B = np.array([[208.27749525,  -597.11827148],
@@ -81,13 +81,124 @@ def test_Q_solve_muller():
     F = np.array([[2.62197238, 1.58163533],
                   [1.58163533, 2.58977211]])
     Dinv = np.linalg.inv(D)
+    Q_solve(block_dim, A, D, Dinv, F, disp=True, debug=False,
+            verbose=False, Rs=[100])
+
+def test_A_solve_muller():
+    block_dim = 2
+    B = np.array([[208.27749525,  -597.11827148],
+                   [ -612.99179464, 1771.25551671]])
+
+    C = np.array([[202.83070879, -600.32796941],
+                   [-601.76432584, 1781.07130791]])
+
+    D = np.array([[0.00326556, 0.00196009],
+                   [0.00196009, 0.00322879]])
+
+    E = np.array([[205.80695137, -599.79918374],
+                  [-599.79918374, 1782.52514543]])
+    Q = .9 * D
+    Dinv = np.linalg.inv(D)
+    Qinv = np.linalg.inv(Q)
+    mu =  np.array([[-0.7010104, 1.29133034]])
+    #mu =  np.array([[ 0.68616771, 0.02634688]])
+    #mu =  np.array([[ 0.59087205,  0.03185492]])
+    mu = np.reshape(mu, (block_dim, 1))
+    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, verbose=False,
+            disp=True, debug=True)
+
+def test_Q_solve_muller_2():
+    block_dim = 2.
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    np.set_printoptions(precision=4)
+    B = np.array([[  359.92406863,  -853.5934402 ],
+                  [ -842.86780552,  2010.34907067]])
+
+    C = np.array([[  361.80793384,  -850.60352492],
+                  [ -851.82693628,  2002.62881727]])
+
+    D = np.array([[ 0.00261965,  0.00152437],
+                  [ 0.00152437,  0.00291518]])
+
+    E = np.array([[  364.88271615,  -849.83206073],
+                  [ -849.83206073,  2004.72145185]])
+
+    F = np.array([[ 2.72226628,  1.60237858],
+                  [ 1.60237858,  3.0191094 ]])
+    A = np.zeros((block_dim, block_dim))
+    Dinv = np.linalg.inv(D)
     Q_solve(block_dim, A, D, Dinv, F, disp=True, debug=True,
-            verbose=True, Rs=[100])
+            verbose=False, Rs=[100])
 
+def test_A_solve_muller_2():
+    block_dim = 2.
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    np.set_printoptions(precision=4)
+    B = np.array([[  359.92406863,  -853.5934402 ],
+                  [ -842.86780552,  2010.34907067]])
 
+    C = np.array([[  361.80793384,  -850.60352492],
+                  [ -851.82693628,  2002.62881727]])
+
+    D = np.array([[ 0.00261965,  0.00152437],
+                  [ 0.00152437,  0.00291518]])
+
+    E = np.array([[  364.88271615,  -849.83206073],
+                  [ -849.83206073,  2004.72145185]])
+    Q = .9 * D
+    Dinv = np.linalg.inv(D)
+    Qinv = np.linalg.inv(Q)
+    mu =  np.array([[-0.7010104, 1.29133034]])
+    #mu =  np.array([[ 0.68616771, 0.02634688]])
+    #mu =  np.array([[ 0.59087205,  0.03185492]])
+    mu = np.reshape(mu, (block_dim, 1))
+    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, verbose=False,
+            disp=True, debug=True)
+
+def test_A_solve_muller_3():
+    block_dim = 2
+    Q = np.array([[ 0.00268512, -0.00030655],
+                 [-0.00030655,  0.002112  ]])
+    mu = np.array([[ 0.58044142,  0.03486499]])
+    mu = np.reshape(mu, (block_dim, 1))
+    B = np.array([[ 269.81124024,   15.28704689],
+                    [  16.32464053,    0.99806799]])
+
+    C = np.array([[ 266.55743817,   16.13788517],
+                    [  16.01112828,    0.96934361]])
+
+    D = np.array([[ 0.00246003, -0.00017837],
+                    [-0.00017837,  0.00190514]])
+
+    E = np.array([[ 267.86405002,   15.94161187],
+                    [  15.94161187,    2.47997446]])
+
+    F = np.array([[ 1.97090458, -0.15635765],
+                    [-0.15635765,  1.50541836]])
+    Dinv = np.linalg.inv(D)
+    Qinv = np.linalg.inv(Q)
+    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, verbose=False,
+            disp=True, debug=True)
+
+def test_A_solve_muller_4():
+    B = (np.array([[  47.35392822,  -87.69193367],
+                [ -83.75658227,  155.95421092]]))
+    C = (np.array([[  47.72109794,  -84.70032366],
+                [ -86.21727938,  153.02731464]]))
+    D = (np.array([[ 0.34993938, -0.3077952 ],
+                [-0.3077952 ,  0.854263  ]]))
+    Dinv = (np.array([[ 206.09318591,   74.25639828],
+                [  74.25639828, 84.42379212]]))
+    E = (np.array([[  48.90734354, -86.23552793],
+                [ -86.23552793, 153.58913243]]))
+    Q = (np.array([[ 0.00712922, -0.00164496],
+                [-0.00164496, 0.01020176]]))
+    Qinv = (np.array([[ 145.68801786, 23.49117521],
+                [ 23.49117521, 101.81008281]]))
+    mu = (np.array([-0.70567481, 1.27493635]))
 
 def test_Q_solve_plusmin():
-    block_dim = 1
+    block_dims = 1
     A = np.array([[.0]])
     D = np.array([[.0204]])
     Dinv = np.array([[49.02]])

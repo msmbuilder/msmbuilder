@@ -106,29 +106,38 @@ class MetastableSwitchingLDSSolver(object):
 
         for i in range(self.n_components):
             B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
-            Dinv = np.linalg.inv(D) # Should cache this to save time.
             A, Q, mu = As[i], Qs[i], means[i]
-            Qinv = np.linalg.inv(Q)
-            A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, Qinv,
-                    mu, B, C, D, Dinv, E, F)
+            A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, mu, B,
+                    C, D, E, F)
             A_upds += [A_upd]
             Q_upds += [Q_upd]
             b_upds += [b_upd]
         return A_upds, Q_upds, b_upds
 
-def AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F):
-    print "mu: ", mu
+def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
+        verbose=False, debug=False, Rs=[10, 100, 1000]):
+    Dinv = np.linalg.inv(D)
     # Should this be iterated for biconvex solution? Yes. Need to fix.
-    Q_upd = Q_solve(dim, A, D, Dinv, F)
+    Q_upd = Q_solve(dim, A, D, Dinv, F, interactive=interactive,
+                disp=disp, debug=debug, Rs=Rs)
     if Q_upd != None:
         Q = Q_upd
-    print "Q_upd: ", Q
-    A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu)
+    Qinv = np.linalg.inv(Q)
+    print "B = (\n", repr(B) + ")"
+    print "C = (\n", repr(C) + ")"
+    print "D = (\n", repr(D) + ")"
+    print "Dinv = (\n", repr(Dinv) + ")"
+    print "E = (\n", repr(E) + ")"
+    print "Q = (\n", repr(Q)+ ")"
+    print "Qinv = (\n ", repr(Qinv)+ ")"
+    print "mu = (\n", repr(mu) + ")"
+    A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu,
+                interactive=interactive, disp=disp, debug=debug, Rs=Rs)
     if A_upd != None:
         A = A_upd
-    print "A_upd: ", A
+    print "A = \n", repr(A)
     b = b_solve(dim, A, mu)
-    print "b_upd: ", b
+    print "b = \n", repr(b)
     return A, Q, b
 
 # FIX ME!
@@ -188,7 +197,8 @@ def b_solve(n_features, A, mu):
     # b = mu since constraint A mu == 0
     return mu
 
-def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
+def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
+        disp=True, verbose=False, debug=False, Rs=[10, 100, 1000]):
     """
     Solves A optimization.
 
@@ -203,23 +213,35 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
     A mu == 0
     X is PSD
     """
+    # Figure out a more elegant way to stop this...
+    B = np.copy(B)
+    C = np.copy(C)
+    D = np.copy(D)
+    Dinv = np.copy(Dinv)
+    E = np.copy(E)
+    Q = np.copy(Q)
+    Qinv = np.copy(Qinv)
+    mu = np.copy(mu)
     # Refactor this better somehow?
     dim = 4*block_dim
-    scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
-    C = C/scale_factor
-    B = B/scale_factor
-    E = E/scale_factor
-    U = np.linalg.norm(Qinv)
+    # Is this needed?
+    #scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
+    #C = C/scale_factor
+    #B = B/scale_factor
+    #E = E/scale_factor
     eps = 1e-4
-    tol = 1e-2
+    tol = 1e-1
     N_iter = 50
     scale = 1./np.amax(np.linalg.eigh(D)[0])
+    print "scale: ", scale
     # Rescaling
     D *= scale
     Q *= scale
     Dinv *= (1./scale)
     Qinv *= (1./scale)
     R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
+    Rs = [R]
+    print "R: ", R
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q, mu)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
@@ -232,13 +254,16 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu):
     g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (L, U, X, succeed) = g.solve(N_iter, tol,
-            interactive=False, disp=True, verbose=False, debug=False)
+            interactive=interactive, disp=disp, verbose=verbose,
+            debug=debug, Rs=Rs)
     if succeed:
         A_1 = get_entries(X, A_1_cds)
         A_T_1 = get_entries(X, A_T_1_cds)
         A_2 = get_entries(X, A_2_cds)
         A_T_2 = get_entries(X, A_T_2_cds)
         A = (A_1 + A_T_1 + A_2 + A_T_2) / 4.
+        if disp:
+            print "A:\n", A
         return A
 
 def Q_solve(block_dim, A, D, Dinv, F, interactive=False, disp=True,
@@ -254,12 +279,19 @@ def Q_solve(block_dim, A, D, Dinv, F, interactive=False, disp=True,
           --------------
     X is PSD
     """
+    # Figure out more elegant way to stop this.
+    D = np.copy(D)
+    Dinv = np.copy(Dinv)
+    F = np.copy(F)
     # Refactor this better somehow?
     dim = 3*block_dim
     eps = 1e-4
-    tol = 5e-2
+    tol = 1e-1
     N_iter = 100
-    scale = 10.
+    scale = 1./np.amax(np.linalg.eigh(D)[0])
+    R = (scale*np.trace(D)
+            + 2*(1./scale)*np.trace(np.linalg.inv(D)))
+    Rs = [R]
     # Rescaling
     D *= scale
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
@@ -280,4 +312,6 @@ def Q_solve(block_dim, A, D, Dinv, F, interactive=False, disp=True,
         R_2 = scale*get_entries(X, R_2_cds)
         R_avg = (R_1 + R_2) / 2.
         Q = np.linalg.inv(R_avg)
+        if disp:
+            print "Q:\n", Q
         return Q
