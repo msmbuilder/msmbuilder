@@ -114,38 +114,80 @@ class MetastableSwitchingLDSSolver(object):
             b_upds += [b_upd]
         return A_upds, Q_upds, b_upds
 
+def print_Q_test_case(test_file, A, D, Dinv, F,dim):
+    display_string = "Q-solve failed. Autogenerating Q test case"
+    display_string = (bcolors.FAIL + display_string
+                        + bcolors.ENDC)
+    print display_string
+    with open(test_file, 'a') as f:
+        test_string = ""
+        np.set_printoptions(threshold=np.nan)
+        test_string += "\ndef Q_solve_test():\n"
+        test_string += "\t#Auto-generated test case from failing run of\n"
+        test_string += "\t#Q-solve:\n"
+        test_string += "\timport numpy as np\n"
+        test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
+                            + " A_solve, Q_solve\n"
+        test_string += "\tblock_dim = %d\n"%dim
+        test_string += "\tA = (\n\t\tnp." + repr(A) + ")\n"
+        test_string += "\tD = (\n\t\tnp." + repr(D) + ")\n"
+        test_string += "\tDinv = (\n\t\tnp." + repr(Dinv) + ")\n"
+        test_string += "\tF = (\n\t\tnp." + repr(F) + ")\n"
+        test_string += "\tQ_solve(block_dim, A, D, Dinv, F, \n"
+        test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
+        test_string += "\t\tRs=[100])\n"
+        np.set_printoptions(threshold=1000)
+        f.write(test_string)
+
+def print_A_test_case(test_file, B, C, D, Dinv, E, Q, Qinv, mu, dim):
+    display_string = "A-solve failed. Autogenerating A test case"
+    display_string = (bcolors.FAIL + display_string
+                        + bcolors.ENDC)
+    print display_string
+    with open(test_file, 'a') as f:
+        test_string = ""
+        np.set_printoptions(threshold=np.nan)
+        test_string += "\ndef A_solve_test():\n"
+        test_string += "\t#Auto-generated test case from failing run of\n"
+        test_string += "\t#A-solve:\n"
+        test_string += "\timport numpy as np\n"
+        test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
+                            + " A_solve, Q_solve\n"
+        test_string += "\tblock_dim = %d\n"%dim
+        test_string += "\tB = (\n\t\tnp." + repr(B) + ")\n"
+        test_string += "\tC = (\n\t\tnp." + repr(C) + ")\n"
+        test_string += "\tD = (\n\t\tnp." + repr(D) + ")\n"
+        test_string += "\tDinv = (\n\t\tnp." + repr(Dinv) + ")\n"
+        test_string += "\tE = (\n\t\tnp." + repr(E) + ")\n"
+        test_string += "\tQ = (\n\t\tnp." + repr(Q) + ")\n"
+        test_string += "\tQinv = (\n\t\tnp." + repr(Qinv) + ")\n"
+        test_string += "\tmu = (\n\t\tnp." + repr(mu) + ")\n"
+        test_string += "\tA_solve(block_dim, B, C, D, Dinv, E, Q, Qinv,\n"
+        test_string += "\t\tmu, disp=True, debug=False, verbose=False,\n"
+        test_string += "\t\tRs=[100])\n"
+        np.set_printoptions(threshold=1000)
+        f.write(test_string)
+
+
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000]):
     Dinv = np.linalg.inv(D)
-    print "\n\n"
-    print "Q-solver data:\n"
-    print "A = (\n", repr(A) + ")"
-    print "D = (\n", repr(D) + ")"
-    print "Dinv = (\n", repr(Dinv) + ")"
-    print "F = (\n", repr(F) + ")"
     # Should this be iterated for biconvex solution? Yes. Need to fix.
     Q_upd = Q_solve(dim, A, D, Dinv, F, interactive=interactive,
                 disp=disp, debug=debug, Rs=Rs)
     if Q_upd != None:
         Q = Q_upd
+    else:
+        print_Q_test_case("autogen_Q_tests.py", A, D, Dinv, F, dim)
     Qinv = np.linalg.inv(Q)
-    print "\n\n"
-    print "A-solver data:\n"
-    print "B = (\n", repr(B) + ")"
-    print "C = (\n", repr(C) + ")"
-    print "D = (\n", repr(D) + ")"
-    print "Dinv = (\n", repr(Dinv) + ")"
-    print "E = (\n", repr(E) + ")"
-    print "Q = (\n", repr(Q)+ ")"
-    print "Qinv = (\n ", repr(Qinv)+ ")"
-    print "mu = (\n", repr(mu) + ")"
     A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu,
                 interactive=interactive, disp=disp, debug=debug, Rs=Rs)
     if A_upd != None:
         A = A_upd
-    print "A = \n", repr(A)
+    else:
+        print_A_test_case("autogen_A_tests.py", B, C, D, Dinv,
+                E, Q, Qinv, mu, dim)
     b = b_solve(dim, A, mu)
-    print "b = \n", repr(b)
     return A, Q, b
 
 # FIX ME!
@@ -241,7 +283,6 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
     tol = 1e-1
     N_iter = 50
     scale = 1./np.amax(np.linalg.eigh(D)[0])
-    print "scale: ", scale
     # Rescaling
     D *= scale
     Q *= scale
@@ -249,7 +290,6 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
     Qinv *= (1./scale)
     R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
     Rs = [R]
-    print "R: ", R
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q, mu)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,

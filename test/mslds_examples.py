@@ -169,6 +169,7 @@ class AlanineDipeptideModel:
     def load_dataset(self, traj_filename):
         traj = md.load(traj_filename)
         topology = traj.topology
+        traj.superpose(traj[0])
         (T, N_atoms, dim) = np.shape(traj.xyz)
         y_dim = N_atoms * dim
         x_dim = y_dim
