@@ -1,6 +1,7 @@
 import numpy as np
 import warnings
 from mslds_examples import PlusminModel, MullerModel, MullerForce
+from mslds_examples import AlanineDipeptideModel
 from mixtape.mslds_solver import MetastableSwitchingLDSSolver
 from mixtape.mslds_solver import AQb_solve, A_solve, Q_solve
 from sklearn.hmm import GaussianHMM
@@ -225,7 +226,6 @@ def test_Q_solve_plusmin():
 
 def test_plusmin_mstep():
     # Set constants
-    num_hotstart = 3
     n_seq = 1
     T = 2000
 
@@ -263,7 +263,6 @@ def test_muller_potential_mstep():
     n_seq = 1
     num_trajs = 1
     T = 2500
-    num_hotstart = 0
 
     # Generate data
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -294,3 +293,43 @@ def test_muller_potential_mstep():
     # Test AQB solver for MSLDS
     solver = MetastableSwitchingLDSSolver(n_components, n_features)
     solver.do_mstep(As, Qs, bs, means, covars, rstats)
+
+def test_alanine_dipeptide_mstep():
+    import pdb, traceback, sys
+    try:
+        n_seq = 1
+        T = 2500
+        traj_filename = "alanine.h5"
+
+        # Generate data
+        alanine = AlanineDipeptideModel()
+        alanine.generate_dataset(traj_filename, T)
+
+        data, n_features = alanine.load_dataset(traj_filename)
+        n_components = 2
+
+        # Fit reference model and initial MSLDS model
+        refmodel = GaussianHMM(n_components=n_components,
+                            covariance_type='full').fit(data)
+
+        # Obtain sufficient statistics from refmodel
+        rlogprob, rstats = reference_estep(refmodel, data)
+        means = refmodel.means_
+        covars = refmodel.covars_
+        transmat = refmodel.transmat_
+        populations = refmodel.startprob_
+        As = []
+        for i in range(n_components):
+            As.append(np.zeros((n_features, n_features)))
+        Qs = refmodel.covars_
+        bs = refmodel.means_
+        means = refmodel.means_
+        covars = refmodel.covars_
+
+        # Test AQB solver for MSLDS
+        solver = MetastableSwitchingLDSSolver(n_components, n_features)
+        solver.do_mstep(As, Qs, bs, means, covars, rstats)
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)

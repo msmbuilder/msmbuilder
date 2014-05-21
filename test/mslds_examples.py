@@ -173,6 +173,7 @@ class AlanineDipeptideModel:
         y_dim = N_atoms * dim
         x_dim = y_dim
         ys = np.reshape(traj.xyz, (T, y_dim))
+        ys = [ys]
         return ys, x_dim
 
     def generate_dataset(self, traj_filename, T):
@@ -192,4 +193,3 @@ class AlanineDipeptideModel:
         simulation.reporters.append(
                 md.reporters.HDF5Reporter(traj_filename, 10))
         simulation.step(T)
-
