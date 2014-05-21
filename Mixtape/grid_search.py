@@ -217,7 +217,7 @@ class DistributedBaseSeachCV(BaseSearchCV):
             # TODO: shall we also store the test_fold_sizes?
             result = {'parameters': parameters,
                       'mean_validation_score': score,
-                      'cv_validation_scores': all_scores}
+                      'cv_validation_scores': np.array(all_scores)}
             if self.return_train_scores:
                 result['cv_train_scores'] = np.array(all_train_scores)
             grid_scores.append(result)
