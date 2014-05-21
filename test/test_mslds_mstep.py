@@ -132,10 +132,12 @@ def test_Q_solve_muller_2():
 
 def test_Q_solve_muller_3():
     block_dim = 2.
+    from numpy import array, float32
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     np.set_printoptions(precision=4)
     A = (array([[ 0.80000001, -0.2       ],
                 [-0.2       ,  0.80000001]], dtype=float32))
+    A = np.zeros((block_dim, block_dim))
     D = (array([[ 0.00515675,  0.00027678],
                 [ 0.00027678,  0.0092519 ]], dtype=float32))
     Dinv = (array([[ 194.23236084,   -5.81058788],
@@ -143,7 +145,7 @@ def test_Q_solve_muller_3():
     F = (array([[ 5.79813337, -2.13557243],
                 [-2.13554192, -6.50420761]], dtype=float32))
     Q_solve(block_dim, A, D, Dinv, F, disp=True, debug=True,
-            verbose=False, Rs=[100])
+            verbose=True, Rs=[100])
 
 
 def test_A_solve_muller_2():

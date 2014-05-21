@@ -106,8 +106,8 @@ class MetastableSwitchingLDS(object):
         # Initialize As
         self.As_ = np.zeros((self.n_states, self.n_features,
             self.n_features))
-        for i in range(self.n_states):
-            self.As_[i] = np.eye(self.n_features) - self.eps
+        #for i in range(self.n_states):
+        #    self.As_[i] = np.eye(self.n_features) - self.eps
 
         # Initialize means
         self.bs_ = np.zeros((self.n_states, self.n_features))
