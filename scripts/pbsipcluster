@@ -13,14 +13,17 @@ python -c 'import IPython.parallel; ...'
 -------------------
 """
 from __future__ import print_function, absolute_import, division
-import argparse
-from IPython.utils.daemonize import daemonize
-import multiprocessing
 import os
+import time
 import socket
+import argparse
 import tempfile
 import threading
-import time
+import multiprocessing
+from distutils.spawn import find_executable
+
+from IPython.utils.daemonize import daemonize
+
 
 parser = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -48,7 +51,7 @@ def log(msg):
 
 
 def main():
-    own_nodfile = False
+    own_nodefile = False
 
     if 'PBS_NODEFILE' in os.environ:
         if args.unique:
@@ -103,14 +106,18 @@ def main():
 
         for host in hosts:
             engine = threading.Thread(target=lambda: os.system(
-                'ssh {} ipengine {} {} {}'.format(host, work_dir, cluster_id, q)))
+                'ssh {host} {ipengine} {workdir} {cluster_id} {quiet}'.format(
+                        host=host, ipengine=find_executable('ipengine'),
+                        work_dir=work_dir, cluster_id=cluster_id,
+                        quiet=q)))
             engine.daemon = True
             engine.start()
     elif args.launcher == 'mpi':
         engine = threading.Thread(target=lambda: os.system(
             ('mpiexec -machinefile {nodefile} '
-             'ipengine {clusterid} {quiet} --mpi=mpi4py')
+             '{ipengine} {clusterid} {quiet} --mpi=mpi4py')
             .format(nodefile=nodefile, work_dir=work_dir,
+                    ipengine=find_executable('ipengine'),
                     clusterid=cluster_id, quiet=q)))
         engine.daemon = True
         engine.start()
