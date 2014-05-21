@@ -117,12 +117,20 @@ class MetastableSwitchingLDSSolver(object):
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000]):
     Dinv = np.linalg.inv(D)
+    print "\n\n"
+    print "Q-solver data:\n"
+    print "A = (\n", repr(A) + ")"
+    print "D = (\n", repr(D) + ")"
+    print "Dinv = (\n", repr(Dinv) + ")"
+    print "F = (\n", repr(F) + ")"
     # Should this be iterated for biconvex solution? Yes. Need to fix.
     Q_upd = Q_solve(dim, A, D, Dinv, F, interactive=interactive,
                 disp=disp, debug=debug, Rs=Rs)
     if Q_upd != None:
         Q = Q_upd
     Qinv = np.linalg.inv(Q)
+    print "\n\n"
+    print "A-solver data:\n"
     print "B = (\n", repr(B) + ")"
     print "C = (\n", repr(C) + ")"
     print "D = (\n", repr(D) + ")"

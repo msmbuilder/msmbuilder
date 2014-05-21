@@ -46,6 +46,7 @@ def test_muller_potential():
         n_seq = 1
         num_trajs = 1
         T = 2500
+        sim_T = 1000
         num_hotstart = 0
 
         # Generate data
