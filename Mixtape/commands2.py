@@ -57,7 +57,7 @@ class ContactFeaturizerCommand(NumpydocClassCommand):
         if val is 'all':
             return val
         else:
-            return np.loadtxt(fn, dtype=int, ndmin=2)
+            return np.loadtxt(val, dtype=int, ndmin=2)
 
     def start(self):
         print(self.instance)
