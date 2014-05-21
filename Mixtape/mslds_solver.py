@@ -12,6 +12,7 @@ from mixtape.mslds_solvers.sparse_sdp.general_sdp_solver \
         import GeneralSolver
 from mixtape.mslds_solvers.sparse_sdp.utils import get_entries, set_entries
 from mixtape.utils import bcolors
+import pickle
 
 class MetastableSwitchingLDSSolver(object):
     """
@@ -72,26 +73,30 @@ class MetastableSwitchingLDSSolver(object):
         return covars
 
     def print_aux_matrices(self, Bs, Cs, Es, Ds, Fs):
-        display_string = """
-        ++++++++++++++++++++++++++
-        Current Aux Matrices.
-        ++++++++++++++++++++++++++
-        """
-        for i in range(self.n_components):
-            B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
-            display_string += ("""
-            --------
-            State %d
-            --------
-            """ % i)
-            display_string += (("\nBs[%d]:\n"%i + str(Bs[i]) + "\n")
-                             + ("\nCs[%d]:\n"%i + str(Cs[i]) + "\n")
-                             + ("\nDs[%d]:\n"%i + str(Ds[i]) + "\n")
-                             + ("\nEs[%d]:\n"%i + str(Es[i]) + "\n")
-                             + ("\nFs[%d]:\n"%i + str(Fs[i]) + "\n"))
-        display_string = (bcolors.WARNING + display_string
-                            + bcolors.ENDC)
-        print(display_string)
+        # TODO: make choice of aux output automatic
+        np.set_printoptions(threshold=np.nan)
+        with open("aux_matrices.txt", 'w') as f:
+            display_string = """
+            ++++++++++++++++++++++++++
+            Current Aux Matrices.
+            ++++++++++++++++++++++++++
+            """
+            for i in range(self.n_components):
+                B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
+                display_string += ("""
+                --------
+                State %d
+                --------
+                """ % i)
+                display_string += (("\nBs[%d]:\n"%i + str(Bs[i]) + "\n")
+                                 + ("\nCs[%d]:\n"%i + str(Cs[i]) + "\n")
+                                 + ("\nDs[%d]:\n"%i + str(Ds[i]) + "\n")
+                                 + ("\nEs[%d]:\n"%i + str(Es[i]) + "\n")
+                                 + ("\nFs[%d]:\n"%i + str(Fs[i]) + "\n"))
+            display_string = (bcolors.WARNING + display_string
+                                + bcolors.ENDC)
+            f.write(display_string)
+        np.set_printoptions(threshold=1000)
 
 
     def means_update(self, stats):
@@ -114,14 +119,14 @@ class MetastableSwitchingLDSSolver(object):
             b_upds += [b_upd]
         return A_upds, Q_upds, b_upds
 
-def print_Q_test_case(test_file, A, D, Dinv, F,dim):
+def print_Q_test_case(test_file, A, D, F, dim):
     display_string = "Q-solve failed. Autogenerating Q test case"
     display_string = (bcolors.FAIL + display_string
                         + bcolors.ENDC)
     print display_string
+    np.set_printoptions(threshold=np.nan)
     with open(test_file, 'a') as f:
         test_string = ""
-        np.set_printoptions(threshold=np.nan)
         test_string += "\ndef Q_solve_test():\n"
         test_string += "\t#Auto-generated test case from failing run of\n"
         test_string += "\t#Q-solve:\n"
@@ -131,37 +136,43 @@ def print_Q_test_case(test_file, A, D, Dinv, F,dim):
         test_string += "\tblock_dim = %d\n"%dim
         test_string += "\tA = (\n\t\tnp." + repr(A) + ")\n"
         test_string += "\tD = (\n\t\tnp." + repr(D) + ")\n"
-        test_string += "\tDinv = (\n\t\tnp." + repr(Dinv) + ")\n"
         test_string += "\tF = (\n\t\tnp." + repr(F) + ")\n"
-        test_string += "\tQ_solve(block_dim, A, D, Dinv, F, \n"
+        test_string += "\tQ_solve(block_dim, A, D, F, \n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
-        np.set_printoptions(threshold=1000)
         f.write(test_string)
+    np.set_printoptions(threshold=1000)
 
 def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
     display_string = "A-solve failed. Autogenerating A test case"
     display_string = (bcolors.FAIL + display_string
                         + bcolors.ENDC)
     print display_string
-    with open(test_file, 'a') as f:
+    with open(test_file, 'w') as f:
         test_string = ""
         np.set_printoptions(threshold=np.nan)
         test_string += "\ndef A_solve_test():\n"
         test_string += "\t#Auto-generated test case from failing run of\n"
         test_string += "\t#A-solve:\n"
         test_string += "\timport numpy as np\n"
+        test_string += "\timport pickle\n"
         test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
                             + " A_solve, Q_solve\n"
         test_string += "\tblock_dim = %d\n"%dim
-        test_string += "\tB = (\n\t\tnp." + repr(B) + ")\n"
-        test_string += "\tC = (\n\t\tnp." + repr(C) + ")\n"
-        test_string += "\tD = (\n\t\tnp." + repr(D) + ")\n"
-        test_string += "\tE = (\n\t\tnp." + repr(E) + ")\n"
-        test_string += "\tQ = (\n\t\tnp." + repr(Q) + ")\n"
-        test_string += "\tmu = (\n\t\tnp." + repr(mu) + ")\n"
-        test_string += "\tA_solve(block_dim, B, C, D, Dinv, E, Q, Qinv,\n"
-        test_string += "\t\tmu, disp=True, debug=False, verbose=False,\n"
+        pickle.dump(B, open("B.p", "w"))
+        test_string += '\tB = pickle.load(open("B.p", "r"))\n'
+        pickle.dump(C, open("C.p", "w"))
+        test_string += '\tC = pickle.load(open("C.p", "r"))\n'
+        pickle.dump(D, open("D.p", "w"))
+        test_string += '\tD = pickle.load(open("D.p", "r"))\n'
+        pickle.dump(E, open("E.p", "w"))
+        test_string += '\tE = pickle.load(open("E.p", "r"))\n'
+        pickle.dump(Q, open("Q.p", "w"))
+        test_string += '\tQ = pickle.load(open("Q.p", "r"))\n'
+        pickle.dump(mu, open("mu.p", "w"))
+        test_string += '\tmu = pickle.load(open("mu.p", "r"))\n'
+        test_string += "\tA_solve(block_dim, B, C, D, E, Q, mu,\n"
+        test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
         np.set_printoptions(threshold=1000)
         f.write(test_string)
@@ -267,22 +278,26 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     mu = np.copy(mu)
     # Refactor this better somehow?
     dim = 4*block_dim
-    # Is this needed?
-    #scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
-    #C = C/scale_factor
-    #B = B/scale_factor
-    #E = E/scale_factor
+    scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
+    C = C/scale_factor
+    B = B/scale_factor
+    E = E/scale_factor
+    print "scale_factor: ", scale_factor
     eps = 1e-4
     tol = 1e-1
     N_iter = 50
-    scale = 1./np.amax(np.linalg.eigh(D)[0])
+
+    # scale = sqrt(||A|| * ||A^-1||)
+    scale = np.sqrt(np.linalg.norm(D, 2)
+                    * np.linalg.norm(np.linalg.inv(D), 2))
+    print "scale: ", scale
     # Rescaling
     D *= scale
     Q *= scale
     # Compute post-scaled inverses
     Dinv = np.linalg.inv(D)
     Qinv = np.linalg.inv(Q)
-    R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
+    R = np.abs(np.trace(D)) + np.abs(np.trace(Dinv)) + 2 * block_dim
     Rs = [R]
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q, mu)

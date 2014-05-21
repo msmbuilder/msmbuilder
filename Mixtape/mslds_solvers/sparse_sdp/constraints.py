@@ -231,17 +231,19 @@ def grad_l2_batch_equals(X, A, coord):
 
 def many_batch_equals(X, constraints):
     sum_c = 0
+    (dim, _) = np.shape(X)
     for coord, mat in constraints:
         c2 = l2_batch_equals(X, mat, coord)
         sum_c += c2
-    return sum_c
+    return (1./dim**2) * sum_c
 
 def grad_many_batch_equals(X, constraints):
     grad = np.zeros(np.shape(X))
+    (dim, _) = np.shape(X)
     for coord, mat in constraints:
         grad2 = grad_l2_batch_equals(X, mat, coord)
         grad += grad2
-    return grad
+    return (1./dim**2) * grad
 
 def batch_linear_equals(X, c, P_coords, Q, R_coords):
     """
@@ -261,12 +263,14 @@ def grad_batch_linear_equals(X, c, P_coords, Q, R_coords):
 
 def many_batch_linear_equals(X, constraints):
     sum_c = 0
+    (dim, _) = np.shape(X)
     for c, P_coords, Q, R_coords in constraints:
         sum_c += batch_linear_equals(X, c, P_coords, Q, R_coords)
-    return sum_c
+    return (1./dim**2) * sum_c
 
 def grad_many_batch_linear_equals(X, constraints):
     grad = np.zeros(np.shape(X))
+    (dim, _) = np.shape(X)
     for c, P_coords, Q, R_coords in constraints:
         grad += grad_l2_batch_equals(X, c*get_entries(X, P_coords) + Q,
                     R_coords)
@@ -274,7 +278,7 @@ def grad_many_batch_linear_equals(X, constraints):
             grad += grad_l2_batch_equals(X,
                     (1./c)*get_entries(X, R_coords) - Q, P_coords)
 
-    return grad
+    return (1./dim**2) * grad
 
 def A_coords(dim):
     """
@@ -316,13 +320,13 @@ def A_coords(dim):
     return (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
             A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds)
 
-def A_constraints(dim, D, Dinv, Q, mu):
+def A_constraints(block_dim, D, Dinv, Q, mu):
 
     As, bs, Cs, ds, = [], [], [], []
     Fs, gradFs, Gs, gradGs = [], [], [], []
 
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-        A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(dim)
+        A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
 
     """
     We need to enforce zero equalities in X
@@ -333,8 +337,10 @@ C =  | _        _    0   0 |
      | 0        0    _   _ |
       ----------------------
     """
-    constraints = [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
-            ((0, 2*dim, 2*dim, 4*dim), np.zeros((2*dim, 2*dim)))]
+    constraints = [((2*block_dim, 4*block_dim, 0, 2*block_dim),
+                    np.zeros((2*block_dim, 2*block_dim))),
+                   ((0, 2*block_dim, 2*block_dim, 4*block_dim),
+                    np.zeros((2*block_dim, 2*block_dim)))]
 
     """
     We need to enforce constant equalities in X
@@ -347,7 +353,7 @@ C =  | _     D^{-1}  _   _ |
     """
     D_Q = D-Q
     constraints += [(D_Q_cds, D_Q), (Dinv_cds, Dinv),
-            (I_1_cds, np.eye(dim)), (I_2_cds, np.eye(dim))]
+            (I_1_cds, np.eye(block_dim)), (I_2_cds, np.eye(block_dim))]
 
     # Add constraints to Gs
     def const_regions(X):
@@ -367,7 +373,8 @@ C =  | _     D^{-1}  _   _ |
          |  _     _    A.T  _ |
           --------------------
     """
-    linear_constraints = [(1., A_1_cds, np.zeros((dim, dim)), A_2_cds)]
+    linear_constraints = [(1., A_1_cds, np.zeros((block_dim, block_dim)),
+                            A_2_cds)]
 
     def linear_regions(X):
         return many_batch_linear_equals(X, linear_constraints)
@@ -390,8 +397,9 @@ C =  | _     D^{-1}  _   _ |
     G =       ...
             [ mu.T ]]
     """
-    mu = np.reshape(mu, (dim, 1))
+    mu = np.reshape(mu, (block_dim, 1))
     def stability(X):
+        (dim, _) = np.shape(X)
         A_1 = get_entries(X, A_1_cds)
         diff1 = np.dot(A_1, mu)
 
@@ -404,35 +412,39 @@ C =  | _     D^{-1}  _   _ |
         A_T_2 = get_entries(X, A_T_2_cds)
         diffT2 = np.dot(A_T_2.T, mu)
 
-        return (np.dot(diff1.T, diff1) + np.dot(diffT1.T, diffT1)
-                    + np.dot(diff2.T, diff2) + np.dot(diffT2.T, diffT2))
+        return (1./dim**2) * (np.dot(diff1.T, diff1)
+                            + np.dot(diffT1.T, diffT1)
+                            + np.dot(diff2.T, diff2)
+                            + np.dot(diffT2.T, diffT2))
 
     def grad_stability(X):
+        (dim, _) = np.shape(X)
         G = np.zeros(np.shape(X))
         A_1 = get_entries(X, A_1_cds)
         diff1 = 2 * np.dot(A_1, mu)
-        grad1 = np.tile(mu.T, (dim, 1))
-        grad1 = diff1 * grad1 # (dim,1) * (dim,dim) across rows
+        grad1 = np.tile(mu.T, (block_dim, 1))
+        # (block_dim,1) * (block_dim,block_dim) across rows
+        grad1 = diff1 * grad1
         set_entries(G, A_1_cds, grad1)
 
         A_T_1 = get_entries(X, A_T_1_cds)
         diffT1 = 2 * np.dot(A_T_1.T, mu)
-        gradT1 = np.tile(mu.T, (dim, 1))
-        gradT1 = diffT1 * gradT1 # (dim,1) * (dim,dim) across rows
+        gradT1 = np.tile(mu.T, (block_dim, 1))
+        gradT1 = diffT1 * gradT1
         set_entries(G, A_T_1_cds, gradT1.T)
 
         A_2 = get_entries(X, A_2_cds)
         diff2 = 2 * np.dot(A_2, mu)
-        grad2 = np.tile(mu.T, (dim, 1))
-        grad2 = diff2 * grad2 # (dim,1) * (dim,dim) across rows
+        grad2 = np.tile(mu.T, (block_dim, 1))
+        grad2 = diff2 * grad2
         set_entries(G, A_2_cds, grad2)
 
         A_T_2 = get_entries(X, A_T_2_cds)
         diffT2 = 2 * np.dot(A_T_2.T, mu)
-        gradT2 = np.tile(mu.T, (dim, 1))
-        gradT2 = diffT2 * gradT2 # (dim,1) * (dim,dim) across rows
+        gradT2 = np.tile(mu.T, (block_dim, 1))
+        gradT2 = diffT2 * gradT2
         set_entries(G, A_T_2_cds, gradT2.T)
-        return G
+        return (1./dim**2) * G
     Gs.append(stability)
     gradGs.append(grad_stability)
 
