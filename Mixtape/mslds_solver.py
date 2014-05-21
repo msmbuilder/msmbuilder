@@ -139,7 +139,7 @@ def print_Q_test_case(test_file, A, D, Dinv, F,dim):
         np.set_printoptions(threshold=1000)
         f.write(test_string)
 
-def print_A_test_case(test_file, B, C, D, Dinv, E, Q, Qinv, mu, dim):
+def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
     display_string = "A-solve failed. Autogenerating A test case"
     display_string = (bcolors.FAIL + display_string
                         + bcolors.ENDC)
@@ -157,10 +157,8 @@ def print_A_test_case(test_file, B, C, D, Dinv, E, Q, Qinv, mu, dim):
         test_string += "\tB = (\n\t\tnp." + repr(B) + ")\n"
         test_string += "\tC = (\n\t\tnp." + repr(C) + ")\n"
         test_string += "\tD = (\n\t\tnp." + repr(D) + ")\n"
-        test_string += "\tDinv = (\n\t\tnp." + repr(Dinv) + ")\n"
         test_string += "\tE = (\n\t\tnp." + repr(E) + ")\n"
         test_string += "\tQ = (\n\t\tnp." + repr(Q) + ")\n"
-        test_string += "\tQinv = (\n\t\tnp." + repr(Qinv) + ")\n"
         test_string += "\tmu = (\n\t\tnp." + repr(mu) + ")\n"
         test_string += "\tA_solve(block_dim, B, C, D, Dinv, E, Q, Qinv,\n"
         test_string += "\t\tmu, disp=True, debug=False, verbose=False,\n"
@@ -171,22 +169,19 @@ def print_A_test_case(test_file, B, C, D, Dinv, E, Q, Qinv, mu, dim):
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000]):
-    Dinv = np.linalg.inv(D)
     # Should this be iterated for biconvex solution? Yes. Need to fix.
-    Q_upd = Q_solve(dim, A, D, Dinv, F, interactive=interactive,
+    Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
                 disp=disp, debug=debug, Rs=Rs)
     if Q_upd != None:
         Q = Q_upd
     else:
-        print_Q_test_case("autogen_Q_tests.py", A, D, Dinv, F, dim)
-    Qinv = np.linalg.inv(Q)
-    A_upd = A_solve(dim, B, C, D, Dinv, E, Q, Qinv, mu,
+        print_Q_test_case("autogen_Q_tests.py", A, D, F, dim)
+    A_upd = A_solve(dim, B, C, D, E, Q, mu,
                 interactive=interactive, disp=disp, debug=debug, Rs=Rs)
     if A_upd != None:
         A = A_upd
     else:
-        print_A_test_case("autogen_A_tests.py", B, C, D, Dinv,
-                E, Q, Qinv, mu, dim)
+        print_A_test_case("autogen_A_tests.py", B, C, D, E, Q, mu, dim)
     b = b_solve(dim, A, mu)
     return A, Q, b
 
@@ -247,7 +242,7 @@ def b_solve(n_features, A, mu):
     # b = mu since constraint A mu == 0
     return mu
 
-def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
+def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         disp=True, verbose=False, debug=False, Rs=[10, 100, 1000]):
     """
     Solves A optimization.
@@ -267,10 +262,8 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
     B = np.copy(B)
     C = np.copy(C)
     D = np.copy(D)
-    Dinv = np.copy(Dinv)
     E = np.copy(E)
     Q = np.copy(Q)
-    Qinv = np.copy(Qinv)
     mu = np.copy(mu)
     # Refactor this better somehow?
     dim = 4*block_dim
@@ -286,8 +279,9 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
     # Rescaling
     D *= scale
     Q *= scale
-    Dinv *= (1./scale)
-    Qinv *= (1./scale)
+    # Compute post-scaled inverses
+    Dinv = np.linalg.inv(D)
+    Qinv = np.linalg.inv(Q)
     R = np.trace(D) + np.trace(Dinv) + 2 * block_dim
     Rs = [R]
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
@@ -314,7 +308,7 @@ def A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, interactive=False,
             print "A:\n", A
         return A
 
-def Q_solve(block_dim, A, D, Dinv, F, interactive=False, disp=True,
+def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000]):
     """
     Solves Q optimization.
@@ -329,7 +323,6 @@ def Q_solve(block_dim, A, D, Dinv, F, interactive=False, disp=True,
     """
     # Figure out more elegant way to stop this.
     D = np.copy(D)
-    Dinv = np.copy(Dinv)
     F = np.copy(F)
     # Refactor this better somehow?
     dim = 3*block_dim

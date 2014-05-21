@@ -47,7 +47,7 @@ def test_A_solve_plusmin():
     Dinv = np.array([[49.02]])
     Qinv = np.array([[48.99]])
     mu = np.array([[1.]])
-    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu)
+    A_solve(block_dim, B, C, D, E, Q, mu)
 
 def test_A_solve_plusmin_2():
     block_dim = 1
@@ -60,7 +60,7 @@ def test_A_solve_plusmin_2():
     mu = np.array([[ -1.]])
     Dinv = np.linalg.inv(D)
     Qinv = np.linalg.inv(Q)
-    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu)
+    A_solve(block_dim, B, C, D, E, Q, mu)
 
 def test_Q_solve_muller():
     block_dim = 2
@@ -81,8 +81,7 @@ def test_Q_solve_muller():
 
     F = np.array([[2.62197238, 1.58163533],
                   [1.58163533, 2.58977211]])
-    Dinv = np.linalg.inv(D)
-    Q_solve(block_dim, A, D, Dinv, F, disp=True, debug=False,
+    Q_solve(block_dim, A, D, F, disp=True, debug=False,
             verbose=False, Rs=[100])
 
 def test_A_solve_muller():
@@ -99,14 +98,9 @@ def test_A_solve_muller():
     E = np.array([[205.80695137, -599.79918374],
                   [-599.79918374, 1782.52514543]])
     Q = .9 * D
-    Dinv = np.linalg.inv(D)
-    Qinv = np.linalg.inv(Q)
     mu =  np.array([[-0.7010104, 1.29133034]])
-    #mu =  np.array([[ 0.68616771, 0.02634688]])
-    #mu =  np.array([[ 0.59087205,  0.03185492]])
     mu = np.reshape(mu, (block_dim, 1))
-    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, verbose=False,
-            disp=True, debug=True)
+    A_solve(block_dim, B, C, D, E, Q, mu, verbose=False, disp=True)
 
 def test_Q_solve_muller_2():
     block_dim = 2.
@@ -127,8 +121,7 @@ def test_Q_solve_muller_2():
     F = np.array([[ 2.72226628,  1.60237858],
                   [ 1.60237858,  3.0191094 ]])
     A = np.zeros((block_dim, block_dim))
-    Dinv = np.linalg.inv(D)
-    Q_solve(block_dim, A, D, Dinv, F, disp=True, debug=True,
+    Q_solve(block_dim, A, D, F, disp=True,
             verbose=False, Rs=[100])
 
 def test_Q_solve_muller_3():
@@ -141,12 +134,10 @@ def test_Q_solve_muller_3():
     A = np.zeros((block_dim, block_dim))
     D = (array([[ 0.00515675,  0.00027678],
                 [ 0.00027678,  0.0092519 ]], dtype=float32))
-    Dinv = (array([[ 194.23236084,   -5.81058788],
-                   [  -5.81058788,  108.259758  ]], dtype=float32))
     F = (array([[ 5.79813337, -2.13557243],
                 [-2.13554192, -6.50420761]], dtype=float32))
-    Q_solve(block_dim, A, D, Dinv, F, disp=True, debug=True,
-            verbose=True, Rs=[100])
+    Q_solve(block_dim, A, D, F, disp=True,
+            verbose=False, Rs=[100])
 
 
 def test_A_solve_muller_2():
@@ -168,11 +159,8 @@ def test_A_solve_muller_2():
     Dinv = np.linalg.inv(D)
     Qinv = np.linalg.inv(Q)
     mu =  np.array([[-0.7010104, 1.29133034]])
-    #mu =  np.array([[ 0.68616771, 0.02634688]])
-    #mu =  np.array([[ 0.59087205,  0.03185492]])
     mu = np.reshape(mu, (block_dim, 1))
-    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, verbose=False,
-            disp=True, debug=True)
+    A_solve(block_dim, B, C, D, E, Q, mu, verbose=False, disp=True)
 
 def test_A_solve_muller_3():
     block_dim = 2
@@ -194,35 +182,29 @@ def test_A_solve_muller_3():
 
     F = np.array([[ 1.97090458, -0.15635765],
                     [-0.15635765,  1.50541836]])
-    Dinv = np.linalg.inv(D)
-    Qinv = np.linalg.inv(Q)
-    A_solve(block_dim, B, C, D, Dinv, E, Q, Qinv, mu, verbose=False,
-            disp=True, debug=True)
+    A_solve(block_dim, B, C, D, E, Q, mu, verbose=False, disp=True)
 
 def test_A_solve_muller_4():
+    block_dim = 2
     B = (np.array([[  47.35392822,  -87.69193367],
                 [ -83.75658227,  155.95421092]]))
     C = (np.array([[  47.72109794,  -84.70032366],
                 [ -86.21727938,  153.02731464]]))
     D = (np.array([[ 0.34993938, -0.3077952 ],
                 [-0.3077952 ,  0.854263  ]]))
-    Dinv = (np.array([[ 206.09318591,   74.25639828],
-                [  74.25639828, 84.42379212]]))
     E = (np.array([[  48.90734354, -86.23552793],
                 [ -86.23552793, 153.58913243]]))
     Q = (np.array([[ 0.00712922, -0.00164496],
                 [-0.00164496, 0.01020176]]))
-    Qinv = (np.array([[ 145.68801786, 23.49117521],
-                [ 23.49117521, 101.81008281]]))
     mu = (np.array([-0.70567481, 1.27493635]))
+    A_solve(block_dim, B, C, D, E, Q, mu, verbose=False, disp=True)
 
 def test_Q_solve_plusmin():
-    block_dims = 1
+    block_dim = 1
     A = np.array([[.0]])
     D = np.array([[.0204]])
-    Dinv = np.array([[49.02]])
     F = np.array([[25.47]])
-    Q_solve(block_dim, A, D, Dinv, F)
+    Q_solve(block_dim, A, D, F)
 
 def test_plusmin_mstep():
     # Set constants
