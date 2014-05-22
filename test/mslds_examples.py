@@ -114,7 +114,7 @@ class MullerModel():
         self.nParticles = 1
         self.mass = 1.0 * dalton
         # temps  = 200 300 500 750 1000 1250 1500 1750 2000
-        self.temperature = 500 * kelvin
+        self.temperature = 200 * kelvin
         self.friction = 100 / picosecond
         self.timestep = 10.0 * femtosecond
 

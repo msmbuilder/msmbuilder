@@ -280,7 +280,7 @@ def test_alanine_dipeptide_mstep():
     import pdb, traceback, sys
     try:
         n_seq = 1
-        T = 2500
+        T = 1000
         traj_filename = "alanine.h5"
 
         # Generate data
