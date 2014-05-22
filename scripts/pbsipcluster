@@ -37,6 +37,9 @@ parser.add_argument('--daemonize', help='Daemonize (default: False)',
                     action='store_true', default=False)
 parser.add_argument('-id', '--cluster-id',
                     help='Set the cluster ID to avoid collisions.')
+parser.add_argument('-pre', '--pre-args',
+                    help='Arguments executed on remote hosts before ' +
+                         'ipengine start.')
 parser.add_argument('--launcher', choices=['ssh', 'mpi'], default='ssh',
                     help='launch the ipengines by ssh-ing to the nodes ' +
                     'or using the mpiexec launcher.\nNote that "ssh" requires ' +
@@ -87,10 +90,15 @@ def main():
         cluster_id = '--cluster-id={}'.format(args.cluster_id)
     else:
         cluster_id = ''
+    if args.pre_args:
+        pre_args = '{};'.format(args.pre_args)
+    else:
+        pre_args = ''
 
     # start controller
     controller = threading.Thread(target=lambda: os.system(
-        'ipcontroller --ip=* {} {} {}'.format(work_dir, cluster_id, q)))
+        'ipcontroller --ip=* {work_dir} {cluster_id} {quiet}'.format(
+        work_dir=work_dir, cluster_id=cluster_id, quiet=q)))
     controller.daemon = True
     controller.start()
     time.sleep(1)  # wait for the controller to load
@@ -106,8 +114,9 @@ def main():
 
         for host in hosts:
             engine = threading.Thread(target=lambda: os.system(
-                'ssh {host} {ipengine} {work_dir} {cluster_id} {quiet}'.format(
-                        host=host, ipengine=find_executable('ipengine'),
+                'ssh {host} "{pre_args} {ipengine} {work_dir} {cluster_id} {quiet}"'.format(
+                        pre_args=pre_args, host=host, 
+                        ipengine=find_executable('ipengine'),
                         work_dir=work_dir, cluster_id=cluster_id,
                         quiet=q)))
             engine.daemon = True
