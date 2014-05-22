@@ -13,7 +13,9 @@ python -c 'import IPython.parallel; ...'
 
 Notes
 -----
-sdf
+If an existing cluster (ipcontroller) is running with the specified
+cluster_id, this script will add new engines to that cluster, instead
+of starting a new one.
 """
 from __future__ import print_function, absolute_import, division
 import os
@@ -32,8 +34,8 @@ from IPython.utils.daemonize import daemonize
 parser = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--unique',
-                    help='Start only ipengine per node (use this if your ' +
-                         'processes are individually node-parallel).',
+                    help='Start only ipengine per node (use this if your '
+                         'processes are\nindividually node-parallel).',
                     action='store_true', default=False)
 parser.add_argument('-q', '--quiet', help='Quiet mode (default: False)',
                     action='store_true', default=False)
@@ -41,12 +43,16 @@ parser.add_argument('--daemonize', help='Daemonize (default: False)',
                     action='store_true', default=False)
 parser.add_argument('-id', '--cluster-id',
                     help='Set the cluster ID to avoid collisions.')
+parser.add_argument('-pre', '--pre-args',
+                    help='Arguments executed on remote hosts before '
+                         'ipengine start.\nOnly used with the ssh launcher.')
 parser.add_argument('--launcher', choices=['ssh', 'mpi'], default='ssh',
-                    help='launch the ipengines by ssh-ing to the nodes ' +
-                    'or using the mpiexec launcher.\nNote that "ssh" requires ' +
-                    'passwordless ssh to be set up between the nodes,\nwhile ' +
-                    'mpi" requires a working MPI installation.')
+                    help='launch the ipengines by ssh-ing to the nodes '
+                    'or using the\nmpiexec launcher. Note that "ssh" '
+                    'requires passwordless\nssh to be set up between the '
+                    'nodes, while "mpi" requires a\nworking MPI installation.')
 ARGS = parser.parse_args()
+
 
 def log(msg):
     if not ARGS.quiet:
@@ -96,6 +102,10 @@ def main():
         cluster_id = '--cluster-id={}'.format(ARGS.cluster_id)
     else:
         cluster_id = ''
+    if args.pre_args:
+        pre_args = '{};'.format(args.pre_args)
+    else:
+        pre_args = ''
 
     try:
         # test to see if a controller already exists.
@@ -111,7 +121,6 @@ def main():
         # wait for the controller to load
         time.sleep(1)
 
-
     # start engines
     if ARGS.launcher == 'ssh':
         # parse nodefile
@@ -120,13 +129,13 @@ def main():
             for line in f:
                 host = line.strip()
                 hosts.append(host)
-
+        command = ('ssh {host} "{pre_args} {ipengine} {work_dir} ' +
+                   '{cluster_id} {quiet}"')
         for host in hosts:
-            engine = threading.Thread(target=lambda: os.system(
-                'ssh {host} {ipengine} {work_dir} {cluster_id} {quiet}'.format(
-                        host=host, ipengine=find_executable('ipengine'),
-                        work_dir=work_dir, cluster_id=cluster_id,
-                        quiet=q)))
+            engine = threading.Thread(target=lambda: os.system(command.format(
+                host=host, pre_args=pre_args,
+                ipengine=find_executable('ipengine'), work_dir=work_dir,
+                cluster_id=cluster_id, quiet=q)))
             engine.daemon = True
             engine.start()
     elif ARGS.launcher == 'mpi':
