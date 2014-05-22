@@ -135,8 +135,6 @@ class BoundedTraceSolver(object):
             X = np.outer(v, v)
         else:
             X = np.copy(X_init)
-        import pdb
-        pdb.set_trace()
         fX = f(X)
         for j in range(N_iter):
             grad = gradf(X)

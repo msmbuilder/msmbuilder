@@ -19,7 +19,7 @@ def test_AQb_solve_simple():
     Dinv = np.array([[1.]])
     E = np.array([[1.]])
     F = np.array([[1.]])
-    AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
+    AQb_solve(dim, A, Q, mu, B, C, D, E, F)
 
 def test_AQb_solve_plusmin():
     # Numbers below were generated from a sample run of
@@ -35,7 +35,7 @@ def test_AQb_solve_plusmin():
     Dinv = np.array([[49.02]])
     E = np.array([[48.99]])
     F = np.array([[25.47]])
-    AQb_solve(dim, A, Q, Qinv, mu, B, C, D, Dinv, E, F)
+    AQb_solve(dim, A, Q, mu, B, C, D, E, F)
 
 def test_A_solve_plusmin():
     block_dim = 1
@@ -100,7 +100,7 @@ def test_A_solve_muller():
     Q = .9 * D
     mu =  np.array([[-0.7010104, 1.29133034]])
     mu = np.reshape(mu, (block_dim, 1))
-    A_solve(block_dim, B, C, D, E, Q, mu, verbose=False, disp=True)
+    A_solve(block_dim, B, C, D, E, Q, mu, verbose=True, disp=True)
 
 def test_Q_solve_muller_2():
     block_dim = 2.

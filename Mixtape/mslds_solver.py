@@ -287,18 +287,19 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     tol = 1e-1
     N_iter = 50
 
-    # scale = sqrt(||A|| * ||A^-1||)
-    scale = np.sqrt(np.linalg.norm(D, 2)
-                    * np.linalg.norm(np.linalg.inv(D), 2))
+    scale = 1./np.sqrt(np.linalg.norm(D, 2))
     print "scale: ", scale
     # Rescaling
     D *= scale
     Q *= scale
+    # For numerical stability
+    c = 1e-1
     # Compute post-scaled inverses
-    Dinv = np.linalg.inv(D)
-    Qinv = np.linalg.inv(Q)
+    Dinv = np.linalg.inv(D+c*np.eye(block_dim))
+    Qinv = np.linalg.inv(Q+c*np.eye(block_dim))
     R = np.abs(np.trace(D)) + np.abs(np.trace(Dinv)) + 2 * block_dim
     Rs = [R]
+    print "R: ", R
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q, mu)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
