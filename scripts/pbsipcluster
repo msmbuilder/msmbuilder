@@ -106,7 +106,7 @@ def main():
 
         for host in hosts:
             engine = threading.Thread(target=lambda: os.system(
-                'ssh {host} {ipengine} {workdir} {cluster_id} {quiet}'.format(
+                'ssh {host} {ipengine} {work_dir} {cluster_id} {quiet}'.format(
                         host=host, ipengine=find_executable('ipengine'),
                         work_dir=work_dir, cluster_id=cluster_id,
                         quiet=q)))
