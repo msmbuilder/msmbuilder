@@ -39,7 +39,7 @@ parser.add_argument('-id', '--cluster-id',
                     help='Set the cluster ID to avoid collisions.')
 parser.add_argument('-pre', '--pre-args',
                     help='Arguments executed on remote hosts before ' +
-                         'ipengine start.')
+                         'ipengine start. Only used with the ssh launcher.')
 parser.add_argument('--launcher', choices=['ssh', 'mpi'], default='ssh',
                     help='launch the ipengines by ssh-ing to the nodes ' +
                     'or using the mpiexec launcher.\nNote that "ssh" '
