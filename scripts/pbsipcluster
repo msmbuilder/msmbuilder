@@ -42,9 +42,9 @@ parser.add_argument('-pre', '--pre-args',
                          'ipengine start.')
 parser.add_argument('--launcher', choices=['ssh', 'mpi'], default='ssh',
                     help='launch the ipengines by ssh-ing to the nodes ' +
-                    'or using the mpiexec launcher.\nNote that "ssh" requires ' +
-                    'passwordless ssh to be set up between the nodes,\nwhile ' +
-                    'mpi" requires a working MPI installation.')
+                    'or using the mpiexec launcher.\nNote that "ssh" '
+                    'requires passwordless ssh to be set up between the ' +
+                    'nodes,\nwhile "mpi" requires a working MPI installation.')
 args = parser.parse_args()
 
 
@@ -114,11 +114,11 @@ def main():
 
         for host in hosts:
             engine = threading.Thread(target=lambda: os.system(
-                'ssh {host} "{pre_args} {ipengine} {work_dir} {cluster_id} {quiet}"'.format(
-                        pre_args=pre_args, host=host, 
-                        ipengine=find_executable('ipengine'),
-                        work_dir=work_dir, cluster_id=cluster_id,
-                        quiet=q)))
+                'ssh {host} "{pre_args} {ipengine} ' +
+                '{work_dir} {cluster_id} {quiet}"'.format(
+                    pre_args=pre_args, host=host,
+                    ipengine=find_executable('ipengine'), work_dir=work_dir,
+                    cluster_id=cluster_id, quiet=q)))
             engine.daemon = True
             engine.start()
     elif args.launcher == 'mpi':
