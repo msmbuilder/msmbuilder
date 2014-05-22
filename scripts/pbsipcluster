@@ -111,14 +111,13 @@ def main():
             for line in f:
                 host = line.strip()
                 hosts.append(host)
-
+        command = ('ssh {host} "{pre_args} {ipengine} {work_dir} ' +
+                   '{cluster_id} {quiet}"')
         for host in hosts:
-            engine = threading.Thread(target=lambda: os.system(
-                'ssh {host} "{pre_args} {ipengine} ' +
-                '{work_dir} {cluster_id} {quiet}"'.format(
-                    pre_args=pre_args, host=host,
-                    ipengine=find_executable('ipengine'), work_dir=work_dir,
-                    cluster_id=cluster_id, quiet=q)))
+            engine = threading.Thread(target=lambda: os.system(command.format(
+                host=host, pre_args=pre_args,
+                ipengine=find_executable('ipengine'), work_dir=work_dir,
+                cluster_id=cluster_id, quiet=q)))
             engine.daemon = True
             engine.start()
     elif args.launcher == 'mpi':
