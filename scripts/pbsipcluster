@@ -10,7 +10,10 @@ pbsipcluster --daemonize   # start the cluster. 32 workers will boot
 
 # Run your python scripts that connects to the workers and runs jobs
 python -c 'import IPython.parallel; ...'
--------------------
+
+Notes
+-----
+sdf
 """
 from __future__ import print_function, absolute_import, division
 import os
@@ -22,6 +25,7 @@ import threading
 import multiprocessing
 from distutils.spawn import find_executable
 
+import IPython.parallel
 from IPython.utils.daemonize import daemonize
 
 
@@ -42,19 +46,18 @@ parser.add_argument('--launcher', choices=['ssh', 'mpi'], default='ssh',
                     'or using the mpiexec launcher.\nNote that "ssh" requires ' +
                     'passwordless ssh to be set up between the nodes,\nwhile ' +
                     'mpi" requires a working MPI installation.')
-args = parser.parse_args()
-
+ARGS = parser.parse_args()
 
 def log(msg):
-    if not args.quiet:
+    if not ARGS.quiet:
         print(msg)
 
 
-def main():
+def get_nodefile():
     own_nodefile = False
 
     if 'PBS_NODEFILE' in os.environ:
-        if args.unique:
+        if ARGS.unique:
             fid, nodefile = tempfile.mkstemp()
             own_nodefile = True
             os.close(fid)
@@ -73,30 +76,44 @@ def main():
         fid, nodefile = tempfile.mkstemp()
         own_nodefile = True
         os.close(fid)
-        count = 1 if args.unique else multiprocessing.cpu_count()
+        count = 1 if ARGS.unique else multiprocessing.cpu_count()
         with open(nodefile, 'w') as f:
             for _ in range(count):
                 f.write('%s\n' % socket.gethostname())
+    return nodefile, own_nodefile
 
-    q = '--quiet' if args.quiet else ''
+
+def main():
+    nodefile, own_nodefile = get_nodefile()
+
+    q = '--quiet' if ARGS.quiet else ''
     if 'PBS_O_WORKDIR' in os.environ:
         work_dir = '--work-dir={}'.format(os.environ['PBS_O_WORKDIR'])
     else:
         work_dir = ''
-    if args.cluster_id:
-        cluster_id = '--cluster-id={}'.format(args.cluster_id)
+
+    if ARGS.cluster_id:
+        cluster_id = '--cluster-id={}'.format(ARGS.cluster_id)
     else:
         cluster_id = ''
 
-    # start controller
-    controller = threading.Thread(target=lambda: os.system(
-        'ipcontroller --ip=* {} {} {}'.format(work_dir, cluster_id, q)))
-    controller.daemon = True
-    controller.start()
-    time.sleep(1)  # wait for the controller to load
+    try:
+        # test to see if a controller already exists.
+        IPython.parallel.Client(cluster_id=ARGS.cluster_id)
+        log('Connecting to existing controller...')
+    except IOError:
+        log('Starting up new controller...')
+        # if not, the Client constructor throws an IOError.
+        controller = threading.Thread(target=lambda: os.system(
+                'ipcontroller --ip=* {} {} {}'.format(work_dir, cluster_id, q)))
+        controller.daemon = True
+        controller.start()
+        # wait for the controller to load
+        time.sleep(1)
+
 
     # start engines
-    if args.launcher == 'ssh':
+    if ARGS.launcher == 'ssh':
         # parse nodefile
         hosts = []
         with open(nodefile) as f:
@@ -112,7 +129,7 @@ def main():
                         quiet=q)))
             engine.daemon = True
             engine.start()
-    elif args.launcher == 'mpi':
+    elif ARGS.launcher == 'mpi':
         engine = threading.Thread(target=lambda: os.system(
             ('mpiexec -machinefile {nodefile} '
              '{ipengine} {clusterid} {quiet} --mpi=mpi4py')
@@ -130,7 +147,7 @@ def main():
     if own_nodefile:
         os.unlink(nodefile)
 
-    if args.daemonize:
+    if ARGS.daemonize:
         daemonize()
 
     while True:
