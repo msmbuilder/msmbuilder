@@ -102,8 +102,8 @@ def main():
         cluster_id = '--cluster-id={}'.format(ARGS.cluster_id)
     else:
         cluster_id = ''
-    if args.pre_args:
-        pre_args = '{};'.format(args.pre_args)
+    if ARGS.pre_args:
+        pre_args = '{};'.format(ARGS.pre_args)
     else:
         pre_args = ''
 
