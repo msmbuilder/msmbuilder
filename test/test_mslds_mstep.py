@@ -360,3 +360,59 @@ def test_alanine_dipeptide_mstep():
         type, value, tb = sys.exc_info()
         traceback.print_exc()
         pdb.post_mortem(tb)
+
+def test_met_enkephalin_mstep():
+    import pdb, traceback, sys
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    try:
+        b = fetch_met_enkephalin()
+        trajs = b.trajectories
+        # While debugging, restrict to first trajectory only
+        trajs = [trajs[0]]
+        n_seq = len(trajs)
+        n_frames = trajs[0].n_frames
+        n_atoms = trajs[0].n_atoms
+        n_features = n_atoms * 3
+        print "n_features: ", n_features
+
+        data_home = get_data_home()
+        data_dir = join(data_home, TARGET_DIRECTORY_MET)
+        top = md.load(join(data_dir, '1plx.pdb'))
+        n_components = 2
+
+        # Superpose m
+        data = []
+        for traj in trajs:
+            traj.superpose(top)
+            Z = traj.xyz
+            Z = np.reshape(Z, (n_frames, n_features), order='F')
+            data.append(Z)
+
+        # Fit reference model and initial MSLDS model
+        print "Starting Gaussian Model Fit"
+        refmodel = GaussianHMM(n_components=n_components,
+                            covariance_type='full').fit(data)
+        print "Done with Gaussian Model Fit"
+
+        # Obtain sufficient statistics from refmodel
+        rlogprob, rstats = reference_estep(refmodel, data)
+        means = refmodel.means_
+        covars = refmodel.covars_
+        transmat = refmodel.transmat_
+        populations = refmodel.startprob_
+        As = []
+        for i in range(n_components):
+            As.append(np.zeros((n_features, n_features)))
+        Qs = refmodel.covars_
+        bs = refmodel.means_
+        means = refmodel.means_
+        covars = refmodel.covars_
+
+        # Test AQB solver for MSLDS
+        solver = MetastableSwitchingLDSSolver(n_components, n_features)
+        solver.do_mstep(As, Qs, bs, means, covars, rstats, N_iter=100,
+                            verbose=True)
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
