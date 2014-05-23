@@ -1,11 +1,20 @@
 import numpy as np
 import warnings
+import mdtraj as md
 from mslds_examples import PlusminModel, MullerModel, MullerForce
 from mslds_examples import AlanineDipeptideModel
 from mixtape.mslds_solver import MetastableSwitchingLDSSolver
 from mixtape.mslds_solver import AQb_solve, A_solve, Q_solve
 from sklearn.hmm import GaussianHMM
 from test_mslds_estep import reference_estep
+from mixtape.datasets.alanine_dipeptide import fetch_alanine_dipeptide
+from mixtape.datasets.alanine_dipeptide import TARGET_DIRECTORY \
+        as TARGET_DIRECTORY_ALANINE
+from mixtape.datasets.met_enkephalin import fetch_met_enkephalin
+from mixtape.datasets.met_enkephalin import TARGET_DIRECTORY \
+        as TARGET_DIRECTORY_MET
+from mixtape.datasets.base import get_data_home
+from os.path import join
 
 def test_AQb_solve_simple():
     dim = 1
@@ -241,54 +250,20 @@ def test_plusmin_mstep():
     solver.do_mstep(As, Qs, bs, means, covars, rstats)
 
 def test_muller_potential_mstep():
-    # Set constants
-    n_seq = 1
-    num_trajs = 1
-    T = 2500
-
-    # Generate data
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    muller = MullerModel()
-    data, trajectory, start = \
-            muller.generate_dataset(n_seq, num_trajs, T)
-    n_features = muller.x_dim
-    n_components = muller.K
-
-    # Fit reference model and initial MSLDS model
-    refmodel = GaussianHMM(n_components=n_components,
-                        covariance_type='full').fit(data)
-
-    # Obtain sufficient statistics from refmodel
-    rlogprob, rstats = reference_estep(refmodel, data)
-    means = refmodel.means_
-    covars = refmodel.covars_
-    transmat = refmodel.transmat_
-    populations = refmodel.startprob_
-    As = []
-    for i in range(n_components):
-        As.append(np.zeros((n_features, n_features)))
-    Qs = refmodel.covars_
-    bs = refmodel.means_
-    means = refmodel.means_
-    covars = refmodel.covars_
-
-    # Test AQB solver for MSLDS
-    solver = MetastableSwitchingLDSSolver(n_components, n_features)
-    solver.do_mstep(As, Qs, bs, means, covars, rstats)
-
-def test_alanine_dipeptide_mstep():
     import pdb, traceback, sys
     try:
+        # Set constants
         n_seq = 1
-        T = 1000
-        traj_filename = "alanine.h5"
+        num_trajs = 1
+        T = 2500
 
         # Generate data
-        alanine = AlanineDipeptideModel()
-        alanine.generate_dataset(traj_filename, T)
-
-        data, n_features = alanine.load_dataset(traj_filename)
-        n_components = 2
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        muller = MullerModel()
+        data, trajectory, start = \
+                muller.generate_dataset(n_seq, num_trajs, T)
+        n_features = muller.x_dim
+        n_components = muller.K
 
         # Fit reference model and initial MSLDS model
         refmodel = GaussianHMM(n_components=n_components,
@@ -311,6 +286,76 @@ def test_alanine_dipeptide_mstep():
         # Test AQB solver for MSLDS
         solver = MetastableSwitchingLDSSolver(n_components, n_features)
         solver.do_mstep(As, Qs, bs, means, covars, rstats)
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
+
+def A_solve_test_alanine():
+	#Auto-generated test case from failing run of
+	#A-solve:
+	import numpy as np
+	import pickle
+	from mixtape.mslds_solver import AQb_solve, A_solve, Q_solve
+	block_dim = 66
+	B = pickle.load(open("B_alanine_1.p", "r"))
+	C = pickle.load(open("C_alanine_1.p", "r"))
+	D = pickle.load(open("D_alanine_1.p", "r"))
+	E = pickle.load(open("E_alanine_1.p", "r"))
+	Q = pickle.load(open("Q_alanine_1.p", "r"))
+	mu = pickle.load(open("mu_alanine_1.p", "r"))
+	A_solve(block_dim, B, C, D, E, Q, mu,
+		disp=True, debug=False, verbose=True,
+		Rs=[100], N_iter=150)
+
+def test_alanine_dipeptide_mstep():
+    import pdb, traceback, sys
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    try:
+        b = fetch_alanine_dipeptide()
+        trajs = b.trajectories
+        # While debugging, restrict to first trajectory only
+        trajs = [trajs[0]]
+        n_seq = len(trajs)
+        n_frames = trajs[0].n_frames
+        n_atoms = trajs[0].n_atoms
+        n_features = n_atoms * 3
+
+        data_home = get_data_home()
+        data_dir = join(data_home, TARGET_DIRECTORY_ALANINE)
+        top = md.load(join(data_dir, 'ala2.pdb'))
+        n_components = 2
+        # Superpose m
+        data = []
+        for traj in trajs:
+            traj.superpose(top)
+            Z = traj.xyz
+            Z = np.reshape(Z, (n_frames, n_features), order='F')
+            data.append(Z)
+
+        # Fit reference model and initial MSLDS model
+        print "Starting Gaussian Model Fit"
+        refmodel = GaussianHMM(n_components=n_components,
+                            covariance_type='full').fit(data)
+        print "Done with Gaussian Model Fit"
+
+        # Obtain sufficient statistics from refmodel
+        rlogprob, rstats = reference_estep(refmodel, data)
+        means = refmodel.means_
+        covars = refmodel.covars_
+        transmat = refmodel.transmat_
+        populations = refmodel.startprob_
+        As = []
+        for i in range(n_components):
+            As.append(np.zeros((n_features, n_features)))
+        Qs = refmodel.covars_
+        bs = refmodel.means_
+        means = refmodel.means_
+        covars = refmodel.covars_
+
+        # Test AQB solver for MSLDS
+        solver = MetastableSwitchingLDSSolver(n_components, n_features)
+        solver.do_mstep(As, Qs, bs, means, covars, rstats, N_iter=100)
     except:
         type, value, tb = sys.exc_info()
         traceback.print_exc()

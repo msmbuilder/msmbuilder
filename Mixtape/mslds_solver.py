@@ -32,7 +32,7 @@ class MetastableSwitchingLDSSolver(object):
         covars = self.covars_update(means, stats)
         return transmat, means, covars
 
-    def do_mstep(self, As, Qs, bs, means, covars, stats):
+    def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=50):
         # Remove these copies once the memory error is isolated.
         covars = np.copy(covars)
         means = np.copy(means)
@@ -41,7 +41,7 @@ class MetastableSwitchingLDSSolver(object):
         bs = np.copy(bs)
         transmat = transmat_solve(stats)
         A_upds, Q_upds, b_upds = self.AQb_update(As, Qs, bs,
-                means, covars, stats)
+                means, covars, stats, N_iter=N_iter)
         return transmat, A_upds, Q_upds, b_upds
 
     def covars_update(self, means, stats):
@@ -103,7 +103,7 @@ class MetastableSwitchingLDSSolver(object):
         means = (stats['obs']) / (stats['post'][:, np.newaxis])
         return means
 
-    def AQb_update(self, As, Qs, bs, means, covars, stats):
+    def AQb_update(self, As, Qs, bs, means, covars, stats, N_iter=50):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
                 self.n_features, As, bs, covars, stats)
         self.print_aux_matrices(Bs, Cs, Es, Ds, Fs)
@@ -113,7 +113,7 @@ class MetastableSwitchingLDSSolver(object):
             B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
             A, Q, mu = As[i], Qs[i], means[i]
             A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, mu, B,
-                    C, D, E, F)
+                    C, D, E, F, N_iter=N_iter)
             A_upds += [A_upd]
             Q_upds += [Q_upd]
             b_upds += [b_upd]
@@ -179,7 +179,7 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
 
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
-        verbose=False, debug=False, Rs=[10, 100, 1000]):
+        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=50):
     # Should this be iterated for biconvex solution? Yes. Need to fix.
     Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
                 disp=disp, debug=debug, Rs=Rs)
@@ -187,8 +187,8 @@ def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         Q = Q_upd
     else:
         print_Q_test_case("autogen_Q_tests.py", A, D, F, dim)
-    A_upd = A_solve(dim, B, C, D, E, Q, mu,
-                interactive=interactive, disp=disp, debug=debug, Rs=Rs)
+    A_upd = A_solve(dim, B, C, D, E, Q, mu, interactive=interactive,
+                    disp=disp, debug=debug, Rs=Rs, N_iter=N_iter)
     if A_upd != None:
         A = A_upd
     else:
@@ -254,7 +254,8 @@ def b_solve(n_features, A, mu):
     return mu
 
 def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
-        disp=True, verbose=False, debug=False, Rs=[10, 100, 1000]):
+        disp=True, verbose=False, debug=False, Rs=[10, 100, 1000],
+        N_iter=50):
     """
     Solves A optimization.
 
@@ -285,7 +286,6 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     print "scale_factor: ", scale_factor
     eps = 1e-4
     tol = 1e-1
-    N_iter = 50
 
     scale = 1./np.sqrt(np.linalg.norm(D, 2))
     print "scale: ", scale

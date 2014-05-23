@@ -162,6 +162,7 @@ class MullerModel():
 
 class AlanineDipeptideModel:
     """Generates a short Alanine Dipeptide Trajectory.
+       BROKEN CURRENTLY.
     """
     def __init__(self):
         pass
