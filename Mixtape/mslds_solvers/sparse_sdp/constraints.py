@@ -454,53 +454,74 @@ def Q_coords(dim):
     """
     Helper function that specifies useful coordinates for
     the Q convex program.
+    minimize -log det R + Tr(RB)
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
+    X is PSD
     """
+    # Block 1
     D_ADA_T_cds = (0, dim, 0, dim)
     I_1_cds = (0, dim, dim, 2*dim)
     I_2_cds = (dim, 2*dim, 0, dim)
-    R_cds = (2*dim, 3*dim, 2*dim, 3*dim)
-    block_1_R_cds = (dim, 2*dim, dim, 2*dim)
-    return (D_ADA_T_cds, I_1_cds, I_2_cds, R_cds, block_1_R_cds)
+    R_1_cds = (dim, 2*dim, dim, 2*dim)
 
-def Q_constraints(dim, A, B, D):
+    # Block 2
+    D_cds = (2*dim, 3*dim, 2*dim, 3*dim)
+    c_I_1_cds = (2*dim, 3*dim, 3*dim, 4*dim)
+    c_I_2_cds = (3*dim, 4*dim, 2*dim, 3*dim)
+    R_2_cds = (3*dim, 4*dim, 3*dim, 4*dim)
+    return (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) 
+
+def Q_constraints(dim, A, B, D, c):
     """
     Specifies the convex program required for Q optimization.
 
     minimize -log det R + Tr(RB)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
+
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+        D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+            Q_coords(dim)
+
     As, bs, Cs, ds, = [], [], [], []
     Fs, gradFs, Gs, gradGs = [], [], [], []
 
     """
     We need to enforce zero equalities in X.
-      -------------
-     | -        -    0 |
-C =  | -        _    0 |
-     | 0        0    _ |
-      -------------
+      ---------------
+     | _  _    0  0  |
+C =  | _  _    0  0  |
+     | 0  0    _  _  |
+     | 0  0    _  _  |
+      ---------------
     """
-    constraints = [((2*dim, 3*dim, 0, 2*dim), np.zeros((dim, 2*dim))),
-            ((0, 2*dim, 2*dim, 3*dim), np.zeros((2*dim, dim)))]
+    constraints = [((2*dim, 4*dim, 0, 2*dim), np.zeros((2*dim, 2*dim))),
+            ((0, 2*dim, 2*dim, 4*dim), np.zeros((2*dim, 2*dim)))]
     """
     We need to enforce constant equalities in X.
-      -------------
-     |D-ADA.T   I    _ |
-C =  | I        _    _ |
-     | _        _    _ |
-      -------------
+      ---------------------
+     |D-ADA.T   I    _  _  |
+C =  | I        _    _  _  |
+     | _        _    D  cI |
+     | _        _   cI  _  |
+      ---------------------
     """
-    D_ADA_T_cds = (0, dim, 0, dim)
     D_ADA_T = D - np.dot(A, np.dot(D, A.T))
-    I_1_cds = (0, dim, dim, 2*dim)
-    I_2_cds = (dim, 2*dim, 0, dim)
     constraints += [(D_ADA_T_cds, D_ADA_T), (I_1_cds, np.eye(dim)),
-            (I_2_cds, np.eye(dim))]
+                    (I_2_cds, np.eye(dim)), (D_cds, D),
+                    (c_I_1_cds, c*np.eye(dim)), (c_I_2_cds, c*np.eye(dim))]
 
     # Add constraints to Gs
     def const_regions(X):
@@ -511,15 +532,13 @@ C =  | I        _    _ |
     gradGs.append(grad_const_regions)
 
     """ We need to enforce linear inequalities
-          ----------
-         |          |
-    C =  |     R    |
-         |        R |
-          ----------
+          -----------
+         |-  -       |
+    C =  |-  R  -  - |
+         |      -  R |
+          -----------
     """
-    R_cds = (2*dim, 3*dim, 2*dim, 3*dim)
-    block_1_R_cds = (dim, 2*dim, dim, 2*dim)
-    linear_constraints = [(1., R_cds, np.zeros((dim,dim)), block_1_R_cds)]
+    linear_constraints = [(1., R_1_cds, np.zeros((dim,dim)), R_2_cds)]
 
     def linear_regions(X):
         return many_batch_linear_equals(X, linear_constraints)

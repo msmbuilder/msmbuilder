@@ -136,9 +136,12 @@ def print_Q_test_case(test_file, A, D, F, dim):
         test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
                             + " A_solve, Q_solve\n"
         test_string += "\tblock_dim = %d\n"%dim
-        test_string += "\tA = (\n\t\tnp." + repr(A) + ")\n"
-        test_string += "\tD = (\n\t\tnp." + repr(D) + ")\n"
-        test_string += "\tF = (\n\t\tnp." + repr(F) + ")\n"
+        pickle.dump(A, open("A.p", "w"))
+        test_string += '\tA = pickle.load(open("A.p", "r"))\n'
+        pickle.dump(D, open("D.p", "w"))
+        test_string += '\tD = pickle.load(open("D.p", "r"))\n'
+        pickle.dump(F, open("F.p", "w"))
+        test_string += '\tF = pickle.load(open("F.p", "r"))\n'
         test_string += "\tQ_solve(block_dim, A, D, F, \n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
@@ -176,8 +179,8 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
         test_string += "\tA_solve(block_dim, B, C, D, E, Q, mu,\n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
-        np.set_printoptions(threshold=1000)
         f.write(test_string)
+    np.set_printoptions(threshold=1000)
 
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
@@ -217,7 +220,6 @@ def transmat_solve(stats):
     #print "revised_counts\n", revised_counts
     return revised_counts
 
-# TEST ME!
 def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
     Bs, Cs, Es, Ds, Fs = [], [], [], [], []
     for i in range(n_components):
@@ -348,12 +350,14 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
     eps = 1e-4
     tol = 1e-1
     N_iter = 100
-    scale = 1./np.amax(np.linalg.eigh(D)[0])
-    R = (scale*np.trace(D)
-            + 2*(1./scale)*np.trace(np.linalg.inv(D)))
-    Rs = [R]
+    scale = 1./np.sqrt(np.linalg.norm(D,2))
     # Rescaling
     D *= scale
+    # For numerical stability
+    c = 1e-1
+    Dinv = np.linalg.inv(D+c*np.eye(block_dim))
+    R = (scale*np.trace(D) + 2*np.trace(Dinv))
+    Rs = [R]
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             Q_constraints(block_dim, A, F, D)
     (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \

@@ -213,7 +213,9 @@ def test_Q_solve_plusmin():
     A = np.array([[.0]])
     D = np.array([[.0204]])
     F = np.array([[25.47]])
-    Q_solve(block_dim, A, D, F)
+    Q = Q_solve(block_dim, A, D, F)
+    assert Q != None
+    assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
 def test_plusmin_mstep():
     # Set constants

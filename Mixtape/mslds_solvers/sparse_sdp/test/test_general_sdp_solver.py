@@ -25,18 +25,17 @@ def test1():
 
     from Lagrange multiplier.
     """
-    eps = 1e-4
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 50
     Rs = [10, 100, 1000]
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             simple_equality_constraint()
-    g = GeneralSolver(dim, eps)
-    g.save_constraints(trace_obj, grad_trace_obj, As, bs, Cs, ds,
+    g = GeneralSolver()
+    g.save_constraints(dim, trace_obj, grad_trace_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, verbose=False,
-            interactive=False, disp=True, debug=True, Rs = Rs)
+    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
+            interactive=False, disp=True, debug=False, Rs = Rs)
     print "X:\n", X
     assert succeed == True
     assert np.abs(X[1,1] - 0.75) < search_tol
@@ -54,7 +53,6 @@ def test2():
         X = [[0, 0],
              [0, 25]]
     """
-    eps = 1e-4
     tol = 1e-2
     search_tol = 1e-2
     N_iter = 50
@@ -65,10 +63,10 @@ def test2():
                     [ 0.,  2.]])]
     ds = [50]
     Fs, gradFs, Gs, gradGs = [], [], [], []
-    g = GeneralSolver(dim, eps)
-    g.save_constraints(trace_obj, grad_trace_obj, As, bs, Cs, ds,
+    g = GeneralSolver()
+    g.save_constraints(dim, trace_obj, grad_trace_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, verbose=False,
+    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, debug=False, Rs = Rs)
     print "X:\n", X
     assert succeed == True
@@ -87,74 +85,112 @@ def test3():
              [ 0, 1]]
         X semidefinite
     """
-    eps = 1e-4
-    tol = 1e-2
-    search_tol = 3e-2 # Figure out how to reduce this...
-    N_iter = 50
-    Rs = [10, 100]
-    dim = 2
-    As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
-    g = lambda(X): X[0,0]**2 + X[1,1]**2 - 1.
-    def gradg(X):
-        (dim, _) = np.shape(X)
-        grad = np.zeros(np.shape(X))
-        grad[range(dim), range(dim)] = 2*X[range(dim), range(dim)]
-        return grad
-    Gs, gradGs = [g], [gradg]
-    def obj(X):
-        return X[0,0]
-    def grad_obj(X):
-        G = np.zeros(np.shape(X))
-        G[0,0] = 1.
-        return G
-    g = GeneralSolver(dim, eps)
-    g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
-            Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, verbose=False,
-            interactive=False, debug=False, Rs = Rs)
-    print "X:\n", X
-    assert succeed == True
-    assert np.abs(X[0,0] - 0) < search_tol
+    import pdb, traceback, sys
+    try:
+        tol = 1e-2
+        search_tol = 3e-2 # Figure out how to reduce this...
+        N_iter = 50
+        Rs = [10, 100]
+        dim = 2
+        As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
+        g = lambda(X): X[0,0]**2 + X[1,1]**2 - 1.
+        def gradg(X):
+            (dim, _) = np.shape(X)
+            grad = np.zeros(np.shape(X))
+            grad[range(dim), range(dim)] = 2*X[range(dim), range(dim)]
+            return grad
+        Gs, gradGs = [g], [gradg]
+        def obj(X):
+            return X[0,0]
+        def grad_obj(X):
+            G = np.zeros(np.shape(X))
+            G[0,0] = 1.
+            return G
+        g = GeneralSolver()
+        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
+                interactive=False, debug=False, Rs = Rs)
+        print "X:\n", X
+        assert succeed == True
+        assert np.abs(X[0,0] - 0) < search_tol
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
 
 def test4():
     """
     Tests that feasibility of Q optimization runs.
 
     min_Q -log det R + Tr(RB)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
-    eps = 1e-4
-    tol = 1e-3
-    search_tol = 1e-2
-    N_iter = 50
-    dim = 2
-    Rs = [10, 100]
-    dims = [3]
-    for dim in dims:
-        block_dim = int(dim/3)
+    import pdb, traceback, sys
+    try:
+        tol = 1e-3
+        search_tol = 1e-2
+        N_iter = 50
+        dim = 2
+        Rs = [10, 100]
+        dims = [4]
+        gamma = .5
 
-        # Generate initial data
-        D = np.eye(block_dim)
-        Dinv = np.linalg.inv(D)
-        B = np.eye(block_dim)
-        A = 0.5*(1./dim) * np.eye(block_dim)
-        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                Q_constraints(block_dim, A, B, D)
-        g = GeneralSolver(dim, eps)
-        def obj(X):
-            return log_det_tr(X, B)
-        def grad_obj(X):
-            return grad_log_det_tr(X, B)
-        g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
-                Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol,
-                disp=True, interactive=False, debug=True, Rs=Rs)
-        assert succeed == True
+        for dim in dims:
+            block_dim = int(dim/4)
+
+            # Generate initial data
+            D = np.eye(block_dim) 
+            B = np.eye(block_dim)
+            A = 0.5*(1./dim) * np.eye(block_dim)
+            c = np.sqrt(1/gamma)
+            
+            # Numerical stability (not really needed for this simple test case)
+            scale = 1./np.sqrt(np.linalg.norm(D,2))
+
+            # Rescaling
+            D *= scale
+            # Improving conditioning
+            delta=1e-2
+            D = D + delta*np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
+            Rs = [R]
+            print "R: ", R
+
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    Q_constraints(block_dim, A, B, D, c)
+            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+                    Q_coords(block_dim)
+            g = GeneralSolver()
+            def obj(X):
+                return log_det_tr(X, B)
+            def grad_obj(X):
+                return grad_log_det_tr(X, B)
+            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                    disp=True, interactive=False, debug=False, Rs=Rs)
+            assert succeed == True
+            R_1 = scale*get_entries(X, R_1_cds)
+            R_2 = scale*get_entries(X, R_2_cds)
+            R_avg = (R_1 + R_2) / 2.
+            Q = np.linalg.inv(R_avg)
+            print "D:\n", D
+            print "Q:\n", Q
+            assert (np.linalg.norm(Q, 2) - gamma * np.linalg.norm(D, 2))**2  \
+                        < search_tol
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
 
 def test5():
     """

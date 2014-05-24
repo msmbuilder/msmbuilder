@@ -46,16 +46,19 @@ def grad_trace_obj(X):
 def log_det_tr(X, B):
     """
     minimize -log det R + Tr(RB)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
+    np.seterr(divide='raise')
     (dim, _) = np.shape(X)
-    block_dim = int(dim/3)
-    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+    block_dim = int(dim/4)
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+        D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
             Q_coords(block_dim)
     R1 = get_entries(X, R_1_cds)
     R2 = get_entries(X, R_2_cds)
@@ -77,16 +80,18 @@ def log_det_tr(X, B):
 def grad_log_det_tr(X, B):
     """
     minimize -log det R + Tr(RB)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
     (dim, _) = np.shape(X)
-    block_dim = int(dim/3)
-    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+    block_dim = int(dim/4)
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+        D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
             Q_coords(block_dim)
     grad = np.zeros(np.shape(X))
     R1 = get_entries(X, R_1_cds)

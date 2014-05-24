@@ -122,31 +122,36 @@ def test_l2_batch_equals():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_Q_constraints():
-    dims = [3, 9]
-    N_rand = 10
-    eps = 1e-5
-    tol = 1e-3
-    for dim in dims:
-        block_dim = int(dim/3)
-        # Generate initial data
-        D = np.eye(block_dim)
-        Dinv = np.linalg.inv(D)
-        B = np.eye(block_dim)
-        A = 0.5 * np.eye(block_dim)
-        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                Q_constraints(block_dim, A, B, D)
-        tol = 1e-3
-        eps = 1e-4
+    import pdb, traceback, sys
+    try:
+        dims = [4, 8]
         N_rand = 10
-        for (g, gradg) in zip(Gs, gradGs):
-            for i in range(N_rand):
-                X = np.random.rand(dim, dim)
-                val = g(X)
-                grad = gradg(X)
-                print "grad:\n", grad
-                num_grad = numerical_derivative(g, X, eps)
-                print "num_grad:\n", num_grad
-                assert np.sum(np.abs(grad - num_grad)) < tol
+        eps = 1e-4
+        tol = 1e-3
+        for dim in dims:
+            block_dim = int(dim/4)
+            # Generate initial data
+            D = np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            B = np.eye(block_dim)
+            A = 0.5 * np.eye(block_dim)
+            c = 0.5
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    Q_constraints(block_dim, A, B, D, c)
+            N_rand = 10
+            for (g, gradg) in zip(Gs, gradGs):
+                for i in range(N_rand):
+                    X = np.random.rand(dim, dim)
+                    val = g(X)
+                    grad = gradg(X)
+                    print "grad:\n", grad
+                    num_grad = numerical_derivative(g, X, eps)
+                    print "num_grad:\n", num_grad
+                    assert np.sum(np.abs(grad - num_grad)) < tol
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
 
 def test_A_constraints():
     import pdb, traceback, sys

@@ -32,13 +32,14 @@ def test_sum_squares():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_log_det():
-    dims = [3]
+    dims = [4]
     N_rand = 10
     tol = 1e-3
     eps = 1e-4
     for dim in dims:
-        block_dim = int(dim/3)
-        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+        block_dim = int(dim/4)
+        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+            D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
                 Q_coords(block_dim)
         # Generate initial data
         B = np.random.rand(block_dim, block_dim)

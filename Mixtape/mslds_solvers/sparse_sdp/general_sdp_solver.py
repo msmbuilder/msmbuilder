@@ -34,25 +34,25 @@ class GeneralSolver(object):
     uses binary search and the FeasibilitySolver below to solve general
     semidefinite cone convex programs.
     """
-    def __init__(self, dim, eps):
-        self.dim = dim
-        self.eps = eps
+    def __init__(self):
+        pass
 
-    def save_constraints(self, obj, grad_obj, As, bs, Cs, ds,
+    def save_constraints(self, dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs):
+        self.dim = dim
         (self.As, self.bs, self.Cs, self.ds,
             self.Fs, self.gradFs, self.Gs, self.gradGs) = \
                 As, bs, Cs, ds, Fs, gradFs, Gs, gradGs
         self.obj = lambda X: obj(X)
         self.grad_obj = grad_obj
 
-    def create_feasibility_solver(self, fs, grad_fs):
+    def create_feasibility_solver(self, fs, grad_fs, eps=1e-4):
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             (self.As, self.bs, self.Cs, self.ds,
                 self.Fs, self.gradFs, self.Gs, self.gradGs)
         newFs = Fs + fs
         newGradFs = gradFs + grad_fs
-        f = FeasibilitySolver(self.dim, self.eps, As, bs, Cs, ds, newFs,
+        f = FeasibilitySolver(self.dim, eps, As, bs, Cs, ds, newFs,
                 newGradFs, Gs, gradGs)
         return f
 
@@ -76,9 +76,9 @@ class GeneralSolver(object):
                 print "\tobj(X): ", self.obj(X)
                 print "\tX:\n", X
 
-    def solve(self, N_iter, tol, X_init=None, interactive=False,
-            disp=True, verbose=False, debug=False, Lmin=-1000,
-            Rs = [10, 100, 1000]):
+    def solve(self, N_iter, tol, search_tol, eps=1e-4, X_init=None,
+        interactive=False, disp=True, verbose=False, debug=False, Lmin=-1000,
+        Rs = [10, 100, 1000]):
         """
         Solves optimization problem
 
@@ -129,7 +129,7 @@ class GeneralSolver(object):
         if disp:
             self.print_banner()
         # Test that problem is originally feasible
-        f_init = self.create_feasibility_solver([], [])
+        f_init = self.create_feasibility_solver([], [], eps)
         X_orig, fX_orig, succeed = f_init.feasibility_solve(N_iter, tol,
                 methods=['frank_wolfe', 'frank_wolfe_stable'], disp=disp,
                 verbose=verbose, debug=debug, X_init = X_init, Rs=Rs)
@@ -143,12 +143,12 @@ class GeneralSolver(object):
         self.print_status(disp, debug, "Problem feasible", X,
                 -np.inf, U)
         self.interactive_wait(interactive)
-        while (U - L) >= tol:
+        while (U - L) >= search_tol:
             alpha = (U + L) / 2.0
             h_alpha = lambda X: (self.obj(X) - alpha)
             grad_h_alpha = lambda X: (self.grad_obj(X))
             f_lower = self.create_feasibility_solver([h_alpha],
-                    [grad_h_alpha])
+                    [grad_h_alpha], eps)
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
                     methods=['frank_wolfe', 'frank_wolfe_stable'],
                     disp=disp, debug=debug, verbose=verbose, Rs=Rs,
@@ -165,6 +165,6 @@ class GeneralSolver(object):
                 L = alpha
             self.interactive_wait(interactive)
 
-        if (U - L) <= tol:
+        if (U - L) <= search_tol:
             succeed = True
         return (L, U, X, succeed)
