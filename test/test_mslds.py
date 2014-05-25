@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+from mixtape.datasets import load_doublewell
 from mslds_examples import PlusminModel, MullerModel, MullerForce
 from mixtape.mslds import MetastableSwitchingLDS
 from mixtape.ghmm import GaussianFusionHMM
@@ -115,3 +116,34 @@ def test_muller_potential():
         traceback.print_exc()
         pdb.post_mortem(tb)
 
+
+def test_doublewell():
+    n_components = 2
+    n_features = 1
+    n_em_iter = 1
+    n_experiments = 1
+
+    data = load_doublewell(random_state=0)['trajectories']
+    T = len(data[0])
+
+    # Fit MSLDS model 
+    model = MetastableSwitchingLDS(n_components, n_features,
+        n_experiments=n_experiments, n_em_iter=n_em_iter)
+    model._init(data)
+    model.fit(gamma=0.1)
+
+    # Fit Gaussian HMM for comparison
+    g = GaussianFusionHMM(n_components, n_features)
+    g.fit(data)
+    hmm_score = g.score(data)
+    print("HMM Log-Likelihood = %f" %  hmm_score)
+    print
+
+    # Plot sample from MSLDS
+    sim_xs, sim_Ss = model.sample(T, init_state=0)
+    plt.close('all')
+    plt.figure(1)
+    plt.plot(range(T), data[0], label="Observations")
+    plt.plot(range(T), sim_xs, label='Sampled Observations')
+    plt.legend()
+    plt.show()
