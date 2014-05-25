@@ -33,7 +33,7 @@ class MetastableSwitchingLDSSolver(object):
         return transmat, means, covars
 
     def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=50,
-                    verbose=False):
+                    verbose=False, gamma=.5):
         # Remove these copies once the memory error is isolated.
         covars = np.copy(covars)
         means = np.copy(means)
@@ -42,7 +42,8 @@ class MetastableSwitchingLDSSolver(object):
         bs = np.copy(bs)
         transmat = transmat_solve(stats)
         A_upds, Q_upds, b_upds = self.AQb_update(As, Qs, bs,
-                means, covars, stats, N_iter=N_iter, verbose=verbose)
+                means, covars, stats, N_iter=N_iter, verbose=verbose,
+                gamma=gamma)
         return transmat, A_upds, Q_upds, b_upds
 
     def covars_update(self, means, stats):
@@ -105,7 +106,7 @@ class MetastableSwitchingLDSSolver(object):
         return means
 
     def AQb_update(self, As, Qs, bs, means, covars, stats, N_iter=50,
-                    verbose=False):
+                    verbose=False, gamma=.5):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
                 self.n_features, As, bs, covars, stats)
         self.print_aux_matrices(Bs, Cs, Es, Ds, Fs)
@@ -115,7 +116,8 @@ class MetastableSwitchingLDSSolver(object):
             B, C, D, E, F = Bs[i], Cs[i], Ds[i], Es[i], Fs[i]
             A, Q, mu = As[i], Qs[i], means[i]
             A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, mu, B,
-                    C, D, E, F, N_iter=N_iter, verbose=verbose)
+                    C, D, E, F, N_iter=N_iter, verbose=verbose,
+                    gamma=gamma)
             A_upds += [A_upd]
             Q_upds += [Q_upd]
             b_upds += [b_upd]
@@ -184,10 +186,12 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
 
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
-        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=50):
+        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=50,
+        gamma=.5):
     # Should this be iterated for biconvex solution? Yes. Need to fix.
     Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
-                disp=disp, debug=debug, Rs=Rs, verbose=verbose)
+                disp=disp, debug=debug, Rs=Rs, verbose=verbose,
+                gamma=gamma)
     if Q_upd != None:
         Q = Q_upd
     else:
@@ -215,9 +219,6 @@ def transmat_solve(stats):
     revised_counts = np.copy(counts)
     for i in range(dim):
         revised_counts[i] /= norms[i]
-        print sum(revised_counts[i])
-    #print "counts\n", counts
-    #print "revised_counts\n", revised_counts
     return revised_counts
 
 def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
@@ -339,7 +340,8 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         return A
 
 def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
-        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=100):
+        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=100,
+        gamma=.5):
     """
     Solves Q optimization.
 
@@ -355,7 +357,6 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
     dim = 4*block_dim
     tol = 1e-1
     search_tol = 1.
-    gamma = .5
 
     # Copy over initial data 
     D = np.copy(D)

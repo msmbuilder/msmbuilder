@@ -7,9 +7,12 @@ import matplotlib.pyplot as plt
 
 def test_plusmin():
     # Set constants
-    num_hotstart = 3
+    n_hotstart = 3
+    n_em_iter = 3
+    n_experiments = 1
     n_seq = 1
     T = 2000
+    gamma = 512.
 
     # Generate data
     plusmin = PlusminModel()
@@ -18,36 +21,46 @@ def test_plusmin():
     n_components = plusmin.K
 
     # Train MSLDS
-    l = MetastableSwitchingLDS(n_components, n_features, n_hotstart=3,
-            n_em_iter=1, n_experiments=1)
-    l.fit(data)
-    mslds_score = l.score(data)
+    mslds_scores = []
+    l = MetastableSwitchingLDS(n_components, n_features,
+            n_hotstart=n_hotstart, n_em_iter=n_em_iter,
+            n_experiments=n_experiments)
+    l._init(data)
+    l.fit(gamma=gamma)
+    mslds_score = l.score()
+    print("gamma = %f" % gamma)
     print("MSLDS Log-Likelihood = %f" %  mslds_score)
-    ## Fit Gaussian HMM for comparison
-    #g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
-    #g.fit(data)
-    #hmm_score = g.score(data)
-    #print("HMM Log-Likelihood = %f" %  hmm_score)
+    print
+
+    # Fit Gaussian HMM for comparison
+    g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
+    g.fit(data)
+    hmm_score = g.score(data)
+    print("HMM Log-Likelihood = %f" %  hmm_score)
+    print
+
+    # Plot sample from MSLDS
     sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=plusmin.mus[0])
     sim_xs = np.reshape(sim_xs, (n_seq, T, plusmin.x_dim))
-
     plt.close('all')
     plt.figure(1)
     plt.plot(range(T), data[0], label="Observations")
     plt.plot(range(T), sim_xs[0], label='Sampled Observations')
     plt.legend()
     plt.show()
-    pass
 
 def test_muller_potential():
     import pdb, traceback, sys
     try:
         # Set constants
+        n_hotstart = 3
+        n_em_iter = 1
+        n_experiments = 1
         n_seq = 1
         num_trajs = 1
         T = 2500
         sim_T = 1000
-        num_hotstart = 0
+        gamma = .5
 
         # Generate data
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -58,16 +71,18 @@ def test_muller_potential():
         n_components = muller.K
 
         # Train MSLDS
-        l = MetastableSwitchingLDS(n_components, n_features, n_hotstart=3,
-                n_em_iter=1, n_experiments=1)
-        l.fit(data)
+        l = MetastableSwitchingLDS(n_components, n_features,
+            n_hotstart=n_hotstart, n_em_iter=n_em_iter,
+            n_experiments=n_experiments)
+        l.fit(data, gamma=gamma)
         mslds_score = l.score(data)
         print("MSLDS Log-Likelihood = %f" %  mslds_score)
-        ## Fit Gaussian HMM for comparison
-        #g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
-        #g.fit(data)
-        #hmm_score = g.score(data)
-        #print("HMM Log-Likelihood = %f" %  hmm_score)
+
+        # Fit Gaussian HMM for comparison
+        g = GaussianFusionHMM(n_components, n_features)
+        g.fit(data)
+        hmm_score = g.score(data)
+        print("HMM Log-Likelihood = %f" %  hmm_score)
 
         # Clear Display
         plt.cla()

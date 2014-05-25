@@ -160,16 +160,15 @@ class MetastableSwitchingLDS(object):
 
         return obs, hidden_state
 
-    def score(self, sequences):
+    def score(self):
         """Log-likelihood of sequences under the model
         """
-        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s')
-                     for s in sequences]
-        self.inferrer._sequences = sequences
         logprob, _ = self.inferrer.do_mslds_estep()
         return logprob
 
-    def print_parameters(self, phase="", logprob=None):
+    def print_parameters(self, phase="", logprob=None, print_status=True):
+        if not print_status:
+            return
         display_string = """
         ######################################################
         Current Mslds Parameters. Phase: %s
@@ -198,48 +197,33 @@ class MetastableSwitchingLDS(object):
                             + bcolors.ENDC)
         print(display_string)
 
-    def fit(self, sequences):
+    def fit(self, gamma=.5, print_status=False):
         """Estimate model parameters.
         """
-        n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
 
-        for r in range(self.n_experiments):
-            fit_logprob = []
-            self._init(sequences)
-            for i in range(self.n_hotstart):
-                curr_logprob, stats = self.inferrer.do_hmm_estep()
-                self.transmat_, self.means_, self.covars_ \
-                        = self.solver.do_hmm_mstep(stats)
-                self.print_parameters(phase="HMM Pretraining Step "
-                        + str(i), logprob=curr_logprob)
-            for i in range(self.n_em_iter):
-                curr_logprob, stats = self.inferrer.do_mslds_estep()
-                fit_logprob.append(curr_logprob)
-                self.transmat_, self.As_, self.Qs_, self.bs_ \
-                        = self.solver.do_mstep(self.As_, self.Qs_,
-                                self.bs_, self.means_, self.covars_, stats)
-                self.print_parameters(phase="Learning Step " + str(i),
-                        logprob=curr_logprob)
-                if curr_logprob > best_fit['loglikelihood']:
-                    best_fit['loglikelihood'] = curr_logprob
-                    best_fit['params'] = {'means': self.means_,
-                                          'covars': self.covars_,
-                                          'As': self.As_,
-                                          'bs': self.bs_,
-                                          'Qs': self.Qs_,
-                                          'populations': self.populations_,
-                                          'transmat': self.transmat_,
-                                          'fit_logprob': fit_logprob}
-        # Set the final values
-        self.means_ = best_fit['params']['means']
-        self.covars_ = best_fit['params']['covars']
-        self.As_ = best_fit['params']['As']
-        self.bs_ = best_fit['params']['bs']
-        self.Qs_ = best_fit['params']['Qs']
-        self.transmat_ = best_fit['params']['transmat']
-        self.populations_ = best_fit['params']['populations']
-        self.fit_logprob_ = best_fit['params']['fit_logprob']
+        fit_logprob = []
+        for i in range(self.n_hotstart):
+            curr_logprob, stats = self.inferrer.do_hmm_estep()
+            self.transmat_, self.means_, self.covars_ \
+                    = self.solver.do_hmm_mstep(stats)
+            self.print_parameters(phase="HMM Pretraining Step "
+                    + str(i), logprob=curr_logprob, 
+                    print_status=print_status)
+        for i in range(self.n_em_iter):
+            print("self.n_em_iter = %d" % i)
+            curr_logprob, stats = self.inferrer.do_mslds_estep()
+            fit_logprob.append(curr_logprob)
+            self.transmat_, self.As_, self.Qs_, self.bs_ \
+                    = self.solver.do_mstep(self.As_, self.Qs_,
+                            self.bs_, self.means_, self.covars_, stats,
+                            gamma=gamma)
+            self.print_parameters(phase="Learning Step " + str(i),
+                    logprob=curr_logprob, print_status=print_status)
+
+            disp_string = "logprob: %f" % curr_logprob
+            disp_string = (bcolors.WARNING + disp_string + bcolors.ENDC)
+            print(disp_string)
 
         return self
 
