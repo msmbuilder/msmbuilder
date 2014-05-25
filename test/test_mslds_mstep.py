@@ -90,8 +90,11 @@ def test_Q_solve_muller():
 
     F = np.array([[2.62197238, 1.58163533],
                   [1.58163533, 2.58977211]])
-    Q_solve(block_dim, A, D, F, disp=True, debug=False,
+    Q = Q_solve(block_dim, A, D, F, disp=True, debug=False,
             verbose=False, Rs=[100])
+    print "D:\n", D
+    assert Q != None
+    assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
 def test_A_solve_muller():
     block_dim = 2
@@ -109,7 +112,7 @@ def test_A_solve_muller():
     Q = .9 * D
     mu =  np.array([[-0.7010104, 1.29133034]])
     mu = np.reshape(mu, (block_dim, 1))
-    A_solve(block_dim, B, C, D, E, Q, mu, verbose=True, disp=True)
+    A_solve(block_dim, B, C, D, E, Q, mu, verbose=False, disp=True)
 
 def test_Q_solve_muller_2():
     block_dim = 2.
@@ -130,8 +133,11 @@ def test_Q_solve_muller_2():
     F = np.array([[ 2.72226628,  1.60237858],
                   [ 1.60237858,  3.0191094 ]])
     A = np.zeros((block_dim, block_dim))
-    Q_solve(block_dim, A, D, F, disp=True,
+    Q = Q_solve(block_dim, A, D, F, disp=True,
             verbose=False, Rs=[100])
+    print "D:\n", D
+    assert Q != None
+    assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
 def test_Q_solve_muller_3():
     block_dim = 2.
@@ -145,8 +151,11 @@ def test_Q_solve_muller_3():
                 [ 0.00027678,  0.0092519 ]], dtype=float32))
     F = (array([[ 5.79813337, -2.13557243],
                 [-2.13554192, -6.50420761]], dtype=float32))
-    Q_solve(block_dim, A, D, F, disp=True,
+    Q = Q_solve(block_dim, A, D, F, disp=True,
             verbose=False, Rs=[100])
+    print "D:\n", D
+    assert Q != None
+    assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
 
 def test_A_solve_muller_2():
@@ -214,6 +223,7 @@ def test_Q_solve_plusmin():
     D = np.array([[.0204]])
     F = np.array([[25.47]])
     Q = Q_solve(block_dim, A, D, F)
+    print "D:\n", D
     assert Q != None
     assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 

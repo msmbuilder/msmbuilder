@@ -123,7 +123,7 @@ def test4():
     """
     Tests that feasibility of Q optimization runs.
 
-    min_Q -log det R + Tr(RB)
+    min_Q -log det R + Tr(RF)
           -------------------
          |D-ADA.T  I         |
     X =  |   I     R         |
@@ -135,7 +135,7 @@ def test4():
     import pdb, traceback, sys
     try:
         tol = 1e-3
-        search_tol = 1e-2
+        search_tol = 5e-2
         N_iter = 50
         dim = 2
         Rs = [10, 100]
@@ -147,33 +147,35 @@ def test4():
 
             # Generate initial data
             D = np.eye(block_dim) 
-            B = np.eye(block_dim)
+            F = np.eye(block_dim)
             A = 0.5*(1./dim) * np.eye(block_dim)
             c = np.sqrt(1/gamma)
             
             # Numerical stability (not really needed for this simple test case)
-            scale = 1./np.sqrt(np.linalg.norm(D,2))
+            scale = 1./np.linalg.norm(D,2)
 
             # Rescaling
             D *= scale
+
             # Improving conditioning
             delta=1e-2
             D = D + delta*np.eye(block_dim)
             Dinv = np.linalg.inv(D)
+
+            # Compute trace upper bound
             R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
             Rs = [R]
-            print "R: ", R
 
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, B, D, c)
+                    Q_constraints(block_dim, A, F, D, c)
             (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
                 D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
                     Q_coords(block_dim)
             g = GeneralSolver()
             def obj(X):
-                return log_det_tr(X, B)
+                return log_det_tr(X, F)
             def grad_obj(X):
-                return grad_log_det_tr(X, B)
+                return grad_log_det_tr(X, F)
             g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
             (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
@@ -185,8 +187,8 @@ def test4():
             Q = np.linalg.inv(R_avg)
             print "D:\n", D
             print "Q:\n", Q
-            assert (np.linalg.norm(Q, 2) - gamma * np.linalg.norm(D, 2))**2  \
-                        < search_tol
+            assert np.linalg.norm(Q, 2)**2 \
+                    < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
         type, value, tb = sys.exc_info()
         traceback.print_exc()
@@ -210,7 +212,6 @@ def test5():
     If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
     The solution to this problem is A = 0 when dim = 1.
     """
-    eps = 1e-4
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 100
@@ -235,10 +236,10 @@ def test5():
             return A_dynamics(X, block_dim, C, B, E, Qinv)
         def grad_obj(X):
             return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-        g = GeneralSolver(dim, eps)
-        g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+        g = GeneralSolver()
+        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol,
+        (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 disp=True, interactive=False, Rs=Rs)
         assert succeed == True
 
@@ -249,58 +250,71 @@ def test6():
 
 
     min_Q -log det R + Tr(RF)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
-    eps = 1e-4
-    tol = 1e-2
-    search_tol = 1e-2
-    N_iter = 150
-    Rs = [10, 100]
-    dims = [3]
-    scale = 10.
-    for dim in dims:
-        block_dim = int(dim/3)
+    import pdb, traceback, sys
+    try:
+        tol = 1e-2
+        search_tol = 1e-2
+        N_iter = 150
+        Rs = [10, 100]
+        dims = [4]
+        gamma = .5
+        for dim in dims:
+            block_dim = int(dim/4)
 
-        # Generate initial data
-        D = .0204 * np.eye(block_dim)
-        F = 25.47 * np.eye(block_dim)
-        A = np.zeros(block_dim)
-        # Rescaling
-        D *= scale
-        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                Q_constraints(block_dim, A, F, D)
-        g = GeneralSolver(dim, eps)
-        def obj(X):
-            return log_det_tr(scale*X, F)
-        def grad_obj(X):
-            return grad_log_det_tr(scale*X, F)
-        g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
-                Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol, verbose=False,
-                interactive=False, debug=False, Rs=Rs)
-        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
-                = Q_coords(block_dim)
-        # Undo trace scaling
-        if X != None:
-            print "X\n", X
+            # Generate initial data
+            D = .0204 * np.eye(block_dim)
+            F = 25.47 * np.eye(block_dim)
+            A = np.zeros(block_dim)
+            c = np.sqrt(1/gamma)
+
+            # Numerical stability 
+            scale = 1./np.linalg.norm(D,2)
+            # Rescaling
+
+            D *= scale
+            # Improving conditioning
+            delta=1e-1
+            D = D + delta*np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+            R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
+            Rs = [R]
+            print "R: ", R
+
+            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                    Q_constraints(block_dim, A, F, D, c)
+            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+                    Q_coords(block_dim)
+            g = GeneralSolver()
+            def obj(X):
+                return log_det_tr(X, F)
+            def grad_obj(X):
+                return grad_log_det_tr(X, F)
+            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                    Fs, gradFs, Gs, gradGs)
+            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                verbose=False, interactive=False, debug=False, Rs=Rs)
+            assert succeed == True
             R_1  = scale*get_entries(X, R_1_cds)
             R_2  = scale*get_entries(X, R_2_cds)
-            Q_1 = np.linalg.inv(R_1)
-            Q_2 = np.linalg.inv(R_2)
-            print "Q_1:\n", Q_1
-            print "Q_2:\n", Q_2
-            # Undo rescaling
-            D *= (1./scale)
-            if X != None:
-                print "nplinalg.norm(D, 2): ", np.linalg.norm(D, 2)
-                assert np.linalg.norm(Q_1, 2) < 1.1*np.linalg.norm(D, 2)
-                assert np.linalg.norm(Q_2, 2) < 1.1*np.linalg.norm(D, 2)
-        assert succeed == True
+            R_avg = (R_1 + R_2) / 2.
+            Q = np.linalg.inv(R_avg)
+            print "D:\n", D
+            print "Q:\n", Q
+            assert np.linalg.norm(Q, 2)**2 \
+                    < (gamma * np.linalg.norm(D, 2))**2 + search_tol
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
 
 def test7():
     """
@@ -320,7 +334,6 @@ def test7():
     If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
     The solution to this problem is A = 0 when dim = 1.
     """
-    eps = 1e-4
     tol = 1e-2
     search_tol = 1e-2
     N_iter = 100
@@ -354,10 +367,10 @@ def test7():
             return A_dynamics(X, block_dim, C, B, E, Qinv)
         def grad_obj(X):
             return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-        g = GeneralSolver(dim, eps)
-        g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+        g = GeneralSolver()
+        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol,
+        (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 verbose=False, disp=True, interactive=False, Lmin=-100)
         # Undo trace scaling
         print "X\n", X
@@ -377,27 +390,26 @@ def test8():
     Tests Q-solve on data generated from a run of Muller potential.
 
     min_R -log det R + Tr(RF)
-          ------------------
-         |D-ADA.T  I        |
-    X =  |   I     R        |
-         |            R  cI |
-         |            cI  I |
-          ------------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
-    eps = 1e-4
-    tol = 7e-2
-    search_tol = 1e-2
+    tol = 1e-2
+    search_tol = 1
     N_iter = 100
-    dims = [6]
-    np.set_printoptions(precision=2)
+    dims = [8]
+    gamma = .5
     np.seterr(divide='raise')
     np.seterr(over='raise')
     np.seterr(invalid='raise')
     import pdb, traceback, sys
     try:
         for dim in dims:
-            block_dim = int(dim/3)
+            block_dim = int(dim/4)
 
             # Generate initial data
             D = np.array([[0.00326556, 0.00196009],
@@ -405,46 +417,48 @@ def test8():
             F = np.array([[2.62197238, 1.58163533],
                           [1.58163533, 2.58977211]])
             A = np.zeros((block_dim, block_dim))
-            scale = 1./np.amax(np.linalg.eigh(D)[0])
-            R = (scale*np.trace(D)
-                    + 2*(1./scale)*np.trace(np.linalg.inv(D)))
-            Rs = [R]
-            print "Rs: ", Rs
-            print "scale: ", scale
+            c = np.sqrt(1/gamma)
+
+            # Numerical stability 
+            scale = 1./np.linalg.norm(D,2)
+
             # Rescaling
             D *= scale
-            print "D_scaled:\n", D
+
+            # Improving conditioning
+            delta=1e-2
+            D = D + delta*np.eye(block_dim)
+            Dinv = np.linalg.inv(D)
+
+            # Trace upper bound
+            R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
+            Rs = [R]
+
+            # Specify problem
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, F, D)
-            g = GeneralSolver(dim, eps)
+                    Q_constraints(block_dim, A, F, D, c)
+            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+                    Q_coords(block_dim)
+            g = GeneralSolver()
             def obj(X):
-                return log_det_tr(scale*X, F)
+                return log_det_tr(X, F)
             def grad_obj(X):
-                return grad_log_det_tr(scale*X, F)
-            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+                return grad_log_det_tr(X, F)
+            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol, verbose=False,
-                    interactive=False, debug=True, Rs=Rs)
-            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
-                    = Q_coords(block_dim)
-            # Undo trace scaling
-            if X != None:
-                R_1  = scale*get_entries(X, R_1_cds)
-                R_2  = scale*get_entries(X, R_2_cds)
-                Q_1 = np.linalg.inv(R_1)
-                Q_2 = np.linalg.inv(R_2)
-                print "Q_1:\n", Q_1
-                print "Q_2:\n", Q_2
-                print "D_scaled:\n", D
-                # Undo rescaling
-                D *= (1./scale)
-                if X != None:
-                    print "nplinalg.norm(D, 2): ", np.linalg.norm(D, 2)
-                    print "np.linalg.norm(Q_1,2): ", np.linalg.norm(Q_1,2)
-                    print "np.linalg.norm(Q_2,2): ", np.linalg.norm(Q_2,2)
-                    assert np.linalg.norm(Q_1,2) < 1.1*np.linalg.norm(D,2)
-                    assert np.linalg.norm(Q_2,2) < 1.1*np.linalg.norm(D,2)
+            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                verbose=False, interactive=False, debug=False, Rs=Rs)
+
             assert succeed == True
+            R_1  = scale*get_entries(X, R_1_cds)
+            R_2  = scale*get_entries(X, R_2_cds)
+            R_avg = (R_1 + R_2) / 2.
+            Q = np.linalg.inv(R_avg)
+            print "D:\n", D
+            print "Q:\n", Q
+            assert np.linalg.norm(Q, 2)**2 \
+                    < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
         type, value, tb = sys.exc_info()
         traceback.print_exc()
@@ -513,14 +527,13 @@ def test9():
                 return A_dynamics(X, block_dim, C, B, E, Qinv)
             def grad_obj(X):
                 return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-            g = GeneralSolver(dim, eps)
-            g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+            g = GeneralSolver()
+            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol,
-                    disp=True, interactive=False, debug=True,
+            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                    disp=True, interactive=False, debug=False,
                     verbose=False, Rs=Rs)
             # Undo trace scaling
-            print "X\n", X
             if X != None:
                 A_1 = get_entries(X, A_1_cds)
                 A_T_1 = get_entries(X, A_T_1_cds)

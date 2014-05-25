@@ -260,7 +260,7 @@ def b_solve(n_features, A, mu):
 
 def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         disp=True, verbose=False, debug=False, Rs=[10, 100, 1000],
-        N_iter=50):
+        N_iter=100):
     """
     Solves A optimization.
 
@@ -275,36 +275,45 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     A mu == 0
     X is PSD
     """
-    # Figure out a more elegant way to stop this...
+    dim = 4*block_dim
+    tol = 1e-1
+    search_tol = 1.
+
+    # Copy in inputs 
     B = np.copy(B)
     C = np.copy(C)
     D = np.copy(D)
     E = np.copy(E)
     Q = np.copy(Q)
     mu = np.copy(mu)
-    # Refactor this better somehow?
-    dim = 4*block_dim
+
+    # Scale down objective matrices 
     scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
     C = C/scale_factor
     B = B/scale_factor
     E = E/scale_factor
-    print "scale_factor: ", scale_factor
-    eps = 1e-4
-    tol = 1e-1
 
-    scale = 1./np.sqrt(np.linalg.norm(D, 2))
-    print "scale: ", scale
+    # Numerical stability 
+    scale = 1./np.linalg.norm(D, 2)
+
     # Rescaling
     D *= scale
     Q *= scale
-    # For numerical stability
-    c = 1e-1
+
+    # Improving conditioning
+    delta=1e-2
+    D = D + delta*np.eye(block_dim)
+    Q = Q + delta*np.eye(block_dim)
+    Dinv = np.linalg.inv(D)
+
     # Compute post-scaled inverses
-    Dinv = np.linalg.inv(D+c*np.eye(block_dim))
-    Qinv = np.linalg.inv(Q+c*np.eye(block_dim))
+    Dinv = np.linalg.inv(D)
+    Qinv = np.linalg.inv(Q)
+
+    # Compute trace upper bound
     R = np.abs(np.trace(D)) + np.abs(np.trace(Dinv)) + 2 * block_dim
     Rs = [R]
-    print "R: ", R
+
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             A_constraints(block_dim, D, Dinv, Q, mu)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
@@ -313,10 +322,10 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         return A_dynamics(X, block_dim, C, B, E, Qinv)
     def grad_obj(X):
         return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-    g = GeneralSolver(dim, eps)
-    g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+    g = GeneralSolver()
+    g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol,
+    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
             interactive=interactive, disp=disp, verbose=verbose,
             debug=debug, Rs=Rs)
     if succeed:
@@ -330,52 +339,66 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         return A
 
 def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
-        verbose=False, debug=False, Rs=[10, 100, 1000]):
+        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=100):
     """
     Solves Q optimization.
 
     min_Q -log det R + Tr(RF)
-          --------------
-         |D-ADA.T  I    |
-    X =  |   I     R    |
-         |            R |
-          --------------
+          -------------------
+         |D-ADA.T  I         |
+    X =  |   I     R         |
+         |            D   cI |
+         |           cI   R  |
+          -------------------
     X is PSD
     """
-    # Figure out more elegant way to stop this.
+    dim = 4*block_dim
+    tol = 1e-1
+    search_tol = 1.
+    gamma = .5
+
+    # Copy over initial data 
     D = np.copy(D)
     F = np.copy(F)
-    # Refactor this better somehow?
-    dim = 3*block_dim
-    eps = 1e-4
-    tol = 1e-1
-    N_iter = 100
-    scale = 1./np.sqrt(np.linalg.norm(D,2))
+    c = np.sqrt(1/gamma)
+
+    # Numerical stability 
+    scale = 1./np.linalg.norm(D,2)
+
     # Rescaling
     D *= scale
-    # For numerical stability
-    c = 1e-1
-    Dinv = np.linalg.inv(D+c*np.eye(block_dim))
-    R = (scale*np.trace(D) + 2*np.trace(Dinv))
+
+    # Improving conditioning
+    delta=1e-2
+    D = D + delta*np.eye(block_dim)
+    Dinv = np.linalg.inv(D)
+
+    # Compute trace upper bound
+    R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
     Rs = [R]
+
     As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-            Q_constraints(block_dim, A, F, D)
-    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) \
-            = Q_coords(block_dim)
-    g = GeneralSolver(dim, eps)
+            Q_constraints(block_dim, A, F, D, c)
+    (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+        D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+            Q_coords(block_dim)
+    g = GeneralSolver()
     def obj(X):
-        return log_det_tr(scale*X, F)
+        return log_det_tr(X, F)
     def grad_obj(X):
-        return grad_log_det_tr(scale*X, F)
-    g.save_constraints(obj, grad_obj, As, bs, Cs, ds,
+        return grad_log_det_tr(X, F)
+    g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, interactive=interactive,
-            disp=disp, verbose=verbose, debug=debug, Rs=Rs)
+    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+        interactive=interactive, disp=disp, verbose=verbose, 
+        debug=debug, Rs=Rs)
     if succeed:
         R_1 = scale*get_entries(X, R_1_cds)
         R_2 = scale*get_entries(X, R_2_cds)
         R_avg = (R_1 + R_2) / 2.
         Q = np.linalg.inv(R_avg)
+        # Unscale answer
+        Q *= (1./scale)
         if disp:
             print "Q:\n", Q
         return Q
