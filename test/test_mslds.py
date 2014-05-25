@@ -122,6 +122,7 @@ def test_doublewell():
     n_features = 1
     n_em_iter = 1
     n_experiments = 1
+    tol=1e-1
 
     data = load_doublewell(random_state=0)['trajectories']
     T = len(data[0])
@@ -130,7 +131,7 @@ def test_doublewell():
     model = MetastableSwitchingLDS(n_components, n_features,
         n_experiments=n_experiments, n_em_iter=n_em_iter)
     model._init(data)
-    model.fit(gamma=0.1)
+    model.fit(gamma=.1, tol=tol)
 
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(n_components, n_features)

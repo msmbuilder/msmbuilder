@@ -107,15 +107,13 @@ class MetastableSwitchingLDS(object):
         # Initialize As
         self.As_ = np.zeros((self.n_states, self.n_features,
             self.n_features))
-        #for i in range(self.n_states):
-        #    self.As_[i] = np.eye(self.n_features) - self.eps
-
-        # Initialize means
         self.bs_ = np.zeros((self.n_states, self.n_features))
         for i in range(self.n_states):
             A = self.As_[i]
             mean = self.means_[i]
             self.bs_[i] = np.dot(np.eye(self.n_features) - A, mean)
+
+        # Initialize means
 
         # Initialize local covariances
         self.Qs_ = np.zeros((self.n_states, self.n_features,
@@ -197,7 +195,7 @@ class MetastableSwitchingLDS(object):
                             + bcolors.ENDC)
         print(display_string)
 
-    def fit(self, gamma=.5, print_status=False):
+    def fit(self, gamma=.5, print_status=False, tol=1e-1):
         """Estimate model parameters.
         """
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
@@ -210,14 +208,31 @@ class MetastableSwitchingLDS(object):
             self.print_parameters(phase="HMM Pretraining Step "
                     + str(i), logprob=curr_logprob, 
                     print_status=print_status)
+        # Move this inwards later for neatness
+        for i in range(self.n_states):
+            D = np.copy(self.covars_[i])
+            Q = gamma * D
+            self.Qs_[i] = Q
+        As = []
+        for i in range(self.n_states):
+            A = np.eye(self.n_features)
+            As.append(A)
+        self.As_ = As
+        bs = []
+        for i in range(self.n_states):
+            b = self.means_[i]
+            bs.append(b)
+        self.bs_ = bs
+
         for i in range(self.n_em_iter):
             print("self.n_em_iter = %d" % i)
             curr_logprob, stats = self.inferrer.do_mslds_estep()
             fit_logprob.append(curr_logprob)
-            self.transmat_, self.As_, self.Qs_, self.bs_ \
+            #self.transmat_, self.As_, self.Qs_, self.bs_ \
+            _, self.As_, self.Qs_, self.bs_ \
                     = self.solver.do_mstep(self.As_, self.Qs_,
                             self.bs_, self.means_, self.covars_, stats,
-                            gamma=gamma)
+                            gamma=gamma, tol=tol)
             self.print_parameters(phase="Learning Step " + str(i),
                     logprob=curr_logprob, print_status=print_status)
 

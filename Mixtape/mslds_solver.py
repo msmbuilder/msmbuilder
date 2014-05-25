@@ -33,7 +33,7 @@ class MetastableSwitchingLDSSolver(object):
         return transmat, means, covars
 
     def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=50,
-                    verbose=False, gamma=.5):
+                    verbose=False, gamma=.5, tol=1e-1):
         # Remove these copies once the memory error is isolated.
         covars = np.copy(covars)
         means = np.copy(means)
@@ -43,7 +43,7 @@ class MetastableSwitchingLDSSolver(object):
         transmat = transmat_solve(stats)
         A_upds, Q_upds, b_upds = self.AQb_update(As, Qs, bs,
                 means, covars, stats, N_iter=N_iter, verbose=verbose,
-                gamma=gamma)
+                gamma=gamma, tol=tol)
         return transmat, A_upds, Q_upds, b_upds
 
     def covars_update(self, means, stats):
@@ -106,7 +106,7 @@ class MetastableSwitchingLDSSolver(object):
         return means
 
     def AQb_update(self, As, Qs, bs, means, covars, stats, N_iter=50,
-                    verbose=False, gamma=.5):
+                    verbose=False, gamma=.5, tol=1e-1):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
                 self.n_features, As, bs, covars, stats)
         self.print_aux_matrices(Bs, Cs, Es, Ds, Fs)
@@ -117,7 +117,7 @@ class MetastableSwitchingLDSSolver(object):
             A, Q, mu = As[i], Qs[i], means[i]
             A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, mu, B,
                     C, D, E, F, N_iter=N_iter, verbose=verbose,
-                    gamma=gamma)
+                    gamma=gamma, tol=tol)
             A_upds += [A_upd]
             Q_upds += [Q_upd]
             b_upds += [b_upd]
@@ -187,22 +187,22 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=50,
-        gamma=.5):
+        gamma=.5, tol=1e-1):
     # Should this be iterated for biconvex solution? Yes. Need to fix.
-    Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
-                disp=disp, debug=debug, Rs=Rs, verbose=verbose,
-                gamma=gamma)
-    if Q_upd != None:
-        Q = Q_upd
-    else:
-        print_Q_test_case("autogen_Q_tests.py", A, D, F, dim)
     A_upd = A_solve(dim, B, C, D, E, Q, mu, interactive=interactive,
                     disp=disp, debug=debug, Rs=Rs, N_iter=N_iter, 
-                    verbose=verbose)
+                    verbose=verbose, tol=tol)
     if A_upd != None:
         A = A_upd
     else:
         print_A_test_case("autogen_A_tests.py", B, C, D, E, Q, mu, dim)
+    Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
+                disp=disp, debug=debug, Rs=Rs, verbose=verbose,
+                gamma=gamma, tol=tol)
+    if Q_upd != None:
+        Q = Q_upd
+    else:
+        print_Q_test_case("autogen_Q_tests.py", A, D, F, dim)
     b = b_solve(dim, A, mu)
     return A, Q, b
 
@@ -253,15 +253,18 @@ def compute_aux_matrices(n_components, n_features, As, bs, covars, stats):
 
 def b_solve(n_features, A, mu):
     #print "mu:\n", mu
-    b = np.dot(np.eye(n_features) - A, mu)
+    #b = np.dot(np.eye(n_features) - A, mu)
+    b =  mu - np.dot(A, mu)
+    return b
     #print "b:\n", b
     #return b
     # b = mu since constraint A mu == 0
-    return mu
+    #return mu
+    #return b 
 
 def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         disp=True, verbose=False, debug=False, Rs=[10, 100, 1000],
-        N_iter=100):
+        N_iter=100, tol=1e-1):
     """
     Solves A optimization.
 
@@ -277,8 +280,8 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     X is PSD
     """
     dim = 4*block_dim
-    tol = 1e-1
     search_tol = 1.
+    up_scale=1.0
 
     # Copy in inputs 
     B = np.copy(B)
@@ -320,9 +323,9 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
     def obj(X):
-        return A_dynamics(X, block_dim, C, B, E, Qinv)
+        return A_dynamics(up_scale*X, block_dim, C, B, E, Qinv)
     def grad_obj(X):
-        return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
+        return grad_A_dynamics(up_scale*X, block_dim, C, B, E, Qinv)
     g = GeneralSolver()
     g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
@@ -330,6 +333,7 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
             interactive=interactive, disp=disp, verbose=verbose,
             debug=debug, Rs=Rs)
     if succeed:
+        X = up_scale * X
         A_1 = get_entries(X, A_1_cds)
         A_T_1 = get_entries(X, A_T_1_cds)
         A_2 = get_entries(X, A_2_cds)
@@ -341,7 +345,7 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
 
 def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=100,
-        gamma=.5):
+        gamma=.5, tol=1e-1):
     """
     Solves Q optimization.
 
@@ -355,7 +359,6 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
     X is PSD
     """
     dim = 4*block_dim
-    tol = 1e-1
     search_tol = 1.
 
     # Copy over initial data 
@@ -368,6 +371,9 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
 
     # Rescaling
     D *= scale
+
+    # Scale down objective matrices
+    scale_factor = np.linalg.norm(F, 2)
 
     # Improving conditioning
     delta=1e-2
@@ -385,9 +391,9 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
             Q_coords(block_dim)
     g = GeneralSolver()
     def obj(X):
-        return log_det_tr(X, F)
+        return (1./scale_factor) * log_det_tr(X, F)
     def grad_obj(X):
-        return grad_log_det_tr(X, F)
+        return (1./scale_factor) * grad_log_det_tr(X, F)
     g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
