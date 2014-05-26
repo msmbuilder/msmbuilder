@@ -138,37 +138,37 @@ class GeneralSolver(object):
         if not succeed:
             self.print_status(disp, debug, "Problem infeasible", X_orig,
                     -np.inf, np.inf)
-            return (-np.inf, np.inf, X_orig, succeed)
+            return (np.inf, X_orig, succeed)
         X = X_orig
         U = self.obj(X)
-        L = min(-2 * np.abs(U), Lmin)
+        step = search_tol
         self.print_status(disp, debug, "Problem feasible", X,
                 -np.inf, U)
         self.interactive_wait(interactive)
         f = f_init.get_feasibility(self.As, self.bs, self.Cs, self.ds,
                     self.Fs, self.Gs, 1e-4)
-        while (U - L) >= search_tol:
-            alpha = (U + L) / 2.0
+        while step >= search_tol:
+            alpha = U - step 
             h_alpha = lambda X: (self.obj(X) - alpha)
             grad_h_alpha = lambda X: (self.grad_obj(X))
             f_lower = self.create_feasibility_solver([h_alpha],
                     [grad_h_alpha], eps)
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
-                    methods=methods,
-                    disp=disp, debug=debug, verbose=verbose, Rs=Rs,
-                    X_init=X, num_stable=30)
+                methods=methods, disp=disp, debug=debug, verbose=verbose,
+                Rs=Rs, X_init=X, num_stable=30)
 
             if succeed_L:
                 status = "Feasible"
-                self.print_status(disp, debug, status, X_L, L, alpha)
+                self.print_status(disp, debug, status, X_L, -np.inf, alpha)
                 U = alpha
+                step = 2 * step
                 X = X_L
             else:
                 status = "Infeasible"
-                self.print_status(disp, debug, status, X_L, L, alpha)
-                L = alpha
+                self.print_status(disp, debug, status, X_L, -np.inf, alpha)
+                step = .5 * step
             self.interactive_wait(interactive)
 
-        if (U - L) <= search_tol:
+        if step < search_tol:
             succeed = True
-        return (L, U, X, succeed)
+        return (U, X, succeed)

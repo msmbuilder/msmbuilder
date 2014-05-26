@@ -34,7 +34,7 @@ def test1():
     g = GeneralSolver()
     g.save_constraints(dim, trace_obj, grad_trace_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
+    (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, disp=True, debug=False, Rs = Rs)
     print "X:\n", X
     assert succeed == True
@@ -53,8 +53,8 @@ def test2():
         X = [[0, 0],
              [0, 25]]
     """
-    tol = 1e-2
-    search_tol = 1e-2
+    tol = 1e-1
+    search_tol = 1e-1
     N_iter = 50
     Rs = [10, 100]
     dim = 2
@@ -66,11 +66,11 @@ def test2():
     g = GeneralSolver()
     g.save_constraints(dim, trace_obj, grad_trace_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
+    (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=True,
             interactive=False, debug=False, Rs = Rs)
     print "X:\n", X
     assert succeed == True
-    assert np.abs(np.trace(X) - 25) < search_tol
+    assert np.abs(np.trace(X) - 25) < 2 
 
 def test3():
     """
@@ -109,7 +109,7 @@ def test3():
     g = GeneralSolver()
     g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
+    (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, debug=False, Rs = Rs)
     print "X:\n", X
     assert succeed == True
@@ -178,7 +178,7 @@ def test4():
                 return grad_log_det_tr(X, F)
             g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                     disp=True, interactive=False, debug=False, Rs=Rs)
             assert succeed == True
             R_1 = scale*get_entries(X, R_1_cds)
@@ -239,7 +239,7 @@ def test5():
         g = GeneralSolver()
         g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+        (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 disp=True, interactive=False, Rs=Rs)
         assert succeed == True
 
@@ -300,7 +300,7 @@ def test6():
                 return grad_log_det_tr(X, F)
             g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 verbose=False, interactive=False, debug=False, Rs=Rs)
             assert succeed == True
             R_1  = scale*get_entries(X, R_1_cds)
@@ -370,8 +370,8 @@ def test7():
         g = GeneralSolver()
         g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
-                verbose=False, disp=True, interactive=False, Lmin=-100)
+        (U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                verbose=False, disp=True, interactive=False)
         # Undo trace scaling
         print "X\n", X
         if X != None:
@@ -447,7 +447,7 @@ def test8():
                 return grad_log_det_tr(X, F)
             g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 verbose=False, interactive=False, debug=False, Rs=Rs)
 
             assert succeed == True
@@ -530,7 +530,7 @@ def test9():
             g = GeneralSolver()
             g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
                     Fs, gradFs, Gs, gradGs)
-            (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                     disp=True, interactive=False, debug=False,
                     verbose=False, Rs=Rs)
             # Undo trace scaling
