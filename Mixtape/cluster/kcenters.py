@@ -60,8 +60,8 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
     K-Centers one of the most inexpensive possible clustering algorithms. It's
     sometimes also called "max-min" clustering. The algorithm stats with a
     single data point as a cluster center, and then at each iteration it chooses
-    as the next cluster center the data point which whose distance its nearest
-    cluster center is maximized.
+    as the next cluster center the data point which is farthest from its
+    assigned cluster center.
 
     [Custom metrics] KCenters can accept an arbitrary metric
     function. In the interest of performance, the expected call
