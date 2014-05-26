@@ -122,7 +122,7 @@ class BoundedTraceSolver(object):
         return fX_cur, X_cur, alpha
 
     def solve(self, N_iter, X_init=None, disp=True, debug=False,
-            methods=[], early_exit=True, min_step_size=1e-6,
+            methods=['frank_wolfe'], early_exit=True, min_step_size=1e-6,
             good_enough=None, num_stable=np.inf):
         """
         Parameters

@@ -230,16 +230,25 @@ def test_alanine_dipeptide():
         gen_traj = None
         for t in range(sim_T):
             h = hidden_states[t]
+            best_logprob = -np.inf
+            best_frame = None
             for i in range(len(trajs)):
-                logprob = log_multivariate_normal_density(
-                    states[h][i], sample_traj[t][np.newaxis],
-                    model.Qs_[h], covariance_type='full')
-            best_frame_pos = np.argmax(logprob, axis=0)[0]
-            frame = states[h][best_frame_pos]
+                if t > 0:
+                    states[h][i].superpose(gen_traj, t-1)
+                Z = states[h][i].xyz
+                Z = np.reshape(Z, (len(Z), n_features), order='F')
+                mean = sample_traj[t].xyz
+                mean = np.reshape(mean, (n_features, 1), order='F')
+                logprobs = log_multivariate_normal_density(Z,
+                    mean, model.Qs_[h], covariance_type='full')
+                ind = np.argmax(logprobs, axis=0)
+                logprob = logprobs[ind]
+                if logprob > best_log_prob:
+                    logprob = best_logprob
+                    best_frame = states[h][i][ind]
             if t == 0:
-                gen_traj = frame
+                gen_traj = best_frame
             else:
-                frame.superpose(gen_traj, t-1)
                 gen_traj = gen_traj.join(frame)
         gen_traj.save('%s.xtc' % self.out)
         gen_traj[0].save('%s.xtc.pdb' % self.out)

@@ -334,6 +334,15 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
 
     # Construct init matrix
+    X_init = np.zeros((dim, dim))
+    const = 0.5
+    set_entries(X_init, D_Q_cds, D-Q)
+    set_entries(X_init, A_1_cds, const*np.eye(block_dim))
+    set_entries(X_init, A_T_1_cds, const*np.eye(block_dim))
+    set_entries(X_init, Dinv_cds, Dinv)
+    set_entries(X_init, I_1_cds, np.eye(block_dim))
+    set_entries(X_init, A_2_cds, const*np.eye(block_dim))
+    set_entries(X_init, A_T_2_cds, const*np.eye(block_dim))
 
     def obj(X):
         return A_dynamics(X, block_dim, C, B, E, Qinv)
@@ -345,7 +354,7 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
             interactive=interactive, disp=disp, verbose=verbose,
             debug=debug, Rs=Rs, min_step_size=min_step_size,
-            methods=methods)
+            methods=methods, X_init=X_init)
     if succeed:
         A_1 = get_entries(X, A_1_cds)
         A_T_1 = get_entries(X, A_T_1_cds)

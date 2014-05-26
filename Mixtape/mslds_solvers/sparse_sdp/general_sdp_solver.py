@@ -77,7 +77,7 @@ class GeneralSolver(object):
                 print "\tX:\n", X
 
     def solve(self, N_iter, tol, search_tol, eps=1e-4, X_init=None,
-        interactive=False, disp=True, verbose=False, debug=False, Lmin=-1000,
+        interactive=False, disp=True, verbose=False, debug=False,
         Rs = [10, 100, 1000], min_step_size=1e-6, 
         methods=['frank_wolfe', 'frank_wolfe_stable']):
         """

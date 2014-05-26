@@ -132,22 +132,25 @@ def test5():
           --------------
     X is PSD
     """
-    dims = [3]
+    dims = [4]
     eps = 1e-5
     tol = 1e-2
     Rs = [10]
     N_iter = 100
     for dim in dims:
-        block_dim = int(dim/3)
+        block_dim = int(dim/4)
 
         # Generate initial data
         D = np.eye(block_dim)
         Dinv = np.linalg.inv(D)
         B = np.eye(block_dim)
         A = 0.5*(1./dim) * np.eye(block_dim)
+        gamma = .5
+        c = np.sqrt(1/gamma)
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                Q_constraints(block_dim, A, B, D)
-        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, R_2_cds) = \
+                Q_constraints(block_dim, A, B, D, c)
+        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+            D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
                 Q_coords(block_dim)
         f = FeasibilitySolver(dim, eps, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
@@ -187,13 +190,13 @@ def test6():
         C = 2 * np.eye(block_dim)
         B = np.eye(block_dim)
         E = np.eye(block_dim)
+        mu = np.random.rand(block_dim)
 
         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                A_constraints(block_dim, D, Dinv, Q)
+                A_constraints(block_dim, D, Dinv, Q, mu)
 
         (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = \
-                A_coords(block_dim)
+            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
         f = FeasibilitySolver(dim, eps, As, bs, Cs, ds,
                 Fs, gradFs, Gs, gradGs)
         X, fX, succeed = f.feasibility_solve(N_iter, tol,

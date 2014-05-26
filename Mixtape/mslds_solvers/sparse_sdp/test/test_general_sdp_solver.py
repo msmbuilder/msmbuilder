@@ -85,39 +85,39 @@ def test3():
              [ 0, 1]]
         X semidefinite
     """
-    import pdb, traceback, sys
-    try:
-        tol = 1e-2
-        search_tol = 3e-2 # Figure out how to reduce this...
-        N_iter = 50
-        Rs = [10, 100]
-        dim = 2
-        As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
-        g = lambda(X): X[0,0]**2 + X[1,1]**2 - 1.
-        def gradg(X):
-            (dim, _) = np.shape(X)
-            grad = np.zeros(np.shape(X))
-            grad[range(dim), range(dim)] = 2*X[range(dim), range(dim)]
-            return grad
-        Gs, gradGs = [g], [gradg]
-        def obj(X):
-            return X[0,0]
-        def grad_obj(X):
-            G = np.zeros(np.shape(X))
-            G[0,0] = 1.
-            return G
-        g = GeneralSolver()
-        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
-                Fs, gradFs, Gs, gradGs)
-        (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
-                interactive=False, debug=False, Rs = Rs)
-        print "X:\n", X
-        assert succeed == True
-        assert np.abs(X[0,0] - 0) < search_tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+    #import pdb, traceback, sys
+    #try:
+    tol = 1e-2
+    search_tol = 3e-2 # Figure out how to reduce this...
+    N_iter = 50
+    Rs = [10, 100]
+    dim = 2
+    As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
+    g = lambda(X): X[0,0]**2 + X[1,1]**2 - 1.
+    def gradg(X):
+        (dim, _) = np.shape(X)
+        grad = np.zeros(np.shape(X))
+        grad[range(dim), range(dim)] = 2*X[range(dim), range(dim)]
+        return grad
+    Gs, gradGs = [g], [gradg]
+    def obj(X):
+        return X[0,0]
+    def grad_obj(X):
+        G = np.zeros(np.shape(X))
+        G[0,0] = 1.
+        return G
+    g = GeneralSolver()
+    g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+            Fs, gradFs, Gs, gradGs)
+    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
+            interactive=False, debug=False, Rs = Rs)
+    print "X:\n", X
+    assert succeed == True
+    assert np.abs(X[0,0] - 0) < search_tol
+    #except:
+    #    type, value, tb = sys.exc_info()
+    #    traceback.print_exc()
+    #    pdb.post_mortem(tb)
 
 def test4():
     """

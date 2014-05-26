@@ -208,7 +208,7 @@ def test8():
                         As, bs, Cs, ds, Fs, gradFs, Gs, gradGs)
         B = BoundedTraceSolver(f, gradf, dim)
         X, elapsed  = run_experiment(B, N_iter,
-                methods=['frank_wolfe', 'frank_wolfe_stable'],
+                methods=['frank_wolfe'],
                     disp=True)
         succeed = not (f(X) < -tol)
         print "\tsoln\n", soln
