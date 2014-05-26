@@ -342,7 +342,7 @@ def test_alanine_dipeptide_mstep():
         for traj in trajs:
             traj.superpose(top)
             Z = traj.xyz
-            Z = np.reshape(Z, (n_frames, n_features), order='F')
+            Z = np.reshape(Z, (n_frames,n_features), order='F')
             data.append(Z)
 
         # Fit reference model and initial MSLDS model

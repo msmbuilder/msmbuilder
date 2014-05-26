@@ -100,6 +100,7 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
                 length, length_minus_1, m, obs_m, n, obs_n)     
     #endif
     for (i = 0; i < n_sequences; i++) {
+        printf("Analyzing sequence %d\n", i);
         sequence = sequences[i];
         length = sequence_lengths[i];
         length_minus_1 = length - 1;

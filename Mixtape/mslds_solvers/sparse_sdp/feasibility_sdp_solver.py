@@ -148,7 +148,8 @@ class FeasibilitySolver(object):
 
     def feasibility_solve(self, N_iter, tol, X_init=None,
             methods=['frank_wolfe'], early_exit=True, disp=True,
-            verbose=False, Rs=[10, 100], debug=False):
+            verbose=False, Rs=[10, 100], debug=False, min_step_size=1e-6,
+            num_stable=np.inf):
         """
         Solves feasibility problems of the type
 
@@ -173,7 +174,9 @@ class FeasibilitySolver(object):
             else:
                 Y_init = None
             Y = self._solver.solve(N_iter, X_init=Y_init,
-                    methods=methods, early_exit=early_exit, disp=verbose)
+                    methods=methods, early_exit=early_exit, disp=verbose,
+                    min_step_size=min_step_size, good_enough=-tol,
+                    num_stable=num_stable)
             fY = self.f(Y)
             X, fX = R*Y[:self.dim, :self.dim], fY
             succeed = not (fX < -tol)

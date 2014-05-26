@@ -44,6 +44,7 @@ class BoundedTraceSolver(object):
         # (stable version of Lanczos's algorithm)
         shifts = [1., 10., 100., 1000.]
         vj = None
+        stable = False
         for shift in shifts:
             try:
                 _, vj = scipy.sparse.linalg.eigsh(grad
@@ -61,7 +62,8 @@ class BoundedTraceSolver(object):
             ws, vs = np.linalg.eigh(grad)
             i = np.argmax(np.real(ws))
             vj = vs[:, i]
-        return vj
+            stable = True
+        return vj, stable
 
     def stable_rank_one_approximation(self, grad):
         ws, vs = np.linalg.eigh(grad)
@@ -120,7 +122,8 @@ class BoundedTraceSolver(object):
         return fX_cur, X_cur, alpha
 
     def solve(self, N_iter, X_init=None, disp=True, debug=False,
-            methods=[], early_exit=True, tol=1e-6):
+            methods=[], early_exit=True, min_step_size=1e-6,
+            good_enough=None, num_stable=np.inf):
         """
         Parameters
         __________
@@ -136,11 +139,19 @@ class BoundedTraceSolver(object):
         else:
             X = np.copy(X_init)
         fX = f(X)
+        stable_so_far = 0
         for j in range(N_iter):
             grad = gradf(X)
             results = []
+            if good_enough != None:
+                if fX >= good_enough:
+                    break
+            if stable_so_far > num_stable:
+                break
             if 'frank_wolfe' in methods:
-                vj = self.rank_one_approximation(grad, disp=disp)
+                vj, stable = self.rank_one_approximation(grad, disp=disp)
+                if stable:
+                    stable_so_far += 1
                 O = np.outer(vj, vj)
                 step = O - X
                 fX_fw, X_fw, alpha_fw = \
@@ -157,8 +168,8 @@ class BoundedTraceSolver(object):
             fX_prop,  X_prop, alpha, method = results[ind]
             delta = 0
             if (early_exit and
-                    (fX_prop <= fX + tol
-                        or np.sum(np.abs(X_prop - X)) < tol)):
+                    (fX_prop <= fX + min_step_size 
+                        or np.sum(np.abs(X_prop - X)) < min_step_size)):
                 delta = fX_prop - fX
                 if disp:
                     print "\t\t\tdelta: ", delta

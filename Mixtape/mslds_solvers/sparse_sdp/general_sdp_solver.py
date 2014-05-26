@@ -78,7 +78,8 @@ class GeneralSolver(object):
 
     def solve(self, N_iter, tol, search_tol, eps=1e-4, X_init=None,
         interactive=False, disp=True, verbose=False, debug=False, Lmin=-1000,
-        Rs = [10, 100, 1000]):
+        Rs = [10, 100, 1000], min_step_size=1e-6, 
+        methods=['frank_wolfe', 'frank_wolfe_stable']):
         """
         Solves optimization problem
 
@@ -131,8 +132,9 @@ class GeneralSolver(object):
         # Test that problem is originally feasible
         f_init = self.create_feasibility_solver([], [], eps)
         X_orig, fX_orig, succeed = f_init.feasibility_solve(N_iter, tol,
-                methods=['frank_wolfe', 'frank_wolfe_stable'], disp=disp,
-                verbose=verbose, debug=debug, X_init = X_init, Rs=Rs)
+                methods=methods, disp=disp,
+                verbose=verbose, debug=debug, X_init = X_init, Rs=Rs,
+                min_step_size=min_step_size)
         if not succeed:
             self.print_status(disp, debug, "Problem infeasible", X_orig,
                     -np.inf, np.inf)
@@ -143,6 +145,8 @@ class GeneralSolver(object):
         self.print_status(disp, debug, "Problem feasible", X,
                 -np.inf, U)
         self.interactive_wait(interactive)
+        f = f_init.get_feasibility(self.As, self.bs, self.Cs, self.ds,
+                    self.Fs, self.Gs, 1e-4)
         while (U - L) >= search_tol:
             alpha = (U + L) / 2.0
             h_alpha = lambda X: (self.obj(X) - alpha)
@@ -150,9 +154,9 @@ class GeneralSolver(object):
             f_lower = self.create_feasibility_solver([h_alpha],
                     [grad_h_alpha], eps)
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
-                    methods=['frank_wolfe', 'frank_wolfe_stable'],
+                    methods=methods,
                     disp=disp, debug=debug, verbose=verbose, Rs=Rs,
-                    X_init=X)
+                    X_init=X, num_stable=30)
 
             if succeed_L:
                 status = "Feasible"

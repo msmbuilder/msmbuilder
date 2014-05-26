@@ -70,7 +70,7 @@ def reference_estep(refmodel, data):
                         posteriors[t, c] * obsobsT
     return curr_logprob, stats
 
-def test_plusmin_estep():
+def test_plusmin_stats():
     # Set constants
     num_hotstart = 3
     n_seq = 1
@@ -101,7 +101,7 @@ def test_plusmin_estep():
     model.bs_ = refmodel.means_
 
     iteration = 0 # Remove this step once hot_start is factored out
-    logprob, stats = model.inferrer.do_estep(iteration)
+    logprob, stats = model.inferrer.do_estep()
     rlogprob, rstats = reference_estep(refmodel, data)
 
     yield lambda: np.testing.assert_array_almost_equal(stats['post'],
@@ -129,7 +129,7 @@ def test_plusmin_estep():
     yield lambda: np.testing.assert_array_almost_equal(
             stats['trans'], rstats['trans'], decimal=1)
 
-def test_muller_potential_estep():
+def test_muller_potential_stats():
     # Set constants
     n_seq = 1
     num_trajs = 1
@@ -162,7 +162,7 @@ def test_muller_potential_estep():
     model.bs_ = refmodel.means_
 
     iteration = 0 # Remove this step once hot_start is factored out
-    logprob, stats = model.inferrer.do_estep(iteration)
+    logprob, stats = model.inferrer.do_estep()
     rlogprob, rstats = reference_estep(refmodel, data)
 
     yield lambda: np.testing.assert_array_almost_equal(stats['post'],
@@ -191,7 +191,7 @@ def test_muller_potential_estep():
             stats['trans'], rstats['trans'], decimal=1)
 
 
-def test_alanine_dipeptide_estep():
+def test_alanine_dipeptide_stats():
     import pdb, traceback, sys
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     try:
@@ -273,7 +273,7 @@ def test_alanine_dipeptide_estep():
         traceback.print_exc()
         pdb.post_mortem(tb)
 
-def test_randn_estep():
+def test_randn_stats():
     """
     Sanity test MSLDS sufficient statistic gathering by setting
     dynamics model to 0 and testing that E-step matches that of
@@ -304,7 +304,7 @@ def test_randn_estep():
     model.bs_ = refmodel.means_
 
     iteration = 0 # Remove this step once hot_start is factored out
-    logprob, stats = model.inferrer.do_estep(iteration)
+    logprob, stats = model.inferrer.do_estep()
     rlogprob, rstats = reference_estep(refmodel, data)
 
     yield lambda: np.testing.assert_array_almost_equal(stats['post'],

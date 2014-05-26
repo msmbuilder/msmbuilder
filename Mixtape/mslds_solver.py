@@ -27,12 +27,17 @@ class MetastableSwitchingLDSSolver(object):
         self.n_features = n_features
 
     def do_hmm_mstep(self, stats):
+        print "Starting hmm mstep"
+        print "Starting transmat update"
         transmat = transmat_solve(stats)
+        print "Starting means update"
         means = self.means_update(stats)
+        print "Starting covars update"
         covars = self.covars_update(means, stats)
+        print "Done with hmm-mstep"
         return transmat, means, covars
 
-    def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=50,
+    def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=400,
                     verbose=False, gamma=.5, tol=1e-1):
         # Remove these copies once the memory error is isolated.
         covars = np.copy(covars)
@@ -105,7 +110,7 @@ class MetastableSwitchingLDSSolver(object):
         means = (stats['obs']) / (stats['post'][:, np.newaxis])
         return means
 
-    def AQb_update(self, As, Qs, bs, means, covars, stats, N_iter=50,
+    def AQb_update(self, As, Qs, bs, means, covars, stats, N_iter=400,
                     verbose=False, gamma=.5, tol=1e-1):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
                 self.n_features, As, bs, covars, stats)
@@ -129,21 +134,22 @@ def print_Q_test_case(test_file, A, D, F, dim):
                         + bcolors.ENDC)
     print display_string
     np.set_printoptions(threshold=np.nan)
-    with open(test_file, 'a') as f:
+    with open(test_file, 'w') as f:
         test_string = ""
         test_string += "\ndef Q_solve_test():\n"
         test_string += "\t#Auto-generated test case from failing run of\n"
         test_string += "\t#Q-solve:\n"
         test_string += "\timport numpy as np\n"
+        test_string += "\timport pickle\n"
         test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
                             + " A_solve, Q_solve\n"
         test_string += "\tblock_dim = %d\n"%dim
-        pickle.dump(A, open("A.p", "w"))
-        test_string += '\tA = pickle.load(open("A.p", "r"))\n'
-        pickle.dump(D, open("D.p", "w"))
-        test_string += '\tD = pickle.load(open("D.p", "r"))\n'
-        pickle.dump(F, open("F.p", "w"))
-        test_string += '\tF = pickle.load(open("F.p", "r"))\n'
+        pickle.dump(A, open("A_Q_test.p", "w"))
+        test_string += '\tA = pickle.load(open("A_Q_test.p", "r"))\n'
+        pickle.dump(D, open("D_Q_test.p", "w"))
+        test_string += '\tD = pickle.load(open("D_Q_test.p", "r"))\n'
+        pickle.dump(F, open("F_Q_test.p", "w"))
+        test_string += '\tF = pickle.load(open("F_Q_test.p", "r"))\n'
         test_string += "\tQ_solve(block_dim, A, D, F, \n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
@@ -166,18 +172,18 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
         test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
                             + " A_solve, Q_solve\n"
         test_string += "\tblock_dim = %d\n"%dim
-        pickle.dump(B, open("B.p", "w"))
-        test_string += '\tB = pickle.load(open("B.p", "r"))\n'
-        pickle.dump(C, open("C.p", "w"))
-        test_string += '\tC = pickle.load(open("C.p", "r"))\n'
-        pickle.dump(D, open("D.p", "w"))
-        test_string += '\tD = pickle.load(open("D.p", "r"))\n'
-        pickle.dump(E, open("E.p", "w"))
-        test_string += '\tE = pickle.load(open("E.p", "r"))\n'
-        pickle.dump(Q, open("Q.p", "w"))
-        test_string += '\tQ = pickle.load(open("Q.p", "r"))\n'
-        pickle.dump(mu, open("mu.p", "w"))
-        test_string += '\tmu = pickle.load(open("mu.p", "r"))\n'
+        pickle.dump(B, open("B_A_test.p", "w"))
+        test_string += '\tB = pickle.load(open("B_A_test.p", "r"))\n'
+        pickle.dump(C, open("C_A_test.p", "w"))
+        test_string += '\tC = pickle.load(open("C_A_test.p", "r"))\n'
+        pickle.dump(D, open("D_A_test.p", "w"))
+        test_string += '\tD = pickle.load(open("D_A_test.p", "r"))\n'
+        pickle.dump(E, open("E_A_test.p", "w"))
+        test_string += '\tE = pickle.load(open("E_A_test.p", "r"))\n'
+        pickle.dump(Q, open("Q_A_test.p", "w"))
+        test_string += '\tQ = pickle.load(open("Q_A_test.p", "r"))\n'
+        pickle.dump(mu, open("mu_A_test.p", "w"))
+        test_string += '\tmu = pickle.load(open("mu_A_test.p", "r"))\n'
         test_string += "\tA_solve(block_dim, B, C, D, E, Q, mu,\n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
@@ -186,7 +192,7 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
 
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
-        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=50,
+        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=400,
         gamma=.5, tol=1e-1):
     # Should this be iterated for biconvex solution? Yes. Need to fix.
     A_upd = A_solve(dim, B, C, D, E, Q, mu, interactive=interactive,
@@ -198,7 +204,7 @@ def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         print_A_test_case("autogen_A_tests.py", B, C, D, E, Q, mu, dim)
     Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
                 disp=disp, debug=debug, Rs=Rs, verbose=verbose,
-                gamma=gamma, tol=tol)
+                gamma=gamma, tol=tol, N_iter=N_iter)
     if Q_upd != None:
         Q = Q_upd
     else:
@@ -264,7 +270,8 @@ def b_solve(n_features, A, mu):
 
 def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         disp=True, verbose=False, debug=False, Rs=[10, 100, 1000],
-        N_iter=100, tol=1e-1):
+        N_iter=400, tol=1e-1, min_step_size=1e-6,
+        methods=['frank_wolfe']):
     """
     Solves A optimization.
 
@@ -281,7 +288,6 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     """
     dim = 4*block_dim
     search_tol = 1.
-    up_scale=1.0
 
     # Copy in inputs 
     B = np.copy(B)
@@ -293,6 +299,10 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
 
     # Scale down objective matrices 
     scale_factor = (max(np.linalg.norm(C-B, 2), np.linalg.norm(E,2)))
+    if scale_factor < 1e-6 or np.linalg.norm(D, 2) < 1e-6:
+        # If A has no observations, not much we can say
+        return .5*np.eye(block_dim)
+
     C = C/scale_factor
     B = B/scale_factor
     E = E/scale_factor
@@ -322,18 +332,21 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
             A_constraints(block_dim, D, Dinv, Q, mu)
     (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
+
+    # Construct init matrix
+
     def obj(X):
-        return A_dynamics(up_scale*X, block_dim, C, B, E, Qinv)
+        return A_dynamics(X, block_dim, C, B, E, Qinv)
     def grad_obj(X):
-        return grad_A_dynamics(up_scale*X, block_dim, C, B, E, Qinv)
+        return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
     g = GeneralSolver()
     g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
     (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
             interactive=interactive, disp=disp, verbose=verbose,
-            debug=debug, Rs=Rs)
+            debug=debug, Rs=Rs, min_step_size=min_step_size,
+            methods=methods)
     if succeed:
-        X = up_scale * X
         A_1 = get_entries(X, A_1_cds)
         A_T_1 = get_entries(X, A_T_1_cds)
         A_2 = get_entries(X, A_2_cds)
@@ -344,8 +357,9 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         return A
 
 def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
-        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=100,
-        gamma=.5, tol=1e-1):
+        verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=400,
+        gamma=.5, tol=1e-1, min_step_size=1e-6,
+        methods=['frank_wolfe']):
     """
     Solves Q optimization.
 
@@ -374,11 +388,15 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
 
     # Scale down objective matrices
     scale_factor = np.linalg.norm(F, 2)
+    if scale_factor < 1e-6:
+        # F can be zero if there are no observations for this state 
+        return np.eye(block_dim)
 
     # Improving conditioning
     delta=1e-2
     D = D + delta*np.eye(block_dim)
     Dinv = np.linalg.inv(D)
+    Qinv_init = min(gamma, 1.) * Dinv
 
     # Compute trace upper bound
     R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
@@ -389,6 +407,19 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
     (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
         D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
             Q_coords(block_dim)
+
+    # Construct init matrix
+    X_init = np.zeros((dim, dim))
+    D_ADA_T = D - np.dot(A, np.dot(D, A.T))
+    set_entries(X_init, D_ADA_T_cds, D_ADA_T)
+    set_entries(X_init, I_1_cds, np.eye(block_dim))
+    set_entries(X_init, I_2_cds, np.eye(block_dim))
+    set_entries(X_init, R_1_cds, Qinv_init)
+    set_entries(X_init, D_cds, D)
+    set_entries(X_init, c_I_1_cds, c*np.eye(block_dim))
+    set_entries(X_init, c_I_2_cds, c*np.eye(block_dim))
+    set_entries(X_init, R_2_cds, Qinv_init)
+
     g = GeneralSolver()
     def obj(X):
         return (1./scale_factor) * log_det_tr(X, F)
@@ -398,11 +429,14 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
             Fs, gradFs, Gs, gradGs)
     (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
         interactive=interactive, disp=disp, verbose=verbose, 
-        debug=debug, Rs=Rs)
+        debug=debug, Rs=Rs, min_step_size=min_step_size,
+        methods=methods, X_init=X_init)
     if succeed:
         R_1 = scale*get_entries(X, R_1_cds)
         R_2 = scale*get_entries(X, R_2_cds)
         R_avg = (R_1 + R_2) / 2.
+        # Ensure stability
+        R_avg = R_avg + (1e-3) * np.eye(block_dim)
         Q = np.linalg.inv(R_avg)
         # Unscale answer
         Q *= (1./scale)

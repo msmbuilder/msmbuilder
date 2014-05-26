@@ -240,6 +240,7 @@ cdef class MetastableSLDSCPUImpl:
             sequence = self.sequences[i]
             seq_pointers[i] = &sequence[0,0]
 
+
         if self.precision == 'single':
             do_estep_single(
                 <float*> &log_transmat[0,0], 

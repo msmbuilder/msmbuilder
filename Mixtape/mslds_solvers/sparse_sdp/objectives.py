@@ -62,6 +62,9 @@ def log_det_tr(X, B):
             Q_coords(block_dim)
     R1 = get_entries(X, R_1_cds)
     R2 = get_entries(X, R_2_cds)
+    # Need to avoid ill-conditioning of R1, R2
+    R1 = R1 + (1e-5) * np.eye(block_dim)
+    R2 = R2 + (1e-5) * np.eye(block_dim)
     try:
         val1 = -np.log(np.linalg.det(R1)) + np.trace(np.dot(R1, B))
     except FloatingPointError:
@@ -96,6 +99,9 @@ def grad_log_det_tr(X, B):
     grad = np.zeros(np.shape(X))
     R1 = get_entries(X, R_1_cds)
     R2 = get_entries(X, R_2_cds)
+    # Need to avoid ill-conditioning of R1, R2
+    R1 = R1 + (1e-5) * np.eye(block_dim)
+    R2 = R2 + (1e-5) * np.eye(block_dim)
     Q1 = np.linalg.inv(R1)
     Q2 = np.linalg.inv(R2)
     gradR1 = -Q1.T + B.T
