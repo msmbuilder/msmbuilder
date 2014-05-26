@@ -351,7 +351,7 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
     g = GeneralSolver()
     g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+    (U, X, succeed) = g.solve(N_iter, tol, search_tol,
             interactive=interactive, disp=disp, verbose=verbose,
             debug=debug, Rs=Rs, min_step_size=min_step_size,
             methods=methods, X_init=X_init)
@@ -436,7 +436,7 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
         return (1./scale_factor) * grad_log_det_tr(X, F)
     g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
             Fs, gradFs, Gs, gradGs)
-    (L, U, X, succeed) = g.solve(N_iter, tol, search_tol,
+    (U, X, succeed) = g.solve(N_iter, tol, search_tol,
         interactive=interactive, disp=disp, verbose=verbose, 
         debug=debug, Rs=Rs, min_step_size=min_step_size,
         methods=methods, X_init=X_init)

@@ -141,6 +141,8 @@ class GeneralSolver(object):
             return (np.inf, X_orig, succeed)
         X = X_orig
         U = self.obj(X)
+        if not np.isfinite(U):
+            raise ValueError("Objective is not finite in GeneralSolver.solve")
         step = search_tol
         self.print_status(disp, debug, "Problem feasible", X,
                 -np.inf, U)
@@ -166,7 +168,10 @@ class GeneralSolver(object):
             else:
                 status = "Infeasible"
                 self.print_status(disp, debug, status, X_L, -np.inf, alpha)
-                step = .5 * step
+                if step > search_tol:
+                    step = search_tol
+                else:
+                    step = .5 * step
             self.interactive_wait(interactive)
 
         if step < search_tol:
