@@ -66,17 +66,25 @@ def log_det_tr(X, B):
     R1 = R1 + (1e-5) * np.eye(block_dim)
     R2 = R2 + (1e-5) * np.eye(block_dim)
     try:
-        val1 = -np.log(np.linalg.det(R1)) + np.trace(np.dot(R1, B))
+        #val1 = -np.log(np.linalg.det(R1)) + np.trace(np.dot(R1, B))
+        L1 = np.linalg.cholesky(R1)
+        log_det1 = 2*np.sum(np.log(np.diag(L1)))
+        val1 = -log_det1 + np.trace(np.dot(R1, B))
     except FloatingPointError:
-        if np.linalg.det(R1) < np.finfo(np.float).eps:
+        if ((np.linalg.det(R1) < np.finfo(np.float).eps)
+            or not np.isfinite(np.linalg.det(R1))):
             val1 = np.inf
     try:
-        val2 = -np.log(np.linalg.det(R2)) + np.trace(np.dot(R2, B))
+        #val2 = -np.log(np.linalg.det(R2)) + np.trace(np.dot(R2, B))
+        L2 = np.linalg.cholesky(R2)
+        log_det2 = 2*np.sum(np.log(np.diag(L2)))
+        val2 = -log_det2 + np.trace(np.dot(R2, B))
     except FloatingPointError:
-        if np.linalg.det(R2) < np.finfo(np.float).eps:
+        if ((np.linalg.det(R2) < np.finfo(np.float).eps)
+            or not np.isfinite(np.linalg.det(R2))):
             val2 = np.inf
-    val = val1 + val2
-    return val
+    val = val1 + val2 
+    return val 
 
 # grad - log det R = -R^{-1} = -Q (see Boyd and Vandenberge, A4.1)
 # grad tr(RB) = B^T

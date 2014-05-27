@@ -66,8 +66,8 @@ def test_muller_potential():
         n_seq = 1
         num_trajs = 1
         T = 2500
-        sim_T = 1000
-        gamma = 100000. 
+        sim_T = 2500
+        gamma = 200. 
 
         # Generate data
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -237,8 +237,7 @@ def test_alanine_dipeptide():
                     states[h][i].superpose(gen_traj, t-1)
                 Z = states[h][i].xyz
                 Z = np.reshape(Z, (len(Z), n_features), order='F')
-                mean = sample_traj[t].xyz
-                mean = np.reshape(mean, (n_features, 1), order='F')
+                mean = sample_traj[t]
                 logprobs = log_multivariate_normal_density(Z,
                     mean, model.Qs_[h], covariance_type='full')
                 ind = np.argmax(logprobs, axis=0)

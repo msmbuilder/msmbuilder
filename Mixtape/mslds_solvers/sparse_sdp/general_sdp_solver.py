@@ -149,6 +149,7 @@ class GeneralSolver(object):
         self.interactive_wait(interactive)
         f = f_init.get_feasibility(self.As, self.bs, self.Cs, self.ds,
                     self.Fs, self.Gs, 1e-4)
+        num_stable=5
         while step >= search_tol:
             alpha = U - step 
             h_alpha = lambda X: (self.obj(X) - alpha)
@@ -157,19 +158,21 @@ class GeneralSolver(object):
                     [grad_h_alpha], eps)
             X_L, fX_L, succeed_L = f_lower.feasibility_solve(N_iter, tol,
                 methods=methods, disp=disp, debug=debug, verbose=verbose,
-                Rs=Rs, X_init=X, num_stable=30)
+                Rs=Rs, X_init=X, num_stable=num_stable)
 
             if succeed_L:
                 status = "Feasible"
                 self.print_status(disp, debug, status, X_L, -np.inf, alpha)
                 U = alpha
                 step = 2 * step
+                num_stable = 5
                 X = X_L
             else:
                 status = "Infeasible"
                 self.print_status(disp, debug, status, X_L, -np.inf, alpha)
                 if step > search_tol:
                     step = search_tol
+                    num_stable = 15
                 else:
                     step = .5 * step
             self.interactive_wait(interactive)

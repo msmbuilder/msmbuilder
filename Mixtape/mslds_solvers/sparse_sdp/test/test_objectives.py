@@ -59,9 +59,10 @@ def test_log_det():
             grad = grad_obj(X)
             num_grad = numerical_derivative(obj, X, eps)
             diff = np.sum(np.abs(grad - num_grad))
-            print "grad:\n", grad
-            print "num_grad:\n", num_grad
-            print "diff: ", diff
+            if diff >= tol:
+                print "grad:\n", grad
+                print "num_grad:\n", num_grad
+                print "diff: ", diff
             assert diff < tol
 
 def test_A_dynamics():

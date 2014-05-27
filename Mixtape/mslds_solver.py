@@ -38,7 +38,7 @@ class MetastableSwitchingLDSSolver(object):
         return transmat, means, covars
 
     def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=400,
-                    verbose=False, gamma=.5, tol=1e-1):
+                    verbose=False, gamma=.5, tol=1e-1, num_biconvex=1):
         # Remove these copies once the memory error is isolated.
         covars = np.copy(covars)
         means = np.copy(means)
@@ -48,7 +48,7 @@ class MetastableSwitchingLDSSolver(object):
         transmat = transmat_solve(stats)
         A_upds, Q_upds, b_upds = self.AQb_update(As, Qs, bs,
                 means, covars, stats, N_iter=N_iter, verbose=verbose,
-                gamma=gamma, tol=tol)
+                gamma=gamma, tol=tol, num_biconvex=num_biconvex)
         return transmat, A_upds, Q_upds, b_upds
 
     def covars_update(self, means, stats):
@@ -111,7 +111,7 @@ class MetastableSwitchingLDSSolver(object):
         return means
 
     def AQb_update(self, As, Qs, bs, means, covars, stats, N_iter=400,
-                    verbose=False, gamma=.5, tol=1e-1):
+                    verbose=False, gamma=.5, tol=1e-1, num_biconvex=2):
         Bs, Cs, Es, Ds, Fs = compute_aux_matrices(self.n_components,
                 self.n_features, As, bs, covars, stats)
         self.print_aux_matrices(Bs, Cs, Es, Ds, Fs)
@@ -122,7 +122,7 @@ class MetastableSwitchingLDSSolver(object):
             A, Q, mu = As[i], Qs[i], means[i]
             A_upd, Q_upd, b_upd = AQb_solve(self.n_features, A, Q, mu, B,
                     C, D, E, F, N_iter=N_iter, verbose=verbose,
-                    gamma=gamma, tol=tol)
+                    gamma=gamma, tol=tol, num_biconvex=num_biconvex)
             A_upds += [A_upd]
             Q_upds += [Q_upd]
             b_upds += [b_upd]
@@ -193,22 +193,23 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
 
 def AQb_solve(dim, A, Q, mu, B, C, D, E, F, interactive=False, disp=True,
         verbose=False, debug=False, Rs=[10, 100, 1000], N_iter=400,
-        gamma=.5, tol=1e-1):
+        gamma=.5, tol=1e-1, num_biconvex=2):
     # Should this be iterated for biconvex solution? Yes. Need to fix.
-    A_upd = A_solve(dim, B, C, D, E, Q, mu, interactive=interactive,
-                    disp=disp, debug=debug, Rs=Rs, N_iter=N_iter, 
-                    verbose=verbose, tol=tol)
-    if A_upd != None:
-        A = A_upd
-    else:
-        print_A_test_case("autogen_A_tests.py", B, C, D, E, Q, mu, dim)
-    Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
-                disp=disp, debug=debug, Rs=Rs, verbose=verbose,
-                gamma=gamma, tol=tol, N_iter=N_iter)
-    if Q_upd != None:
-        Q = Q_upd
-    else:
-        print_Q_test_case("autogen_Q_tests.py", A, D, F, dim)
+    for i in range(num_biconvex):
+        Q_upd = Q_solve(dim, A, D, F, interactive=interactive,
+                    disp=disp, debug=debug, Rs=Rs, verbose=verbose,
+                    gamma=gamma, tol=tol, N_iter=N_iter)
+        if Q_upd != None:
+            Q = Q_upd
+        else:
+            print_Q_test_case("autogen_Q_tests.py", A, D, F, dim)
+        A_upd = A_solve(dim, B, C, D, E, Q, mu, interactive=interactive,
+                        disp=disp, debug=debug, Rs=Rs, N_iter=N_iter, 
+                        verbose=verbose, tol=tol)
+        if A_upd != None:
+            A = A_upd
+        else:
+            print_A_test_case("autogen_A_tests.py", B, C, D, E, Q, mu, dim)
     b = b_solve(dim, A, mu)
     return A, Q, b
 
@@ -334,15 +335,31 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) = A_coords(block_dim)
 
     # Construct init matrix
-    X_init = np.zeros((dim, dim))
-    const = 0.5
-    set_entries(X_init, D_Q_cds, D-Q)
-    set_entries(X_init, A_1_cds, const*np.eye(block_dim))
-    set_entries(X_init, A_T_1_cds, const*np.eye(block_dim))
-    set_entries(X_init, Dinv_cds, Dinv)
-    set_entries(X_init, I_1_cds, np.eye(block_dim))
-    set_entries(X_init, A_2_cds, const*np.eye(block_dim))
-    set_entries(X_init, A_T_2_cds, const*np.eye(block_dim))
+    upper_norm = np.linalg.norm(D-Q, 2)
+    lower_norm = np.linalg.norm(D, 2)
+    const = np.sqrt(upper_norm/lower_norm)
+    factor = .95
+    for i in range(10):
+        X_init = np.zeros((dim, dim))
+        set_entries(X_init, D_Q_cds, D-Q)
+        set_entries(X_init, A_1_cds, const*np.eye(block_dim))
+        set_entries(X_init, A_T_1_cds, const*np.eye(block_dim))
+        set_entries(X_init, Dinv_cds, Dinv)
+        set_entries(X_init, I_1_cds, np.eye(block_dim))
+        set_entries(X_init, A_2_cds, const*np.eye(block_dim))
+        set_entries(X_init, A_T_2_cds, const*np.eye(block_dim))
+        set_entries(X_init, I_2_cds, np.eye(block_dim))
+        X_init = X_init + (1e-2)*np.eye(dim)
+        if min(np.linalg.eigh(X_init)[0]) < 0:
+            X_init = None
+            const = const * factor
+        else:
+            print "A_SOLVE SUCCESS AT %d" % i
+            print "const: ", const
+            break
+    if X_init == None:
+        print "A_SOLVE INIT FAILED!"
+
 
     def obj(X):
         return A_dynamics(X, block_dim, C, B, E, Qinv)
@@ -405,7 +422,7 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
     delta=1e-2
     D = D + delta*np.eye(block_dim)
     Dinv = np.linalg.inv(D)
-    Qinv_init = min(gamma, 1.) * Dinv
+    D_ADA_T = D - np.dot(A, np.dot(D, A.T)) + delta*np.eye(block_dim)
 
     # Compute trace upper bound
     R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
@@ -419,15 +436,22 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
 
     # Construct init matrix
     X_init = np.zeros((dim, dim))
-    D_ADA_T = D - np.dot(A, np.dot(D, A.T))
     set_entries(X_init, D_ADA_T_cds, D_ADA_T)
     set_entries(X_init, I_1_cds, np.eye(block_dim))
     set_entries(X_init, I_2_cds, np.eye(block_dim))
-    set_entries(X_init, R_1_cds, Qinv_init)
+    Qinv_init_1 = np.linalg.inv(D_ADA_T) 
+    set_entries(X_init, R_1_cds, Qinv_init_1)
     set_entries(X_init, D_cds, D)
     set_entries(X_init, c_I_1_cds, c*np.eye(block_dim))
     set_entries(X_init, c_I_2_cds, c*np.eye(block_dim))
-    set_entries(X_init, R_2_cds, Qinv_init)
+    Qinv_init_2 = np.linalg.inv((1./c)**2 * D)
+    set_entries(X_init, R_2_cds, Qinv_init_2)
+    X_init = X_init + (1e-4)*np.eye(dim)
+    if min(np.linalg.eigh(X_init)[0]) < 0:
+        print "Q_SOLVE INIT FAILED!"
+        X_init == None
+    else:
+        print "Q_SOLVE SUCCESS!"
 
     g = GeneralSolver()
     def obj(X):
