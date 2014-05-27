@@ -1,6 +1,6 @@
 """Very simple datasets of brownian dynamics in one dimension.
 """
-DOUBLEWELL_DESCRIPTION="""Brownian dynamics on a 1D double well potential
+DOUBLEWELL_DESCRIPTION=r"""Brownian dynamics on a 1D double well potential
 
 This dataset consists of 10 trajectories simulated with Brownian dynamics on
 the reduced potential function:
