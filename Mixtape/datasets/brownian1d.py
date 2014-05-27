@@ -10,7 +10,7 @@ the reduced potential function:
 with reflecting boundary conditions at x=-pi and x=pi. The simulations are
 governed by the stochastic differential equation
 
-    dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t)
+    dx_t/dt = -\\nabla V(x) + \sqrt{2D} * R(t)
 
 where R(t) is a standard normal white-noise process, and D=1e3. The timsetep
 is 1e-3. Each trajectory is 10^5 steps long, and starts at x_0 = 0.
