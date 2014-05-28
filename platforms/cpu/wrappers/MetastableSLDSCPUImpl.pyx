@@ -39,18 +39,18 @@ cdef class MetastableSLDSCPUImpl:
     cdef list sequences
     cdef int n_sequences
     cdef np.ndarray seq_lengths
-    cdef int n_states, n_features, n_hotstart
+    cdef int n_states, n_features
     cdef str precision
-    cdef np.ndarray means, covars, log_transmat, log_transmat_T, log_startprob, Qs, As, bs
+    cdef np.ndarray means, covars, Qs, As, bs
+    cdef log_transmat, log_transmat_T, log_startprob, 
 
-    def __cinit__(self, n_states, n_features, n_hotstart,
-            precision='single'):
+    def __cinit__(self, n_states, n_features, precision='single'):
         self.n_states = n_states
         self.n_features = n_features
-        self.n_hotstart = n_hotstart
         self.precision = str(precision)
         if self.precision not in ['single', 'mixed']:
-            raise ValueError('This platform only supports single or mixed precision')            
+            raise ValueError('This platform only supports ',
+            'single or mixed precision')            
 
     property _sequences:
         def __set__(self, value):
@@ -59,74 +59,104 @@ cdef class MetastableSLDSCPUImpl:
             if self.n_sequences <= 0:
                 raise ValueError('More than 0 sequences must be provided')
 
-            cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = np.zeros(self.n_sequences, dtype=np.int32)
+            cdef np.ndarray[ndim=1, dtype=np.int32_t] seq_lengths = \
+                    np.zeros(self.n_sequences, dtype=np.int32)
             for i in range(self.n_sequences):
                 self.sequences[i] = np.asarray(self.sequences[i],
                         order='c', dtype=np.float32)
                 seq_lengths[i] = len(self.sequences[i])
                 # print np.shape(self.sequences[i])
                 if self.n_features != self.sequences[i].shape[1]:
-                    raise ValueError('All sequences must be arrays of shape N by %d' %
-                                     self.n_features)
+                    raise ValueError(('All sequences must be arrays '
+                                      'of shape N by %d') 
+                                      % self.n_features)
             self.seq_lengths = seq_lengths
 
     property means_:
-        def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] m):
-            if (m.shape[0] != self.n_states) or (m.shape[1] != self.n_features):
-                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)' %
-                    (self.n_states, self.n_features, m.shape[0], m.shape[1]))
+        def __set__(self, np.ndarray[ndim=2, 
+                                dtype=np.float32_t, mode='c'] m):
+            if ((m.shape[0] != self.n_states) 
+                    or (m.shape[1] != self.n_features)):
+                raise TypeError(('Means must have shape (%d, %d), '
+                        'You supplied (%d, %d)') 
+                    % (self.n_states, self.n_features, 
+                        m.shape[0], m.shape[1]))
             self.means = m
         
         def __get__(self):
             return self.means
 
     property bs_:
-        def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] b):
-            if (b.shape[0] != self.n_states) or (b.shape[1] != self.n_features):
-                raise TypeError('Means must have shape (%d, %d), You supplied (%d, %d)' %
-                                (self.n_states, self.n_features, b.shape[0], b.shape[1]))
+        def __set__(self, np.ndarray[ndim=2, 
+                        dtype=np.float32_t, mode='c'] b):
+            if ((b.shape[0] != self.n_states) 
+                    or (b.shape[1] != self.n_features)):
+                raise TypeError(('Means must have shape (%d, %d), '
+                        'You supplied (%d, %d)') %
+                                (self.n_states, self.n_features, b
+                                    .shape[0], b.shape[1]))
             self.bs = b
         
         def __get__(self):
             return self.bs
 
     property covars_:
-        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] v):
-            if (v.shape[0] != self.n_states) or (v.shape[1] != self.n_features) or (v.shape[2] != self.n_features):
-                raise TypeError('Variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
-                                (self.n_states, self.n_features, self.n_features, v.shape[0], v.shape[1], v.shape[1]))
+        def __set__(self, np.ndarray[ndim=3, 
+                        dtype=np.float32_t, mode='c'] v):
+            if ((v.shape[0] != self.n_states) 
+                    or (v.shape[1] != self.n_features) 
+                    or (v.shape[2] != self.n_features)):
+                raise TypeError(('Variances must have shape (%d, %d, %d),'
+                                ' You supplied (%d, %d, %d)') 
+                    % (self.n_states, self.n_features, self.n_features, 
+                        v.shape[0], v.shape[1], v.shape[1]))
             self.covars = v
         
         def __get__(self):
             return self.covars
 
     property Qs_:
-        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] q):
-            if (q.shape[0] != self.n_states) or (q.shape[1] != self.n_features) or (q.shape[2] != self.n_features):
-                raise TypeError('Local variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
-                                (self.n_states, self.n_features, self.n_features, q.shape[0], q.shape[1], q.shape[1]))
+        def __set__(self, np.ndarray[ndim=3, 
+                        dtype=np.float32_t, mode='c'] q):
+            if ((q.shape[0] != self.n_states) 
+                    or (q.shape[1] != self.n_features) 
+                    or (q.shape[2] != self.n_features)):
+                raise TypeError(('Local variances must have shape '
+                        '(%d, %d, %d), You supplied (%d, %d, %d)') 
+                    % (self.n_states, self.n_features, self.n_features, 
+                        q.shape[0], q.shape[1], q.shape[1]))
             self.Qs = q
         
         def __get__(self):
             return self.Qs
 
     property As_:
-        def __set__(self, np.ndarray[ndim=3, dtype=np.float32_t, mode='c'] a):
-            if (a.shape[0] != self.n_states) or (a.shape[1] != self.n_features) or (a.shape[2] != self.n_features):
-                raise TypeError('Local variances must have shape (%d, %d, %d), You supplied (%d, %d, %d)' %
-                                (self.n_states, self.n_features, self.n_features, a.shape[0], a.shape[1], a.shape[1]))
+        def __set__(self, np.ndarray[ndim=3, 
+                        dtype=np.float32_t, mode='c'] a):
+            if ((a.shape[0] != self.n_states) 
+                    or (a.shape[1] != self.n_features) 
+                    or (a.shape[2] != self.n_features)):
+                raise TypeError(('Local variances must have shape '
+                        '(%d, %d, %d), You supplied (%d, %d, %d)') 
+                    % (self.n_states, self.n_features, self.n_features, 
+                        a.shape[0], a.shape[1], a.shape[1]))
             self.As = a
         
         def __get__(self):
             return self.As
     
     property transmat_:
-        def __set__(self, np.ndarray[ndim=2, dtype=np.float32_t, mode='c'] t):
-            if (t.shape[0] != self.n_states) or (t.shape[1] != self.n_states):
-                raise TypeError('transmat must have shape (%d, %d), You supplied (%d, %d)' %
-                                (self.n_states, self.n_states, t.shape[0], t.shape[1]))
+        def __set__(self, np.ndarray[ndim=2, 
+                        dtype=np.float32_t, mode='c'] t):
+            if ((t.shape[0] != self.n_states) 
+                    or (t.shape[1] != self.n_states)):
+                raise TypeError(('transmat must have shape (%d, %d), '
+                                 'You supplied (%d, %d)') 
+                             % (self.n_states, self.n_states, 
+                                 t.shape[0], t.shape[1]))
             self.log_transmat = np.log(t)
-            self.log_transmat_T = np.asarray(self.log_transmat.T, order='C')
+            self.log_transmat_T = np.asarray(self.log_transmat.T,
+                                            order='C')
         
         def __get__(self):
             return np.exp(self.log_transmat)
@@ -135,44 +165,56 @@ cdef class MetastableSLDSCPUImpl:
         def __get__(self):
             return np.exp(self.log_startprob)
     
-        def __set__(self, np.ndarray[ndim=1, dtype=np.float32_t, mode='c'] s):
+        def __set__(self, np.ndarray[ndim=1, 
+                        dtype=np.float32_t, mode='c'] s):
             if (s.shape[0] != self.n_states):
-                raise TypeError('startprob must have shape (%d,), You supplied (%d,)' %
+                raise TypeError(('startprob must have shape (%d,), '
+                                 'You supplied (%d,)') %
                                 (self.n_states, s.shape[0]))
             self.log_startprob = np.log(s)
 
+    def do_mslds_estep(self):
+        return self.do_estep(hmm_hotstart=False)
+
+    def do_hmm_estep(self):
+        return self.do_estep(hmm_hotstart=True)
     
-    def do_estep(self, iteration):
-        #starttime = time.time()
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat = self.log_transmat
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] log_transmat_T = self.log_transmat_T
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] log_startprob = self.log_startprob
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] As = self.As
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] bs = self.bs
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] Qs = self.Qs
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = \
-                self.means
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
-                covariances = self.covars
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.int32_t] seq_lengths = \
-                self.seq_lengths
+    def do_estep(self, hmm_hotstart=False):
+        cdef np.ndarray[ndim=2, mode='c', 
+                dtype=np.float32_t] log_transmat = self.log_transmat
+        cdef np.ndarray[ndim=2, mode='c', 
+                dtype=np.float32_t] log_transmat_T = self.log_transmat_T
+        cdef np.ndarray[ndim=1, mode='c', 
+                dtype=np.float32_t] log_startprob = self.log_startprob
+        cdef np.ndarray[ndim=3, mode='c', 
+                dtype=np.float32_t] As = self.As
+        cdef np.ndarray[ndim=2, mode='c', 
+                dtype=np.float32_t] bs = self.bs
+        cdef np.ndarray[ndim=3, mode='c', 
+                dtype=np.float32_t] Qs = self.Qs
+        cdef np.ndarray[ndim=2, mode='c', 
+                dtype=np.float32_t] means = self.means
+        cdef np.ndarray[ndim=3, mode='c', 
+                dtype=np.float32_t] covariances = self.covars
+        cdef np.ndarray[ndim=1, mode='c', 
+                dtype=np.int32_t] seq_lengths = self.seq_lengths
 
         # All of the sufficient statistics
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] transcounts \
-                = np.zeros((self.n_states, self.n_states), 
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                transcounts = np.zeros((self.n_states, self.n_states), 
                         dtype=np.float32)
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs \
-                = np.zeros((self.n_states, self.n_features), 
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                obs = np.zeros((self.n_states, self.n_features), 
                         dtype=np.float32)
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
                 obs_but_first = np.zeros((self.n_states, self.n_features),
                         dtype=np.float32)
-        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] obs_but_last\
-                = np.zeros((self.n_states, self.n_features), 
+        cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] \
+                obs_but_last = np.zeros((self.n_states, self.n_features), 
                         dtype=np.float32)
 
-        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] obs_obs_T = \
-                np.zeros((self.n_states, self.n_features,
+        cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
+                obs_obs_T = np.zeros((self.n_states, self.n_features,
                     self.n_features), dtype=np.float32)
         cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] \
                 obs_obs_T_offset = np.zeros((self.n_states, 
@@ -184,21 +226,20 @@ cdef class MetastableSLDSCPUImpl:
                 obs_obs_T_but_last = np.zeros((self.n_states, 
                     self.n_features, self.n_features), dtype=np.float32)
 
-        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] post = \
-                np.zeros(self.n_states, dtype=np.float32)
+        cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
+                post = np.zeros(self.n_states, dtype=np.float32)
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
                 post_but_first = np.zeros(self.n_states, dtype=np.float32)
         cdef np.ndarray[ndim=1, mode='c', dtype=np.float32_t] \
                 post_but_last = np.zeros(self.n_states, dtype=np.float32)
         cdef float logprob
 
-        seq_pointers = <float**>malloc(self.n_sequences * sizeof(float*))
+        seq_pointers = <float**> malloc(self.n_sequences * sizeof(float*))
         cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] sequence
         for i in range(self.n_sequences):
             sequence = self.sequences[i]
             seq_pointers[i] = &sequence[0,0]
 
-        hmm_hotstart = (iteration < self.n_hotstart)
 
         if self.precision == 'single':
             do_estep_single(
@@ -278,15 +319,22 @@ def test_gaussian_loglikelihood_full():
     cdef int n_states = 2
     cdef int n_features = 3
     
-    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] sequence = np.random.randn(length, n_features).astype(np.float32)
-    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means = np.random.randn(n_states, n_features).astype(np.float32)
-    cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covariances = np.random.rand(n_states, n_features, n_features).astype(np.float32)
+    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] sequence \
+            = np.random.randn(length, n_features).astype(np.float32)
+    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] means \
+            = np.random.randn(n_states, n_features).astype(np.float32)
+    cdef np.ndarray[ndim=3, mode='c', dtype=np.float32_t] covariances \
+            = (np.random.rand(n_states, n_features, n_features)
+                    .astype(np.float32))
     for i in range(n_states):
-        covariances[i] += covariances[i].T + 10*np.eye(n_features, n_features)
-    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] loglikelihoods = np.zeros((length, n_states), dtype=np.float32)
+        covariances[i] += (covariances[i].T 
+                + 10*np.eye(n_features, n_features))
+    cdef np.ndarray[ndim=2, mode='c', dtype=np.float32_t] loglikelihoods\
+            = np.zeros((length, n_states), dtype=np.float32)
     
-    val = _log_multivariate_normal_density_full(sequence, means, covariances)
-    gaussian_loglikelihood_full(&sequence[0, 0], &means[0, 0], &covariances[0, 0,0],
-       length, n_states, n_features, &loglikelihoods[0, 0]);
-
+    val = _log_multivariate_normal_density_full(sequence, 
+                    means, covariances)
+    gaussian_loglikelihood_full(&sequence[0, 0], &means[0, 0],
+            &covariances[0, 0,0], length, n_states, 
+            n_features, &loglikelihoods[0, 0]);
     np.testing.assert_array_almost_equal(val, loglikelihoods)
