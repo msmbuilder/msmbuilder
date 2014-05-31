@@ -181,19 +181,31 @@ class MarkovStateModel(BaseEstimator):
 
         return counts
 
-    @property
-    def timescales_(self):
+    def _get_eigensystem(self):
         n_timescales = self.n_timescales
         if n_timescales is None:
             n_timescales = self.transmat_.shape[0] - 3
 
-        u, v = scipy.sparse.linalg.eigs(self.transmat_, k=n_timescales + 1)
+        u, v = scipy.sparse.linalg.eigs(self.transmat_.transpose(),
+                                        k=n_timescales + 1)
         order = np.argsort(-np.real(u))
         u = np.real_if_close(u[order])
+        v = np.real_if_close(v[:, order])
+
+        return u, v
+
+    @property
+    def timescales_(self):
+        u, v = self._get_eigensystem()
 
         # make sure to leave off equilibrium distribution
         timescales = - self.lag_time / np.log(u[1:])
         return timescales
+
+    @property
+    def eigenvectors_(self):
+        u, v = self._get_eigensystem()
+        return v
 
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
@@ -265,3 +277,4 @@ def _apply_mapping_to_matrix(mat, mapping):
         except KeyError:
             pass
     return mat_new
+
