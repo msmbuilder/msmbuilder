@@ -177,7 +177,7 @@ class MarkovStateModel(BaseEstimator):
 
         return self
 
-    def score(self, sequences):
+    def score_ll(self, sequences):
         """log of the likelihood of sequences with respect to the model
 
         Parameters
