@@ -177,6 +177,33 @@ class MarkovStateModel(BaseEstimator):
 
         return self
 
+    def score(self, sequences):
+        """log of the likelihood of sequences with respect to the model
+
+        Parameters
+        ----------
+        sequences : list
+            List of integer sequences, each of which is one-dimensional
+
+        Returns
+        -------
+        loglikelihood : float
+            The natural log of the likelihood, computed as
+            :math:`\sum_{ij} C_{ij} \log(P_{ij})`
+            where C is a matrix of counts computed from the input sequences.
+        """
+        counts = self._count_transitions(sequences)
+
+        if not scipy.sparse.isspmatrix(self.transmat_):
+            transition_matrix = scipy.sparse.csr_matrix(self.transmat_)
+        else:
+            transition_matrix = self.transmat_.tocsr()
+        row, col = counts.nonzero()
+
+        return np.sum(np.log(np.asarray(transition_matrix[row, col]))
+                      * np.asarray(counts[row, col]))
+
+
     def _count_transitions(self, sequences):
         counts = scipy.sparse.coo_matrix((self.n_states, self.n_states), dtype=np.float32)
 
