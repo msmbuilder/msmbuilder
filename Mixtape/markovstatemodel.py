@@ -104,6 +104,12 @@ class MarkovStateModel(BaseEstimator):
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
 
+        # Keep track of whether to recalculate eigensystem
+        self.is_dirty = True
+        # Cached results
+        self._eigenvectors = None
+        self._eigenvalues = None
+
         available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
         if self.reversible_type not in available_reversible_type:
             raise ValueError('symmetrize must be one of %s: %s' % (
@@ -167,6 +173,8 @@ class MarkovStateModel(BaseEstimator):
             raise RuntimeError()
         self.populations_ /= self.populations_.sum()  # ensure normalization
 
+        self.is_dirty = True
+
         return self
 
     def _count_transitions(self, sequences):
@@ -181,19 +189,37 @@ class MarkovStateModel(BaseEstimator):
 
         return counts
 
-    @property
-    def timescales_(self):
+    def _get_eigensystem(self):
+        if not self.is_dirty:
+            return self._eigenvalues, self._eigenvectors_
+
         n_timescales = self.n_timescales
         if n_timescales is None:
             n_timescales = self.transmat_.shape[0] - 3
 
-        u, v = scipy.sparse.linalg.eigs(self.transmat_, k=n_timescales + 1)
+        u, v = scipy.sparse.linalg.eigs(self.transmat_.transpose(),
+                                        k=n_timescales + 1)
         order = np.argsort(-np.real(u))
         u = np.real_if_close(u[order])
+        v = np.real_if_close(v[:, order])
+
+        self._eigenvalues = u
+        self._eigenvectors = v
+
+        return u, v
+
+    @property
+    def timescales_(self):
+        u, v = self._get_eigensystem()
 
         # make sure to leave off equilibrium distribution
         timescales = - self.lag_time / np.log(u[1:])
         return timescales
+
+    @property
+    def eigenvectors_(self):
+        u, v = self._get_eigensystem()
+        return v
 
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
@@ -265,3 +291,4 @@ def _apply_mapping_to_matrix(mat, mapping):
         except KeyError:
             pass
     return mat_new
+
