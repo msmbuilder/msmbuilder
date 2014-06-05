@@ -28,7 +28,8 @@ from sklearn import mixture
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
-           'LandmarkAgglomerative', 'MultiSequenceClusterMixin']
+           'LandmarkAgglomerative', 'RegularSpatial',
+           'MultiSequenceClusterMixin']
 
 #-----------------------------------------------------------------------------
 # Code
@@ -200,3 +201,4 @@ class GMM(MultiSequenceClusterMixin, mixture.GMM):
 from .kcenters import KCenters
 from .ndgrid import NDGrid
 from .agglomerative import LandmarkAgglomerative
+from .regularspatial import RegularSpatial
