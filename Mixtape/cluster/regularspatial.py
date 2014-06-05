@@ -57,9 +57,9 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
     algorithim, from Senne et al., is:
       - Initialize a list of cluster centers containing only the first data
         point in the data set
-      - Iterating over all conformations in the input dataset (in order):
-        * If the data point is farther than d_min from all existing
-          cluster center, add it to the list of cluster centers
+      - Iterating over all conformations in the input dataset (in order),
+          * If the data point is farther than d_min from all existing
+            cluster center, add it to the list of cluster centers
 
     [Custom metrics] RegularSpatial can accept an arbitrary metric
     function. In the interest of performance, the expected call

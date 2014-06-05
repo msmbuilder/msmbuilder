@@ -47,6 +47,7 @@ Algorithms
     KMeans
     LandmarkAgglomerative
     NDGrid
+    RegularSpatial
 
 Additional Algorithms
 ---------------------
