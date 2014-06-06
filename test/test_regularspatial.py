@@ -42,3 +42,15 @@ def test_3():
         np.testing.assert_array_equal(ix, refix)
         np.testing.assert_array_equal(jx, refjx)
 
+
+def test_4():
+    # test that the two code paths in predict() give the same result
+    model = RegularSpatial(d_min=0.8, opt=True)
+    model.fit([X])
+    with timing('opt=True'):
+        l1 = model.predict([X])
+
+    model.opt = False
+    with timing('opt=False'):
+        l2 = model.predict([X])
+    np.testing.assert_array_equal(l1, l2)

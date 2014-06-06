@@ -1,9 +1,27 @@
-from libc.math cimport sqrt
-import numpy as np
-import scipy.sparse as sp
-cimport numpy as np
-cimport cython
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
 
+# Mixtape is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
+
+#-----------------------------------------------------------------------------
+# Imports
+#-----------------------------------------------------------------------------
+
+import numpy as np
+cimport cython
 
 cdef int INITIAL_CENTERS_BUFFER_SIZE = 8
 cdef int CENTERS_BUFFER_GROWTH_MULTIPLE = 2
@@ -11,6 +29,9 @@ cdef int CENTERS_BUFFER_GROWTH_MULTIPLE = 2
 cdef extern:
     double ddot "cblas_ddot"(int N, double *X, int incX, double *Y, int incY)
 
+#-----------------------------------------------------------------------------
+# Code
+#-----------------------------------------------------------------------------
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

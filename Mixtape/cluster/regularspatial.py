@@ -26,6 +26,7 @@ from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
+from sklearn.cluster._k_means import _assign_labels_array
 from mixtape.cluster import _regularspatialc
 from mixtape.cluster import MultiSequenceClusterMixin
 
@@ -128,8 +129,16 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
-        metric_function = self._metric_function
 
+        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
+            X = np.asarray(X, dtype=np.float64, order='c')
+            centers = np.asarray(self.cluster_centers_, dtype=np.float64, order='c')
+            x_squared_norms = np.einsum('ij,ij->i', X, X)
+            labels = np.zeros(len(X), dtype=np.int32)
+            _assign_labels_array(X, x_squared_norms, centers, labels, np.zeros(0))
+            return labels
+
+        metric_function = self._metric_function
         labels = np.zeros(len(X), dtype=int)
         distances = np.empty(len(X), dtype=float)
         distances.fill(np.inf)
