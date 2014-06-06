@@ -3,7 +3,7 @@ from scipy.spatial.distance import pdist, squareform
 from mdtraj.utils import timing
 from mixtape.cluster import RegularSpatial
 
-X = 0.3*np.random.RandomState(0).randn(10000, 10)
+X = 0.3*np.random.RandomState(0).randn(1000, 10)
 
 def test_1():
     x = np.arange(10).reshape(10,1)

@@ -5,7 +5,7 @@ cimport numpy as np
 cimport cython
 
 
-cdef int INITIAL_CENTERS_BUFFER_SIZE = 100
+cdef int INITIAL_CENTERS_BUFFER_SIZE = 8
 cdef int CENTERS_BUFFER_GROWTH_MULTIPLE = 2
 
 cdef extern:
@@ -26,21 +26,48 @@ cdef Py_ssize_t _rspatial_euclidean_next(
     ----------
     X : 2d array
         The data array
-    X_squared_norms : 2d array
+    x_squared_norms : 1d array
+        Row sums of X squared. These can be calculated with just
+        np.sum(X**2, axis=1)
+    centers : 2d array
+        The coordinates of the current centers
+    centers_squared_norms : 1d array
+        Row sums of the square of the centers
+    n_centers : int
+        The only portions of the centers array that we look at is
+        centers[0:n_centers]. This is basically a memory optimization, because
+        it means that the actual buffer holding the centers can be bigger, and
+        you can just add a new center to the end without reallocing by just
+        putting the data in and incrementing n_centers by one.
+    Xi : int
+        The index in X that we start looking from
+    d2_min : double
+        The square of the distance cutoff
 
+    Returns
+    -------
+    newXi : int
+        The index of the new cluster center
+
+    Notes
+    -----
+    The pseudocode for this function is
+
+        for i from Xi to len(X) - 1:
+            if the squared distance from X[i] to each of the centers (from 0 \
+                    to n_centers-1) is greater than d2_min
+
+                return i to be the new centers
     """
     cdef size_t i
     cdef double dist2
-    cdef int n_features = X.shape[1]
 
-    while Xi < len(X):
+    while Xi < X.shape[0]:
         for i in range(n_centers):
             # ||a - b||^2 = ||a||^2 + ||b||^2 -2 <a, b>
-            dist2 = 0.0
-            dist2 += ddot(n_features, &X[Xi, 0], 1, &centers[i, 0], 1)
-            dist2 *= -2
-            dist2 += centers_squared_norms[i]
-            dist2 += x_squared_norms[Xi]
+            dist2 = -2*ddot(X.shape[1], &X[Xi, 0], 1, &centers[i, 0], 1) \
+                + centers_squared_norms[i] \
+                + x_squared_norms[Xi]
 
             if dist2 < d2_min:
                 break
@@ -50,7 +77,26 @@ cdef Py_ssize_t _rspatial_euclidean_next(
     return -1
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def _rspatial_euclidean(double[:, ::1] X, double d_min):
+    """Regular spatial clustering with a euclidean distance metric
+
+    Parameters
+    ----------
+    X : 2d array
+        The data array
+    d_min : double
+        The minimum distance between clusters
+
+    Returns
+    -------
+    cluster_centers : 2d array
+        The return value is a subset of the data points in X that are all
+        at least d_min apart from one another.
+    """
+
     cdef Py_ssize_t i
     cdef size_t n_centers, realloc_length
     cdef size_t n_features = X.shape[1]
@@ -65,7 +111,7 @@ def _rspatial_euclidean(double[:, ::1] X, double d_min):
     centers_buffer[0] = X[0]
     centers_squared_norms_buffer[0] = x_squared_norms[0]
 
-    i = 1
+    i = 0
     centers_buffer_end = 1
     while i < X.shape[0]:
         # enlarge buffer if necessary
@@ -83,7 +129,7 @@ def _rspatial_euclidean(double[:, ::1] X, double d_min):
         # advance through X to find the next cluster center
         i = _rspatial_euclidean_next(
                 X, x_squared_norms, centers_buffer,
-                centers_squared_norms_buffer, n_centers, i, d2_min)
+                centers_squared_norms_buffer, n_centers, i+1, d2_min)
         if i < 0:
             # i=-1 is a signal that the algorithim is over
             break
