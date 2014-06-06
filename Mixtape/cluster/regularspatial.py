@@ -50,6 +50,8 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
         the Notes. Alternatively, `metric` can be a string. In
         that case, it should be one of the metric strings
         accepted by scipy.spatial.distance.
+    opt : bool, default=True
+        Use an optimized code path for fit() applicable when metric=='euclidean'
 
     Notes
     -----

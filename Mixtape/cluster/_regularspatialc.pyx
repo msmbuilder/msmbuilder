@@ -101,7 +101,7 @@ def _rspatial_euclidean(double[:, ::1] X, double d_min):
     cdef size_t n_centers, realloc_length
     cdef size_t n_features = X.shape[1]
     cdef double d2_min = d_min*d_min
-    cdef double[::1] x_squared_norms = np.sum(np.square(X), axis=1)
+    cdef double[::1] x_squared_norms = np.einsum('ij,ij->i', X, X)
     cdef double[:, ::1] centers_buffer, centers_buffer_new
     cdef double[::1] centers_squared_norms_buffer, centers_squared_norms_buffer_new
 
