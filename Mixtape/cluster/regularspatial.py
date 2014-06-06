@@ -26,6 +26,7 @@ from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
+from mixtape.cluster import _regularspatialc
 from mixtape.cluster import MultiSequenceClusterMixin
 
 __all__ = ['RegularSpatial']
@@ -53,8 +54,8 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
     Notes
     -----
     Clusters are chosen to be approximately equally separated in conformation
-    space with respect to the distance metric used. In psuedocode, the
-    algorithim, from Senne et al., is:
+    space with respect to the distance metric used. In pseudocode, the
+    algorithm, from Senne et al., is:
       - Initialize a list of cluster centers containing only the first data
         point in the data set
       - Iterating over all conformations in the input dataset (in order),
@@ -80,11 +81,20 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
         The number of clusters located.
     """
 
-    def __init__(self, d_min, metric='euclidean'):
+    def __init__(self, d_min, metric='euclidean', opt=True):
         self.d_min = d_min
         self.metric = metric
+        self.opt = opt
 
     def fit(self, X, y=None):
+        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
+            # fast path
+            X = np.asarray(X, dtype=np.float64, order='c')
+            self.cluster_centers_ = _regularspatialc._rspatial_euclidean(X, float(self.d_min))
+            self.n_clusters_ = len(self.cluster_centers_)
+            return self
+
+        # regular code
         metric_function = self._metric_function
         if len(X) == 0:
             raise ValueError('len(X) must be greater than 0')
