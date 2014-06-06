@@ -10,7 +10,7 @@ import numpy as np
 from numpy import zeros
 import scipy.linalg.blas
 
-__all__ = ['_kcenters_euclidean']
+__all__ = ['_assign_labels_array']
 
 #-----------------------------------------------------------------------------
 # Typedefs
