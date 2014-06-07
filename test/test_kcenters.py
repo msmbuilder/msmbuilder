@@ -25,6 +25,7 @@ def test_kcenters_1():
         eq(m.distances_[1].shape, (10,))
 
         eq(m.fit_predict([np.random.randn(10, 2)])[0].shape, (10,))
+        assert np.all(np.logical_not(np.isnan(m.distances_[0])))
 
 
 def test_kcenters_2():
@@ -117,3 +118,4 @@ def test_kcenters_8():
         eq(m1.cluster_centers_, m2.cluster_centers_)
         eq(m1.distances_[0], m2.distances_[0])
         eq(m1.labels_[0], m2.labels_[0])
+        assert np.all(np.logical_not(np.isnan(m1.distances_[0])))
