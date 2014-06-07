@@ -182,30 +182,6 @@ def get_lapack():
     return lapack_info
 
 
-def get_blas_info():
-    def atlas_not_found(blas_info_):
-        def_macros = blas_info.get('define_macros', [])
-        for x in def_macros:
-            if x[0] == "NO_ATLAS_INFO":
-                # if x[1] != 1 we should have lapack
-                # how do we do that now?
-                return True
-            if x[0] == "ATLAS_INFO":
-                if "None" in x[1]:
-                    # this one turned up on FreeBSD
-                    return True
-        return False
-
-    blas_info = system_info.get_info('blas_opt', 0)
-    if (not blas_info) or atlas_not_found(blas_info):
-        cblas_libs = ['cblas']
-        blas_info.pop('libraries', None)
-    else:
-        cblas_libs = blas_info.pop('libraries', [])
-
-    return cblas_libs, blas_info
-    
-
 def locate_cuda():
     """Locate the CUDA environment on the system
 
@@ -363,8 +339,6 @@ if openmp_enabled:
 libraries = ['gomp'] if needs_gomp else []
 extensions = []
 lapack_info = get_lapack()
-cblas_libs, blas_info = get_blas_info()
-
 
 extensions.append(
     Extension('mixtape._reversibility',
@@ -375,10 +349,20 @@ extensions.append(
 extensions.append(
     Extension('mixtape.cluster._regularspatialc',
               sources=['Mixtape/cluster/_regularspatialc.pyx'],
-              #libraries=['m'] + cblas_libs,
-              extra_compile_args=blas_info.get('extra_compile_args', []),
-              include_dirs=[np.get_include()] + 
-                            blas_info.get('include_dirs', [])))
+              libraries=['m'],
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
+
+extensions.append(
+    Extension('mixtape.cluster._kcentersc',
+              sources=['Mixtape/cluster/_kcentersc.pyx'],
+              libraries=['m'],
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
+
+extensions.append(
+    Extension('mixtape.cluster._commonc',
+              sources=['Mixtape/cluster/_commonc.pyx'],
+              libraries=['m'],
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
 
 extensions.append(
     Extension('mixtape._ghmm',

@@ -27,6 +27,8 @@ from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
+from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
+from mixtape.cluster._kcentersc import _kcenters_euclidean
 from mixtape.cluster import MultiSequenceClusterMixin
 
 __all__ = ['KCenters']
@@ -89,15 +91,21 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
         Distance from each sample to the cluster center it is
         assigned to.
     """
-    def __init__(self, n_clusters=8, metric='euclidean', random_state=None):
+    def __init__(self, n_clusters=8, metric='euclidean', random_state=None, opt=True):
         self.n_clusters = n_clusters
         self.metric = metric
         self.random_state = random_state
-        self.random = check_random_state(random_state)
+        self.opt = opt
 
     def fit(self, X, y=None):
         n_samples = len(X)
-        new_center_index = self.random.randint(0, n_samples)
+        new_center_index = check_random_state(self.random_state).randint(0, n_samples)
+
+        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
+            X = np.asarray(X, order='c')
+            self.cluster_centers_, self.distances_, self.labels_ = \
+                _kcenters_euclidean(X, self.n_clusters, new_center_index)
+            return self
 
         self.labels_ = np.zeros(n_samples, dtype=int)
         self.distances_ = np.empty(n_samples, dtype=float)
@@ -148,19 +156,11 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
+        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
+            return _predict_labels_euclidean(X, self.cluster_centers_)
+
         metric_function = self._metric_function
-
-        labels = np.zeros(len(X), dtype=int)
-        distances = np.empty(len(X), dtype=float)
-        distances.fill(np.inf)
-
-        for i in range(self.n_clusters):
-            d = metric_function(X, self.cluster_centers_, i)
-            mask = (d < distances)
-            distances[mask] = d[mask]
-            labels[mask] = i
-
-        return labels
+        return _predict_labels(X, self.cluster_centers_, metric_function)
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y).labels_
@@ -212,4 +212,3 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         MultiSequenceClusterMixin.fit(self, sequences)
         self.distances_ = self._split(self.distances_)
         return self
-

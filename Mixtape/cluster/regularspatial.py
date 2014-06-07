@@ -26,7 +26,7 @@ from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
-from sklearn.cluster._k_means import _assign_labels_array
+from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
 from mixtape.cluster import _regularspatialc
 from mixtape.cluster import MultiSequenceClusterMixin
 
@@ -91,7 +91,6 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
 
     def fit(self, X, y=None):
         if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            # fast path
             X = np.asarray(X, dtype=np.float64, order='c')
             self.cluster_centers_ = _regularspatialc._rspatial_euclidean(X, float(self.d_min))
             self.n_clusters_ = len(self.cluster_centers_)
@@ -129,27 +128,11 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
-
         if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            X = np.asarray(X, dtype=np.float64, order='c')
-            centers = np.asarray(self.cluster_centers_, dtype=np.float64, order='c')
-            x_squared_norms = np.einsum('ij,ij->i', X, X)
-            labels = np.zeros(len(X), dtype=np.int32)
-            _assign_labels_array(X, x_squared_norms, centers, labels, np.zeros(0))
-            return labels
+            return _predict_labels_euclidean(X, self.cluster_centers_)
 
         metric_function = self._metric_function
-        labels = np.zeros(len(X), dtype=int)
-        distances = np.empty(len(X), dtype=float)
-        distances.fill(np.inf)
-
-        for i in range(self.n_clusters_):
-            d = metric_function(X, self.cluster_centers_, i)
-            mask = (d < distances)
-            distances[mask] = d[mask]
-            labels[mask] = i
-
-        return labels
+        return _predict_labels(X, self.cluster_centers_, metric_function)
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y=y).predict(X)
