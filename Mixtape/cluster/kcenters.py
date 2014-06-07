@@ -162,7 +162,7 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
             X = np.asarray(X, order='c')
             centers = np.asarray(self.cluster_centers_, order='c')
             labels = np.zeros(len(X), dtype=np.int64)
-            _assign_labels_array(X, centers, labels, np.zeros(0))
+            _assign_labels_array(X, centers, labels, np.zeros(0, dtype=X.dtype))
             return labels
 
         metric_function = self._metric_function

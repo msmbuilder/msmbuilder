@@ -38,9 +38,9 @@ __all__ = ['_assign_labels_array']
 ctypedef cython.floating real
 cdef extern from "f2pyptr.h":
     void *f2py_pointer(object) except NULL
-
+cdef extern from "sdot.h":
+    float sdot_(const int N, const float* x, const float* y)
 cdef ddot_t *ddot = <ddot_t*>f2py_pointer(scipy.linalg.blas.ddot._cpointer)
-cdef sdot_t *sdot = <sdot_t*>f2py_pointer(scipy.linalg.blas.sdot._cpointer)
 
 #-----------------------------------------------------------------------------
 # Code
@@ -105,11 +105,11 @@ cpdef np.float64_t _assign_labels_array(real[:, ::1] X,
         center_squared_norms = zeros(n_clusters, dtype=np.float32)
         x_squared_norms = zeros(n_samples, dtype=np.float32)
         for j in range(n_samples):
-            x_squared_norms[j] = sdot(&n_features, <np.float32_t*> &X[j,0], &one,
-                                      <np.float32_t*> &X[j,0], &one)
+            x_squared_norms[j] = sdot_(n_features, <np.float32_t*> &X[j,0],
+                                       <np.float32_t*> &X[j,0])
         for j in range(n_clusters):
-            center_squared_norms[j] = sdot(&n_features, <np.float32_t*> &centers[j,0], &one,
-                                           <np.float32_t*> &centers[j,0], &one)
+            center_squared_norms[j] = sdot_(n_features, <np.float32_t*> &centers[j,0],
+                                            <np.float32_t*> &centers[j,0])
 
 
     for i in range(n_samples):
@@ -122,8 +122,8 @@ cpdef np.float64_t _assign_labels_array(real[:, ::1] X,
                 dist += - 2*ddot(&n_features, <double*> &centers[j, 0], &one,
                                  <double*> &X[i, 0], &one)
             else:
-                dist += - 2*sdot(&n_features, <np.float32_t*> &centers[j, 0], &one,
-                                 <np.float32_t*> &X[i, 0], &one)
+                dist += - 2*sdot_(n_features, <np.float32_t*> &centers[j, 0],
+                                  <np.float32_t*> &X[i, 0])
 
             if min_dist == -1 or dist < min_dist:
                 labels[i] = j

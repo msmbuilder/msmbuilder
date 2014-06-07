@@ -119,3 +119,5 @@ def test_kcenters_8():
         eq(m1.distances_[0], m2.distances_[0])
         eq(m1.labels_[0], m2.labels_[0])
         assert np.all(np.logical_not(np.isnan(m1.distances_[0])))
+        eq(m1.predict([X])[0], m2.predict([X])[0])
+        eq(m1.predict([X])[0], m1.labels_[0])
