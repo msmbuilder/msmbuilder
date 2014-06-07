@@ -20,14 +20,26 @@
 # Imports
 #-----------------------------------------------------------------------------
 
+from blas cimport *
 import numpy as np
 cimport cython
+import scipy.linalg.blas
 
 cdef int INITIAL_CENTERS_BUFFER_SIZE = 8
 cdef int CENTERS_BUFFER_GROWTH_MULTIPLE = 2
 
-cdef extern:
-    double ddot "cblas_ddot"(int N, double *X, int incX, double *Y, int incY)
+#-----------------------------------------------------------------------------
+# Typedefs
+#-----------------------------------------------------------------------------
+
+ctypedef cython.floating real
+cdef extern from "f2pyptr.h":
+    void *f2py_pointer(object) except NULL
+
+cdef ddot_t *ddot = <ddot_t*>f2py_pointer(scipy.linalg.blas.ddot._cpointer)
+cdef sdot_t *sdot = <sdot_t*>f2py_pointer(scipy.linalg.blas.sdot._cpointer)
+cdef idamax_t *idamax = <idamax_t*>f2py_pointer(scipy.linalg.blas.idamax._cpointer)
+cdef idamax_t *isamax = <idamax_t*>f2py_pointer(scipy.linalg.blas.idamax._cpointer)
 
 #-----------------------------------------------------------------------------
 # Code
@@ -101,7 +113,7 @@ cdef Py_ssize_t _rspatial_euclidean_next(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def _rspatial_euclidean(double[:, ::1] X, double d_min):
+def _rspatial_euclidean(real[:, ::1] X, double d_min):
     """Regular spatial clustering with a euclidean distance metric
 
     Parameters
