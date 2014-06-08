@@ -49,12 +49,12 @@ cdef ddot_t *ddot = <ddot_t*>f2py_pointer(scipy.linalg.blas.ddot._cpointer)
 def _predict_labels_euclidean(X, cluster_centers):
     # fast path
     X = np.asarray(X, order='c')
-    centers = np.asarray(cluster_centers, order='c')
+    centers = np.asarray(cluster_centers, dtype=X.dtype, order='c')
     labels = np.zeros(len(X), dtype=np.int64)
     if X.dtype == np.float64:
         _assign_labels_array[cython.double](X, centers, labels, np.zeros(0))
     elif X.dtype == np.float32:
-        _assign_labels_array[cython.float](X, centers, labels, np.zeros(0))
+        _assign_labels_array[cython.float](X, centers, labels, np.zeros(0, dtype=np.float32))
     else:
         raise KeyError('Only double and float are supported')
     return labels

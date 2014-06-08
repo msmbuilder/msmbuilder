@@ -22,6 +22,7 @@
 
 from blas cimport *
 import numpy as np
+from numpy import zeros
 cimport cython
 import scipy.linalg.blas
 
@@ -95,13 +96,17 @@ cdef Py_ssize_t _rspatial_euclidean_next(
     """
     cdef size_t i
     cdef double dist2
+    cdef int n_features = X.shape[1]
+    cdef int one = 1
 
     while Xi < X.shape[0]:
         for i in range(n_centers):
             # ||a - b||^2 = ||a||^2 + ||b||^2 -2 <a, b>
-            dist2 = -2*ddot(X.shape[1], &X[Xi, 0], 1, &centers[i, 0], 1) \
-                + centers_squared_norms[i] \
-                + x_squared_norms[Xi]
+            dist2 = centers_squared_norms[i] + x_squared_norms[Xi]
+            if real == double:
+                dist2 += -2*ddot(&n_features, &X[Xi, 0], &one, &centers[i, 0], &one)
+            else:
+                dist2 += -2*sdot_(n_features, &X[Xi, 0], &centers[i, 0])
 
             if dist2 < d2_min:
                 break
@@ -130,8 +135,8 @@ def _rspatial_euclidean(real[:, ::1] X, double d_min):
         The return value is a subset of the data points in X that are all
         at least d_min apart from one another.
     """
-
-    cdef Py_ssize_t i
+    cdef int one = 1
+    cdef Py_ssize_t i, j
     cdef size_t n_centers, realloc_length
     cdef size_t n_samples = X.shape[0]
     cdef int n_features = X.shape[1]
@@ -141,18 +146,19 @@ def _rspatial_euclidean(real[:, ::1] X, double d_min):
     cdef real[::1] centers_squared_norms_buffer, centers_squared_norms_buffer_new
 
     if real == double:
+        centers_buffer = zeros((INITIAL_CENTERS_BUFFER_SIZE, n_features))
+        centers_squared_norms_buffer = zeros(INITIAL_CENTERS_BUFFER_SIZE)
         x_squared_norms = zeros(n_samples, dtype=np.double)
         for j in range(n_samples):
             x_squared_norms[j] = ddot(&n_features, <double*> &X[j,0], &one,
                                       <double*> &X[j,0], &one)
     else:
+        centers_buffer = zeros((INITIAL_CENTERS_BUFFER_SIZE, n_features), dtype=np.float32)
+        centers_squared_norms_buffer = zeros(INITIAL_CENTERS_BUFFER_SIZE, dtype=np.float32)
         x_squared_norms = zeros(n_samples, dtype=np.float32)
         for j in range(n_samples):
-            x_squared_norms[j] = sdot(n_features, <double*> &X[j,0], <double*> &X[j,0])
+            x_squared_norms[j] = sdot_(n_features, <float*> &X[j,0], <float*> &X[j,0])
 
-                                      
-    centers_buffer = np.zeros((INITIAL_CENTERS_BUFFER_SIZE, n_features))
-    centers_squared_norms_buffer = np.zeros(INITIAL_CENTERS_BUFFER_SIZE)
     n_centers = 1
     centers_buffer[0] = X[0]
     centers_squared_norms_buffer[0] = x_squared_norms[0]
