@@ -27,7 +27,7 @@ from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
-from mixtape.cluster._commonc import _assign_labels_array
+from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
 from mixtape.cluster._kcentersc import _kcenters_euclidean
 from mixtape.cluster import MultiSequenceClusterMixin
 
@@ -158,26 +158,10 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
             Index of the closest center each sample belongs to.
         """
         if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            # fast path
-            X = np.asarray(X, order='c')
-            centers = np.asarray(self.cluster_centers_, order='c')
-            labels = np.zeros(len(X), dtype=np.int64)
-            _assign_labels_array(X, centers, labels, np.zeros(0, dtype=X.dtype))
-            return labels
+            return _predict_labels_euclidean(X, self.cluster_centers_)
 
         metric_function = self._metric_function
-
-        labels = np.zeros(len(X), dtype=int)
-        distances = np.empty(len(X), dtype=float)
-        distances.fill(np.inf)
-
-        for i in range(self.n_clusters):
-            d = metric_function(X, self.cluster_centers_, i)
-            mask = (d < distances)
-            distances[mask] = d[mask]
-            labels[mask] = i
-
-        return labels
+        return _predict_labels(X, self.cluster_centers_, metric_function)
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y).labels_
