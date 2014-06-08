@@ -9,15 +9,6 @@ ctypedef double ddot_t(
     int *incy      # The increment between elements of y (usually 1)
 )
 
-ctypedef np.float32_t sdot_t(
-    # Compute DDOT := x.T * y
-    int *n,        # Length of vectors
-    np.float32_t *x,     # Vector x, min(len(x)) = n
-    int *incx,     # The increment between elements of x (usually 1)
-    np.float32_t *y,     # Vector y, min(len(y)) = m
-    int *incy      # The increment between elements of y (usually 1)
-)
-
 ctypedef int idamax_t(
     # IDAMAX finds the index of element having max. absolute value.
     int *n,        # length of vector x

@@ -35,9 +35,10 @@ cdef int CENTERS_BUFFER_GROWTH_MULTIPLE = 2
 ctypedef cython.floating real
 cdef extern from "f2pyptr.h":
     void *f2py_pointer(object) except NULL
+cdef extern from "sdot.h":
+    float sdot_(const int N, const float* x, const float* y)
 
 cdef ddot_t *ddot = <ddot_t*>f2py_pointer(scipy.linalg.blas.ddot._cpointer)
-cdef sdot_t *sdot = <sdot_t*>f2py_pointer(scipy.linalg.blas.sdot._cpointer)
 cdef idamax_t *idamax = <idamax_t*>f2py_pointer(scipy.linalg.blas.idamax._cpointer)
 cdef idamax_t *isamax = <idamax_t*>f2py_pointer(scipy.linalg.blas.idamax._cpointer)
 
@@ -49,8 +50,8 @@ cdef idamax_t *isamax = <idamax_t*>f2py_pointer(scipy.linalg.blas.idamax._cpoint
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef Py_ssize_t _rspatial_euclidean_next(
-        double[:, ::1] X, double[::1] x_squared_norms,
-        double[:, ::1] centers, double[::1] centers_squared_norms,
+        real[:, ::1] X, real[::1] x_squared_norms,
+        real[:, ::1] centers, real[::1] centers_squared_norms,
         size_t n_centers, size_t Xi, double d2_min):
     """Find the index of the *next* cluster center in regular spacial clustering
     with a euclidean distance metric
@@ -132,12 +133,24 @@ def _rspatial_euclidean(real[:, ::1] X, double d_min):
 
     cdef Py_ssize_t i
     cdef size_t n_centers, realloc_length
-    cdef size_t n_features = X.shape[1]
+    cdef size_t n_samples = X.shape[0]
+    cdef int n_features = X.shape[1]
     cdef double d2_min = d_min*d_min
-    cdef double[::1] x_squared_norms = np.einsum('ij,ij->i', X, X)
-    cdef double[:, ::1] centers_buffer, centers_buffer_new
-    cdef double[::1] centers_squared_norms_buffer, centers_squared_norms_buffer_new
+    cdef real[::1] x_squared_norms
+    cdef real[:, ::1] centers_buffer, centers_buffer_new
+    cdef real[::1] centers_squared_norms_buffer, centers_squared_norms_buffer_new
 
+    if real == double:
+        x_squared_norms = zeros(n_samples, dtype=np.double)
+        for j in range(n_samples):
+            x_squared_norms[j] = ddot(&n_features, <double*> &X[j,0], &one,
+                                      <double*> &X[j,0], &one)
+    else:
+        x_squared_norms = zeros(n_samples, dtype=np.float32)
+        for j in range(n_samples):
+            x_squared_norms[j] = sdot(n_features, <double*> &X[j,0], <double*> &X[j,0])
+
+                                      
     centers_buffer = np.zeros((INITIAL_CENTERS_BUFFER_SIZE, n_features))
     centers_squared_norms_buffer = np.zeros(INITIAL_CENTERS_BUFFER_SIZE)
     n_centers = 1
