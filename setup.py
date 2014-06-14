@@ -340,12 +340,23 @@ libraries = ['gomp'] if needs_gomp else []
 extensions = []
 lapack_info = get_lapack()
 
-
 extensions.append(
     Extension('mixtape._reversibility',
               sources=['src/reversibility.pyx'],
               libraries=['m'],
               include_dirs=[np.get_include()]))
+
+extensions.append(
+    Extension('mixtape.cluster._kcentersc',
+              sources=['Mixtape/cluster/_kcentersc.pyx'],
+              libraries=['m'],
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
+
+extensions.append(
+    Extension('mixtape.cluster._commonc',
+              sources=['Mixtape/cluster/_commonc.pyx'],
+              libraries=['m'],
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
 
 extensions.append(
     Extension('mixtape._ghmm',
