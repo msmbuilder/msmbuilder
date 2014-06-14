@@ -24,27 +24,26 @@ from __future__ import absolute_import, print_function, division
 import numpy as np
 from six import string_types, PY2
 from scipy.spatial.distance import cdist
-from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
 from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
-from mixtape.cluster._kcentersc import _kcenters_euclidean
+from mixtape.cluster import _regularspatialc
 from mixtape.cluster import MultiSequenceClusterMixin
 
-__all__ = ['KCenters']
+__all__ = ['RegularSpatial']
 
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
 
-class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
-    """K-Centers clustering
+class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
+    """Regular spatial clustering.
 
     Parameters
     ----------
-    n_clusters : int, optional, default: 8
-        The number of clusters to form as well as the number of
-        centroids to generate.
+    d_min : float
+        Minimum distance between cluster centers. This parameter controls
+        the number of clusters which are found.
     metric : string or function
         The distance metric to use. The distance function can
         be a callable (e.g. function). If it's callable, the
@@ -52,91 +51,64 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
         the Notes. Alternatively, `metric` can be a string. In
         that case, it should be one of the metric strings
         accepted by scipy.spatial.distance.
-    random_state : integer or numpy.RandomState, optional
-        The generator used to initialize the centers. If an integer is
-        given, it fixes the seed. Defaults to the global numpy random
-        number generator.
+    opt : bool, default=True
+        Use an optimized code path for fit() applicable when metric=='euclidean'
 
     Notes
     -----
-    K-Centers one of the most inexpensive possible clustering algorithms. It's
-    sometimes also called "max-min" clustering. The algorithm stats with a
-    single data point as a cluster center, and then at each iteration it chooses
-    as the next cluster center the data point which is farthest from its
-    assigned cluster center.
+    Clusters are chosen to be approximately equally separated in conformation
+    space with respect to the distance metric used. In pseudocode, the
+    algorithm, from Senne et al., is:
+      - Initialize a list of cluster centers containing only the first data
+        point in the data set
+      - Iterating over all conformations in the input dataset (in order),
+          * If the data point is farther than d_min from all existing
+            cluster center, add it to the list of cluster centers
 
-    [Custom metrics] KCenters can accept an arbitrary metric
+    [Custom metrics] RegularSpatial can accept an arbitrary metric
     function. In the interest of performance, the expected call
     signature of a custom metric is
 
     >>> def mymetric(X, Y, yi):
         # return the distance from Y[yi] to each point in X.
 
-    [Algorithm] KCenters is a simple clustering algorithm. To
-    initialize, we select a random data point to be the first
-    cluster center. In each iteration, we maintain knowledge of
-    the distance from each data point to its assigned cluster center
-    (the nearest cluster center). In the iteration, we increase the
-    number of cluster centers by one by choosing the data point which
-    is farthest from its assigned cluster center to be the new
-    cluster cluster.
+    References
+    ----------
+    .. [1] Senne, Martin, et al. J. Chem Theory Comput. 8.7 (2012): 2223-2238
 
     Attributes
     ----------
     cluster_centers_ : array, [n_clusters, n_features]
         Coordinates of cluster centers
-    labels_ : array, [n_samples,]
-        The label of each point is an integer in [0, n_clusters).
-    distances_ : array, [n_samples,]
-        Distance from each sample to the cluster center it is
-        assigned to.
+    n_clusters_ : int
+        The number of clusters located.
     """
-    def __init__(self, n_clusters=8, metric='euclidean', random_state=None, opt=True):
-        self.n_clusters = n_clusters
+
+    def __init__(self, d_min, metric='euclidean', opt=True):
+        self.d_min = d_min
         self.metric = metric
-        self.random_state = random_state
         self.opt = opt
 
     def fit(self, X, y=None):
-        n_samples = len(X)
-        new_center_index = check_random_state(self.random_state).randint(0, n_samples)
-
         if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            X = np.asarray(X, order='c')
-            self.cluster_centers_, self.distances_, self.labels_ = \
-                _kcenters_euclidean(X, self.n_clusters, new_center_index)
+            X = np.asarray(X, dtype=np.float64, order='c')
+            self.cluster_centers_ = _regularspatialc._rspatial_euclidean(X, float(self.d_min))
+            self.n_clusters_ = len(self.cluster_centers_)
             return self
 
-        self.labels_ = np.zeros(n_samples, dtype=int)
-        self.distances_ = np.empty(n_samples, dtype=float)
-        self.distances_.fill(np.inf)
-
+        # regular code
         metric_function = self._metric_function
+        if len(X) == 0:
+            raise ValueError('len(X) must be greater than 0')
 
-        if isinstance(self.metric, string_types):
-            self.cluster_centers_ = np.zeros((self.n_clusters, X.shape[1]))
-        else:
-            # this should be a list, not a numpy array, so that
-            # fit() works if X is a non-numpyarray collection type
-            # like an molecular dynamics trajectory with a non-string metric
-            self.cluster_centers_ = [None for i in range(self.n_clusters)]
-
-        for i in range(self.n_clusters):
-            d = metric_function(X, X, new_center_index)
-            mask = (d < self.distances_)
-            self.distances_[mask] = d[mask]
-            self.labels_[mask] = i
-            self.cluster_centers_[i] = X[new_center_index]
-            new_center_index = np.argmax(self.distances_)
-
-        if not isinstance(self.metric, string_types):
-            if isinstance(self.cluster_centers_[0], np.ndarray):
-                self.cluster_centers_ = np.concatenate(self.cluster_centers_)
-            else:
-                # this is a hack to make md.trajectory work using
-                # metric=md.rmsd
-                self.cluster_centers_ = self.cluster_centers_[0].join(self.cluster_centers_[1:])
-
+        self.cluster_centers_ = [X[0]]
+        for i in range(1, len(X)):
+            d = metric_function(np.array(self.cluster_centers_), X, i)
+            if np.all(d > self.d_min):
+                self.cluster_centers_.append(X[i])
+        
+        self.cluster_centers_ = np.array(self.cluster_centers_)
+        self.n_clusters_ = len(self.cluster_centers_)
         return self
 
     def predict(self, X):
@@ -163,7 +135,7 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
         return _predict_labels(X, self.cluster_centers_, metric_function)
 
     def fit_predict(self, X, y=None):
-        return self.fit(X, y).labels_
+        return self.fit(X, y=y).predict(X)
 
     @property
     def _metric_function(self):
@@ -176,24 +148,8 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
         raise NotImplementedError
 
 
-class KCenters(MultiSequenceClusterMixin, _KCenters):
-    __doc__ = _KCenters.__doc__[: _KCenters.__doc__.find('Attributes')] + \
-    '''
-    Attributes
-    ----------
-    `cluster_centers_` : array, [n_clusters, n_features]
-        Coordinates of cluster centers
-
-    `labels_` : list of arrays, each of shape [sequence_length, ]
-        `labels_[i]` is an array of the labels of each point in
-        sequence `i`. The label of each point is an integer in
-        [0, n_clusters).
-
-    `distances_` : list of arrays, each of shape [sequence_length, ]
-        `distances_[i]` is an array of  the labels of each point in
-        sequence `i`. Distance from each sample to the cluster center
-        it is assigned to.
-    '''
+class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
+    __doc__ = _RegularSpatial.__doc__
 
     def fit(self, sequences, y=None):
         """Fit the kcenters clustering on the data
@@ -210,5 +166,5 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
-        self.distances_ = self._split(self.distances_)
         return self
+

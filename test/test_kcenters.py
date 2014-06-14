@@ -110,11 +110,12 @@ def test_kcenters_7():
 
 
 def test_kcenters_8():
-    X = np.random.RandomState(0).randn(10000, 10)
+    X = np.random.RandomState(1).randn(100, 2)
     for dtype in [np.float64, np.float32]:
         X = X.astype(dtype)
         m1 = KCenters(n_clusters=10, random_state=0, opt=True).fit([X])
         m2 = KCenters(n_clusters=10, random_state=0, opt=False).fit([X])
+
         eq(m1.cluster_centers_, m2.cluster_centers_)
         eq(m1.distances_[0], m2.distances_[0])
         eq(m1.labels_[0], m2.labels_[0])
