@@ -438,10 +438,6 @@ class GaussianSolventFeaturizer(Featurizer):
 
 
 class RawPositionsFeaturizer(Featurizer):
-
-    def __init__(self, n_features):
-        self.n_features = n_features
-
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space with the raw
         cartesian coordinates.
@@ -464,14 +460,12 @@ class RawPositionsFeaturizer(Featurizer):
         transform : simultaneously featurize a collection of MD trajectories
         """
         value = traj.xyz.reshape(len(traj), -1)
-        if value.shape[1] != self.n_features:
-            warnings.warn('wrong n_features in RawPositionsFeaturizer')
         return value
 
 
 class RawPositionsSuperposeFeaturizer(RawPositionsFeaturizer):
-    def __init__(self, n_features, ref_traj, atom_indices):
-        super().__init__(n_features)
+    def __init__(self, ref_traj, atom_indices):
+        super().__init__()
 
         self.ref_traj = ref_traj
         self.atom_indices = atom_indices
@@ -481,7 +475,6 @@ class RawPositionsSuperposeFeaturizer(RawPositionsFeaturizer):
                        parallel=False)
 
         return super().partial_transform(traj)
-
 
 
 class RMSDFeaturizer(Featurizer):
