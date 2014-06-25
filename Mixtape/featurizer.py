@@ -26,6 +26,7 @@ from six.moves import cPickle
 import numpy as np
 import mdtraj as md
 import sklearn.base, sklearn.pipeline
+import warnings
 from sklearn.externals.joblib import Parallel, delayed
 
 
