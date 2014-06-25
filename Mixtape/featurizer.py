@@ -469,6 +469,21 @@ class RawPositionsFeaturizer(Featurizer):
         return value
 
 
+class RawPositionsSuperposeFeaturizer(RawPositionsFeaturizer):
+    def __init__(self, n_features, ref_traj, atom_indices):
+        super().__init__(n_features)
+
+        self.ref_traj = ref_traj
+        self.atom_indices = atom_indices
+
+    def partial_transform(self, traj):
+        traj.superpose(self.ref_traj, atom_indices=self.atom_indices,
+                       parallel=False)
+
+        return super().partial_transform(traj)
+
+
+
 class RMSDFeaturizer(Featurizer):
     """Featurizer based on RMSD to a series of reference frames.
 
