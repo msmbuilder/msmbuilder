@@ -31,6 +31,5 @@ void compute_posteriors(const REAL* __restrict__ fwdlattice,
         }
     }
 }
-
 }
 #endif

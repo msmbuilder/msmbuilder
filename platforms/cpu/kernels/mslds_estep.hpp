@@ -96,11 +96,11 @@ void do_mslds_estep(const float* __restrict__ log_transmat,
                 seq_obs_obs_T, seq_obs_obs_T_offset,            \
                 seq_obs_obs_T_but_first, seq_obs_obs_T_but_last,\
                 frame_obs_obs_T, seq_post, seq_post_but_first,  \
-                seq_post_but_last, tlocallogprob, j, k,         \
-                length, length_minus_1, m, obs_m, n, obs_n)     
+                seq_post_but_last, tlocallogprob,               \
+                j, k, length, length_minus_1, m, obs_m, n, obs_n)     
     #endif
     for (i = 0; i < n_sequences; i++) {
-        printf("Analyzing sequence %d\n", i);
+        //printf("Analyzing sequence %d\n", i);
         sequence = sequences[i];
         length = sequence_lengths[i];
         length_minus_1 = length - 1;

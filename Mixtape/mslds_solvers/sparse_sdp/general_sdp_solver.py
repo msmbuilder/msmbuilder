@@ -79,7 +79,8 @@ class GeneralSolver(object):
     def solve(self, N_iter, tol, search_tol, eps=1e-4, X_init=None,
         interactive=False, disp=True, verbose=False, debug=False,
         Rs = [10, 100, 1000], min_step_size=1e-6, 
-        methods=['frank_wolfe', 'frank_wolfe_stable']):
+        methods=['frank_wolfe', 'frank_wolfe_stable'],
+        N_iter_short=20, N_iter_long=40):
         """
         Solves optimization problem
 
@@ -150,6 +151,7 @@ class GeneralSolver(object):
         f = f_init.get_feasibility(self.As, self.bs, self.Cs, self.ds,
                     self.Fs, self.Gs, 1e-4)
         num_stable=5
+        N_iter_orig = N_iter
         while step >= search_tol:
             alpha = U - step 
             h_alpha = lambda X: (self.obj(X) - alpha)
@@ -163,6 +165,7 @@ class GeneralSolver(object):
             if succeed_L:
                 status = "Feasible"
                 self.print_status(disp, debug, status, X_L, -np.inf, alpha)
+                N_iter = N_iter_short
                 U = alpha
                 step = 2 * step
                 num_stable = 5
@@ -170,6 +173,7 @@ class GeneralSolver(object):
             else:
                 status = "Infeasible"
                 self.print_status(disp, debug, status, X_L, -np.inf, alpha)
+                N_iter = N_iter_long
                 if step > search_tol:
                     step = search_tol
                     num_stable = 15
