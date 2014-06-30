@@ -21,4 +21,4 @@
 ##############################################################################
 
 
-from mixtape import featurizer, ghmm, markovstatemodel, tica
+from mixtape import featurizer, ghmm, markovstatemodel, tica, utils
