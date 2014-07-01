@@ -220,7 +220,7 @@ class Subsampler(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
         return self
 
     def transform(self, X_all, y=None):
-        """Featurize a several trajectories.
+        """Subsample several time series.
 
         Parameters
         ----------
