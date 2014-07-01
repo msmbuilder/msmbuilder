@@ -229,10 +229,8 @@ class Subsampler(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
 
         Returns
         -------
-        features : list(np.ndarray), length = len(traj_list)
-            The featurized trajectories.  features[i] is the featurized
-            version of traj_list[i] and has shape
-            (n_samples_i, n_features)
+        features : list(np.ndarray), length = len(X_all)
+            The subsampled trajectories.
         """
         if self._sliding_window:
             return [X[k::self._lag_time] for k in range(self._lag_time) for X in X_all]
