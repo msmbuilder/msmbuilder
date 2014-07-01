@@ -3,6 +3,7 @@ import numpy as np
 import mdtraj as md
 from mdtraj.testing import eq
 import mixtape
+import sklearn.pipeline
 
 random = np.random.RandomState(2)
 
@@ -30,7 +31,7 @@ def test_subsampler_lag1():
 
 
 def test_subsampler_lag2():
-    n_traj, n_samples, n_features = 3, 100, 77
+    n_traj, n_samples, n_features = 3, 100, 7
     lag_time = 2
     X_all_0 = [random.normal(size=(n_samples, n_features)) for i in range(n_traj)]
     q_0 = np.concatenate(X_all_0)
@@ -46,3 +47,19 @@ def test_subsampler_lag2():
     q_1 = np.concatenate(X_all_1)
     
     eq(((n_samples / lag_time) * n_traj, n_features), q_1.shape)
+
+
+def test_subsampler_tica():
+    n_traj, n_samples, n_features = 3, 500, 4
+    lag_time = 2
+    X_all_0 = [random.normal(size=(n_samples, n_features)) for i in range(n_traj)]
+    tica_0 = mixtape.tica.tICA(lag_time=lag_time)
+    tica_0.fit(X_all_0)
+
+    subsampler = mixtape.utils.Subsampler(lag_time=lag_time)
+    X_all_1 = subsampler.transform(X_all_0)
+    tica_1 = mixtape.tica.tICA()
+    pipeline = sklearn.pipeline.Pipeline([("subsampler", subsampler), ('tica', tica_1)])    
+    pipeline.fit(X_all_1)
+
+    eq(tica_0.timescales_, tica_1.timescales_)
