@@ -470,9 +470,11 @@ class RawPositionsSuperposeFeaturizer(RawPositionsFeaturizer):
         self.ref_traj = ref_traj
         self.atom_indices = atom_indices
 
+        self.ref_traj.restrict_atoms(atom_indices)
+
     def partial_transform(self, traj):
-        traj.superpose(self.ref_traj, atom_indices=self.atom_indices,
-                       parallel=False)
+        traj.restrict_atoms(self.atom_indices)
+        traj.superpose(self.ref_traj, parallel=False)
 
         return super().partial_transform(traj)
 
