@@ -50,16 +50,17 @@ def test_subsampler_lag2():
 
 
 def test_subsampler_tica():
-    n_traj, n_samples, n_features = 3, 500, 4
+    n_traj, n_samples, n_features = 1, 500, 4
     lag_time = 2
     X_all_0 = [random.normal(size=(n_samples, n_features)) for i in range(n_traj)]
     tica_0 = mixtape.tica.tICA(lag_time=lag_time)
     tica_0.fit(X_all_0)
 
     subsampler = mixtape.utils.Subsampler(lag_time=lag_time)
-    X_all_1 = subsampler.transform(X_all_0)
     tica_1 = mixtape.tica.tICA()
     pipeline = sklearn.pipeline.Pipeline([("subsampler", subsampler), ('tica', tica_1)])    
-    pipeline.fit(X_all_1)
+    pipeline.fit(X_all_0)
 
-    eq(tica_0.timescales_, tica_1.timescales_)
+    eq(tica_0.n_features, tica_1.n_features)  # Obviously true
+    eq(tica_0.n_observations_, tica_1.n_observations_)
+    eq(tica_0.eigenvalues_, tica_1.eigenvalues_)  # The eigenvalues should be the same.  NOT the timescales, as tica_1 has timescales calculated in a different time unit
