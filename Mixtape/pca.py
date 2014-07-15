@@ -76,64 +76,21 @@ class MultiSequenceDecompositionMixin(object):
         return [concat[cl - l: cl] for (cl, l) in
                 zip(np.cumsum(self.__lengths), self.__lengths)]
 
-    def predict(self, sequences):
-        """Predict the closest cluster each sample in X belongs to.
-
-        In the vector quantization literature, `cluster_centers_` is called
-        the code book and each value returned by `predict` is the index of
-        the closest code in the code book.
-
-        Parameters
-        ----------
-        sequences : list of array-like, each of shape [sequence_length, n_features]
-            A list of multivariate timeseries. Each sequence may have
-            a different length, but they all must have the same number
-            of features.
-
-        Returns
-        -------
-        Y : list of arrays, each of shape [sequence_length,]
-            Index of the closest center each sample belongs to.
-        """
+    def transform(self, sequences):
         s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
         predictions = []
         for sequence in sequences:
-            predictions.append(s.predict(sequence))
+            predictions.append(s.transform(sequence))
         return predictions
 
-    def fit_predict(self, sequences):
-        """Performs clustering on X and returns cluster labels.
-
-        Parameters
-        ----------
-        sequences : list of array-like, each of shape [sequence_length, n_features]
-            A list of multivariate timeseries. Each sequence may have
-            a different length, but they all must have the same number
-            of features.
-
-        Returns
-        -------
-        Y : list of ndarray, each of shape [sequence_length, ]
-            Cluster labels
-        """
+    def fit_transform(self, sequences):
         s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
-        if hasattr(s, 'fit_predict'):
-            labels = s.fit_predict(sequences)
-        else:
-            self.fit(sequences)
-            labels = self.predict(sequences)
+        self.fit(sequences)
+        labels = self.transform(sequences)
 
         if not isinstance(labels, list):
             labels = self._split(labels)
         return labels
-
-    def transform(self, sequences):
-        """Alias for predict"""
-        return self.predict(sequences)
-
-    def fit_transform(self, sequences):
-        """Alias for fit_predict"""
-        return self.fit_predict(sequences)
 
 
 class PCA(MultiSequenceDecompositionMixin, decomposition.PCA):
