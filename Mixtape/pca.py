@@ -29,7 +29,7 @@ class MultiSequenceDecompositionMixin(object):
     # The API for the scikit-learn decomposition object is, in fit(), that
     # they take a single 2D array of shape (n_data_points, n_features).
     #
-    # For clustering a collection of timeseries, we need to preserve
+    # For reducing a collection of timeseries, we need to preserve
     # the structure of which data_point came from which sequence. If
     # we concatenate the sequences together, we lose that information.
     #
@@ -37,6 +37,8 @@ class MultiSequenceDecompositionMixin(object):
     # so that it accepts a list of sequences. Its implementation
     # concatenates the sequences, calls the superclass fit(), and
     # then splits the labels_ back into the sequenced form.
+    #
+    # This code is copied and modified from cluster.MultiSequenceClusterMixin
 
     def fit(self, sequences):
         """Fit the  clustering on the data
@@ -78,19 +80,16 @@ class MultiSequenceDecompositionMixin(object):
 
     def transform(self, sequences):
         s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
-        predictions = []
+        transforms = []
         for sequence in sequences:
-            predictions.append(s.transform(sequence))
-        return predictions
+            transforms.append(s.transform(sequence))
+        return transforms
 
     def fit_transform(self, sequences):
-        s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
         self.fit(sequences)
-        labels = self.transform(sequences)
+        transforms = self.transform(sequences)
 
-        if not isinstance(labels, list):
-            labels = self._split(labels)
-        return labels
+        return transforms
 
 
 class PCA(MultiSequenceDecompositionMixin, decomposition.PCA):
