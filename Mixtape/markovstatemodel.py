@@ -248,6 +248,11 @@ class MarkovStateModel(BaseEstimator):
         u, v = self._get_eigensystem()
         return v
 
+    @property
+    def eigenvalues_(self):
+        u, v = self._get_eigensystem()
+        return u
+
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
     """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
