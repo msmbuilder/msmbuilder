@@ -218,7 +218,7 @@ class MarkovStateModel(BaseEstimator):
 
     def _get_eigensystem(self):
         if not self.is_dirty:
-            return self._eigenvalues, self._eigenvectors_
+            return self._eigenvalues, self._eigenvectors
 
         n_timescales = self.n_timescales
         if n_timescales is None:
@@ -232,6 +232,7 @@ class MarkovStateModel(BaseEstimator):
 
         self._eigenvalues = u
         self._eigenvectors = v
+        self.is_dirty = False
 
         return u, v
 
