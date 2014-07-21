@@ -49,7 +49,6 @@ class PCCA(BaseEstimator, TransformerMixin):
 
     def _build_msm(self, sequences):
         """Build and cache a microstate MSM for estimating the transition matrix."""
-        n_microstates = max(map(lambda x: max(x), sequences))
         self._cached_msm = mixtape.markovstatemodel.MarkovStateModel()
         self._cached_msm.fit(sequences)
 
@@ -71,7 +70,8 @@ class PCCA(BaseEstimator, TransformerMixin):
         -------
         self
         """
-        return [np.array(map(lambda x: self.mapping_[x], seq)) for seq in sequences]
+        micro_sequences = self._cached_msm.transform(sequences)  # Ergodic Trim
+        return [np.array(map(lambda x: self.mapping_[x], seq)) for seq in micro_sequences]
 
 
 class PCCAPlus(PCCA):
