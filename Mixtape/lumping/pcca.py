@@ -86,7 +86,9 @@ class PCCAPlus(PCCA):
     ----------
     n_macrostates : int
         The desired number of macrostates in the lumped model.
-    
+    lag_time : int, optional, default=1
+        Lag time to use for estimating the microstate MSM transition matrix.    
+
     Attributes
     ----------
     cached_msm : mixtape.MarkovStateModel
