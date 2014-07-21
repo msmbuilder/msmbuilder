@@ -324,26 +324,3 @@ def _apply_mapping_to_matrix(mat, mapping):
         except KeyError:
             pass
     return mat_new
-
-
-def _prinz_reversible_mle(counts):
-    """Maximum probability estimator of reversible transition matrices
-
-    Algorithim 1 of Prinz et al.[1]
-
-    Parameters
-    ----------
-    counts : array-like or sparse matrix, shape=(n_states, n_states)
-        The directed count matrix.
-
-    Returns
-    -------
-    transmat : array-like or sparse matrix, shape=(n_states, n_states)
-        The reversible transition matrix.
-
-    References
-    ----------
-    .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
-       Generation and validation." J Chem. Phys. 134.17 (2011): 174105.
-    """
-    pass
