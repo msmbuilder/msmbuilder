@@ -26,7 +26,7 @@ import time
 import warnings
 import numpy as np
 import scipy.sparse
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, TransformerMixin
 from mdtraj.utils import ensure_type
 from mixtape import _reversibility
 
@@ -36,7 +36,7 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator):
+class MarkovStateModel(BaseEstimator, TransformerMixin):
     """Reversible Markov State Model
 
     Parameters
@@ -254,6 +254,43 @@ class MarkovStateModel(BaseEstimator):
         u, v = self._get_eigensystem()
         return u
 
+    @property
+    def n_states_output_(self):
+        return max(self.mapping_.values()) + 1
+
+    def transform(self, sequences, y=None):
+        """Transform microstates onto trimmed microstates.
+
+        Parameters
+        ----------
+        sequences : list(np.ndarray(dtype='int'))
+            List of arrays of microstates assignments
+        y : None
+            Unused, present for sklearn compatibility only.
+        
+        Returns
+        -------
+        out_sequences : list(np.ndarray(dtype='int'))
+            List of arrays of microstates assignments after ergodic trimming
+        
+        Notes
+        -----
+        Reversible MSMs require discarding states that are not strongly connected.
+        This function maps arrays of input microstates onto the trimmed output
+        microstates, possibly discarding the trailing regions of each
+        input sequence.  Note that we have hard-coded the assumption of
+        detailed balance, essentially assuming that the input sequences
+        look like [DDDDDDXXXXXXXDDDDDD], where D represents microstates
+        to be discarded and X represents microstates to be kept (and remapped
+        onto the new numbering).  
+        """        
+        out_sequences = []
+        for seq in sequences:
+            out_seq = seq[np.in1d(seq, self.mapping_.keys())]
+            out_sequences.append(out_seq)
+        return out_sequences
+        
+            
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
     """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
