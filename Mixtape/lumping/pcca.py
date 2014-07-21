@@ -14,6 +14,12 @@ class PCCA(BaseEstimator, TransformerMixin):
     ----------
     n_macrostates : int
         The desired number of macrostates in the lumped model.
+    msm_model : mixtape.MarkovStateModel, optional
+        An instantiated (but not fit) MSM (or compatible) object that
+        will be used to build and estimate the Microstate transition matrix.
+        If None, mixtape.MarkovStateModel() will be used with default parameters.
+        The input MSM object will be cloned via `sklearn.clone()` to remove
+        any parameters that have previously been learned via data.
     
     Attributes
     ----------
