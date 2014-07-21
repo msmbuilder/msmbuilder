@@ -41,8 +41,8 @@ class PCCA(BaseEstimator, TransformerMixin):
         -------
         self
         """
-        if self.cached_msm is None:
-            self._build_msm(sequences)
+        
+        self._build_msm(sequences)
         
         self._pcca =  msmb.lumping.PCCA(self._cached_msm.transmat_, self.n_macrostates)
         return self
@@ -111,8 +111,8 @@ class PCCAPlus(PCCA):
         -------
         self
         """        
-        if self.cached_msm is None:
-            self._build_msm(sequences)
+        
+        self._build_msm(sequences)
         
         self._pcca =  msmb.lumping.PCCAPlus(self._cached_msm.transmat_, self.n_macrostates)
         return self
