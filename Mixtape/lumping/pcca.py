@@ -1,6 +1,6 @@
 import msmbuilder.lumping
 import msmbuilder as msmb
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin, clone
 import mixtape
 import numpy as np
 
@@ -23,9 +23,9 @@ class PCCA(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self, n_macrostates):
+    def __init__(self, n_macrostates, msm_model=None):
         self.n_macrostates = n_macrostates
-        self.cached_msm = None
+        self.msm_model = msm_model
 
     def fit(self, sequences, y=None):
         """Fit a PCCA lumping model using a sequence of cluster assignments.
@@ -49,7 +49,11 @@ class PCCA(BaseEstimator, TransformerMixin):
 
     def _build_msm(self, sequences):
         """Build and cache a microstate MSM for estimating the transition matrix."""
-        self._cached_msm = mixtape.markovstatemodel.MarkovStateModel()
+        if self.msm_model is None:
+            self._cached_msm = mixtape.markovstatemodel.MarkovStateModel()
+        else:
+            self._cached_msm = clone(self.msm_model)
+        
         self._cached_msm.fit(sequences)
 
     @property
@@ -92,10 +96,6 @@ class PCCAPlus(PCCA):
         matrix.
 
     """
-    
-    def __init__(self, n_macrostates):
-        self.n_macrostates = n_macrostates
-        self.cached_msm = None
 
     def fit(self, sequences):
         """Fit a PCCA lumping model using a sequence of cluster assignments.
