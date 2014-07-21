@@ -14,13 +14,9 @@ class PCCA(BaseEstimator, TransformerMixin):
     ----------
     n_macrostates : int
         The desired number of macrostates in the lumped model.
-    msm_model : mixtape.MarkovStateModel, optional
-        An instantiated (but not fit) MSM (or compatible) object that
-        will be used to build and estimate the Microstate transition matrix.
-        If None, mixtape.MarkovStateModel() will be used with default parameters.
-        The input MSM object will be cloned via `sklearn.clone()` to remove
-        any parameters that have previously been learned via data.
-    
+    lag_time : int, optional, default=1
+        Lag time to use for estimating the microstate MSM transition matrix.
+
     Attributes
     ----------
     cached_msm : mixtape.MarkovStateModel
@@ -29,9 +25,9 @@ class PCCA(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self, n_macrostates, msm_model=None):
+    def __init__(self, n_macrostates, lag_time=1):
         self.n_macrostates = n_macrostates
-        self.msm_model = msm_model
+        self.lag_time = lag_time
 
     def fit(self, sequences, y=None):
         """Fit a PCCA lumping model using a sequence of cluster assignments.
@@ -55,11 +51,7 @@ class PCCA(BaseEstimator, TransformerMixin):
 
     def _build_msm(self, sequences):
         """Build and cache a microstate MSM for estimating the transition matrix."""
-        if self.msm_model is None:
-            self._cached_msm = mixtape.markovstatemodel.MarkovStateModel()
-        else:
-            self._cached_msm = clone(self.msm_model)
-        
+        self._cached_msm = mixtape.markovstatemodel.MarkovStateModel(lag_time=self.lag_time)
         self._cached_msm.fit(sequences)
 
     @property
