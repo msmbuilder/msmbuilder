@@ -72,6 +72,12 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
             x_rs(i) += x(i,j);
             c_rs(i) += c(i,j);
         }
+
+        if (x_rs(i) <= 0 || c_rs(i) <= 0) {
+            // domain error. we can't have rows with sum=0
+            free(X); free(X_RS); free(C_RS);
+            return -1;
+        }
     }
 
     for (iter=0; fabs(oldlogl - logl) >= tol; iter++) {
@@ -89,7 +95,8 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
             for (j = 0; j < n_states; j++)
                 x_rs(i) += x(i,j);
 #endif
-            logl += c(i,i) * log(x(i,i) / x_rs(i));
+            if (x(i,i) > 0)
+                logl += c(i,i) * log(x(i,i) / x_rs(i));
         }
 
         /* update X for the offdiagonal entries */
@@ -105,9 +112,11 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
                     (x_rs(i) - x(i,j)) * \
                     (x_rs(j) - x(i,j));
 
-                if (c > 0)
-                    /* exit error */
-                    return -1;
+                if (c > 0) {
+                    // logic error. this should never happen
+                    free(X); free(X_RS); free(C_RS);
+                    return -2;
+                }
 
                 /* the new value */
                 v = (-b + sqrt((b*b) - (4*a*c))) / (2*a);
@@ -127,13 +136,19 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
                     x_rs(j) += x(j, k);
 #endif
 
-                logl += c(i,j) * log(x(i,j) / x_rs(i)) +
-                        c(j,i) * log(x(j,i) / x_rs(j));
+                if (x(i,j) > 0)
+                    logl += c(i,j) * log(x(i,j) / x_rs(i)) +
+                            c(j,i) * log(x(j,i) / x_rs(j));
 
             }
         }
 
         /* printf("logl = %f\n", logl); */
+        if (logl != logl) {
+            // logl is a nan
+            free(X); free(X_RS); free(C_RS);
+            return -2;
+        }
     }
 
     pi_sum = 0;
