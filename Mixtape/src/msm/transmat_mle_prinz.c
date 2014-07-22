@@ -1,4 +1,4 @@
-#include <float.h>tmp
+#include <float.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -47,8 +47,8 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
 #ifdef DEBUG
     int k;
 #endif
-    double logl, oldlogl;
-    oldlogl = FLT_MAX;;
+    double logl = 0;
+    double oldlogl = FLT_MAX;;
 
 #define x(m,n) (X[m*n_states + n])
 #define c(m,n) (C[m*n_states + n])
