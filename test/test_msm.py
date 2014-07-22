@@ -4,8 +4,10 @@ import numpy as np
 from mdtraj.testing import eq
 import scipy.sparse
 from sklearn.externals.joblib import load, dump
+import sklearn.pipeline
 from mixtape import cluster
-from mixtape.markovstatemodel import MarkovStateModel
+from mixtape.markovstatemodel import MarkovStateModel, draw_samples
+from mixtape.utils import map_drawn_samples
 
 def todense(mat):
     if scipy.sparse.issparse(mat):
@@ -53,3 +55,29 @@ def test_4():
     print(cluster.MeanShift().fit_predict(data))
     print(cluster.SpectralClustering(n_clusters=2).fit_predict(data))
     print(cluster.Ward(n_clusters=2).fit_predict(data))
+
+
+def test_sample_1():  # Test that the code actually runs and gives something non-crazy
+    # Make an ergodic dataset with two gaussian centers offset by 25 units.
+    chunk = np.random.normal(size=(20000, 3))
+    data = [np.vstack((chunk, chunk + 25)), np.vstack((chunk + 25, chunk))]
+
+    clusterer = cluster.KMeans(n_clusters=2)
+    msm = MarkovStateModel()
+    pipeline = sklearn.pipeline.Pipeline([("clusterer", clusterer), ("msm", msm)])
+    pipeline.fit(data)
+    trimmed_assignments = pipeline.transform(data)
+    pairs = draw_samples(trimmed_assignments, 2000)
+
+    samples = map_drawn_samples(pairs, data)
+    mu = np.mean(samples, axis=1)
+    eq(mu, np.array([[0., 0., 0.0], [25., 25., 25.]]), decimal=1)
+
+    # We should make sure we can sample from Trajectory objects too...
+    # Create a fake topology with 1 atom to match our input dataset
+    top = md.Topology.from_dataframe(pd.DataFrame({"serial":[0], "name":["HN"], "element":["H"], "resSeq":[1], "resName":"RES", "chainID":[0]}), bonds=np.zeros(shape=(0, 2), dtype='int'))
+    trajectories = [md.Trajectory(x[:, np.newaxis], top) for x in data]  # np.newaxis reshapes the data to have a 40000 frames, 1 atom, 3 xyz
+
+    trj_samples = map_drawn_samples(pairs, trajectories)
+    mu = np.array([t.xyz.mean(0)[0] for t in trj_samples])
+    eq(mu, np.array([[0., 0., 0.0], [25., 25., 25.]]), decimal=1)

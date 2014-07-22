@@ -116,17 +116,18 @@ def map_drawn_samples(selected_pairs_by_state, trajectories):
     selected_pairs_by_state : np.ndarray, dtype=int, shape=(n_states, n_samples, 2)
         selected_pairs_by_state[state, sample] gives the (trajectory, frame)
         index associated with a particular sample from that state.
-    trajectories : list(md.Trajectory)
+    trajectories : list(md.Trajectory) or list(np.ndarray)
         The trajectories assocated with sequences,
         which will be used to extract coordinates of the state centers
-        from the raw trajectory data
+        from the raw trajectory data.  This can also be a list of np.ndarray
+        objects
 
     Returns
     -------
-    frames_by_state : mdtraj.Trajectory, optional
-        If `trajectories` are provided, this output will be a list
-        of trajectories such that frames_by_state[state] is a trajectory
-        drawn from `state` of length `n_samples`
+    frames_by_state : mdtraj.Trajectory
+        Output will be a list of trajectories such that frames_by_state[state]
+        is a trajectory drawn from `state` of length `n_samples`.  If trajectories
+        are numpy arrays, the output will be numpy arrays instead of md.Trajectories
     
     Examples
     --------
@@ -149,7 +150,10 @@ def map_drawn_samples(selected_pairs_by_state, trajectories):
 
     for state, pairs in enumerate(selected_pairs_by_state):
         frames = [trajectories[trj][frame] for trj, frame in pairs]
-        state_trj = np.sum(frames)  # No idea why numpy is necessary, but it is
+        try:  # If frames are mdtraj Trajectories
+            state_trj = frames[0][0:0].join(frames)  # Get an empty trajectory with correct shape and call the join method on it to merge trajectories
+        except AttributeError:
+            state_trj = np.array(frames)  # Just a bunch of np arrays
         frames_by_state.append(state_trj)
     
     return frames_by_state
