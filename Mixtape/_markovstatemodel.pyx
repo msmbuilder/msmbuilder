@@ -4,7 +4,7 @@ cdef extern from "transmat_mle_prinz.h":
     int transmat_mle_prinz(const double* C, int n_states,
                            double tol, double* T, double* pi)
 
-def _transmat_mle_prinz(double[:, ::1] C, double tol):
+def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
     """Compute a maximum likelihood reversible transition matrix, given
     a set of directed transition counts.
 
