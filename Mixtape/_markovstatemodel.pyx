@@ -26,13 +26,13 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol):
     n_iter : int
         Number of iterations performed. A value of n_iter < 0 indicates
         failure.
-    
+
      References
      ----------
      .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
         Generation and validation." J Chem. Phys. 134.17 (2011): 174105.
     """
-    
+
     cdef int n_states = len(C)
     if len(C[0]) != n_states:
         raise ValueError('C must be square')
@@ -41,5 +41,13 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol):
     cdef int n_iter
 
     n_iter = transmat_mle_prinz(&C[0,0], n_states, tol, &T[0,0], &pi[0]);
-    
+    if n_iter < 0:
+        # diagnose the error
+        msg = ' Error code=%d' % n_iter
+        if np.any(np.less(C, 0)):
+            msg = 'Domain error. C must be positive.' + msg
+        if np.any(np.sum(C, axis=1) == 0):
+            msg = 'Row-sums of C must be positive.' + msg
+        raise ValueError(msg)
+
     return np.array(T), np.array(pi)
