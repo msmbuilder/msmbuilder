@@ -346,18 +346,43 @@ def _strongly_connected_subgraph(counts, weight=0, verbose=True):
 
 def _transition_counts(sequences, lag_time=1):
     """Count the number of directed transitions in a collection of sequences
-    in a discrete space
+    in a discrete space.
 
     Parameters
     ----------
     sequences : list of array-like, each 1-dimensional
+        Each element of sequences should be a separate timeseries of "labels",
+        which can be integers, strings, etc.
+    lag_time : int
+        The time (index) delay for the counts.
 
     Returns
     -------
     counts : array, shape=(n_states, n_states)
         counts[i][j] counts the number of times a sequences was in state `i` at time
         t, and state `j` at time `t+self.lag_time`, over the full set of trajectories.
-    mapping :
+    mapping : dict
+        Mapping from the items in the sequences to the indices in (0, n_states-1)
+        used for the count matrix.
+
+    Examples
+    --------
+    >>> sequence = [0, 0, 0, 1, 1]
+    >>> counts, mapping = _transition_counts([sequence])
+    >>> print counts
+    [[2, 1],
+     [0, 1]]
+    >>> print mapping
+    {0: 0, 1: 1}
+
+    >>> sequence = [100, 200, 300]
+    >>> counts, mapping = _transition_counts([sequence])
+    >>> print counts
+    [[ 0.  1.  0.]
+     [ 0.  0.  1.]
+     [ 0.  0.  0.]]
+    >>> print mapping
+    {100: 0, 200: 1, 300: 2}
     """
 
     typed_sequences = []
@@ -385,6 +410,6 @@ def _transition_counts(sequences, lag_time=1):
         C = scipy.sparse.coo_matrix(
             (np.ones(transitions.shape[1], dtype=int), transitions),
             shape=(n_states, n_states))
-        counts = counts + C.todense()
+        counts = counts + np.asarray(C.todense())
 
     return counts, mapping
