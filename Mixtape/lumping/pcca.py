@@ -40,8 +40,11 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
         """
         
         super(PCCA, self).fit(sequences, y=y)
-        self._pcca =  msmb.lumping.PCCA(self.transmat_, self.n_macrostates)
+        self._do_lumping()
         return self
+
+    def _do_lumping(self):
+        self._pcca =  msmb.lumping.PCCA(self.transmat_, self.n_macrostates)
 
     @property
     def trimmed_microstates_to_macrostates(self):
@@ -62,8 +65,23 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
         self
         """
         trimmed_sequences = super(PCCA, self).transform(sequences)
-        return [np.array(map(lambda x: self.trimmed_microstates_to_macrostates[x], seq)) for seq in trimmed_sequences]
+        f = np.vectorize(self.trimmed_microstates_to_macrostates.get)
+        return [f(seq) for seq in trimmed_sequences]
 
+    @classmethod
+    def from_msm(cls, msm, n_macrostates):
+        
+        params = msm.get_params()
+        lumper = cls(n_macrostates, **params)
+        
+        lumper.transmat_ = msm.transmat_
+        lumper.populations_ = msm.populations_
+        lumper.mapping_ = msm.mapping_
+        lumper.rawcounts_ = msm.rawcounts_
+        lumper.countsmat_ = msm.countsmat_
+        
+        return lumper
+        
 
 class PCCAPlus(PCCA):
     """Perron Cluster Cluster Analysis Plus (PCCA+) for coarse-graining (lumping)
@@ -80,22 +98,5 @@ class PCCAPlus(PCCA):
         mixtape.markovstatemodel.MarkovStateModel for possibile options.
 
     """
-
-    def fit(self, sequences, y=None):
-        """Fit a PCCA lumping model using a sequence of cluster assignments.
-
-        Parameters
-        ----------
-        sequences : list(np.ndarray(dtype='int'))
-            List of arrays of cluster assignments
-        y : None
-            Unused, present for sklearn compatibility only.
-        
-        Returns
-        -------
-        self
-        """        
-        
-        super(PCCAPlus, self).fit(sequences, y=y)        
+    def _do_lumping(self):
         self._pcca =  msmb.lumping.PCCAPlus(self.transmat_, self.n_macrostates)
-        return self

@@ -55,3 +55,20 @@ def test_pccaplus_1():
 
     eq(macro_assignments[0], np.hstack((chunk, chunk + 1)))
     eq(macro_assignments[1], np.hstack((chunk + 1, chunk)))
+
+
+def test_from_msm():
+    # Make a simple dataset with four states, where there are 2 obvious macrostate basins--the remaining states interconvert quickly
+    n_frames = 10000
+    chunk = np.zeros(n_frames, 'int')
+    rnd = lambda : np.random.randint(0, 2, n_frames)  # Generates random noise states within each basin
+    # States 0 and 1 interconvert, states 2 and 3 interconvert.  
+    assignments = [np.hstack((chunk + rnd(), chunk + 2  + rnd())), np.hstack((chunk + 2 + rnd(), chunk + rnd()))]
+    
+    msm = mixtape.markovstatemodel.MarkovStateModel()
+    msm.fit(assignments)
+    pcca = mixtape.lumping.PCCA.from_msm(msm, 2)
+
+    msm = mixtape.markovstatemodel.MarkovStateModel()
+    msm.fit(assignments)
+    pccaplus = mixtape.lumping.PCCAPlus.from_msm(msm, 2)
