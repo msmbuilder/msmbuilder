@@ -107,11 +107,6 @@ class MarkovStateModel(BaseEstimator):
         self._eigenvectors = None
         self._eigenvalues = None
 
-        available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
-        if self.reversible_type not in available_reversible_type:
-            raise ValueError('symmetrize must be one of %s: %s' % (
-                ', '.join(available_reversible_type), reversible_type))
-
     def fit(self, sequences, y=None):
         """Estimate model parameters.
 
@@ -134,7 +129,8 @@ class MarkovStateModel(BaseEstimator):
                                      range(self.counts_.shape[0])))
 
         if self.reversible_type in ['mle', 'MLE']:
-            self.transmat_, self.populations_ = _transmat_mle_prinz(trimmed_counts + self.prior_counts)
+            self.transmat_, self.populations_ = _transmat_mle_prinz(
+                trimmed_counts + self.prior_counts)
         elif self.reversible_type in ['transpose', 'Transpose']:
             rc = 0.5 * (trimmed_counts + trimmed_counts.T) + self.prior_counts
             self.populations_ = rc.sum(axis=0)
@@ -143,7 +139,9 @@ class MarkovStateModel(BaseEstimator):
             rc = trimmed_counts + self.prior_counts
             self.transmat_ = rc.astype(float) / rc.sum(axis=1)[:, None]
         else:
-            raise RuntimeError()
+            available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
+            raise ValueError('reversible_type must be one of %s: %s' % (
+                ', '.join(available_reversible_type), self.reversible_type))
 
         if self.reversible_type is None:
             vectors = get_eigenvectors(self.transmat_, 5)[1]
@@ -289,6 +287,7 @@ def _apply_mapping_to_matrix(mat, mapping):
         except KeyError:
             pass
     return mat_new
+
 
 def _strongly_connected_subgraph(counts, weight=0, verbose=True):
     """Trim a transition count matrix down to its maximal
