@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, TransformerMixin, clone
 import mixtape
 import numpy as np
 
-class PCCA(BaseEstimator, TransformerMixin):
+class PCCA(mixtape.markovstatemodel.MarkovStateModel):
     """Perron Cluster Cluster Analysis (PCCA) for coarse-graining (lumping)
         microstates into macrostates.  This reference implementation uses MSMBuilder
         for the PCCA code but uses the Mixtape MarkovStateModel class for
@@ -17,17 +17,11 @@ class PCCA(BaseEstimator, TransformerMixin):
     lag_time : int, optional, default=1
         Lag time to use for estimating the microstate MSM transition matrix.
 
-    Attributes
-    ----------
-    cached_msm : mixtape.MarkovStateModel
-        PCCA builds and caches a microstate MSM for estimating the transition
-        matrix.
-
     """
 
-    def __init__(self, n_macrostates, lag_time=1):
+    def __init__(self, n_macrostates, **kwargs):
         self.n_macrostates = n_macrostates
-        self.lag_time = lag_time
+        super(PCCA, self).__init__(**kwargs)
 
     def fit(self, sequences, y=None):
         """Fit a PCCA lumping model using a sequence of cluster assignments.
@@ -44,22 +38,16 @@ class PCCA(BaseEstimator, TransformerMixin):
         self
         """
         
-        self._build_msm(sequences)
-        
-        self._pcca =  msmb.lumping.PCCA(self._cached_msm.transmat_, self.n_macrostates)
+        super(PCCA, self).fit(sequences, y=y)
+        self._pcca =  msmb.lumping.PCCA(self.transmat_, self.n_macrostates)
         return self
 
-    def _build_msm(self, sequences):
-        """Build and cache a microstate MSM for estimating the transition matrix."""
-        self._cached_msm = mixtape.markovstatemodel.MarkovStateModel(lag_time=self.lag_time)
-        self._cached_msm.fit(sequences)
-
     @property
-    def mapping_(self):
-        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self._cached_msm.mapping_.iteritems())
+    def trimmed_microstates_to_macrostates(self):
+        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self.mapping_.iteritems())
 
     def transform(self, sequences):
-        """Map microstates onto macrostates
+        """Map microstates onto macrostates, performing trimming if necessary.
 
         Parameters
         ----------
@@ -72,8 +60,8 @@ class PCCA(BaseEstimator, TransformerMixin):
         -------
         self
         """
-        micro_sequences = self._cached_msm.transform(sequences)  # Ergodic Trim
-        return [np.array(map(lambda x: self.mapping_[x], seq)) for seq in micro_sequences]
+        trimmed_sequences = super(PCCA, self).transform(sequences)
+        return [np.array(map(lambda x: self.trimmed_microstates_to_macrostates[x], seq)) for seq in trimmed_sequences]
 
 
 class PCCAPlus(PCCA):
@@ -97,7 +85,7 @@ class PCCAPlus(PCCA):
 
     """
 
-    def fit(self, sequences):
+    def fit(self, sequences, y=None):
         """Fit a PCCA lumping model using a sequence of cluster assignments.
 
         Parameters
@@ -112,7 +100,6 @@ class PCCAPlus(PCCA):
         self
         """        
         
-        self._build_msm(sequences)
-        
-        self._pcca =  msmb.lumping.PCCAPlus(self._cached_msm.transmat_, self.n_macrostates)
+        super(PCCA, self).fit(sequences, y=y)        
+        self._pcca =  msmb.lumping.PCCAPlus(self.transmat_, self.n_macrostates)
         return self
