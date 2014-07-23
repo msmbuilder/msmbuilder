@@ -8,7 +8,7 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
     """Perron Cluster Cluster Analysis (PCCA) for coarse-graining (lumping)
         microstates into macrostates.  This reference implementation uses MSMBuilder
         for the PCCA code but uses the Mixtape MarkovStateModel class for
-        estimating the microstate transition matrix.
+        estimating the microstate transition matrix.  
     
     Parameters
     ----------
@@ -17,6 +17,14 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
         mixtape.markovstatemodel.MarkovStateModel for possibile options.
+    
+    Notes
+    -----
+    PCCA is a subclass of MarkovStateModel.  However, the MSM properties
+    and attributes on PCCA refer to the MICROSTATE properties--e.g. 
+    pcca.transmat_ is the microstate transition matrix.  To get the
+    macrostate transition matrix, you must fit a new MarkovStateModel
+    object on the output (assignments) of PCCA().  
 
     """
 
@@ -113,6 +121,14 @@ class PCCAPlus(PCCA):
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
         mixtape.markovstatemodel.MarkovStateModel for possibile options.
+
+    Notes
+    -----
+    PCCAPlus is a subclass of MarkovStateModel.  However, the MSM properties
+    and attributes on PCCAPlus refer to the MICROSTATE properties--e.g. 
+    pcca.transmat_ is the microstate transition matrix.  To get the
+    macrostate transition matrix, you must fit a new MarkovStateModel
+    object on the output (assignments) of PCCAPlus().  
 
     """
     def _do_lumping(self):

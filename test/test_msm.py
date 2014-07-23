@@ -6,8 +6,10 @@ import scipy.sparse
 from sklearn.externals.joblib import load, dump
 import sklearn.pipeline
 from mixtape import cluster
-from mixtape.markovstatemodel import MarkovStateModel, draw_samples
+from mixtape.markovstatemodel import MarkovStateModel
 from mixtape.utils import map_drawn_samples
+import mdtraj as md
+import pandas as pd
 
 def todense(mat):
     if scipy.sparse.issparse(mat):
@@ -67,7 +69,15 @@ def test_sample_1():  # Test that the code actually runs and gives something non
     pipeline = sklearn.pipeline.Pipeline([("clusterer", clusterer), ("msm", msm)])
     pipeline.fit(data)
     trimmed_assignments = pipeline.transform(data)
-    pairs = draw_samples(trimmed_assignments, 2000)
+    
+    # Now let's make make the output assignments start with zero at the first position.
+    i0 = trimmed_assignments[0][0]
+    if i0 == 1:
+        for m in trimmed_assignments:
+            m *= -1
+            m += 1
+    
+    pairs = msm.draw_samples(trimmed_assignments, 2000)
 
     samples = map_drawn_samples(pairs, data)
     mu = np.mean(samples, axis=1)
