@@ -14,8 +14,9 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
     ----------
     n_macrostates : int
         The desired number of macrostates in the lumped model.
-    lag_time : int, optional, default=1
-        Lag time to use for estimating the microstate MSM transition matrix.
+    kwargs : optional
+        Additional keyword arguments to be passed to MarkovStateModel.  See
+        mixtape.markovstatemodel.MarkovStateModel for possibile options.
 
     """
 
@@ -74,14 +75,9 @@ class PCCAPlus(PCCA):
     ----------
     n_macrostates : int
         The desired number of macrostates in the lumped model.
-    lag_time : int, optional, default=1
-        Lag time to use for estimating the microstate MSM transition matrix.    
-
-    Attributes
-    ----------
-    cached_msm : mixtape.MarkovStateModel
-        PCCA+ builds and caches a microstate MSM for estimating the transition
-        matrix.
+    kwargs : optional
+        Additional keyword arguments to be passed to MarkovStateModel.  See
+        mixtape.markovstatemodel.MarkovStateModel for possibile options.
 
     """
 
