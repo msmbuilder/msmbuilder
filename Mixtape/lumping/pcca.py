@@ -96,6 +96,6 @@ class PCCAPlus(PCCA):
         self
         """        
         
-        super(PCCA, self).fit(sequences, y=y)        
+        super(PCCAPlus, self).fit(sequences, y=y)        
         self._pcca =  msmb.lumping.PCCAPlus(self.transmat_, self.n_macrostates)
         return self
