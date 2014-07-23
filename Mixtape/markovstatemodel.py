@@ -31,7 +31,7 @@ from sklearn.utils import check_random_state
 from mdtraj.utils import ensure_type
 from mixtape import _reversibility
 
-__all__ = ['MarkovStateModel', "draw_samples"]
+__all__ = ['MarkovStateModel']
 
 #-----------------------------------------------------------------------------
 # Code
