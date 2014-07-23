@@ -26,9 +26,10 @@ import time
 import warnings
 import numpy as np
 import scipy.sparse
+from sklearn.utils import column_or_1d
 from sklearn.base import BaseEstimator
 from mdtraj.utils import ensure_type
-from mixtape import _reversibility
+from mixtape._markovstatemodel import _transmat_mle_prinz
 
 __all__ = ['MarkovStateModel']
 
@@ -41,11 +42,6 @@ class MarkovStateModel(BaseEstimator):
 
     Parameters
     ----------
-    n_states : int
-        The number of states in the model. If not supplied, this will be
-        inferred, which works fine if every state is visited in the input data.
-        But the states visited in the input sequence passed in to fit() are
-        not in [0, ..., n_states-1], then all bets are off.
     lag_time : int
         The lag time of the model
     n_timescales : int, optional
@@ -96,10 +92,11 @@ class MarkovStateModel(BaseEstimator):
     """
 
     def __init__(self, n_states=None, lag_time=1, n_timescales=None,
-                 reversible_type='mle', ergodic_trim=True, prior_counts=0):
-        self.n_states = n_states
+                 reversible_type='mle', ergodic_trim=True, trim_weight=0,
+                 prior_counts=0):
         self.reversible_type = reversible_type
         self.ergodic_trim = ergodic_trim
+        self.trim_weights = trim_weight
         self.lag_time = lag_time
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
@@ -128,51 +125,31 @@ class MarkovStateModel(BaseEstimator):
         -------
         self
         """
-        if self.n_states is None:
-            self.n_states = np.max([np.max(x) for x in sequences]) + 1
-
-        from msmbuilder import MSMLib
-        MSMLib.logger.info = lambda *args : None
-        from msmbuilder.msm_analysis import get_eigenvectors
-        from msmbuilder.MSMLib import mle_reversible_count_matrix, estimate_transition_matrix, ergodic_trim
-
-        self.rawcounts_ = self._count_transitions(sequences)
-        if self.prior_counts > 0:
-            self.rawcounts_ = scipy.sparse.csr_matrix(self.rawcounts_.todense() + self.prior_counts)
-
-        # STEP (1): Ergodic trimming
+        counts = self._count_transitions(sequences)
         if self.ergodic_trim:
-            self.rawcounts_, mapping = ergodic_trim(scipy.sparse.csr_matrix(self.rawcounts_))
-            self.mapping_ = {}
-            for i, j in enumerate(mapping):
-                if j != -1:
-                    self.mapping_[i] = j
+            self.counts_, self.mapping_ = _strongly_connected_subgraph(counts, self.trim_weight)
         else:
-            self.mapping_ = dict((zip(np.arange(self.n_states), np.arange(self.n_states))))
+            self.counts_ = counts
+            self.mapping_ = dict(zip(np.unique(np.concatenate(sequences)),
+                                     range(self.counts_.shape[0])))
 
-        # STEP (2): Reversible counts matrix
         if self.reversible_type in ['mle', 'MLE']:
-            self.countsmat_ = mle_reversible_count_matrix(self.rawcounts_)
+            self.transmat_, self.populations_ = _transmat_mle_prinz(trimmed_counts + self.prior_counts)
         elif self.reversible_type in ['transpose', 'Transpose']:
-            self.countsmat_ = 0.5 * (self.rawcounts_ + self.rawcounts_.T)
+            rc = 0.5 * (trimmed_counts + trimmed_counts.T) + self.prior_counts
+            self.populations_ = rc.sum(axis=0)
+            self.transmat_ = rc.astype(float) / rc.sum(axis=1)[:, None]
         elif self.reversible_type is None:
-            self.countsmat_ = self.rawcounts_
+            rc = trimmed_counts + self.prior_counts
+            self.transmat_ = rc.astype(float) / rc.sum(axis=1)[:, None]
         else:
             raise RuntimeError()
 
-        # STEP (3): transition matrix
-        self.transmat_ = estimate_transition_matrix(self.countsmat_)
-
-        # STEP (3.5): Stationary eigenvector
-        if self.reversible_type in ['mle', 'MLE', 'transpose', 'Transpose']:
-            self.populations_ = np.array(self.countsmat_.sum(0)).flatten()
-        elif self.reversible_type is None:
+        if self.reversible_type is None:
             vectors = get_eigenvectors(self.transmat_, 5)[1]
             self.populations_ = vectors[:, 0]
-        else:
-            raise RuntimeError()
-        self.populations_ /= self.populations_.sum()  # ensure normalization
 
+        self.populations_ /= self.populations_.sum(dtype=float)
         self.is_dirty = True
 
         return self
@@ -203,18 +180,6 @@ class MarkovStateModel(BaseEstimator):
         return np.sum(np.log(np.asarray(transition_matrix[row, col]))
                       * np.asarray(counts[row, col]))
 
-
-    def _count_transitions(self, sequences):
-        counts = scipy.sparse.coo_matrix((self.n_states, self.n_states), dtype=np.float32)
-
-        for sequence in sequences:
-            from_states = sequence[: -self.lag_time: 1]
-            to_states = sequence[self.lag_time::1]
-            transitions = np.row_stack((from_states, to_states))
-            C = scipy.sparse.coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions), shape=(self.n_states, self.n_states))
-            counts = counts + C
-
-        return counts
 
     def _get_eigensystem(self):
         if not self.is_dirty:
@@ -324,3 +289,103 @@ def _apply_mapping_to_matrix(mat, mapping):
         except KeyError:
             pass
     return mat_new
+
+def _strongly_connected_subgraph(counts, weight=0, verbose=True):
+    """Trim a transition count matrix down to its maximal
+    strongly ergodic subgraph.
+
+    From the counts matrix, we define a graph where there exists
+    a directed edge between two nodes, `i` and `j` if
+    `counts[i][j] > weight`. We then find the nodes belonging to the largest
+    strongly connected subgraph of this graph, and return a new counts
+    matrix formed by these rows and columns of the input `counts` matrix.
+
+    Parameters
+    ----------
+    counts : np.array, shape=(n_states_in, n_states_in)
+        Input set of directed counts.
+    weight : float
+        The cutoff criterion.
+    verbose : bool
+        Print a short statement
+
+    Returns
+    -------
+    counts_component :
+        "Trimmed" version of ``counts``, including only states in the
+        maximal strongly ergodic subgraph.
+    mapping : dict
+        Mapping from "input" states indices to "output" state indices
+        The semantics of ``mapping[i] = j`` is that state ``i`` from the
+        "input space" for the counts matrix is represented by the index
+        ``j`` in counts_component
+    """
+    n_states_input = counts.shape[0]
+    n_components, component_assignments = scipy.sparse.csgraph.connected_components(
+        scipy.sparse.csr_matrix(counts) > weight, connection="strong")
+    populations = np.array(counts.sum(0)).flatten()
+    component_pops = np.array([populations[component_assignments == i].sum() for i in range(n_components)])
+    which_component = component_pops.argmax()
+
+    if verbose:
+        print("MSM contains %d strongly connected components "
+              "above weight=%.2f. Component %d selected, with "
+              "population %f%%" % (n_components, weight, which_component,
+                                   100 * component_pops[which_component] / component_pops.sum()))
+
+    # keys are all of the "input states" which have a valid mapping to the output.
+    keys = np.arange(n_states_input)[component_assignments == which_component]
+    # values are the "output" state that these guys are mapped to
+    values = np.arange(len(keys))
+    mapping = dict(zip(keys, values))
+    n_states_output = len(mapping)
+
+    trimmed_counts = np.zeros((n_states_output, n_states_output), dtype=counts.dtype)
+    trimmed_counts[np.ix_(values, values)] = counts[np.ix_(keys, keys)]
+    return trimmed_counts, mapping
+
+
+def _transition_counts(sequences, lag_time=1):
+    """Count the number of directed transitions in a collection of sequences
+    in a discrete space
+
+    Parameters
+    ----------
+    sequences : list of array-like, each 1-dimensional
+
+    Returns
+    -------
+    counts : array, shape=(n_states, n_states)
+        counts[i][j] counts the number of times a sequences was in state `i` at time
+        t, and state `j` at time `t+self.lag_time`, over the full set of trajectories.
+    mapping :
+    """
+
+    typed_sequences = []
+    for y in sequences:
+        if not hasattr(y, '__iter__'):
+            raise ValueError('sequences must be a list of arrays')
+        typed_sequences.append(column_or_1d(y, warn=True))
+
+    classes = np.unique(np.concatenate(typed_sequences))
+    n_states = len(classes)
+
+    mapping = dict(zip(classes, np.arange(n_states)))
+    mapping_is_identity = np.all(classes == np.arange(n_states))
+    mapping_fn = np.vectorize(mapping.get)
+
+    counts = np.zeros((n_states, n_states), dtype=float)
+    for y in typed_sequences:
+        from_states = y[: -lag_time: 1]
+        to_states = y[lag_time::1]
+        if not mapping_is_identity:
+            from_states = mapping_fn(from_states)
+            to_states = mapping_fn(to_states)
+
+        transitions = np.row_stack((from_states, to_states))
+        C = scipy.sparse.coo_matrix(
+            (np.ones(transitions.shape[1], dtype=int), transitions),
+            shape=(n_states, n_states))
+        counts = counts + C.todense()
+
+    return counts, mapping
