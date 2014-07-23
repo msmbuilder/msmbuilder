@@ -44,6 +44,7 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
         return self
 
     def _do_lumping(self):
+        """Does the actual lumping part, change this function in subclasses."""
         self._pcca =  msmb.lumping.PCCA(self.transmat_, self.n_macrostates)
 
     @property
@@ -70,6 +71,20 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
 
     @classmethod
     def from_msm(cls, msm, n_macrostates):
+        """Create and fit lumped model from pre-existing MSM.
+        
+        Parameters
+        ----------
+        msm : Mixtape.markovstatemodel.MarkovStateModel
+            The input microstate msm to use.
+        n_macrostates : int
+            The number of macrostates
+        
+        Returns
+        -------
+        lumper : cls
+            The fit PCCA(+) object.
+        """
         
         params = msm.get_params()
         lumper = cls(n_macrostates, **params)
@@ -79,6 +94,8 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
         lumper.mapping_ = msm.mapping_
         lumper.rawcounts_ = msm.rawcounts_
         lumper.countsmat_ = msm.countsmat_
+        
+        lumper._do_lumping()
         
         return lumper
         
