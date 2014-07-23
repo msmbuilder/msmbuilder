@@ -23,6 +23,11 @@ from numbers import Number
 from .feasibility_sdp_solver import *
 import scipy.optimize
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -69,7 +74,7 @@ class GeneralSolver(object):
 
     def interactive_wait(self, interactive):
         if interactive:
-            wait = raw_input("Press ENTER to continue")
+            wait = input("Press ENTER to continue")
 
     def print_status(self, disp, debug, status, X, L, U):
         if disp:
