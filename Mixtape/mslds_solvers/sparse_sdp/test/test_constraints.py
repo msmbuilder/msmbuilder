@@ -1,3 +1,5 @@
+from __future__ import division
+from __future__ import print_function
 import sys
 sys.path.append("..")
 from constraints import *
@@ -18,9 +20,9 @@ def test_quadratic_inequality():
             X = np.random.rand(dim, dim)
             val = f(X)
             grad = gradf(X)
-            print "grad:\n", grad
+            print("grad:\n", grad)
             num_grad = numerical_derivative(f, X, eps)
-            print "num_grad:\n", num_grad
+            print("num_grad:\n", num_grad)
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_quadratic_equality():
@@ -37,9 +39,9 @@ def test_quadratic_equality():
             X = np.random.rand(dim, dim)
             val = g(X)
             grad = gradg(X)
-            print "grad:\n", grad
+            print("grad:\n", grad)
             num_grad = numerical_derivative(g, X, eps)
-            print "num_grad:\n", num_grad
+            print("num_grad:\n", num_grad)
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_basic_batch_equality():
@@ -68,9 +70,9 @@ def test_basic_batch_equality():
                 X = np.random.rand(dim, dim)
                 val = g(X)
                 grad = gradg(X)
-                print "grad:\n", grad
+                print("grad:\n", grad)
                 num_grad = numerical_derivative(g, X, eps)
-                print "num_grad:\n", num_grad
+                print("num_grad:\n", num_grad)
                 assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_l1_batch_equals():
@@ -144,9 +146,9 @@ def test_Q_constraints():
                     X = np.random.rand(dim, dim)
                     val = g(X)
                     grad = gradg(X)
-                    print "grad:\n", grad
+                    print("grad:\n", grad)
                     num_grad = numerical_derivative(g, X, eps)
-                    print "num_grad:\n", num_grad
+                    print("num_grad:\n", num_grad)
                     assert np.sum(np.abs(grad - num_grad)) < tol
     except:
         type, value, tb = sys.exc_info()
@@ -178,9 +180,9 @@ def test_A_constraints():
                     X = np.random.rand(dim, dim)
                     val = g(X)
                     grad = gradg(X)
-                    print "grad:\n", grad
+                    print("grad:\n", grad)
                     num_grad = numerical_derivative(g, X, eps)
-                    print "num_grad:\n", num_grad
+                    print("num_grad:\n", num_grad)
                     assert np.sum(np.abs(grad - num_grad)) < tol
     except:
         type, value, tb = sys.exc_info()

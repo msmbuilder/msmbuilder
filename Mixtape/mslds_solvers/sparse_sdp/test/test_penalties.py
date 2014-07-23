@@ -1,3 +1,5 @@
+from __future__ import division
+from __future__ import print_function
 import sys
 sys.path.append("..")
 import numpy as np
@@ -25,9 +27,9 @@ def test1():
         X = np.random.rand(dim, dim)
         val = f(X)
         grad = gradf(X)
-        print "grad:\n", grad
+        print("grad:\n", grad)
         num_grad = numerical_derivative(f, X, eps)
-        print "num_grad:\n", num_grad
+        print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test2():
@@ -50,9 +52,9 @@ def test2():
         X = np.random.rand(dim, dim)
         val = f(X)
         grad = gradf(X)
-        print "grad:\n", grad
+        print("grad:\n", grad)
         num_grad = numerical_derivative(f, X, eps)
-        print "num_grad:\n", num_grad
+        print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test3():
@@ -74,9 +76,9 @@ def test3():
         X = np.random.rand(dim, dim)
         val = f(X)
         grad = gradf(X)
-        print "grad:\n", grad
+        print("grad:\n", grad)
         num_grad = numerical_derivative(f, X, eps)
-        print "num_grad:\n", num_grad
+        print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test4():
@@ -98,9 +100,9 @@ def test4():
         X = np.random.rand(dim, dim)
         val = f(X)
         grad = gradf(X)
-        print "grad:\n", grad
+        print("grad:\n", grad)
         num_grad = numerical_derivative(f, X, eps)
-        print "num_grad:\n", num_grad
+        print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test5():
@@ -124,9 +126,9 @@ def test5():
             X = np.random.rand(dim, dim)
             val = f(X)
             grad = gradf(X)
-            print "grad:\n", grad
+            print("grad:\n", grad)
             num_grad = numerical_derivative(f, X, eps)
-            print "num_grad:\n", num_grad
+            print("num_grad:\n", num_grad)
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test6():
@@ -150,9 +152,9 @@ def test6():
             X = np.random.rand(dim, dim)
             val = f(X)
             grad = gradf(X)
-            print "grad:\n", grad
+            print("grad:\n", grad)
             num_grad = numerical_derivative(f, X, eps)
-            print "num_grad:\n", num_grad
+            print("num_grad:\n", num_grad)
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test7():
@@ -177,11 +179,11 @@ def test7():
             X = np.random.rand(dim, dim)
             val = f(X)
             grad = gradf(X)
-            print "grad:\n", grad
+            print("grad:\n", grad)
             num_grad = numerical_derivative(f, X, eps)
-            print "num_grad:\n", num_grad
+            print("num_grad:\n", num_grad)
             diff = np.sum(np.abs(grad - num_grad))
-            print "diff: ", diff
+            print("diff: ", diff)
             assert diff < tol
 
 def test8():
@@ -215,11 +217,11 @@ def test8():
             X = np.random.rand(dim, dim)
             val = f(X)
             grad = gradf(X)
-            print "grad:\n", grad
+            print("grad:\n", grad)
             num_grad = numerical_derivative(f, X, eps)
-            print "num_grad:\n", num_grad
+            print("num_grad:\n", num_grad)
             diff = np.sum(np.abs(grad - num_grad))
-            print "diff: ", diff
+            print("diff: ", diff)
             assert diff < tol
 
 #def test1b():

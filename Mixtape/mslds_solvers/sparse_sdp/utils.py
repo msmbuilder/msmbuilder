@@ -1,6 +1,7 @@
 """
 Implementation of various useful utility functions.
 """
+from __future__ import division
 import numpy as np
 
 # Convenience matrix access functions

@@ -1,3 +1,5 @@
+from __future__ import division
+from __future__ import print_function
 import sys
 sys.path.append("..")
 import numpy as np
@@ -60,9 +62,9 @@ def test_log_det():
             num_grad = numerical_derivative(obj, X, eps)
             diff = np.sum(np.abs(grad - num_grad))
             if diff >= tol:
-                print "grad:\n", grad
-                print "num_grad:\n", num_grad
-                print "diff: ", diff
+                print("grad:\n", grad)
+                print("num_grad:\n", num_grad)
+                print("diff: ", diff)
             assert diff < tol
 
 def test_A_dynamics():
@@ -93,8 +95,8 @@ def test_A_dynamics():
             grad = grad_obj(X)
             num_grad = numerical_derivative(obj, X, eps)
             diff = np.sum(np.abs(grad - num_grad))
-            print "X:\n", X
-            print "grad:\n", grad
-            print "num_grad:\n", num_grad
-            print "diff: ", diff
+            print("X:\n", X)
+            print("grad:\n", grad)
+            print("num_grad:\n", num_grad)
+            print("diff: ", diff)
             assert diff < tol

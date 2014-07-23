@@ -10,6 +10,8 @@ Springer Berlin Heidelberg, 2008, 306:316.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
+from __future__ import print_function
+from __future__ import absolute_import
 import scipy
 import scipy.sparse.linalg as linalg
 import scipy.linalg
@@ -18,8 +20,13 @@ import numpy as np
 import pdb
 import time
 from numbers import Number
-from feasibility_sdp_solver import *
+from .feasibility_sdp_solver import *
 import scipy.optimize
+
+try:
+    input = raw_input
+except NameError:
+    pass
 
 class bcolors:
     HEADER = '\033[95m'
@@ -63,18 +70,18 @@ class GeneralSolver(object):
         #################################################
         """
         display_string = bcolors.HEADER + display_string + bcolors.ENDC
-        print display_string
+        print(display_string)
 
     def interactive_wait(self, interactive):
         if interactive:
-            wait = raw_input("Press ENTER to continue")
+            wait = input("Press ENTER to continue")
 
     def print_status(self, disp, debug, status, X, L, U):
         if disp:
-            print "\t%s in (%f, %f)" % (status, L, U)
+            print("\t%s in (%f, %f)" % (status, L, U))
             if debug:
-                print "\tobj(X): ", self.obj(X)
-                print "\tX:\n", X
+                print("\tobj(X): ", self.obj(X))
+                print("\tX:\n", X)
 
     def solve(self, N_iter, tol, search_tol, eps=1e-4, X_init=None,
         interactive=False, disp=True, verbose=False, debug=False,
