@@ -1,5 +1,7 @@
+from __future__ import division
+from __future__ import absolute_import
 import numpy as np
-from utils import get_entries, set_entries
+from .utils import get_entries, set_entries
 
 def simple_equality_constraint():
     """

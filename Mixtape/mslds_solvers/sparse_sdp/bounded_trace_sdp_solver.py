@@ -10,6 +10,8 @@ for approximate solution of sparse semidefinite programs.
 @author: Bharath Ramsundar
 @email: bharath.ramsundar@gmail.com
 """
+from __future__ import division
+from __future__ import print_function
 import numpy as np
 import scipy.linalg
 import scipy.sparse.linalg
@@ -172,21 +174,21 @@ class BoundedTraceSolver(object):
                         or np.sum(np.abs(X_prop - X)) < min_step_size)):
                 delta = fX_prop - fX
                 if disp:
-                    print "\t\t\tdelta: ", delta
-                    print "\t\t\tEarly Stopping."
+                    print("\t\t\tdelta: ", delta)
+                    print("\t\t\tEarly Stopping.")
                 break
             elif fX_prop > fX:
                 delta = fX_prop - fX
                 X = X_prop
                 fX = fX_prop
             if disp:
-                print "\tIteration %d" % j
-                print "\t\tf(X): ", f(X)
-                print "\t\t\tdelta: ", delta
-                print "\t\t\tTr(X): ", np.trace(X)
-                print "\t\t\talpha: ", alpha
-                print "\t\t\tmethod: ", method
+                print("\tIteration %d" % j)
+                print("\t\tf(X): ", f(X))
+                print("\t\t\tdelta: ", delta)
+                print("\t\t\tTr(X): ", np.trace(X))
+                print("\t\t\talpha: ", alpha)
+                print("\t\t\tmethod: ", method)
             if disp and debug:
-                print "X\n", X
-                print "grad\n", grad
+                print("X\n", X)
+                print("grad\n", grad)
         return X

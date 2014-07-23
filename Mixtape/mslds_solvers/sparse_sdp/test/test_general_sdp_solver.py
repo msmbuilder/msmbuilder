@@ -1,3 +1,5 @@
+from __future__ import division
+from __future__ import print_function
 import sys
 sys.path.append("..")
 from general_sdp_solver import *
@@ -36,7 +38,7 @@ def test1():
             Fs, gradFs, Gs, gradGs)
     (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, disp=True, debug=False, Rs = Rs)
-    print "X:\n", X
+    print("X:\n", X)
     assert succeed == True
     assert np.abs(X[1,1] - 0.75) < search_tol
 
@@ -68,7 +70,7 @@ def test2():
             Fs, gradFs, Gs, gradGs)
     (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=True,
             interactive=False, debug=False, Rs = Rs)
-    print "X:\n", X
+    print("X:\n", X)
     assert succeed == True
     assert np.abs(np.trace(X) - 25) < 2 
 
@@ -93,7 +95,7 @@ def test3():
     Rs = [10, 100]
     dim = 2
     As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
-    g = lambda(X): X[0,0]**2 + X[1,1]**2 - 1.
+    g = lambda X: X[0,0]**2 + X[1,1]**2 - 1.
     def gradg(X):
         (dim, _) = np.shape(X)
         grad = np.zeros(np.shape(X))
@@ -111,7 +113,7 @@ def test3():
             Fs, gradFs, Gs, gradGs)
     (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, debug=False, Rs = Rs)
-    print "X:\n", X
+    print("X:\n", X)
     assert succeed == True
     assert np.abs(X[0,0] - 0) < search_tol
     #except:
@@ -185,8 +187,8 @@ def test4():
             R_2 = scale*get_entries(X, R_2_cds)
             R_avg = (R_1 + R_2) / 2.
             Q = np.linalg.inv(R_avg)
-            print "D:\n", D
-            print "Q:\n", Q
+            print("D:\n", D)
+            print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
@@ -286,7 +288,7 @@ def test6():
             Dinv = np.linalg.inv(D)
             R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
             Rs = [R]
-            print "R: ", R
+            print("R: ", R)
 
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                     Q_constraints(block_dim, A, F, D, c)
@@ -307,8 +309,8 @@ def test6():
             R_2  = scale*get_entries(X, R_2_cds)
             R_avg = (R_1 + R_2) / 2.
             Q = np.linalg.inv(R_avg)
-            print "D:\n", D
-            print "Q:\n", Q
+            print("D:\n", D)
+            print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
@@ -373,16 +375,16 @@ def test7():
         (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 verbose=False, disp=True, interactive=False)
         # Undo trace scaling
-        print "X\n", X
+        print("X\n", X)
         if X != None:
             A_1 = get_entries(X, A_1_cds)
             A_T_1 = get_entries(X, A_T_1_cds)
             A_2 = get_entries(X, A_2_cds)
             A_T_2 = get_entries(X, A_T_2_cds)
-            print "A_1:\n", A_1
-            print "A_T_1:\n", A_T_1
-            print "A_2:\n", A_2
-            print "A_T_2:\n", A_T_2
+            print("A_1:\n", A_1)
+            print("A_T_1:\n", A_T_1)
+            print("A_2:\n", A_2)
+            print("A_T_2:\n", A_T_2)
         assert succeed == True
 
 def test8():
@@ -455,8 +457,8 @@ def test8():
             R_2  = scale*get_entries(X, R_2_cds)
             R_avg = (R_1 + R_2) / 2.
             Q = np.linalg.inv(R_avg)
-            print "D:\n", D
-            print "Q:\n", Q
+            print("D:\n", D)
+            print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
@@ -540,11 +542,11 @@ def test9():
                 A_2 = get_entries(X, A_2_cds)
                 A_T_2 = get_entries(X, A_T_2_cds)
                 A = (1./4) * (A_1 + A_T_1 + A_2 + A_T_2)
-                print "A_1:\n", A_1
-                print "A_T_1:\n", A_T_1
-                print "A_2:\n", A_2
-                print "A_T_2:\n", A_T_2
-                print "A:\n", A
+                print("A_1:\n", A_1)
+                print("A_T_1:\n", A_T_1)
+                print("A_2:\n", A_2)
+                print("A_T_2:\n", A_T_2)
+                print("A:\n", A)
             assert succeed == True
     except:
         type, value, tb = sys.exc_info()
