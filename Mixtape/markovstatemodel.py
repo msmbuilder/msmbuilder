@@ -26,6 +26,7 @@ import warnings
 import numpy as np
 import scipy.sparse
 import scipy.linalg
+from mixtape.utils import list_of_1d
 from sklearn.utils import column_or_1d, check_random_state
 from sklearn.base import BaseEstimator, TransformerMixin
 from mixtape._markovstatemodel import _transmat_mle_prinz
@@ -114,10 +115,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        sequences : list
-            List of sequences, each of which is a one-dimensional array-like
-            object of labels. Labels can be integers, strings, or other
-            orderable objects.
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
 
         Returns
         -------
@@ -130,6 +131,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         None will not be counted. The mapping_ attribute will not include the
         NaN or None.
         """
+        sequences = list_of_1d(sequences)
         # step 1. count the number of transitions
         raw_counts, mapping = _transition_counts(sequences, self.lag_time)
 
@@ -204,8 +206,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        sequences : list
-            List of sequences, each of which is one-dimensional
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
         mode : {'clip', 'fill'}
             Method by which to treat labels in `sequences` which do not have
             a corresponding index. This can be due, for example, to the ergodic
@@ -230,6 +234,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         """
         if not mode in ['clip', 'fill']:
             raise ValueError('mode must be one of ["clip", "fill"]: %s' % mode)
+        sequences = list_of_1d(sequences)
 
         f = np.vectorize(lambda k: self.mapping_.get(k, np.nan), otypes=[np.float])
 
@@ -263,6 +268,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         sequences : list
             List of sequences, each of which is one-dimensional array of labels.
         """
+        sequences = list_of_1d(sequences)
         inverse_mapping = {v: k for k, v in self.mapping_.items()}
         f = np.vectorize(inverse_mapping.get)
 
@@ -278,6 +284,13 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     def eigtransform(self, sequences, right=True, mode='clip'):
         """Transform a list of sequences by projecting the sequences onto
         the first `n_timescales` dynamical eigenvectors.
+
+        Parameters
+        ----------
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
         """
 
         result = []
@@ -344,8 +357,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        sequences : list
-            List of integer sequences, each of which is one-dimensional
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
 
         Returns
         -------
@@ -541,9 +556,10 @@ def _transition_counts(sequences, lag_time=1):
 
     Parameters
     ----------
-    sequences : list of array-like, each 1-dimensional
-        Each element of sequences should be a separate timeseries of "labels",
-        which can be integers, strings, etc.
+    sequences : list of array-like
+        List of sequences, or a single sequence. Each sequence should be a
+        1D iterable of state labels. Labels can be integers, strings, or
+        other orderable objects.
     lag_time : int
         The time (index) delay for the counts.
 
@@ -581,14 +597,7 @@ def _transition_counts(sequences, lag_time=1):
     transition counts from or to a sequence item which is NaN or None will not
     be counted. The mapping return value will not include the NaN or None.
     """
-
-    typed_sequences = []
-    for y in sequences:
-        if not hasattr(y, '__iter__'):
-            raise ValueError('sequences must be a list of arrays')
-        typed_sequences.append(column_or_1d(y, warn=True))
-
-    classes = np.unique(np.concatenate(typed_sequences))
+    classes = np.unique(np.concatenate(sequences))
     contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
     contains_none = any(c is None for c in classes)
 
@@ -605,7 +614,7 @@ def _transition_counts(sequences, lag_time=1):
     none_to_nan = np.vectorize(lambda x: np.nan if x is None else x, otypes=[np.float])
 
     counts = np.zeros((n_states, n_states), dtype=float)
-    for y in typed_sequences:
+    for y in sequences:
         from_states = y[: -lag_time: 1]
         to_states = y[lag_time::1]
 
