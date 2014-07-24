@@ -55,13 +55,16 @@ class MarkovStateModel(BaseEstimator):
         solved by numerical optimization (BFGS), and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
-    ergodic_trim : bool
-        Trim states to achieve an ergodic model. The model is restricted
-        to the largest strongly connected component in the undirected
-        transition counts.
+    ergodic_trim : bool, default=True
+        Build a model using only the maximal strongly ergodic subgraph of the
+        input data.
+    trim_weight : int, default=1
+        Threshold by which ergodicity is judged in the input data. Greater or
+        equal to this many transition counts in both directions are required
+        to include an edge in the ergodic subgraph.
     prior_counts : float, optional
-        Add a number of "pseudo counts" to each entry in the counts matrix,
-        `rawcounts_`. When prior_counts == 0 (default), the assigned transition
+        Add a number of "pseudo counts" to each entry in the counts matrix.
+        When prior_counts == 0 (default), the assigned transition
         probability between two states with no observed transitions will be zero,
         whereas when prior_counts > 0, even this unobserved transitions will be
         given nonzero probability. Note that prior_counts _totally_ destroys
@@ -91,7 +94,7 @@ class MarkovStateModel(BaseEstimator):
     """
 
     def __init__(self, lag_time=1, n_timescales=None,
-                 reversible_type='mle', ergodic_trim=True, trim_weight=0,
+                 reversible_type='mle', ergodic_trim=True, trim_weight=1,
                  prior_counts=0, verbose=True):
         self.reversible_type = reversible_type
         self.ergodic_trim = ergodic_trim
@@ -304,7 +307,7 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     # return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
     #
 
-def _strongly_connected_subgraph(counts, weight=0, verbose=True):
+def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     """Trim a transition count matrix down to its maximal
     strongly ergodic subgraph.
 
@@ -319,7 +322,9 @@ def _strongly_connected_subgraph(counts, weight=0, verbose=True):
     counts : np.array, shape=(n_states_in, n_states_in)
         Input set of directed counts.
     weight : float
-        The cutoff criterion.
+        Threshold by which ergodicity is judged in the input data. Greater or
+        equal to this many transition counts in both directions are required
+        to include an edge in the ergodic subgraph.
     verbose : bool
         Print a short statement
 
@@ -336,7 +341,7 @@ def _strongly_connected_subgraph(counts, weight=0, verbose=True):
     """
     n_states_input = counts.shape[0]
     n_components, component_assignments = scipy.sparse.csgraph.connected_components(
-        scipy.sparse.csr_matrix(counts) > weight, connection="strong")
+        scipy.sparse.csr_matrix(counts >= weight), connection="strong")
     populations = np.array(counts.sum(0)).flatten()
     component_pops = np.array([populations[component_assignments == i].sum() for i in range(n_components)])
     which_component = component_pops.argmax()

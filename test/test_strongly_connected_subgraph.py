@@ -34,6 +34,7 @@ def test_5():
     tC, m = _strongly_connected_subgraph(np.eye(3))
     assert tC.shape == (1,1)
 
+
 def test_6():
     tC, m = _strongly_connected_subgraph(np.eye(3), -1)
     print(tC)
