@@ -291,6 +291,14 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
             List of sequences, or a single sequence. Each sequence should be a
             1D iterable of state labels. Labels can be integers, strings, or
             other orderable objects.
+            
+        Returns
+        -------
+        TODO
+        
+        Notes
+        -----
+        TODO
         """
 
         result = []
