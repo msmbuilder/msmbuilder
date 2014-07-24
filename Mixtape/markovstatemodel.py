@@ -22,6 +22,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import sys
 import warnings
 import numpy as np
 import scipy.sparse
@@ -477,6 +478,60 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         self._is_dirty = False
 
         return u, lv, rv
+
+    def summary(self, out=sys.stdout):
+        """Print some diagnostic summary statistics about this Markov model
+        """
+
+        doc = '''Markov state model
+------------------
+Lag time         : {lag_time}
+Reversible type  : {reversible_type}
+Ergodic trim     : {ergodic_trim}
+Trim weight      : {trim_weight}
+Prior counts     : {prior_counts}
+
+Number of states : {n_states}
+Number of nonzero entries in counts matrix : {counts_nz} ({percent_counts_nz}%)
+Nonzero counts matrix entries:
+    Min.   : {cnz_min:.1f}
+    1st Qu.: {cnz_1st:.1f}
+    Median : {cnz_med:.1f}
+    Mean   : {cnz_mean:.1f}
+    3rd Qu.: {cnz_3rd:.1f}
+    Max.   : {cnz_max:.1f}
+
+Total transition counts :
+    {cnz_sum} counts
+Total transition counts / lag_time:
+    {cnz_sum_per_lag} units
+Timescales:
+    [{ts}]  units
+
+'''
+        counts_nz = np.count_nonzero(self.countsmat_)
+        cnz = self.countsmat_[np.nonzero(self.countsmat_)]
+
+        out.write(doc.format(
+            lag_time=self.lag_time,
+            reversible_type=self.reversible_type,
+            ergodic_trim=self.ergodic_trim,
+            trim_weight=self.trim_weight,
+            prior_counts=self.prior_counts,
+            n_states = self.n_states_,
+            counts_nz = counts_nz,
+            percent_counts_nz = 100 * counts_nz / self.countsmat_.size,
+            cnz_min=np.min(cnz),
+            cnz_1st=np.percentile(cnz, 25),
+            cnz_med=np.percentile(cnz, 50),
+            cnz_mean=np.mean(cnz),
+            cnz_3rd=np.percentile(cnz, 75),
+            cnz_max=np.max(cnz),
+            cnz_sum=np.sum(cnz),
+            cnz_sum_per_lag=np.sum(cnz)/self.lag_time,
+            ts=', '.join(['{:.2f}'.format(t) for t in self.timescales_]),
+            ))
+
 
     @property
     def timescales_(self):

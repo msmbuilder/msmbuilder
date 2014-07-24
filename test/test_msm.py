@@ -220,3 +220,19 @@ def test_13():
         np.testing.assert_almost_equal(
             np.dot(model.right_eigenvectors_[:, i], model.right_eigenvectors_[:, i] *
             model.populations_), 1)
+
+
+def test_14():
+    from mixtape.datasets import load_doublewell
+    from mixtape.cluster import NDGrid
+    from sklearn.pipeline import Pipeline
+
+    ds = load_doublewell(random_state=0)
+
+    p = Pipeline([
+        ('ndgrid', NDGrid(n_bins_per_feature=100)),
+        ('msm', MarkovStateModel(lag_time=100))
+    ])
+
+    p.fit(ds.trajectories)
+    p.named_steps['msm'].summary()
