@@ -27,7 +27,7 @@ import numpy as np
 import scipy.sparse
 import scipy.linalg
 from mixtape.utils import list_of_1d
-from sklearn.utils import column_or_1d, check_random_state
+from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, TransformerMixin
 from mixtape._markovstatemodel import _transmat_mle_prinz
 
@@ -82,10 +82,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         The semantics of ``mapping_[i] = j`` is that state ``i`` from the
         "input space" is represented by the index ``j`` in this MSM.
     countsmat_ : array_like, shape = (n_states_, n_states_)
-        Symmetrized transition counts. countsmat_[i, j] is the expected
-        number of transitions from state i to state j after correcting
-        for reversibly. The indices `i` and `j` are the "internal" indices
-        described above.
+        Number of transition counts between states. countsmat_[i, j] is counted
+        during `fit()`. The indices `i` and `j` are the "internal" indices
+        described above. No correction for reversibility is made to this
+        matrix.
     transmat_ : array_like, shape = (n_states_, n_states_)
         Maximum likelihood estimate of the reversible transition matrix.
         The indices `i` and `j` are the "internal" indices described above.
@@ -106,9 +106,16 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         # Keep track of whether to recalculate eigensystem
         self._is_dirty = True
-        # Cached results
-        self._eigenvectors = None
+        # Cached eigensystem
         self._eigenvalues = None
+        self._left_eigenvectors = None
+        self._right_eigenvectors = None
+
+        self.mapping_ = None
+        self.countsmat_ = None
+        self.transmat_ = None
+        self.n_states_ = None
+        self.populations_ = None
 
     def fit(self, sequences, y=None):
         """Estimate model parameters.
@@ -158,7 +165,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         }
         try:
             # pull out the appropriate method
-            fit_method =  method_map[str(self.reversible_type).lower()]
+            fit_method = method_map[str(self.reversible_type).lower()]
             # step 3. estimate transition matrix
             self.transmat_, self.populations_ = fit_method(self.countsmat_)
         except KeyError:
@@ -201,7 +208,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return transmat, populations
 
     def transform(self, sequences, mode='clip'):
-        """Transform a list of sequences to internal indexing
+        r"""Transform a list of sequences to internal indexing
 
         Recall that `sequences` can be arbitrary labels, whereas `transmat_` and
         `countsmat_` are indexed with integers between 0 and `n_states` - 1.
@@ -246,7 +253,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         for y in sequences:
             a = f(y)
             if mode == 'fill':
-                if np.all(np.mod(a, 1) ==  0):
+                if np.all(np.mod(a, 1) == 0):
                     result.append(a.astype(int))
                 else:
                     result.append(a)
@@ -286,7 +293,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return result
 
     def eigtransform(self, sequences, right=True, mode='clip'):
-        """Transform a list of sequences by projecting the sequences onto
+        r"""Transform a list of sequences by projecting the sequences onto
         the first `n_timescales` dynamical eigenvectors.
 
         Parameters
@@ -346,7 +353,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return result
 
     def sample(self, state=None, n_steps=100, random_state=None):
-        """Generate a random sequence of states by propagating the model
+        r"""Generate a random sequence of states by propagating the model
 
         Parameters
         ----------
@@ -381,7 +388,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         if state is None:
             initial = np.sum(np.cumsum(self.populations_) < r[0])
-        elif hasattr(state, '__len__') and len(state) == self.n_states:
+        elif hasattr(state, '__len__') and len(state) == self.n_states_:
             initial = np.sum(np.cumsum(state) < r[0])
         else:
             initial = self.mapping_[state]
@@ -395,7 +402,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return self.inverse_transform([chain])[0]
 
     def score_ll(self, sequences):
-        """log of the likelihood of sequences with respect to the model
+        r"""log of the likelihood of sequences with respect to the model
 
         Parameters
         ----------
@@ -469,7 +476,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
     @property
     def left_eigenvectors_(self):
-        """Left eigenvectors, :math:`\Phi`, of the transition matrix.
+        r"""Left eigenvectors, :math:`\Phi`, of the transition matrix.
 
         TODO: describe normalization
         """
@@ -478,7 +485,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
     @property
     def right_eigenvectors_(self):
-        """Right eigenvectors, :math:`\Psi`, of the transition matrix.
+        r"""Right eigenvectors, :math:`\Psi`, of the transition matrix.
 
         TODO: describe normalization
         """
@@ -596,7 +603,7 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
 
     if n_components == n_states_input and counts[np.ix_(keys, keys)] == 0:
         # if we have a completely disconnected graph with no self-transitions
-        return np.zeros((0,0)), {}
+        return np.zeros((0, 0)), {}
 
     # values are the "output" state that these guys are mapped to
     values = np.arange(len(keys))
