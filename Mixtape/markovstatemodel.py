@@ -304,6 +304,8 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
                 \Phi_i(x) = \Psi_i(x) * \mu(x)
 
+            For more details, refer to reference [1].
+
         mode : {'clip', 'fill'}
             Method by which to treat labels in `sequences` which do not have
             a corresponding index. This can be due, for example, to the ergodic
