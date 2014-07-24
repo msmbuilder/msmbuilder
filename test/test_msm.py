@@ -85,4 +85,64 @@ def test_6():
     assert not np.isfinite(model.score_ll([['c']]))
     assert not np.isfinite(model.score_ll([['c', 'c']]))
     assert not np.isfinite(model.score_ll([['a', 'c']]))
-    
+
+def test_7():
+    # test timescales
+    model = MarkovStateModel()
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1]])
+    assert np.all(np.isfinite(model.timescales_))
+    assert len(model.timescales_) == 1
+
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert np.all(np.isfinite(model.timescales_))
+    assert len(model.timescales_) == 2
+    assert model.n_states_ == 3
+
+    model = MarkovStateModel(n_timescales=1)
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert len(model.timescales_) == 1
+
+    model = MarkovStateModel(n_timescales=100)
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert len(model.timescales_) == 2
+
+
+def test_8():
+    # test transform
+    model = MarkovStateModel()
+    model.fit([['a', 'a', 'b', 'b', 'c', 'c', 'a', 'a']])
+    assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
+
+    v = model.transform([['a', 'b', 'c']])
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.transform([['a', 'b', 'c', 'd']], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.transform([['a', 'b', 'c', 'd']], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.transform([['a', 'b', 'c', 'd']], 'fill')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.float
+    np.testing.assert_array_equal(v[0], [0, 1, 2, np.nan])
+
+    v = model.transform([['a', 'a', 'SPLIT', 'b', 'b', 'b']], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 2
+    assert v[0].dtype == np.int
+    assert v[1].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 0])
+    np.testing.assert_array_equal(v[1], [1, 1, 1])
+
+
