@@ -441,7 +441,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         if n_timescales is None:
             n_timescales = self.n_states_ - 1
 
-        u, lv, rv = _eigs(self.transmat_, k=n_timescales + 1, left=True, right=True)
+        u, lv, rv = _eigs(self.transmat_, k=n_timescales + 1)
 
         order = np.argsort(-np.real(u))
         u = np.real_if_close(u[order])
