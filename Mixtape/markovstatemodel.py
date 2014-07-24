@@ -22,14 +22,11 @@
 
 from __future__ import print_function, division, absolute_import
 
-import time
-import warnings
 import numpy as np
 import scipy.sparse
 import scipy.linalg
 from sklearn.utils import column_or_1d
-from sklearn.base import BaseEstimator
-from mdtraj.utils import ensure_type
+from sklearn.base import BaseEstimator, BaseTransformer
 from mixtape._markovstatemodel import _transmat_mle_prinz
 
 __all__ = ['MarkovStateModel']
@@ -38,7 +35,7 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator):
+class MarkovStateModel(BaseEstimator, BaseTransformer):
     """Reversible Markov State Model
 
     Parameters
@@ -116,7 +113,7 @@ class MarkovStateModel(BaseEstimator):
         Parameters
         ----------
         sequences : list
-            List of integer sequences, each of which is one-dimensional
+            List of sequences, each of which is one-dimensional
         y : unused parameter
 
         Returns
@@ -148,9 +145,30 @@ class MarkovStateModel(BaseEstimator):
             self.transmat_, self.populations_ = method(self.countsmat_)
         except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
-                ', '.join(available_reversible_type), self.reversible_type))
+                ', '.join(method_map.keys()), self.reversible_type))
 
         return self
+
+    def transform(self, sequences, mode='clip'):
+        """Transform a set of sequences to "internal" indexing
+
+        Parameters
+        ----------
+        sequences : list
+            List of sequences, each of which is one-dimensional
+        mode : {'clip', 'fill'}
+            Method to treat
+
+        Returns
+        -------
+        mapped_sequences : list
+        """
+        raise NotImplementedError()  # TODO
+
+    def partial_transform(self, sequence, mode='clip'):
+        """Transform a 
+        """
+        raise NotImplementedError()  # TODO
 
     def _fit_mle(self, counts):
         transmat, populations = _transmat_mle_prinz(
