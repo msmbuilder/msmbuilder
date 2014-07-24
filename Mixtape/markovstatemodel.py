@@ -839,10 +839,10 @@ def _eigs(A, k=6, **kwargs):
     if 1 <= k < A.shape[0] - 1:
         u, rv = scipy.sparse.linalg.eigs(A, k=k, **kwargs)
         u, lv = scipy.sparse.linalg.eigs(A.T, k=k, **kwargs)
+    else:
+        u, lv, rv = scipy.linalg.eig(A, left=True, right=True)
 
-    u, lv, rv = scipy.linalg.eig(A, left=True, right=True)
     indices = np.argsort(-np.real(u))
-
     u = u[indices[:k]]
     lv = lv[:, indices[:k]]
     rv = rv[:, indices[:k]]
