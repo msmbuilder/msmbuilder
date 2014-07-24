@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import os
 import numpy as np
 from mdtraj.testing import eq
@@ -146,6 +146,7 @@ def test_8():
     np.testing.assert_array_equal(v[0], [0, 0])
     np.testing.assert_array_equal(v[1], [1, 1, 1])
 
+
 def test_9():
     # what if the input data contains NaN? They should be ignored
     model = MarkovStateModel(ergodic_trim=False)
@@ -154,3 +155,39 @@ def test_9():
     model.fit([seq])
     assert model.n_states_ == 2
     assert model.mapping_ == {0:0, 1:1}
+
+    model = MarkovStateModel()
+    seq = [0, 1, None, 0, 1]
+    model.fit([seq])
+    assert model.n_states_ == 2
+    assert model.mapping_ == {0:0, 1:1}
+
+def test_10():
+    # test inverse transform
+    model = MarkovStateModel(reversible_type=None, ergodic_trim=False)
+    model.fit([['a', 'b', 'c', 'a', 'a', 'b']])
+    v = model.inverse_transform([[0, 1, 2]])
+    assert len(v) == 1
+    np.testing.assert_array_equal(v[0], ['a', 'b', 'c'])
+
+def test_11():
+    # test sample
+    model = MarkovStateModel()
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    sample = model.sample(n_steps=1000, random_state=0)
+    assert isinstance(sample, np.ndarray)
+    assert len(sample) == 1000
+
+    bc = np.bincount(sample)
+    diff = model.populations_ - (bc / np.sum(bc))
+
+    assert np.sum(np.abs(diff)) < 0.1
+
+def test_12():
+    model = MarkovStateModel(n_timescales=1)
+    model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert len(model.eigenvalues_) == 2
+    t = model.eigtransform([[0, 1]], right=True)
+
+    assert t[0][0] == model.right_eigenvectors_[0, 1]
+    assert t[0][1] == model.right_eigenvectors_[1, 1]
