@@ -22,10 +22,11 @@
 
 from __future__ import print_function, division, absolute_import
 
+import warnings
 import numpy as np
 import scipy.sparse
 import scipy.linalg
-from sklearn.utils import column_or_1d
+from sklearn.utils import column_or_1d, check_random_state
 from sklearn.base import BaseEstimator, TransformerMixin
 from mixtape._markovstatemodel import _transmat_mle_prinz
 
@@ -103,7 +104,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         self.verbose = verbose
 
         # Keep track of whether to recalculate eigensystem
-        self.is_dirty = True
+        self._is_dirty = True
         # Cached results
         self._eigenvectors = None
         self._eigenvalues = None
@@ -114,12 +115,20 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         sequences : list
-            List of sequences, each of which is one-dimensional
-        y : unused parameter
+            List of sequences, each of which is a one-dimensional array-like
+            object of labels. Labels can be integers, strings, or other
+            orderable objects.
 
         Returns
         -------
         self
+
+        Notes
+        -----
+        `None` and `NaN` are recognized immediately as invalid labels.
+        Therefore, transition counts from or to a sequence item which is NaN or
+        None will not be counted. The mapping_ attribute will not include the
+        NaN or None.
         """
         # step 1. count the number of transitions
         raw_counts, mapping = _transition_counts(sequences, self.lag_time)
@@ -150,10 +159,15 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(method_map.keys()), self.reversible_type))
 
-        self.is_dirty = True
+        self._is_dirty = True
         return self
 
     def _fit_mle(self, counts):
+        if not self.ergodic_trim:
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always")
+                warnings.warn("reversible_type='mle' and ergodic_trim=False are incompatibile")
+
         transmat, populations = _transmat_mle_prinz(
             counts + self.prior_counts)
 
@@ -172,10 +186,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         rc = counts + self.prior_counts
         transmat = rc.astype(float) / rc.sum(axis=1)[:, None]
 
-        u, v = _eigs(transmat.T, k=1, which='LR')
+        u, lv, rv = _eigs(transmat, k=1, which='LR')
         assert len(u) == 1
 
-        populations = v[:, 0]
+        populations = lv[:, 0]
         populations /= populations.sum(dtype=float)
 
         return transmat, populations
@@ -234,11 +248,96 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         return result
 
-    def eigtransform(self, sequences):
-        pass
+    def inverse_transform(self, sequences):
+        """Transform a list of sequences from internal indexing into
+        labels
 
-    def partial_eigtransform(self, sequences):
-        pass
+        Parameters
+        ----------
+        sequences : list
+            List of sequences, each of which is one-dimensional array of integers
+            in 0, ..., n_states_ - 1.
+
+        Returns
+        -------
+        sequences : list
+            List of sequences, each of which is one-dimensional array of labels.
+        """
+        inverse_mapping = {v: k for k, v in self.mapping_.items()}
+        f = np.vectorize(inverse_mapping.get)
+
+        result = []
+        for y in sequences:
+            uq = np.unique(y)
+            if not np.all(np.logical_and(0 <= uq, uq < self.n_states_)):
+                raise ValueError('sequence must be between 0 and n_states-1')
+
+            result.append(f(y))
+        return result
+
+    def eigtransform(self, sequences, right=True, mode='clip'):
+        """Transform a list of sequences by projecting the sequences onto
+        the first `n_timescales` dynamical eigenvectors.
+        """
+
+        result = []
+        for y in self.transform(sequences, mode=mode):
+            if right:
+                op = self.right_eigenvectors_[:, 1:]
+            else:
+                op = self.left_eigenvectors_[:, 1:]
+            result.append(np.take(op, y))
+
+        return result
+
+    def sample(self, state=None, n_steps=100, random_state=None):
+        """Generate a random sequence of states by propagating the model
+
+        Parameters
+        ----------
+        state : {None, ndarray, label}
+            Specify the starting state for the chain.
+
+            ``None``
+                Choose the initial state by randomly drawing from the model's
+                stationary distribution.
+            ``array-like``
+                If ``state`` is a 1D array with length equal to ``n_states_``,
+                then it is is interpreted as an initial multinomial distribution
+                from which to draw the chain's initial state. Note that the indexing
+                semantics of this array must match the _internal_ indexing of
+                this model.
+            otherwise
+                Otherwise, ``state`` is interpreted as a particular
+                deterministic state label from which to begin the trajectory.
+        n_steps : int
+            Lengths of the resulting trajectory
+        random_state : int or RandomState instance or None (default)
+            Pseudo Random Number generator seed control. If None, use the
+            numpy.random singleton.
+
+        Returns
+        -------
+        sequence : array of length n_steps
+            A randomly sampled label sequence
+        """
+        random = check_random_state(random_state)
+        r = random.rand(1 + n_steps)
+
+        if state is None:
+            initial = np.sum(np.cumsum(self.populations_) < r[0])
+        elif hasattr(state, '__len__') and len(state) == self.n_states:
+            initial = np.sum(np.cumsum(state) < r[0])
+        else:
+            initial = self.mapping_[state]
+
+        cstr = np.cumsum(self.transmat_, axis=1)
+
+        chain = [initial]
+        for i in range(1, n_steps):
+            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
+
+        return self.inverse_transform([chain])[0]
 
     def score_ll(self, sequences):
         """log of the likelihood of sequences with respect to the model
@@ -268,43 +367,50 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return np.nansum(np.log(transmat_slice) * counts)
 
     def _get_eigensystem(self):
-        if not self.is_dirty:
-            return self._eigenvalues, self._eigenvectors
+        if not self._is_dirty:
+            return self._eigenvalues, self._left_eigenvectors, self._right_eigenvectors
 
         n_timescales = self.n_timescales
         if n_timescales is None:
             n_timescales = self.n_states_ - 1
 
-        u, v = _eigs(self.transmat_.T, k=n_timescales + 1)
+        u, lv, rv = _eigs(self.transmat_, k=n_timescales + 1, left=True, right=True)
 
         order = np.argsort(-np.real(u))
         u = np.real_if_close(u[order])
-        v = np.real_if_close(v[:, order])
+        lv = np.real_if_close(lv[:, order])
+        rv = np.real_if_close(rv[:, order])
 
         self._eigenvalues = u
-        self._eigenvectors = v
-        self.is_dirty = False
+        self._left_eigenvectors = lv
+        self._right_eigenvectors = rv
 
-        return u, v
+        self._is_dirty = False
+
+        return u, lv, rv
 
     @property
     def timescales_(self):
-        u, v = self._get_eigensystem()
+        u, lv, rv = self._get_eigensystem()
 
         # make sure to leave off equilibrium distribution
         timescales = - self.lag_time / np.log(u[1:])
         return timescales
 
     @property
-    def eigenvectors_(self):
-        u, v = self._get_eigensystem()
-        return v
-
-    @property
     def eigenvalues_(self):
-        u, v = self._get_eigensystem()
+        u, lv, rv = self._get_eigensystem()
         return u
 
+    @property
+    def left_eigenvectors_(self):
+        u, lv, rv = self._get_eigensystem()
+        return lv
+
+    @property
+    def right_eigenvectors_(self):
+        u, lv, rv = self._get_eigensystem()
+        return rv
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
     """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
@@ -471,9 +577,9 @@ def _transition_counts(sequences, lag_time=1):
 
     Notes
     -----
-    `NaN` recognized immediate as an invalid state. Therefore, transition counts
-    from or to a sequence item which is NaN will not be counted. The mapping
-    return value will not include the NaN.
+    `None` and `NaN` are recognized immediately as invalid labels. Therefore,
+    transition counts from or to a sequence item which is NaN or None will not
+    be counted. The mapping return value will not include the NaN or None.
     """
 
     typed_sequences = []
@@ -484,21 +590,30 @@ def _transition_counts(sequences, lag_time=1):
 
     classes = np.unique(np.concatenate(typed_sequences))
     contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
+    contains_none = any(c is None for c in classes)
+
     if contains_nan:
         classes = classes[~np.isnan(classes)]
+    if contains_none:
+        classes = [c for c in classes if c is not None]
 
     n_states = len(classes)
 
     mapping = dict(zip(classes, range(n_states)))
     mapping_is_identity = np.all(classes == np.arange(n_states))
     mapping_fn = np.vectorize(mapping.get, otypes=[np.int])
+    none_to_nan = np.vectorize(lambda x: np.nan if x is None else x, otypes=[np.float])
 
     counts = np.zeros((n_states, n_states), dtype=float)
     for y in typed_sequences:
         from_states = y[: -lag_time: 1]
         to_states = y[lag_time::1]
 
-        if contains_nan:
+        if contains_none:
+            from_states = none_to_nan(from_states)
+            to_states = none_to_nan(to_states)
+
+        if contains_nan or contains_none:
             # mask out nan in either from_states or to_states
             mask = ~(np.isnan(from_states) + np.isnan(to_states))
             from_states = from_states[mask]
@@ -531,8 +646,14 @@ def _dict_compose(dict1, dict2):
 
 def _eigs(A, k=6, **kwargs):
     if 1 <= k < A.shape[0] - 1:
-        return scipy.sparse.linalg.eigs(A, k=k, **kwargs)
-    u, v = scipy.linalg.eig(A)
-    indices = np.argsort(-np.real(u))
-    return u[indices[:k]], v[:, indices[:k]]
+        u, rv = scipy.sparse.linalg.eigs(A, k=k, **kwargs)
+        u, lv = scipy.sparse.linalg.eigs(A.T, k=k, **kwargs)
 
+    u, lv, rv = scipy.linalg.eig(A, left=True, right=True)
+    indices = np.argsort(-np.real(u))
+
+    u = u[indices[:k]]
+    lv = lv[:, indices[:k]]
+    rv = rv[:, indices[:k]]
+
+    return u, lv, rv
