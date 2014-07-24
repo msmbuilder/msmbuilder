@@ -295,14 +295,42 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
             List of sequences, or a single sequence. Each sequence should be a
             1D iterable of state labels. Labels can be integers, strings, or
             other orderable objects.
-            
+
+        right : bool
+            Which eigenvectors to map onto. Both the left (:math:`\Phi`) and
+            the right (:math`\Psi`) eigenvectors of the transition matrix are
+            commonly used, and differ in their normalization. The two sets of
+            eigenvectors are related by the stationary distribution ::
+
+                \Phi_i(x) = \Psi_i(x) * \mu(x)
+
+        mode : {'clip', 'fill'}
+            Method by which to treat labels in `sequences` which do not have
+            a corresponding index. This can be due, for example, to the ergodic
+            trimming step.
+
+           ``clip``
+               Unmapped labels are removed during transform. If they occur
+               at the beginning or end of a sequence, the resulting transformed
+               sequence will be shorted. If they occur in the middle of a
+               sequence, that sequence will be broken into two (or more)
+               sequences. (Default)
+            ``fill``
+               Unmapped labels will be replaced with NaN, to signal missing
+               data. [The use of NaN to signal missing data is not fantastic,
+               but it's consistent with current behavior of the ``pandas``
+               library.]
+
         Returns
         -------
-        TODO
-        
-        Notes
-        -----
-        TODO
+        transformed : list of 2d arrays
+            Each element of transformed is an array of shape ``(n_samples,
+            n_timescales)`` containing the transformed data.
+
+        References
+        ----------
+        .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
+        Generation and validation." J. Chem. Phys. 134.17 (2011): 174105.
         """
 
         result = []
@@ -408,6 +436,8 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         lv = np.real_if_close(lv[:, order])
         rv = np.real_if_close(rv[:, order])
 
+        # TODO: Normalize lv and rv correctly.
+
         self._eigenvalues = u
         self._left_eigenvectors = lv
         self._right_eigenvectors = rv
@@ -418,6 +448,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
     @property
     def timescales_(self):
+        """Implied relaxation timescales of the model.
+
+        [TODO]
+        """
         u, lv, rv = self._get_eigensystem()
 
         # make sure to leave off equilibrium distribution
@@ -426,16 +460,26 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
     @property
     def eigenvalues_(self):
+        """Eigenvalues of the transition matrix.
+        """
         u, lv, rv = self._get_eigensystem()
         return u
 
     @property
     def left_eigenvectors_(self):
+        """Left eigenvectors, :math:`\Phi`, of the transition matrix.
+
+        TODO: describe normalization
+        """
         u, lv, rv = self._get_eigensystem()
         return lv
 
     @property
     def right_eigenvectors_(self):
+        """Right eigenvectors, :math:`\Psi`, of the transition matrix.
+
+        TODO: describe normalization
+        """
         u, lv, rv = self._get_eigensystem()
         return rv
 
