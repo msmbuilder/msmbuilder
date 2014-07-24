@@ -279,7 +279,6 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
        Model Selection for Markov Models of Biomolecular Dynamics." J. Phys.
        Chem B. (2014)
     """
-    import msmbuilder.MSMLib as msmlib
     from mixtape import cluster
     grid = [model for (name, model) in estimator.steps if isinstance(model, cluster.NDGrid)][0]
     msm = [model for (name, model) in estimator.steps if isinstance(model, MarkovStateModel)][0]
