@@ -184,10 +184,39 @@ def test_11():
     assert np.sum(np.abs(diff)) < 0.1
 
 def test_12():
+    # test eigtransform
     model = MarkovStateModel(n_timescales=1)
     model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
     assert len(model.eigenvalues_) == 2
     t = model.eigtransform([[0, 1]], right=True)
-
     assert t[0][0] == model.right_eigenvectors_[0, 1]
     assert t[0][1] == model.right_eigenvectors_[1, 1]
+
+    s = model.eigtransform([[0, 1]], right=False)
+    assert s[0][0] == model.left_eigenvectors_[0, 1]
+    assert s[0][1] == model.left_eigenvectors_[1, 1]
+
+def test_13():
+    model = MarkovStateModel(n_timescales=2)
+    model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 3, 3, 1, 1, 2, 2, 0, 0]])
+    left_right = np.dot(model.left_eigenvectors_.T, model.right_eigenvectors_)
+
+    # check biorthonormal
+    np.testing.assert_array_almost_equal(
+        left_right,
+        np.eye(3))
+
+    # check that the stationary left eigenvector is normalized to be 1
+    np.testing.assert_almost_equal(model.left_eigenvectors_[:, 0].sum(), 1)
+
+    # the left eigenvectors satisfy <\phi_i, \phi_i>_{\mu^{-1}} = 1
+    for i in range(3):
+        np.testing.assert_almost_equal(
+            np.dot(model.left_eigenvectors_[:, i], model.left_eigenvectors_[:, i] /
+            model.populations_), 1)
+
+    # and that the right eigenvectors satisfy  <\psi_i, \psi_i>_{\mu} = 1
+    for i in range(3):
+        np.testing.assert_almost_equal(
+            np.dot(model.right_eigenvectors_[:, i], model.right_eigenvectors_[:, i] *
+            model.populations_), 1)

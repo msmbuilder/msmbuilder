@@ -165,7 +165,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         }
         try:
             # pull out the appropriate method
-            fit_method = method_map[str(self.reversible_type).lower()]
+            fit_method = fit_method_map[str(self.reversible_type).lower()]
             # step 3. estimate transition matrix
             self.transmat_, self.populations_ = fit_method(self.countsmat_)
         except KeyError:
@@ -311,7 +311,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
                 \Phi_i(x) = \Psi_i(x) * \mu(x)
 
-            For more details, refer to reference [1].
+            In the MSM literature, the right vectors (default here) are
+            approximations to the transfer operator eigenfunctions, whereas
+            the left eigenfunction are approximations to the propagator
+            eigenfunctions. For more details, refer to reference [1].
 
         mode : {'clip', 'fill'}
             Method by which to treat labels in `sequences` which do not have
@@ -445,7 +448,27 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         lv = np.real_if_close(lv[:, order])
         rv = np.real_if_close(rv[:, order])
 
-        # TODO: Normalize lv and rv correctly.
+        # Normalize the left (\phi) and right (\psi) eigenfunctions according
+        # to the following criteria.
+        # (1) The first left eigenvector, \phi_1, _is_ the stationary
+        # distribution, and thus should be normalized to sum to 1.
+        # (2) The left-right eigenpairs should be biorthonormal:
+        #    <\phi_i, \psi_j> = \delta_{ij}
+        # (3) The left eigenvectors should satisfy
+        #    <\phi_i, \phi_i>_{\mu^{-1}} = 1
+        # (4) The right eigenvectors should satisfy <\psi_i, \psi_i>_{\mu} = 1
+
+        # first normalize the stationary distribution separately
+        lv[:, 0] = lv[:, 0] / np.sum(lv[:, 0])
+
+        for i in range(1, lv.shape[1]):
+            # the remaining left eigenvectors to satisfy
+            # <\phi_i, \phi_i>_{\mu^{-1}} = 1
+            lv[:, i] = lv[:, i] / np.sqrt(np.dot(lv[:, i], lv[:, i] / lv[:, 0]))
+
+        for i in range(rv.shape[1]):
+            # the right eigenvectors to satisfy <\phi_i, \psi_j> = \delta_{ij}
+            rv[:, i] = rv[:, i] / np.dot(lv[:, i], rv[:, i])
 
         self._eigenvalues = u
         self._left_eigenvectors = lv
@@ -459,7 +482,22 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     def timescales_(self):
         """Implied relaxation timescales of the model.
 
-        [TODO]
+        The relaxation of any initial distribution towards equilibrium is
+        given, according to this model, by a sum of terms -- each corresponding
+        to the relaxation along a specific direction (eigenvector) in state
+        space -- which decay exponentially in time. See equation 19. from [1].
+
+        Returns
+        -------
+        timescales : array-like, shape = (n_timescales,)
+            The longest implied relaxation timescales of the model, expressed
+            in units of time-step between indices in the source data supplied
+            to ``fit()``.
+
+        References
+        ----------
+        .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
+        Generation and validation." J. Chem. Phys. 134.17 (2011): 174105.
         """
         u, lv, rv = self._get_eigensystem()
 
@@ -478,7 +516,19 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     def left_eigenvectors_(self):
         r"""Left eigenvectors, :math:`\Phi`, of the transition matrix.
 
-        TODO: describe normalization
+        The left eigenvectors are normalized such that:
+
+          - ``lv[:, 0]`` is the equilibrium populations and is normalized
+            such that `sum(lv[:, 0]) == 1``
+          - The eigenvectors satisfy
+            ``sum(lv[:, i] * lv[:, i] / model.populations_) == 1``.
+            In math notation, this is :math:`<\phi_i, \phi_i>_{\mu^{-1}} = 1`
+
+        Returns
+        -------
+        lv : array-like, shape=(n_states, n_timescales+1)
+            The columns of lv, ``lv[:, i]``, are the left eigenvectors of
+            ``transmat_``.
         """
         u, lv, rv = self._get_eigensystem()
         return lv
@@ -487,7 +537,18 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     def right_eigenvectors_(self):
         r"""Right eigenvectors, :math:`\Psi`, of the transition matrix.
 
-        TODO: describe normalization
+        The right eigenvectors are normalized such that:
+
+          - Weighted by the stationary distribution, the right eigevectors
+            are normalized to 1. That is,
+                ``sum(rv[:, i] * rv[:, i] * self.populations_) == 1``,
+            or :math:`<\psi_i, \psi_i>_{\mu} = 1`
+
+        Returns
+        -------
+        rv : array-like, shape=(n_states, n_timescales+1)
+            The columns of lv, ``rv[:, i]``, are the right eigenvectors of
+            ``transmat_``.
         """
         u, lv, rv = self._get_eigensystem()
         return rv
