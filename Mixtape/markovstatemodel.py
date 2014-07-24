@@ -539,7 +539,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         The right eigenvectors are normalized such that:
 
-          - Weighted by the stationary distribution, the right eigevectors
+          - Weighted by the stationary distribution, the right eigenvectors
             are normalized to 1. That is,
                 ``sum(rv[:, i] * rv[:, i] * self.populations_) == 1``,
             or :math:`<\psi_i, \psi_i>_{\mu} = 1`
@@ -741,6 +741,7 @@ def _transition_counts(sequences, lag_time=1):
 
     counts = np.zeros((n_states, n_states), dtype=float)
     for y in sequences:
+        y = np.asarray(y)
         from_states = y[: -lag_time: 1]
         to_states = y[lag_time::1]
 
