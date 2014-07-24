@@ -26,6 +26,7 @@ import time
 import warnings
 import numpy as np
 import scipy.sparse
+import scipy.linalg
 from sklearn.utils import column_or_1d
 from sklearn.base import BaseEstimator
 from mdtraj.utils import ensure_type
@@ -66,40 +67,39 @@ class MarkovStateModel(BaseEstimator):
         given nonzero probability. Note that prior_counts _totally_ destroys
         performance when the number of states is large, because none of the
         matrices are sparse anymore.
+    verbose : bool
+        Enable verbose printout
 
     Attributes
     ----------
-    transmat_ : array_like, shape(n_states, n_states)
-        Maximum likelihood estimate of the reversible transition matrix.
-        The indices `i` and `j` are the "internal" indices described above.
-    populations_ : array, shape(n_states)
-        The equilibrium population (stationary eigenvector) of transmat_
     mapping_ : dict
-        Mapping between "input" states and internal state indices for this
-        Markov state model.  This is necessary because of ergodic_trim.
+        Mapping between "input" labels and internal state indices used by the
+        counts and transition matrix for this Markov state model. Input states
+        need not necessrily be integers in (0, ..., n_states - 1), for example.
         The semantics of ``mapping_[i] = j`` is that state ``i`` from the
         "input space" is represented by the index ``j`` in this MSM.
-    rawcounts_ : array_like, shape(n_states, n_states)
-        Unsymmetrized transition counts. rawcounts_[i, j] is the observed
-        number of transitions from state i to state j. The indices `i` and
-        `j` are the "internal" indices described above.
     countsmat_ : array_like, shape(n_states, n_states)
         Symmetrized transition counts. countsmat_[i, j] is the expected
         number of transitions from state i to state j after correcting
         for reversibly. The indices `i` and `j` are the "internal" indices
         described above.
-
+    transmat_ : array_like, shape(n_states, n_states)
+        Maximum likelihood estimate of the reversible transition matrix.
+        The indices `i` and `j` are the "internal" indices described above.
+    populations_ : array, shape(n_states)
+        The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, n_states=None, lag_time=1, n_timescales=None,
+    def __init__(self, lag_time=1, n_timescales=None,
                  reversible_type='mle', ergodic_trim=True, trim_weight=0,
-                 prior_counts=0):
+                 prior_counts=0, verbose=True):
         self.reversible_type = reversible_type
         self.ergodic_trim = ergodic_trim
-        self.trim_weights = trim_weight
+        self.trim_weight = trim_weight
         self.lag_time = lag_time
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
+        self.verbose = verbose
 
         # Keep track of whether to recalculate eigensystem
         self.is_dirty = True
@@ -120,37 +120,61 @@ class MarkovStateModel(BaseEstimator):
         -------
         self
         """
-        counts = self._count_transitions(sequences)
-        if self.ergodic_trim:
-            self.counts_, self.mapping_ = _strongly_connected_subgraph(counts, self.trim_weight)
-        else:
-            self.counts_ = counts
-            self.mapping_ = dict(zip(np.unique(np.concatenate(sequences)),
-                                     range(self.counts_.shape[0])))
+        # step 1. count the number of transitions
+        raw_counts, mapping = _transition_counts(sequences, self.lag_time)
 
-        if self.reversible_type in ['mle', 'MLE']:
-            self.transmat_, self.populations_ = _transmat_mle_prinz(
-                trimmed_counts + self.prior_counts)
-        elif self.reversible_type in ['transpose', 'Transpose']:
-            rc = 0.5 * (trimmed_counts + trimmed_counts.T) + self.prior_counts
-            self.populations_ = rc.sum(axis=0)
-            self.transmat_ = rc.astype(float) / rc.sum(axis=1)[:, None]
-        elif self.reversible_type is None:
-            rc = trimmed_counts + self.prior_counts
-            self.transmat_ = rc.astype(float) / rc.sum(axis=1)[:, None]
+        if self.ergodic_trim:
+            # step 2. restrict the counts to the maximal strongly ergodic
+            # subgraph
+            self.countsmat_, mapping2 = _strongly_connected_subgraph(
+                raw_counts, self.trim_weight, self.verbose)
+            self.mapping_ = _dict_compose(mapping, mapping2)
         else:
-            available_reversible_type = ['mle', 'MLE', 'transpose', 'Transpose', None]
+            # no ergodic trimming.
+            self.countsmat_ = raw_counts
+            self.mapping_ = mapping
+
+        method_map = {
+            'mle': self._fit_mle,
+            'transpose': self._fit_transpose,
+            'none': self._fit_asymetric,
+        }
+        try:
+            # step 3. estimate transition matrix
+            method =  method_map[str(self.reversible_type).lower()]
+            self.transmat_, self.populations_ = method(self.countsmat_)
+        except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(available_reversible_type), self.reversible_type))
 
-        if self.reversible_type is None:
-            vectors = get_eigenvectors(self.transmat_, 5)[1]
-            self.populations_ = vectors[:, 0]
-
-        self.populations_ /= self.populations_.sum(dtype=float)
-        self.is_dirty = True
-
         return self
+
+    def _fit_mle(self, counts):
+        transmat, populations = _transmat_mle_prinz(
+            counts + self.prior_counts)
+
+        populations /= populations.sum(dtype=float)
+        return transmat, populations
+
+    def _fit_transpose(self, counts):
+        rev_counts = 0.5 * (counts + counts.T) + self.prior_counts
+
+        populations = rev_counts.sum(axis=0)
+        populations /= populations.sum(dtype=float)
+        transmat = rev_counts.astype(float) / rev_counts.sum(axis=1)[:, None]
+        return transmat, populations
+
+    def _fit_asymetric(self, counts):
+        rc = counts + self.prior_counts
+        transmat = rc.astype(float) / rc.sum(axis=1)[:, None]
+
+        u, v = _eigs(transmat.T, k=1, which='LR')
+        assert len(u) == 1
+
+        populations = v[:, 0]
+        populations /= populations.sum(dtype=float)
+
+        return transmat, populations
 
     def score_ll(self, sequences):
         """log of the likelihood of sequences with respect to the model
@@ -167,17 +191,17 @@ class MarkovStateModel(BaseEstimator):
             :math:`\sum_{ij} C_{ij} \log(P_{ij})`
             where C is a matrix of counts computed from the input sequences.
         """
-        counts = self._count_transitions(sequences)
+        counts, mapping = _transition_counts(sequences)
+        if not set(self.mapping_.keys()).issuperset(mapping.keys()):
+            return -np.inf
+        inverse_mapping = {v:k for k, v in mapping.items()}
 
-        if not scipy.sparse.isspmatrix(self.transmat_):
-            transition_matrix = scipy.sparse.csr_matrix(self.transmat_)
-        else:
-            transition_matrix = self.transmat_.tocsr()
-        row, col = counts.nonzero()
+        # maps indices in counts to indices in transmat
+        m2 = _dict_compose(inverse_mapping, self.mapping_)
+        indices = [e[1] for e in sorted(m2.items())]
 
-        return np.sum(np.log(np.asarray(transition_matrix[row, col]))
-                      * np.asarray(counts[row, col]))
-
+        transmat_slice = self.transmat_[np.ix_(indices, indices)]
+        return np.nansum(np.log(transmat_slice) * counts)
 
     def _get_eigensystem(self):
         if not self.is_dirty:
@@ -187,8 +211,8 @@ class MarkovStateModel(BaseEstimator):
         if n_timescales is None:
             n_timescales = self.transmat_.shape[0] - 3
 
-        u, v = scipy.sparse.linalg.eigs(self.transmat_.transpose(),
-                                        k=n_timescales + 1)
+        u, v = _eigs(self.transmat_.T, k=n_timescales + 1)
+
         order = np.argsort(-np.real(u))
         u = np.real_if_close(u[order])
         v = np.real_if_close(v[:, order])
@@ -263,31 +287,22 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     if grid.n_features != 1:
         raise NotImplementedError("file an issue on github :)")
 
-    transition_log_likelihood = 0
-    emission_log_likelihood = 0
-    logtransmat = np.nan_to_num(np.log(np.asarray(msm.transmat_.todense())))
-    width = grid.grid[0,1] - grid.grid[0,0]
+    raise NotImplementedError()
 
-    for X in grid.transform(sequences):
-        counts = np.asarray(_apply_mapping_to_matrix(
-            msmlib.get_counts_from_traj(X, n_states=grid.n_bins),
-            msm.mapping_).todense())
-        transition_log_likelihood += np.multiply(counts, logtransmat).sum()
-        emission_log_likelihood += -1 * np.log(width) * len(X)
-
-    return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
-
-
-def _apply_mapping_to_matrix(mat, mapping):
-    ndim_new = np.max(mapping.values()) + 1
-    mat_new = scipy.sparse.dok_matrix((ndim_new, ndim_new))
-    for (i, j), e in mat.todok().items():
-        try:
-            mat_new[mapping[i], mapping[j]] = e
-        except KeyError:
-            pass
-    return mat_new
-
+    # transition_log_likelihood = 0
+    # emission_log_likelihood = 0
+    # logtransmat = np.nan_to_num(np.log(np.asarray(msm.transmat_.todense())))
+    # width = grid.grid[0,1] - grid.grid[0,0]
+    #
+    # for X in grid.transform(sequences):
+    #     counts = np.asarray(_apply_mapping_to_matrix(
+    #         msmlib.get_counts_from_traj(X, n_states=grid.n_bins),
+    #         msm.mapping_).todense())
+    #     transition_log_likelihood += np.multiply(counts, logtransmat).sum()
+    #     emission_log_likelihood += -1 * np.log(width) * len(X)
+    #
+    # return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
+    #
 
 def _strongly_connected_subgraph(counts, weight=0, verbose=True):
     """Trim a transition count matrix down to its maximal
@@ -402,7 +417,7 @@ def _transition_counts(sequences, lag_time=1):
     for y in typed_sequences:
         from_states = y[: -lag_time: 1]
         to_states = y[lag_time::1]
-        if not mapping_is_identity:
+        if not mapping_is_identity and len(from_states) > 0 and len(to_states) > 0:
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
@@ -413,3 +428,22 @@ def _transition_counts(sequences, lag_time=1):
         counts = counts + np.asarray(C.todense())
 
     return counts, mapping
+
+
+def _dict_compose(dict1, dict2):
+    """
+    Example
+    -------
+    >>> dict1 = {'a': 0, 'b': 1, 'c': 2}
+    >>> dict2 = {0: 'A', 1: 'B'}
+    >>> _dict_compose(dict1, dict2)
+    {'a': 'A', 'b': 'b'}
+    """
+    return {k: dict2.get(v) for k, v in dict1.items() if v in dict2}
+
+
+def _eigs(A, k=6, **kwargs):
+    if 1 <= k <= A.shape[0] - 1:
+        return scipy.sparse.linalg.eigs(A, k=k, **kwargs)
+    return scipy.linalg.eig(A)
+

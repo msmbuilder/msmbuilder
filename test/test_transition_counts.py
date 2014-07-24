@@ -41,3 +41,6 @@ def test_5():
         [0, 1],
     ]))
     assert m == {100000000: 0, 100000001: 1}
+
+def test_6():
+    c, m = _transition_counts([[0]])
