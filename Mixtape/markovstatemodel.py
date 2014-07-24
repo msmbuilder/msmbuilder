@@ -148,18 +148,22 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         self.n_states_ = self.countsmat_.shape[0]
 
-        method_map = {
+        # use a dict like a switch statement: dispatch to different
+        # transition matrix estimators depending on the value of
+        # self.reversible_type
+        fit_method_map = {
             'mle': self._fit_mle,
             'transpose': self._fit_transpose,
             'none': self._fit_asymetric,
         }
         try:
+            # pull out the appropriate method
+            fit_method =  method_map[str(self.reversible_type).lower()]
             # step 3. estimate transition matrix
-            method =  method_map[str(self.reversible_type).lower()]
-            self.transmat_, self.populations_ = method(self.countsmat_)
+            self.transmat_, self.populations_ = fit_method(self.countsmat_)
         except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
-                ', '.join(method_map.keys()), self.reversible_type))
+                ', '.join(fit_method_map.keys()), self.reversible_type))
 
         self._is_dirty = True
         return self
