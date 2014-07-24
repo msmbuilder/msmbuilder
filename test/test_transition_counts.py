@@ -44,3 +44,13 @@ def test_5():
 
 def test_6():
     c, m = _transition_counts([[0]])
+
+def test_7():
+    # deal with NaN?
+    c, m = _transition_counts([[0, np.nan]])
+    assert m == {0:0}
+    np.testing.assert_array_equal(c, np.zeros((1,1)))
+
+    c, m = _transition_counts([[np.nan]])
+    assert m == {}
+    np.testing.assert_array_equal(c, np.zeros((0,0)))

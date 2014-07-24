@@ -448,6 +448,12 @@ def _transition_counts(sequences, lag_time=1):
      [ 0.  0.  0.]]
     >>> print mapping
     {100: 0, 200: 1, 300: 2}
+
+    Notes
+    -----
+    `NaN` recognized immediate as an invalid state. Therefore, transition counts
+    from or to a sequence item which is NaN will not be counted. The mapping
+    return value will not include the NaN.
     """
 
     typed_sequences = []
@@ -457,17 +463,28 @@ def _transition_counts(sequences, lag_time=1):
         typed_sequences.append(column_or_1d(y, warn=True))
 
     classes = np.unique(np.concatenate(typed_sequences))
+    contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
+    if contains_nan:
+        classes = classes[~np.isnan(classes)]
+
     n_states = len(classes)
 
-    mapping = dict(zip(classes, np.arange(n_states)))
+    mapping = dict(zip(classes, range(n_states)))
     mapping_is_identity = np.all(classes == np.arange(n_states))
-    mapping_fn = np.vectorize(mapping.get)
+    mapping_fn = np.vectorize(mapping.get, otypes=[np.int])
 
     counts = np.zeros((n_states, n_states), dtype=float)
     for y in typed_sequences:
         from_states = y[: -lag_time: 1]
         to_states = y[lag_time::1]
-        if not mapping_is_identity and len(from_states) > 0 and len(to_states) > 0:
+
+        if contains_nan:
+            # mask out nan in either from_states or to_states
+            mask = ~(np.isnan(from_states) + np.isnan(to_states))
+            from_states = from_states[mask]
+            to_states = to_states[mask]
+
+        if (not mapping_is_identity) and len(from_states) > 0 and len(to_states) > 0:
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 

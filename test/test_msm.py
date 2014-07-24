@@ -147,11 +147,10 @@ def test_8():
     np.testing.assert_array_equal(v[1], [1, 1, 1])
 
 def test_9():
-    # what if the input data contains NaN?
+    # what if the input data contains NaN? They should be ignored
     model = MarkovStateModel(ergodic_trim=False)
 
-    seq = [1, 2, 1, 2, np.nan]
+    seq = [0, 1, 0, 1, np.nan]
     model.fit([seq])
-    eq(model.countsmat_, np.zeros((0,0)))
-    eq(model.mapping_, {})
-
+    assert model.n_states_ == 2
+    assert model.mapping_ == {0:0, 1:1}
