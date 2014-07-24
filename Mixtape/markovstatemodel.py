@@ -181,18 +181,38 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return transmat, populations
 
     def transform(self, sequences, mode='clip'):
-        """Transform a set of sequences to "internal" indexing
+        """Transform a list of sequences to internal indexing
+
+        Recall that `sequences` can be arbitrary labels, whereas `transmat_` and
+        `countsmat_` are indexed with integers between 0 and `n_states` - 1.
+        This methods maps a set of sequences from the labels into this internal
+        indexing.
 
         Parameters
         ----------
         sequences : list
             List of sequences, each of which is one-dimensional
         mode : {'clip', 'fill'}
-            Method to treat
+            Method by which to treat labels in `sequences` which do not have
+            a corresponding index. This can be due, for example, to the ergodic
+            trimming step.
+
+           ``clip``
+               Unmapped labels are removed during transform. If they occur
+               at the beginning or end of a sequence, the resulting transformed
+               sequence will be shorted. If they occur in the middle of a
+               sequence, that sequence will be broken into two (or more)
+               sequences. (Default)
+            ``fill``
+               Unmapped labels will be replaced with NaN, to signal missing
+               data. [The use of NaN to signal missing data is not fantastic,
+               but it's consistent with current behavior of the ``pandas``
+               library.]
 
         Returns
         -------
         mapped_sequences : list
+            List of sequences in internal indexing
         """
         if not mode in ['clip', 'fill']:
             raise ValueError('mode must be one of ["clip", "fill"]: %s' % mode)
