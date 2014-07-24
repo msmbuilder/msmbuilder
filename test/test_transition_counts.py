@@ -56,7 +56,6 @@ def test_7():
     np.testing.assert_array_equal(c, np.zeros((0,0)))
 
     c, m = _transition_counts([[None, None]])
-    print(c, m)
     assert m == {}
     np.testing.assert_array_equal(c, np.zeros((0,0)))
 
