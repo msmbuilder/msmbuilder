@@ -34,6 +34,9 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
     """
 
     cdef int n_states = len(C)
+    if n_states == 0:
+        return np.zeros((0, 0)), np.zeros(0)
+
     if len(C[0]) != n_states:
         raise ValueError('C must be square')
     cdef double[:, ::1] T = np.zeros((n_states, n_states))

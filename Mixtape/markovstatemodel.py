@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse
 import scipy.linalg
 from sklearn.utils import column_or_1d
-from sklearn.base import BaseEstimator, BaseTransformer
+from sklearn.base import BaseEstimator, TransformerMixin
 from mixtape._markovstatemodel import _transmat_mle_prinz
 
 __all__ = ['MarkovStateModel']
@@ -35,7 +35,7 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator, BaseTransformer):
+class MarkovStateModel(BaseEstimator, TransformerMixin):
     """Reversible Markov State Model
 
     Parameters
@@ -44,8 +44,7 @@ class MarkovStateModel(BaseEstimator, BaseTransformer):
         The lag time of the model
     n_timescales : int, optional
         The number of dynamical timescales to calculate when diagonalizing
-        the transition matrix. By default, the maximum number will be
-        calculated, which, for ARPACK, is n_states - 3.
+        the transition matrix.
     reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
@@ -72,25 +71,27 @@ class MarkovStateModel(BaseEstimator, BaseTransformer):
 
     Attributes
     ----------
+    n_states_ : int
+        The number of states in the model
     mapping_ : dict
         Mapping between "input" labels and internal state indices used by the
         counts and transition matrix for this Markov state model. Input states
-        need not necessrily be integers in (0, ..., n_states - 1), for example.
+        need not necessrily be integers in (0, ..., n_states_ - 1), for example.
         The semantics of ``mapping_[i] = j`` is that state ``i`` from the
         "input space" is represented by the index ``j`` in this MSM.
-    countsmat_ : array_like, shape(n_states, n_states)
+    countsmat_ : array_like, shape = (n_states_, n_states_)
         Symmetrized transition counts. countsmat_[i, j] is the expected
         number of transitions from state i to state j after correcting
         for reversibly. The indices `i` and `j` are the "internal" indices
         described above.
-    transmat_ : array_like, shape(n_states, n_states)
+    transmat_ : array_like, shape = (n_states_, n_states_)
         Maximum likelihood estimate of the reversible transition matrix.
         The indices `i` and `j` are the "internal" indices described above.
-    populations_ : array, shape(n_states)
+    populations_ : array, shape = (n_states_,)
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, lag_time=1, n_timescales=None,
+    def __init__(self, lag_time=1, n_timescales=10,
                  reversible_type='mle', ergodic_trim=True, trim_weight=1,
                  prior_counts=0, verbose=True):
         self.reversible_type = reversible_type
@@ -134,6 +135,8 @@ class MarkovStateModel(BaseEstimator, BaseTransformer):
             self.countsmat_ = raw_counts
             self.mapping_ = mapping
 
+        self.n_states_ = self.countsmat_.shape[0]
+
         method_map = {
             'mle': self._fit_mle,
             'transpose': self._fit_transpose,
@@ -147,28 +150,8 @@ class MarkovStateModel(BaseEstimator, BaseTransformer):
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(method_map.keys()), self.reversible_type))
 
+        self.is_dirty = True
         return self
-
-    def transform(self, sequences, mode='clip'):
-        """Transform a set of sequences to "internal" indexing
-
-        Parameters
-        ----------
-        sequences : list
-            List of sequences, each of which is one-dimensional
-        mode : {'clip', 'fill'}
-            Method to treat
-
-        Returns
-        -------
-        mapped_sequences : list
-        """
-        raise NotImplementedError()  # TODO
-
-    def partial_transform(self, sequence, mode='clip'):
-        """Transform a 
-        """
-        raise NotImplementedError()  # TODO
 
     def _fit_mle(self, counts):
         transmat, populations = _transmat_mle_prinz(
@@ -196,6 +179,46 @@ class MarkovStateModel(BaseEstimator, BaseTransformer):
         populations /= populations.sum(dtype=float)
 
         return transmat, populations
+
+    def transform(self, sequences, mode='clip'):
+        """Transform a set of sequences to "internal" indexing
+
+        Parameters
+        ----------
+        sequences : list
+            List of sequences, each of which is one-dimensional
+        mode : {'clip', 'fill'}
+            Method to treat
+
+        Returns
+        -------
+        mapped_sequences : list
+        """
+        if not mode in ['clip', 'fill']:
+            raise ValueError('mode must be one of ["clip", "fill"]: %s' % mode)
+
+        f = np.vectorize(lambda k: self.mapping_.get(k, np.nan), otypes=[np.float])
+
+        result = []
+        for y in sequences:
+            a = f(y)
+            if mode == 'fill':
+                if np.all(np.mod(a, 1) ==  0):
+                    result.append(a.astype(int))
+                else:
+                    result.append(a)
+            elif mode == 'clip':
+                result.extend([a[s].astype(int) for s in np.ma.clump_unmasked(np.ma.masked_invalid(a))])
+            else:
+                raise RuntimeError()
+
+        return result
+
+    def eigtransform(self, sequences):
+        pass
+
+    def partial_eigtransform(self, sequences):
+        pass
 
     def score_ll(self, sequences):
         """log of the likelihood of sequences with respect to the model
@@ -230,7 +253,7 @@ class MarkovStateModel(BaseEstimator, BaseTransformer):
 
         n_timescales = self.n_timescales
         if n_timescales is None:
-            n_timescales = self.transmat_.shape[0] - 3
+            n_timescales = self.n_states_ - 1
 
         u, v = _eigs(self.transmat_.T, k=n_timescales + 1)
 
@@ -371,6 +394,11 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
 
     # keys are all of the "input states" which have a valid mapping to the output.
     keys = np.arange(n_states_input)[component_assignments == which_component]
+
+    if n_components == n_states_input and counts[np.ix_(keys, keys)] == 0:
+        # if we have a completely disconnected graph with no self-transitions
+        return np.zeros((0,0)), {}
+
     # values are the "output" state that these guys are mapped to
     values = np.arange(len(keys))
     mapping = dict(zip(keys, values))
@@ -465,7 +493,9 @@ def _dict_compose(dict1, dict2):
 
 
 def _eigs(A, k=6, **kwargs):
-    if 1 <= k <= A.shape[0] - 1:
+    if 1 <= k < A.shape[0] - 1:
         return scipy.sparse.linalg.eigs(A, k=k, **kwargs)
-    return scipy.linalg.eig(A)
+    u, v = scipy.linalg.eig(A)
+    indices = np.argsort(-np.real(u))
+    return u[indices[:k]], v[:, indices[:k]]
 
