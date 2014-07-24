@@ -152,13 +152,13 @@ def test_9():
     model = MarkovStateModel(ergodic_trim=False)
 
     seq = [0, 1, 0, 1, np.nan]
-    model.fit([seq])
+    model.fit(seq)
     assert model.n_states_ == 2
     assert model.mapping_ == {0:0, 1:1}
 
     model = MarkovStateModel()
-    seq = [0, 1, None, 0, 1]
-    model.fit([seq])
+    seq = [0, 1, 0, None, 0, 1]
+    model.fit(seq)
     assert model.n_states_ == 2
     assert model.mapping_ == {0:0, 1:1}
 
