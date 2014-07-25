@@ -562,7 +562,7 @@ class GaussianFusionHMM(object):
 
         mean_approx = np.array([sequences[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)])
         
-        centroid_pairs_by_state = np.array(zip(trj_ind, frame_ind))
+        centroid_pairs_by_state = np.array(list(zip(trj_ind, frame_ind)))
         
         return centroid_pairs_by_state[:, np.newaxis, :], mean_approx[:, np.newaxis, :]  # np.newaxis changes arrays from 2D to 3D for consistency with `sample_states()`
 
