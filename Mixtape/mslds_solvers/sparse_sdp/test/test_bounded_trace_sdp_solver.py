@@ -1,11 +1,8 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-sys.path.append("..")
-from bounded_trace_sdp_solver import BoundedTraceSolver
-from objectives import neg_sum_squares, grad_neg_sum_squares
-from constraints import *
-from penalties import *
+from __future__ import division, print_function, absolute_import
+from ..bounded_trace_sdp_solver import BoundedTraceSolver
+from ..objectives import neg_sum_squares, grad_neg_sum_squares
+from ..constraints import *
+from ..penalties import *
 import time
 import scipy
 import numpy as np

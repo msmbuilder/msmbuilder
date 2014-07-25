@@ -1,9 +1,7 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-sys.path.append("..")
-from constraints import *
-from utils import numerical_derivative
+from __future__ import division, print_function, absolute_import
+
+from ..constraints import *
+from ..utils import numerical_derivative
 import numpy as np
 
 def test_quadratic_inequality():

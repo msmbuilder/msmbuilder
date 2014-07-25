@@ -1,17 +1,15 @@
-from __future__ import division
+from __future__ import print_function, division, absolute_import
 from __future__ import print_function
-import sys
-sys.path.append("..")
 import numpy as np
-from constraints import *
-from penalties import *
-from utils import numerical_derivative
+from ..constraints import *
+from ..penalties import *
+from ..utils import numerical_derivative
+from nose.plugins.attrib import attr
+
 
 def test1():
-    """
-    Check gradients of log-sum-exp on simple equality constraint
-    problem.
-    """
+    # Check gradients of log-sum-exp on simple equality constraint
+    # problem.
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            simple_equality_constraint()
     tol = 1e-3
@@ -32,11 +30,10 @@ def test1():
         print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
+
 def test2():
-    """
-    Check log-sum-exp gradients on simple equality and inequaliy
-    constrained problem.
-    """
+    # Check log-sum-exp gradients on simple equality and inequaliy
+    # constrained problem.
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            simple_equality_and_inequality_constraint()
     tol = 1e-3
@@ -58,9 +55,8 @@ def test2():
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test3():
-    """
-    Check log-sum-exp gradient on quadratic inequality problem.
-    """
+    # Check log-sum-exp gradient on quadratic inequality problem.
+
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            quadratic_inequality()
     tol = 1e-3
@@ -82,9 +78,8 @@ def test3():
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test4():
-    """
-    Check log-sum-exp gradient on quadratic equality problem.
-    """
+    # Check log-sum-exp gradient on quadratic equality problem.
+
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
            quadratic_equality()
     tol = 1e-3
@@ -106,9 +101,7 @@ def test4():
         assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test5():
-    """
-    Check log-sum-exp gradient on many linear inequalities.
-    """
+    # Check log-sum-exp gradient on many linear inequalities.
     tol = 1e-3
     eps = 1e-4
     N_rand = 10
@@ -132,9 +125,7 @@ def test5():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test6():
-    """
-    Check log-sum-exp gradient on many linear equalities.
-    """
+    # Check log-sum-exp gradient on many linear equalities.
     tol = 1e-3
     eps = 1e-4
     N_rand = 10
@@ -157,11 +148,11 @@ def test6():
             print("num_grad:\n", num_grad)
             assert np.sum(np.abs(grad - num_grad)) < tol
 
+
+@attr('broken')
 def test7():
-    """
-    BROKEN: Check log-sum-exp gradient on many linear and nonlinear
-    equalities.
-    """
+    # BROKEN: Check log-sum-exp gradient on many linear and nonlinear
+    # equalities.
     tol = 1e-3
     eps = 1e-4
     N_rand = 10
@@ -187,9 +178,7 @@ def test7():
             assert diff < tol
 
 def test8():
-    """
-    Check log-sum-exp gradient on basic batch equalities
-    """
+    # Check log-sum-exp gradient on basic batch equalities
     tol = 1e-3
     eps = 1e-5
     N_rand = 10

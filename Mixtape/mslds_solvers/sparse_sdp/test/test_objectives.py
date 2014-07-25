@@ -1,11 +1,9 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-sys.path.append("..")
+from __future__ import division, print_function, absolute_import
+
 import numpy as np
-from utils import numerical_derivative
-from objectives import *
-from constraints import *
+from ..utils import numerical_derivative
+from ..objectives import *
+from ..constraints import *
 
 def test_tr():
     dims = [1, 5, 10]
