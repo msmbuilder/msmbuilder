@@ -200,8 +200,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         rc = counts + self.prior_counts
         transmat = rc.astype(float) / rc.sum(axis=1)[:, None]
 
-        u, lv, rv = _eigs(transmat, k=1, which='LR')
-        assert len(u) == 1
+        u, lv = scipy.linalg.eig(transmat, left=True, right=False)
+        order = np.argsort(-np.real(u))
+        u = np.real_if_close(u[order])
+        lv = np.real_if_close(lv[:, order])
 
         populations = lv[:, 0]
         populations /= populations.sum(dtype=float)
@@ -442,12 +444,12 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         if n_timescales is None:
             n_timescales = self.n_states_ - 1
 
-        u, lv, rv = _eigs(self.transmat_, k=n_timescales + 1)
-
+        k = n_timescales + 1
+        u, lv, rv = scipy.linalg.eig(self.transmat_, left=True, right=True)
         order = np.argsort(-np.real(u))
-        u = np.real_if_close(u[order])
-        lv = np.real_if_close(lv[:, order])
-        rv = np.real_if_close(rv[:, order])
+        u = np.real_if_close(u[order[:k]])
+        lv = np.real_if_close(lv[:, order[:k]])
+        rv = np.real_if_close(rv[:, order[:k]])
 
         # Normalize the left (\phi) and right (\psi) eigenfunctions according
         # to the following criteria.
@@ -834,17 +836,3 @@ def _dict_compose(dict1, dict2):
     """
     return {k: dict2.get(v) for k, v in dict1.items() if v in dict2}
 
-
-def _eigs(A, k=6, **kwargs):
-    if 1 <= k < A.shape[0] - 1:
-        u, rv = scipy.sparse.linalg.eigs(A, k=k, **kwargs)
-        u, lv = scipy.sparse.linalg.eigs(A.T, k=k, **kwargs)
-    else:
-        u, lv, rv = scipy.linalg.eig(A, left=True, right=True)
-
-    indices = np.argsort(-np.real(u))
-    u = u[indices[:k]]
-    lv = lv[:, indices[:k]]
-    rv = rv[:, indices[:k]]
-
-    return u, lv, rv
