@@ -40,7 +40,7 @@
 int transmat_mle_prinz(const double* C, int n_states, double tol,
                        double* T, double* pi)
 {
-    double a, b, c, v, tmp, pi_sum;
+    double a, b, c, v, tmp, pi_sum, denom;
     double *X, *X_RS, *C_RS;
     int iter = 0;
     int i, j;
@@ -87,7 +87,9 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
         /* update xii */
         for (i = 0; i < n_states; i++) {
             tmp = x(i,i);
-            x(i,i) = c(i,i) * (x_rs(i) - x(i,i)) / (c_rs(i) - c(i,i));
+            denom = c_rs(i) - c(i,i);
+            if (denom > 0)
+                x(i,i) = c(i,i) * (x_rs(i) - x(i,i)) / denom;
 
             x_rs(i) = x_rs(i) + (x(i,i) - tmp);
 #ifdef DEBUG
@@ -119,7 +121,7 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
                 }
 
                 /* the new value */
-                if (a == 0) {
+                if (a ==0) {
                     v = x(j, i);
                 } else {
                     v = (-b + sqrt((b*b) - (4*a*c))) / (2*a);
