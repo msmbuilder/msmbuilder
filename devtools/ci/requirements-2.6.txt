@@ -6,3 +6,4 @@ importlib
 ordereddict
 coverage
 coveralls
+munkres

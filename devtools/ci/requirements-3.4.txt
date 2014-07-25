@@ -3,3 +3,4 @@ scripttest
 nose
 coverage
 coveralls
+munkres
