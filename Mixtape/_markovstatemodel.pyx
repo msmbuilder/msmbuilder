@@ -23,9 +23,8 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
     T : (output) pointer to output 2d array of shape=(n_states, n_states)
         Once the algorithim is completed, the resulting transition
         matrix will be written to `T`.
-    n_iter : int
-        Number of iterations performed. A value of n_iter < 0 indicates
-        failure.
+    populations : array, shape = (n_states_,)
+        The equilibrium population (stationary left eigenvector) of T
 
      References
      ----------
