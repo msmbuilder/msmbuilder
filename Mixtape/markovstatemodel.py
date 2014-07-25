@@ -717,9 +717,9 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     which_component = component_pops.argmax()
 
     if verbose:
-        print("MSM contains %d strongly connected components "
+        print("MSM contains %d strongly connected component%s "
               "above weight=%.2f. Component %d selected, with "
-              "population %f%%" % (n_components, weight, which_component,
+              "population %f%%" % (n_components, 's'[n_components==1:], weight, which_component,
                                    100 * component_pops[which_component] / component_pops.sum()))
 
     # keys are all of the "input states" which have a valid mapping to the output.
