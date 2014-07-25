@@ -216,7 +216,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         Recall that `sequences` can be arbitrary labels, whereas `transmat_` and
         `countsmat_` are indexed with integers between 0 and `n_states` - 1.
-        This methods maps a set of sequences from the labels into this internal
+        This methods maps a set of sequences from the labels onto this internal
         indexing.
 
         Parameters
