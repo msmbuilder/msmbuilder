@@ -14,7 +14,7 @@
  * ----------
  * C : (input) pointer to a dense 2d array of shape=(n_states, n_states)
  *     The directed transition counts, in C (row-major) order.
- * n_state : (input) int
+ * n_states : (input) int
  *     The number of states, and dimension of the C matrix
  * tol : (input) float
  *     Convergence tolerance. The algorithim will iterate until the
