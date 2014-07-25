@@ -12,7 +12,10 @@ from mixtape.datasets.alanine_dipeptide import TARGET_DIRECTORY \
 from mixtape.datasets.base import get_data_home
 from os.path import join
 from sklearn.mixture.gmm import log_multivariate_normal_density
+from nose.plugins.attrib import attr
 
+
+@attr('plots')
 def test_plusmin():
     # Set constants
     n_hotstart = 3
@@ -56,6 +59,8 @@ def test_plusmin():
     plt.legend()
     plt.show()
 
+
+@attr('plots')
 def test_muller_potential():
     import pdb, traceback, sys
     try:
@@ -124,6 +129,7 @@ def test_muller_potential():
         pdb.post_mortem(tb)
 
 
+@attr('plots')
 def test_doublewell():
     import pdb, traceback, sys
     try:
@@ -163,6 +169,7 @@ def test_doublewell():
         traceback.print_exc()
         pdb.post_mortem(tb)
 
+@attr('plots')
 def test_alanine_dipeptide():
     import pdb, traceback, sys
     warnings.filterwarnings("ignore", 
