@@ -15,7 +15,7 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
     C : (input) 2d array of shape=(n_states, n_states)
         The directed transition counts, in C (row-major) order.
     tol : (input) float
-        Convergence tolerance. The algorithim will iterate until the
+        Convergence tolerance. The algorithm will iterate until the
         change in the log-likelihood is less than `tol`.
 
     Returns
