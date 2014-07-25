@@ -8,5 +8,7 @@ export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
 conda create --yes -n ${python} --file devtools/ci/requirements-conda-${python}.txt
+conda config --add channels http://conda.binstar.org/omnia
+conda install --yes mdtraj scikit-learn
 source activate $python
 $HOME/miniconda/envs/${python}/bin/pip install $PIP_ARGS -r devtools/ci/requirements-${python}.txt
