@@ -8,7 +8,7 @@ from sklearn.svm import SVC
 
 def setup_module():
     os.system('ipcluster start --daemonize')
-    time.sleep(1)
+    time.sleep(5)
 
 
 def teardown_module():

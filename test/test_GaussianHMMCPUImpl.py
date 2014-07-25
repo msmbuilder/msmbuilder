@@ -65,8 +65,8 @@ def test_2():
             stats, t1, framelogprob, posteriors, fwdlattice,
             bwdlattice, 'stmc')
 
-        yield lambda: np.testing.assert_array_almost_equal(stats['trans'], cstats['trans'], decimal=4)
-        yield lambda: np.testing.assert_array_almost_equal(stats['post'], cstats['post'], decimal=4)
-        yield lambda: np.testing.assert_array_almost_equal(stats['obs'], cstats['obs'], decimal=4)
-        yield lambda: np.testing.assert_array_almost_equal(stats['obs**2'], cstats['obs**2'], decimal=4)
+        yield lambda: np.testing.assert_array_almost_equal(stats['trans'], cstats['trans'], decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(stats['post'], cstats['post'], decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(stats['obs'], cstats['obs'], decimal=3)
+        yield lambda: np.testing.assert_array_almost_equal(stats['obs**2'], cstats['obs**2'], decimal=3)
         

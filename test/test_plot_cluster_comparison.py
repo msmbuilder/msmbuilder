@@ -37,9 +37,12 @@ from sklearn import datasets, cluster
 from sklearn.metrics import euclidean_distances
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler
+from nose.plugins.attrib import attr
 
 from mixtape.cluster import KCenters, MiniBatchKMeans, AffinityPropagation, MeanShift, SpectralClustering, Ward
 
+
+@attr('plots')
 def test_kcenters_plot_cluster_comparison():
     # plot cluster comparison example from sklearn with the mixtape
     # subclasses (including KCenters)
