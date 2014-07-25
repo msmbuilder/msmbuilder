@@ -1,10 +1,8 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-sys.path.append("..")
-from general_sdp_solver import *
-from objectives import *
-from constraints import *
+from __future__ import division, print_function, absolute_import
+
+from ..general_sdp_solver import *
+from ..objectives import *
+from ..constraints import *
 import scipy
 import numpy as np
 

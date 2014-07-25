@@ -1,8 +1,7 @@
-from __future__ import division
-import sys
-sys.path.append("..")
-from feasibility_sdp_solver import FeasibilitySolver
-from constraints import *
+from __future__ import division, print_function, absolute_import
+
+from ..feasibility_sdp_solver import FeasibilitySolver
+from ..constraints import *
 
 def test1():
     """
