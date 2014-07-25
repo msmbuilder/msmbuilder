@@ -6,7 +6,7 @@ script:
   - git clone https://github.com/rmcgibbo/numpydoc.git
   - cd numpydoc && python setup.py install && cd -
   - python setup.py -q install
-  - nosetests -a='!cuda'
+  - nosetests
 env:
   matrix:
     - python=2.7
