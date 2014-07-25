@@ -190,7 +190,8 @@ def test_11():
 def test_12():
     # test eigtransform
     model = MarkovStateModel(n_timescales=1)
-    model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    model.fit([[4, 3, 0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert model.mapping_ == {0:0, 1:1, 2:2}
     assert len(model.eigenvalues_) == 2
     t = model.eigtransform([[0, 1]], right=True)
     assert t[0][0] == model.right_eigenvectors_[0, 1]
