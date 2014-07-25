@@ -24,6 +24,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import warnings
+import operator
 import numpy as np
 import scipy.sparse
 import scipy.linalg
@@ -609,6 +610,11 @@ Timescales:
         """
         u, lv, rv = self._get_eigensystem()
         return rv
+
+    @property
+    def state_labels_(self):
+        return [k for k, v in sorted(self.mapping_.items(), key=operator.itemgetter(1))]
+
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
     """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
