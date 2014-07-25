@@ -31,6 +31,7 @@ def test_3():
 
     counts = np.array([[8, 1, 1], [1, 3, 0], [1, 0, 3]])
     eq(model.countsmat_, counts)
+    assert np.sum(model.populations_) == 1.0
     model.timescales_
 
     # test pickleable
@@ -68,6 +69,7 @@ def test_5():
     assert score_abb == np.log(model.transmat_[0,1]) + np.log(model.transmat_[1,1])
 
     assert model.state_labels_ == ['a', 'b']
+    assert np.sum(model.populations_) == 1.0
 
 def test_51():
     # test score_ll
@@ -108,7 +110,7 @@ def test_7():
     model = MarkovStateModel(n_timescales=100)
     model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
     assert len(model.timescales_) == 2
-
+    assert np.sum(model.populations_) == 1.0
 
 def test_8():
     # test transform
