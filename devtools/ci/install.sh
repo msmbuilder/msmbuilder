@@ -10,6 +10,6 @@ conda update --yes conda
 conda create --yes -n ${python} --file devtools/ci/requirements-conda-${python}.txt
 conda config --add channels http://conda.binstar.org/omnia
 source activate $python
-conda install --yes mdtraj scikit-learn sphinx openmm-dev ipython matplotlib
+conda install --yes mdtraj scikit-learn sphinx openmm ipython matplotlib
 conda list -e
 $HOME/miniconda/envs/${python}/bin/pip install $PIP_ARGS -r devtools/ci/requirements-${python}.txt
