@@ -67,6 +67,8 @@ def test_5():
     score_abb =  model.score_ll([['a', 'b', 'b']])
     assert score_abb == np.log(model.transmat_[0,1]) + np.log(model.transmat_[1,1])
 
+    assert model.state_labels_ == ['a', 'b']
+
 def test_51():
     # test score_ll
     model = MarkovStateModel(reversible_type='mle', ergodic_trim=True)
