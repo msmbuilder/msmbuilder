@@ -16,7 +16,7 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
         The directed transition counts, in C (row-major) order.
     tol : (input) float
         Convergence tolerance. The algorithim will iterate until the
-        change in the log-likelihood is les than `tol`.
+        change in the log-likelihood is less than `tol`.
 
     Returns
     -------
