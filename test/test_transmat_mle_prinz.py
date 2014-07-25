@@ -111,4 +111,5 @@ def test_5():
 
 def test_6():
     C = np.array([[1]], dtype=float)
-    print(_transmat_mle_prinz(C))
+    T, pi = _transmat_mle_prinz(C)
+    np.testing.assert_array_equal(T, C)
