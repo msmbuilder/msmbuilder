@@ -100,3 +100,15 @@ def test_4():
         _transmat_mle_prinz(np.zeros((3,3)), tol=1e-10)
     with np.testing.assert_raises(ValueError):
         _transmat_mle_prinz(-1*np.ones((3,3)), tol=1e-10)
+
+
+def test_5():
+    C = np.array([[0, 1], [1, 0]], dtype=float)
+    transmat, populations = _transmat_mle_prinz(C)
+    assert np.all(np.isfinite(transmat))
+    assert np.all(np.isfinite(populations))
+    np.testing.assert_array_equal(transmat, C)
+
+def test_6():
+    C = np.array([[1]], dtype=float)
+    print(_transmat_mle_prinz(C))

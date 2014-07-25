@@ -119,7 +119,11 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
                 }
 
                 /* the new value */
-                v = (-b + sqrt((b*b) - (4*a*c))) / (2*a);
+                if (a == 0) {
+                    v = x(j, i);
+                } else {
+                    v = (-b + sqrt((b*b) - (4*a*c))) / (2*a);
+                }
 
                 /* update the row sums */
                 x_rs(i) = x_rs(i) + (v - x(i,j));
