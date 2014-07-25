@@ -185,8 +185,6 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
         transmat, populations = _transmat_mle_prinz(
             counts + self.prior_counts)
-
-        populations /= populations.sum(dtype=float)
         return transmat, populations
 
     def _fit_transpose(self, counts):
