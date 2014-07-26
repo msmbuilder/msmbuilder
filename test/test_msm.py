@@ -10,7 +10,7 @@ from mixtape.markovstatemodel import MarkovStateModel
 
 def test_1():
     # test counts matrix without trimming
-    model = MarkovStateModel(reversible_type=None, ergodic_trim=False)
+    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
 
     model.fit([[1,1,1,1,1,1,1,1,1]])
     eq(model.countsmat_, np.array([[8.0]]))
@@ -19,14 +19,14 @@ def test_1():
 
 def test_2():
     # test counts matrix with trimming
-    model = MarkovStateModel(reversible_type=None, ergodic_trim=True)
+    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=1)
 
     model.fit([[1,1,1,1,1,1,1,1,1, 2]])
     eq(model.mapping_, {1: 0})
     eq(model.countsmat_, np.array([[8]]))
 
 def test_3():
-    model = MarkovStateModel(reversible_type='mle', ergodic_trim=True)
+    model = MarkovStateModel(reversible_type='mle')
     model.fit([[0,0,0,0,1,1,1,1,0,0,0,0,2,2,2,2,0,0,0]])
 
     counts = np.array([[8, 1, 1], [1, 3, 0], [1, 0, 3]])
@@ -54,7 +54,7 @@ def test_4():
 
 def test_5():
     # test score_ll
-    model = MarkovStateModel(reversible_type='mle', ergodic_trim=True)
+    model = MarkovStateModel(reversible_type='mle')
     sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b']
     model.fit([sequence])
     assert model.mapping_ == {'a': 0, 'b': 1}
@@ -73,7 +73,7 @@ def test_5():
 
 def test_51():
     # test score_ll
-    model = MarkovStateModel(reversible_type='mle', ergodic_trim=True)
+    model = MarkovStateModel(reversible_type='mle')
     sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'c', 'c', 'c', 'a', 'a']
     model.fit([sequence])
     assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
@@ -83,7 +83,7 @@ def test_51():
 
 def test_6():
     # test score_ll with novel entries
-    model = MarkovStateModel(reversible_type='mle', ergodic_trim=True)
+    model = MarkovStateModel(reversible_type='mle')
     sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b']
     model.fit([sequence])
 
@@ -153,7 +153,7 @@ def test_8():
 
 def test_9():
     # what if the input data contains NaN? They should be ignored
-    model = MarkovStateModel(ergodic_trim=False)
+    model = MarkovStateModel(ergodic_cutoff=0)
 
     seq = [0, 1, 0, 1, np.nan]
     model.fit(seq)
@@ -168,7 +168,7 @@ def test_9():
 
 def test_10():
     # test inverse transform
-    model = MarkovStateModel(reversible_type=None, ergodic_trim=False)
+    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
     model.fit([['a', 'b', 'c', 'a', 'a', 'b']])
     v = model.inverse_transform([[0, 1, 2]])
     assert len(v) == 1

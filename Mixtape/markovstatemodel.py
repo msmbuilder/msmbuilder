@@ -55,13 +55,13 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         solved by numerical optimization (BFGS), and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
-    ergodic_trim : bool, default=True
-        Build a model using only the maximal strongly ergodic subgraph of the
-        input data.
-    trim_weight : int, default=1
-        Threshold by which ergodicity is judged in the input data. Greater or
-        equal to this many transition counts in both directions are required
-        to include an edge in the ergodic subgraph.
+    ergodic_cutoff : int, default=1
+        Only the maximal strongly ergodic subgraph of the data is used to build
+        an MSM. Ergodicity is determined by ensuring that each state is accessible
+        from each other state via one or more paths involving edges with a number
+        of observed directed counts greater than or equal to ``ergodic_cutoff``.
+        Not that by setting ``ergodic_cutoff`` to 0, this trimming is effectively
+        turned off.
     prior_counts : float, optional
         Add a number of "pseudo counts" to each entry in the counts matrix.
         When prior_counts == 0 (default), the assigned transition
@@ -96,11 +96,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, lag_time=1, n_timescales=10,
-                 reversible_type='mle', ergodic_trim=True, trim_weight=1,
+                 reversible_type='mle', ergodic_cutoff=1,
                  prior_counts=0, verbose=True):
         self.reversible_type = reversible_type
-        self.ergodic_trim = ergodic_trim
-        self.trim_weight = trim_weight
+        self.ergodic_cutoff = ergodic_cutoff
         self.lag_time = lag_time
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
@@ -144,11 +143,11 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         # step 1. count the number of transitions
         raw_counts, mapping = _transition_counts(sequences, self.lag_time)
 
-        if self.ergodic_trim:
+        if self.ergodic_cutoff >= 1:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                raw_counts, self.trim_weight, self.verbose)
+                raw_counts, self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             # no ergodic trimming.
@@ -178,10 +177,11 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         return self
 
     def _fit_mle(self, counts):
-        if not self.ergodic_trim:
+        if self.ergodic_cutoff < 1:
             with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
-                warnings.warn("reversible_type='mle' and ergodic_trim=False are incompatibile")
+                warnings.warn("reversible_type='mle' and ergodic_cutoff < 1 "
+                              "are not generally compatibile")
 
         transmat, populations = _transmat_mle_prinz(
             counts + self.prior_counts)
@@ -488,8 +488,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 ------------------
 Lag time         : {lag_time}
 Reversible type  : {reversible_type}
-Ergodic trim     : {ergodic_trim}
-Trim weight      : {trim_weight}
+Ergodic cutoff   : {ergodic_cutoff}
 Prior counts     : {prior_counts}
 
 Number of states : {n_states}
@@ -516,8 +515,7 @@ Timescales:
         out.write(doc.format(
             lag_time=self.lag_time,
             reversible_type=self.reversible_type,
-            ergodic_trim=self.ergodic_trim,
-            trim_weight=self.trim_weight,
+            ergodic_cutoff=self.ergodic_cutoff,
             prior_counts=self.prior_counts,
             n_states = self.n_states_,
             counts_nz = counts_nz,
