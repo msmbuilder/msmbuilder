@@ -22,8 +22,6 @@ def test_viterbi():
     np.testing.assert_almost_equal(logprob1, logprob2, decimal=-1)
     # one of the two mappings
     assert np.all(seq1[0] == seq2[0]) or np.all(np.array([1, 0])[seq1[0]] == seq2[0])
-    np.testing.assert_array_equal(seq1[0], seq2[0])
-
 
     if PLOT:
         import matplotlib.pyplot as pp

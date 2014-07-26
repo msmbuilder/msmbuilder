@@ -9,22 +9,21 @@ import numpy as np
 # Do a simple test of General SDP Solver with binary search
 
 def test1():
-    """
-    A simple semidefinite program
+    # A simple semidefinite program
+    #
+    # min Tr(X)
+    # subject to
+    #     x_11 + 2 x_22 == 1
+    #     Tr(X) = x_11 + x_22 <= 10
+    #     X semidefinite
+    #
+    # The solution to this problem is
+    #
+    #     X = [[0, 0],
+    #          [0, .75]]
+    #
+    # from Lagrange multiplier.
 
-    min Tr(X)
-    subject to
-        x_11 + 2 x_22 == 1
-        Tr(X) = x_11 + x_22 <= 10
-        X semidefinite
-
-    The solution to this problem is
-
-        X = [[0, 0],
-             [0, .75]]
-
-    from Lagrange multiplier.
-    """
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 50
@@ -41,18 +40,17 @@ def test1():
     assert np.abs(X[1,1] - 0.75) < search_tol
 
 def test2():
-    """
-    A simple semidefinite program to test trace search
-    min Tr(X)
-    subject to
-        x_11 + 2 x_22 == 50
-        X semidefinite
+    # A simple semidefinite program to test trace search
+    # min Tr(X)
+    # subject to
+    #     x_11 + 2 x_22 == 50
+    #     X semidefinite
+    #
+    # The solution to this problem is
+    #
+    #     X = [[0, 0],
+    #          [0, 25]]
 
-    The solution to this problem is
-
-        X = [[0, 0],
-             [0, 25]]
-    """
     tol = 1e-1
     search_tol = 1e-1
     N_iter = 50
@@ -73,18 +71,17 @@ def test2():
     assert np.abs(np.trace(X) - 25) < 2 
 
 def test3():
-    """
-    A simple quadratic program
-    min x_1
-    subject to
-        x_1^2 + x_2^2 = 1
+    # A simple quadratic program
+    # min x_1
+    # subject to
+    #     x_1^2 + x_2^2 = 1
+    #
+    # The solution to this problem is
+    #
+    #     X = [[ 0, 0],
+    #          [ 0, 1]]
+    #     X semidefinite
 
-    The solution to this problem is
-
-        X = [[ 0, 0],
-             [ 0, 1]]
-        X semidefinite
-    """
     #import pdb, traceback, sys
     #try:
     tol = 1e-2
@@ -120,18 +117,17 @@ def test3():
     #    pdb.post_mortem(tb)
 
 def test4():
-    """
-    Tests that feasibility of Q optimization runs.
+    # Tests that feasibility of Q optimization runs.
+    #
+    # min_Q -log det R + Tr(RF)
+    #       -------------------
+    #      |D-ADA.T  I         |
+    # X =  |   I     R         |
+    #      |            D   cI |
+    #      |           cI   R  |
+    #       -------------------
+    # X is PSD
 
-    min_Q -log det R + Tr(RF)
-          -------------------
-         |D-ADA.T  I         |
-    X =  |   I     R         |
-         |            D   cI |
-         |           cI   R  |
-          -------------------
-    X is PSD
-    """
     import pdb, traceback, sys
     try:
         tol = 1e-3
@@ -195,23 +191,22 @@ def test4():
         pdb.post_mortem(tb)
 
 def test5():
-    """
-    Tests feasibility of A optimization.
+    # Tests feasibility of A optimization.
+    #
+    # min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #
+    #       --------------------
+    #      | D-Q    A           |
+    # X =  | A.T  D^{-1}        |
+    #      |              I   A |
+    #      |             A.T  I |
+    #       --------------------
+    # A mu == 0
+    # X is PSD
+    #
+    # If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    # The solution to this problem is A = 0 when dim = 1.
 
-    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-          --------------------
-         | D-Q    A           |
-    X =  | A.T  D^{-1}        |
-         |              I   A |
-         |             A.T  I |
-          --------------------
-    A mu == 0
-    X is PSD
-
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
-    The solution to this problem is A = 0 when dim = 1.
-    """
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 100
@@ -244,20 +239,19 @@ def test5():
         assert succeed == True
 
 def test6():
-    """
-    Tests feasibility Q optimization with realistic values for F,
-    D, A from the 1-d 2-well toy system.
+    # Tests feasibility Q optimization with realistic values for F,
+    # D, A from the 1-d 2-well toy system.
+    #
+    #
+    # min_Q -log det R + Tr(RF)
+    #       -------------------
+    #      |D-ADA.T  I         |
+    # X =  |   I     R         |
+    #      |            D   cI |
+    #      |           cI   R  |
+    #       -------------------
+    # X is PSD
 
-
-    min_Q -log det R + Tr(RF)
-          -------------------
-         |D-ADA.T  I         |
-    X =  |   I     R         |
-         |            D   cI |
-         |           cI   R  |
-          -------------------
-    X is PSD
-    """
     import pdb, traceback, sys
     try:
         tol = 1e-2
@@ -317,23 +311,22 @@ def test6():
         pdb.post_mortem(tb)
 
 def test7():
-    """
-    Tests feasibility of A optimization.
+    # Tests feasibility of A optimization.
+    #
+    # min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #
+    #       --------------------
+    #      | D-Q    A           |
+    # X =  | A.T  D^{-1}        |
+    #      |              I   A |
+    #      |             A.T  I |
+    #       --------------------
+    # A mu == 0
+    # X is PSD
+    #
+    # If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    # The solution to this problem is A = 0 when dim = 1.
 
-    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-          --------------------
-         | D-Q    A           |
-    X =  | A.T  D^{-1}        |
-         |              I   A |
-         |             A.T  I |
-          --------------------
-    A mu == 0
-    X is PSD
-
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
-    The solution to this problem is A = 0 when dim = 1.
-    """
     tol = 1e-2
     search_tol = 1e-2
     N_iter = 100
@@ -386,18 +379,17 @@ def test7():
         assert succeed == True
 
 def test8():
-    """
-    Tests Q-solve on data generated from a run of Muller potential.
+    # Tests Q-solve on data generated from a run of Muller potential.
+    #
+    # min_R -log det R + Tr(RF)
+    #       -------------------
+    #      |D-ADA.T  I         |
+    # X =  |   I     R         |
+    #      |            D   cI |
+    #      |           cI   R  |
+    #       -------------------
+    # X is PSD
 
-    min_R -log det R + Tr(RF)
-          -------------------
-         |D-ADA.T  I         |
-    X =  |   I     R         |
-         |            D   cI |
-         |           cI   R  |
-          -------------------
-    X is PSD
-    """
     tol = 1e-2
     search_tol = 1
     N_iter = 100
@@ -465,23 +457,22 @@ def test8():
         pdb.post_mortem(tb)
 
 def test9():
-    """
-    Tests A-optimization on data generated from run of Muller potential.
+    # Tests A-optimization on data generated from run of Muller potential.
+    #
+    # min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #
+    #       --------------------
+    #      | D-Q    A           |
+    # X =  | A.T  D^{-1}        |
+    #      |              I   A |
+    #      |             A.T  I |
+    #       --------------------
+    # A mu == 0
+    # X is PSD
+    #
+    # If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    # The solution to this problem is A = 0 when dim = 1.
 
-    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-          --------------------
-         | D-Q    A           |
-    X =  | A.T  D^{-1}        |
-         |              I   A |
-         |             A.T  I |
-          --------------------
-    A mu == 0
-    X is PSD
-
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
-    The solution to this problem is A = 0 when dim = 1.
-    """
     eps = 1e-4
     tol = 2e-2
     search_tol = 1e-2
