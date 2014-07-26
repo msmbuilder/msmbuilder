@@ -26,8 +26,8 @@ import sys
 import warnings
 import operator
 import numpy as np
-import scipy.sparse
 import scipy.linalg
+from scipy.sparse import csgraph
 from mixtape.utils import list_of_1d
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -57,19 +57,17 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         direct symmetrization of the expected number of counts.
     ergodic_cutoff : int, default=1
         Only the maximal strongly ergodic subgraph of the data is used to build
-        an MSM. Ergodicity is determined by ensuring that each state is accessible
-        from each other state via one or more paths involving edges with a number
-        of observed directed counts greater than or equal to ``ergodic_cutoff``.
-        Not that by setting ``ergodic_cutoff`` to 0, this trimming is effectively
-        turned off.
+        an MSM. Ergodicity is determined by ensuring that each state is
+        accessible from each other state via one or more paths involving edges
+        with a number of observed directed counts greater than or equal to
+        ``ergodic_cutoff``. Not that by setting ``ergodic_cutoff`` to 0, this
+        trimming is effectively turned off.
     prior_counts : float, optional
         Add a number of "pseudo counts" to each entry in the counts matrix.
         When prior_counts == 0 (default), the assigned transition
-        probability between two states with no observed transitions will be zero,
-        whereas when prior_counts > 0, even this unobserved transitions will be
-        given nonzero probability. Note that prior_counts _totally_ destroys
-        performance when the number of states is large, because none of the
-        matrices are sparse anymore.
+        probability between two states with no observed transitions will be
+        zero, whereas when prior_counts > 0, even this unobserved transitions
+        will be given nonzero probability.
     verbose : bool
         Enable verbose printout
 
@@ -80,9 +78,9 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     mapping_ : dict
         Mapping between "input" labels and internal state indices used by the
         counts and transition matrix for this Markov state model. Input states
-        need not necessrily be integers in (0, ..., n_states_ - 1), for example.
-        The semantics of ``mapping_[i] = j`` is that state ``i`` from the
-        "input space" is represented by the index ``j`` in this MSM.
+        need not necessrily be integers in (0, ..., n_states_ - 1), for
+        example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
+        the "input space" is represented by the index ``j`` in this MSM.
     countsmat_ : array_like, shape = (n_states_, n_states_)
         Number of transition counts between states. countsmat_[i, j] is counted
         during `fit()`. The indices `i` and `j` are the "internal" indices
@@ -212,10 +210,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
     def transform(self, sequences, mode='clip'):
         r"""Transform a list of sequences to internal indexing
 
-        Recall that `sequences` can be arbitrary labels, whereas `transmat_` and
-        `countsmat_` are indexed with integers between 0 and `n_states` - 1.
-        This methods maps a set of sequences from the labels onto this internal
-        indexing.
+        Recall that `sequences` can be arbitrary labels, whereas ``transmat_``
+        and ``countsmat_`` are indexed with integers between 0 and
+        ``n_states - 1``. This methods maps a set of sequences from the labels
+        onto this internal indexing.
 
         Parameters
         ----------
@@ -245,11 +243,12 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         mapped_sequences : list
             List of sequences in internal indexing
         """
-        if not mode in ['clip', 'fill']:
+        if mode not in ['clip', 'fill']:
             raise ValueError('mode must be one of ["clip", "fill"]: %s' % mode)
         sequences = list_of_1d(sequences)
 
-        f = np.vectorize(lambda k: self.mapping_.get(k, np.nan), otypes=[np.float])
+        f = np.vectorize(lambda k: self.mapping_.get(k, np.nan),
+                         otypes=[np.float])
 
         result = []
         for y in sequences:
@@ -260,7 +259,8 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
                 else:
                     result.append(a)
             elif mode == 'clip':
-                result.extend([a[s].astype(int) for s in np.ma.clump_unmasked(np.ma.masked_invalid(a))])
+                result.extend([a[s].astype(int) for s in
+                               np.ma.clump_unmasked(np.ma.masked_invalid(a))])
             else:
                 raise RuntimeError()
 
@@ -273,13 +273,14 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         sequences : list
-            List of sequences, each of which is one-dimensional array of integers
-            in 0, ..., n_states_ - 1.
+            List of sequences, each of which is one-dimensional array of
+            integers in ``0, ..., n_states_ - 1``.
 
         Returns
         -------
         sequences : list
-            List of sequences, each of which is one-dimensional array of labels.
+            List of sequences, each of which is one-dimensional array
+            of labels.
         """
         sequences = list_of_1d(sequences)
         inverse_mapping = {v: k for k, v in self.mapping_.items()}
@@ -370,10 +371,10 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
                 stationary distribution.
             ``array-like``
                 If ``state`` is a 1D array with length equal to ``n_states_``,
-                then it is is interpreted as an initial multinomial distribution
-                from which to draw the chain's initial state. Note that the indexing
-                semantics of this array must match the _internal_ indexing of
-                this model.
+                then it is is interpreted as an initial multinomial
+                distribution from which to draw the chain's initial state.
+                Note that the indexing semantics of this array must match the
+                _internal_ indexing of this model.
             otherwise
                 Otherwise, ``state`` is interpreted as a particular
                 deterministic state label from which to begin the trajectory.
@@ -426,7 +427,7 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
         counts, mapping = _transition_counts(sequences)
         if not set(self.mapping_.keys()).issuperset(mapping.keys()):
             return -np.inf
-        inverse_mapping = {v:k for k, v in mapping.items()}
+        inverse_mapping = {v: k for k, v in mapping.items()}
 
         # maps indices in counts to indices in transmat
         m2 = _dict_compose(inverse_mapping, self.mapping_)
@@ -437,7 +438,9 @@ class MarkovStateModel(BaseEstimator, TransformerMixin):
 
     def _get_eigensystem(self):
         if not self._is_dirty:
-            return self._eigenvalues, self._left_eigenvectors, self._right_eigenvectors
+            return (self._eigenvalues,
+                    self._left_eigenvectors,
+                    self._right_eigenvectors)
 
         n_timescales = self.n_timescales
         if n_timescales is None:
@@ -517,9 +520,9 @@ Timescales:
             reversible_type=self.reversible_type,
             ergodic_cutoff=self.ergodic_cutoff,
             prior_counts=self.prior_counts,
-            n_states = self.n_states_,
-            counts_nz = counts_nz,
-            percent_counts_nz = 100 * counts_nz / self.countsmat_.size,
+            n_states=self.n_states_,
+            counts_nz=counts_nz,
+            percent_counts_nz=(100 * counts_nz / self.countsmat_.size),
             cnz_min=np.min(cnz),
             cnz_1st=np.percentile(cnz, 25),
             cnz_med=np.percentile(cnz, 50),
@@ -530,7 +533,6 @@ Timescales:
             cnz_sum_per_lag=np.sum(cnz)/self.lag_time,
             ts=', '.join(['{:.2f}'.format(t) for t in self.timescales_]),
             ))
-
 
     @property
     def timescales_(self):
@@ -609,7 +611,8 @@ Timescales:
 
     @property
     def state_labels_(self):
-        return [k for k, v in sorted(self.mapping_.items(), key=operator.itemgetter(1))]
+        return [k for k, v in sorted(self.mapping_.items(),
+                                     key=operator.itemgetter(1))]
 
 
 def ndgrid_msm_likelihood_score(estimator, sequences):
@@ -618,7 +621,8 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     Parameters
     ----------
     estimator : sklearn.pipeline.Pipeline
-        A pipeline estimator containing an NDGrid followed by a MarkovStateModel
+        A pipeline estimator containing an NDGrid followed by a
+        MarkovStateModel
     sequences: list of array-like, each of shape (n_samples_i, n_features)
         Data sequences, where n_samples_i in the number of samples
         in sequence i and n_features is the number of features.
@@ -671,7 +675,7 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     #     emission_log_likelihood += -1 * np.log(width) * len(X)
     #
     # return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
-    #
+
 
 def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     """Trim a transition count matrix down to its maximal
@@ -706,16 +710,17 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
         ``j`` in counts_component
     """
     n_states_input = counts.shape[0]
-    n_components, component_assignments = scipy.sparse.csgraph.connected_components(
+    n_components, component_assignments = csgraph.connected_components(
         scipy.sparse.csr_matrix(counts >= weight), connection="strong")
     populations = np.array(counts.sum(0)).flatten()
-    component_pops = np.array([populations[component_assignments == i].sum() for i in range(n_components)])
+    component_pops = np.array([populations[component_assignments == i].sum() for
+                               i in range(n_components)])
     which_component = component_pops.argmax()
 
     if verbose:
         print("MSM contains %d strongly connected component%s "
               "above weight=%.2f. Component %d selected, with "
-              "population %f%%" % (n_components, 's'[n_components==1:], weight, which_component,
+              "population %f%%" % (n_components, 's' if (n_components != 1) else '', weight, which_component,
                                    100 * component_pops[which_component] / component_pops.sum()))
 
     # keys are all of the "input states" which have a valid mapping to the output.
@@ -751,11 +756,12 @@ def _transition_counts(sequences, lag_time=1):
     Returns
     -------
     counts : array, shape=(n_states, n_states)
-        counts[i][j] counts the number of times a sequences was in state `i` at time
-        t, and state `j` at time `t+self.lag_time`, over the full set of trajectories.
+        ``counts[i][j]`` counts the number of times a sequences was in state
+        `i` at time t, and state `j` at time `t+self.lag_time`, over the
+        full set of trajectories.
     mapping : dict
-        Mapping from the items in the sequences to the indices in (0, n_states-1)
-        used for the count matrix.
+        Mapping from the items in the sequences to the indices in
+        ``(0, n_states-1)`` used for the count matrix.
 
     Examples
     --------
@@ -796,7 +802,8 @@ def _transition_counts(sequences, lag_time=1):
     mapping = dict(zip(classes, range(n_states)))
     mapping_is_identity = np.all(classes == np.arange(n_states))
     mapping_fn = np.vectorize(mapping.get, otypes=[np.int])
-    none_to_nan = np.vectorize(lambda x: np.nan if x is None else x, otypes=[np.float])
+    none_to_nan = np.vectorize(lambda x: np.nan if x is None else x,
+                               otypes=[np.float])
 
     counts = np.zeros((n_states, n_states), dtype=float)
     for y in sequences:
@@ -837,4 +844,3 @@ def _dict_compose(dict1, dict2):
     {'a': 'A', 'b': 'b'}
     """
     return {k: dict2.get(v) for k, v in dict1.items() if v in dict2}
-
