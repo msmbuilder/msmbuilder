@@ -6,7 +6,7 @@ script:
   - git clone https://github.com/rmcgibbo/numpydoc.git
   - cd numpydoc && python setup.py install && cd -
   - python setup.py -q install
-  - nosetests
+  - nosetests --attr='!plots,!cuda,!broken,!slow'
 env:
   matrix:
     - python=2.7
