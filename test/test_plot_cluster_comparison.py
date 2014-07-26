@@ -1,3 +1,4 @@
+from __future__ import print_function
 #New BSD License
 #
 #Copyright (c) 2007-2013 The scikit-learn developers.

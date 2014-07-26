@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import numpy as np
 import warnings
 import mdtraj as md
@@ -40,14 +41,14 @@ def test_plusmin():
     mslds_score = l.score(data)
     print("gamma = %f" % gamma)
     print("MSLDS Log-Likelihood = %f" %  mslds_score)
-    print
+    print()
 
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
     g.fit(data)
     hmm_score = g.score(data)
     print("HMM Log-Likelihood = %f" %  hmm_score)
-    print
+    print()
 
     # Plot sample from MSLDS
     sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=plusmin.mus[0])
@@ -154,7 +155,7 @@ def test_doublewell():
         g.fit(data)
         hmm_score = g.score(data)
         print("HMM Log-Likelihood = %f" %  hmm_score)
-        print
+        print()
 
         # Plot sample from MSLDS
         sim_xs, sim_Ss = model.sample(T, init_state=0)
@@ -210,7 +211,7 @@ def test_alanine_dipeptide():
         g.fit(data)
         hmm_score = g.score(data)
         print("HMM Log-Likelihood = %f" %  hmm_score)
-        print
+        print()
 
         # Generate a trajectory from learned model.
         sample_traj, hidden_states = model.sample(sim_T)

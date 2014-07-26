@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import warnings
 import mdtraj as md
@@ -92,7 +93,7 @@ def test_Q_solve_muller():
                   [1.58163533, 2.58977211]])
     Q = Q_solve(block_dim, A, D, F, disp=True, debug=False,
             verbose=False, Rs=[100])
-    print "D:\n", D
+    print("D:\n", D)
     assert Q != None
     assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
@@ -135,7 +136,7 @@ def test_Q_solve_muller_2():
     A = np.zeros((block_dim, block_dim))
     Q = Q_solve(block_dim, A, D, F, disp=True,
             verbose=False, Rs=[100])
-    print "D:\n", D
+    print("D:\n", D)
     assert Q != None
     assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
@@ -153,7 +154,7 @@ def test_Q_solve_muller_3():
                 [-2.13554192, -6.50420761]], dtype=float32))
     Q = Q_solve(block_dim, A, D, F, disp=True,
             verbose=False, Rs=[100])
-    print "D:\n", D
+    print("D:\n", D)
     assert Q != None
     assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
@@ -223,7 +224,7 @@ def test_Q_solve_plusmin():
     D = np.array([[.0204]])
     F = np.array([[25.47]])
     Q = Q_solve(block_dim, A, D, F)
-    print "D:\n", D
+    print("D:\n", D)
     assert Q != None
     assert np.linalg.norm(Q, 2) < np.linalg.norm(D, 2)
 
@@ -346,10 +347,10 @@ def test_alanine_dipeptide_mstep():
             data.append(Z)
 
         # Fit reference model and initial MSLDS model
-        print "Starting Gaussian Model Fit"
+        print("Starting Gaussian Model Fit")
         refmodel = GaussianHMM(n_components=n_components,
                             covariance_type='full').fit(data)
-        print "Done with Gaussian Model Fit"
+        print("Done with Gaussian Model Fit")
 
         # Obtain sufficient statistics from refmodel
         rlogprob, rstats = reference_estep(refmodel, data)
@@ -385,7 +386,7 @@ def test_met_enkephalin_mstep():
         n_frames = trajs[0].n_frames
         n_atoms = trajs[0].n_atoms
         n_features = n_atoms * 3
-        print "n_features: ", n_features
+        print("n_features: ", n_features)
 
         data_home = get_data_home()
         data_dir = join(data_home, TARGET_DIRECTORY_MET)
@@ -401,10 +402,10 @@ def test_met_enkephalin_mstep():
             data.append(Z)
 
         # Fit reference model and initial MSLDS model
-        print "Starting Gaussian Model Fit"
+        print("Starting Gaussian Model Fit")
         refmodel = GaussianHMM(n_components=n_components,
                             covariance_type='full').fit(data)
-        print "Done with Gaussian Model Fit"
+        print("Done with Gaussian Model Fit")
 
         # Obtain sufficient statistics from refmodel
         rlogprob, rstats = reference_estep(refmodel, data)
