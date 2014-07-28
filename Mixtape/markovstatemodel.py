@@ -27,7 +27,7 @@ import warnings
 import operator
 import numpy as np
 import scipy.linalg
-from scipy.sparse import csgraph
+from scipy.sparse import csgraph, csr_matrix
 from mixtape.utils import list_of_1d
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -711,7 +711,7 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     """
     n_states_input = counts.shape[0]
     n_components, component_assignments = csgraph.connected_components(
-        scipy.sparse.csr_matrix(counts >= weight), connection="strong")
+        csr_matrix(counts >= weight), connection="strong")
     populations = np.array(counts.sum(0)).flatten()
     component_pops = np.array([populations[component_assignments == i].sum() for
                                i in range(n_components)])
