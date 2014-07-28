@@ -1,9 +1,9 @@
-import sys
-sys.path.append("..")
+from __future__ import division, print_function, absolute_import
+
 import numpy as np
-from utils import numerical_derivative
-from objectives import *
-from constraints import *
+from ..utils import numerical_derivative
+from ..objectives import *
+from ..constraints import *
 
 def test_tr():
     dims = [1, 5, 10]
@@ -60,9 +60,9 @@ def test_log_det():
             num_grad = numerical_derivative(obj, X, eps)
             diff = np.sum(np.abs(grad - num_grad))
             if diff >= tol:
-                print "grad:\n", grad
-                print "num_grad:\n", num_grad
-                print "diff: ", diff
+                print("grad:\n", grad)
+                print("num_grad:\n", num_grad)
+                print("diff: ", diff)
             assert diff < tol
 
 def test_A_dynamics():
@@ -93,8 +93,8 @@ def test_A_dynamics():
             grad = grad_obj(X)
             num_grad = numerical_derivative(obj, X, eps)
             diff = np.sum(np.abs(grad - num_grad))
-            print "X:\n", X
-            print "grad:\n", grad
-            print "num_grad:\n", num_grad
-            print "diff: ", diff
+            print("X:\n", X)
+            print("grad:\n", grad)
+            print("num_grad:\n", num_grad)
+            print("diff: ", diff)
             assert diff < tol

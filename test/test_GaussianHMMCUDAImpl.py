@@ -3,10 +3,14 @@ from __future__ import print_function, division, absolute_import
 import numpy  as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
-from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
+from nose.plugins.attrib import attr
 
+
+@attr('cuda')
 def test_1():
     "Test the getters and setters, which transfer data to/from the GPU"
+    # from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
+    
     t1 = np.random.randn(10, 2).astype(np.float32)
     n_features = 2
     for n_states in [3, 4]:
@@ -29,8 +33,10 @@ def test_1():
         hmm.startprob_ = startprob
         yield lambda: np.testing.assert_array_almost_equal(hmm.startprob_, startprob)
 
-
+@attr('cuda')
 def test_2():
+    # from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
+    
     np.random.seed(42)
     n_features = 32
     length = 20

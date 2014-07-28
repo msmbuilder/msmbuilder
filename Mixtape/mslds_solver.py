@@ -1,3 +1,5 @@
+from __future__ import division
+from __future__ import print_function
 import numpy as np
 from mixtape._reversibility import reversible_transmat
 from mixtape.mslds_solvers.sparse_sdp.constraints import A_constraints
@@ -27,14 +29,14 @@ class MetastableSwitchingLDSSolver(object):
         self.n_features = n_features
 
     def do_hmm_mstep(self, stats):
-        print "Starting hmm mstep"
-        print "Starting transmat update"
+        print("Starting hmm mstep")
+        print("Starting transmat update")
         transmat = transmat_solve(stats)
-        print "Starting means update"
+        print("Starting means update")
         means = self.means_update(stats)
-        print "Starting covars update"
+        print("Starting covars update")
         covars = self.covars_update(means, stats)
-        print "Done with hmm-mstep"
+        print("Done with hmm-mstep")
         return transmat, means, covars
 
     def do_mstep(self, As, Qs, bs, means, covars, stats, N_iter=400,
@@ -132,7 +134,7 @@ def print_Q_test_case(test_file, A, D, F, dim):
     display_string = "Q-solve failed. Autogenerating Q test case"
     display_string = (bcolors.FAIL + display_string
                         + bcolors.ENDC)
-    print display_string
+    print(display_string)
     np.set_printoptions(threshold=np.nan)
     with open(test_file, 'w') as f:
         test_string = ""
@@ -144,12 +146,12 @@ def print_Q_test_case(test_file, A, D, F, dim):
         test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
                             + " A_solve, Q_solve\n"
         test_string += "\tblock_dim = %d\n"%dim
-        pickle.dump(A, open("A_Q_test.p", "w"))
-        test_string += '\tA = pickle.load(open("A_Q_test.p", "r"))\n'
-        pickle.dump(D, open("D_Q_test.p", "w"))
-        test_string += '\tD = pickle.load(open("D_Q_test.p", "r"))\n'
-        pickle.dump(F, open("F_Q_test.p", "w"))
-        test_string += '\tF = pickle.load(open("F_Q_test.p", "r"))\n'
+        pickle.dump(A, open("A_Q_test.p", "wb"))
+        test_string += '\tA = pickle.load(open("A_Q_test.p", "rb"))\n'
+        pickle.dump(D, open("D_Q_test.p", "wb"))
+        test_string += '\tD = pickle.load(open("D_Q_test.p", "rb"))\n'
+        pickle.dump(F, open("F_Q_test.p", "wb"))
+        test_string += '\tF = pickle.load(open("F_Q_test.p", "rb"))\n'
         test_string += "\tQ_solve(block_dim, A, D, F, \n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
@@ -160,7 +162,7 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
     display_string = "A-solve failed. Autogenerating A test case"
     display_string = (bcolors.FAIL + display_string
                         + bcolors.ENDC)
-    print display_string
+    print(display_string)
     with open(test_file, 'w') as f:
         test_string = ""
         np.set_printoptions(threshold=np.nan)
@@ -172,18 +174,18 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
         test_string += "\tfrom mixtape.mslds_solver import AQb_solve,"\
                             + " A_solve, Q_solve\n"
         test_string += "\tblock_dim = %d\n"%dim
-        pickle.dump(B, open("B_A_test.p", "w"))
-        test_string += '\tB = pickle.load(open("B_A_test.p", "r"))\n'
-        pickle.dump(C, open("C_A_test.p", "w"))
-        test_string += '\tC = pickle.load(open("C_A_test.p", "r"))\n'
-        pickle.dump(D, open("D_A_test.p", "w"))
-        test_string += '\tD = pickle.load(open("D_A_test.p", "r"))\n'
-        pickle.dump(E, open("E_A_test.p", "w"))
-        test_string += '\tE = pickle.load(open("E_A_test.p", "r"))\n'
-        pickle.dump(Q, open("Q_A_test.p", "w"))
-        test_string += '\tQ = pickle.load(open("Q_A_test.p", "r"))\n'
-        pickle.dump(mu, open("mu_A_test.p", "w"))
-        test_string += '\tmu = pickle.load(open("mu_A_test.p", "r"))\n'
+        pickle.dump(B, open("B_A_test.p", "wb"))
+        test_string += '\tB = pickle.load(open("B_A_test.p", "rb"))\n'
+        pickle.dump(C, open("C_A_test.p", "wb"))
+        test_string += '\tC = pickle.load(open("C_A_test.p", "rb"))\n'
+        pickle.dump(D, open("D_A_test.p", "wb"))
+        test_string += '\tD = pickle.load(open("D_A_test.p", "rb"))\n'
+        pickle.dump(E, open("E_A_test.p", "wb"))
+        test_string += '\tE = pickle.load(open("E_A_test.p", "rb"))\n'
+        pickle.dump(Q, open("Q_A_test.p", "wb"))
+        test_string += '\tQ = pickle.load(open("Q_A_test.p", "rb"))\n'
+        pickle.dump(mu, open("mu_A_test.p", "wb"))
+        test_string += '\tmu = pickle.load(open("mu_A_test.p", "rb"))\n'
         test_string += "\tA_solve(block_dim, B, C, D, E, Q, mu,\n"
         test_string += "\t\tdisp=True, debug=False, verbose=False,\n"
         test_string += "\t\tRs=[100])\n"
@@ -354,11 +356,11 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
             X_init = None
             const = const * factor
         else:
-            print "A_SOLVE SUCCESS AT %d" % i
-            print "const: ", const
+            print("A_SOLVE SUCCESS AT %d" % i)
+            print("const: ", const)
             break
     if X_init == None:
-        print "A_SOLVE INIT FAILED!"
+        print("A_SOLVE INIT FAILED!")
 
 
     def obj(X):
@@ -379,7 +381,7 @@ def A_solve(block_dim, B, C, D, E, Q, mu, interactive=False,
         A_T_2 = get_entries(X, A_T_2_cds)
         A = (A_1 + A_T_1 + A_2 + A_T_2) / 4.
         if disp:
-            print "A:\n", A
+            print("A:\n", A)
         return A
 
 def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
@@ -448,10 +450,10 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
     set_entries(X_init, R_2_cds, Qinv_init_2)
     X_init = X_init + (1e-4)*np.eye(dim)
     if min(np.linalg.eigh(X_init)[0]) < 0:
-        print "Q_SOLVE INIT FAILED!"
+        print("Q_SOLVE INIT FAILED!")
         X_init == None
     else:
-        print "Q_SOLVE SUCCESS!"
+        print("Q_SOLVE SUCCESS!")
 
     g = GeneralSolver()
     def obj(X):
@@ -474,5 +476,5 @@ def Q_solve(block_dim, A, D, F, interactive=False, disp=True,
         # Unscale answer
         Q *= (1./scale)
         if disp:
-            print "Q:\n", Q
+            print("Q:\n", Q)
         return Q

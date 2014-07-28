@@ -1,5 +1,7 @@
+from __future__ import division
+from __future__ import absolute_import
 import numpy as np
-from constraints import *
+from .constraints import *
 
 def neg_sum_squares(x):
     """

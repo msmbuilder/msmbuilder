@@ -1,30 +1,31 @@
-import sys
-sys.path.append("..")
-from general_sdp_solver import *
-from objectives import *
-from constraints import *
+from __future__ import division, print_function, absolute_import
+
+from ..general_sdp_solver import *
+from ..objectives import *
+from ..constraints import *
 import scipy
 import numpy as np
+from nose.plugins.attrib import attr
+
 
 # Do a simple test of General SDP Solver with binary search
 
 def test1():
-    """
-    A simple semidefinite program
+    # A simple semidefinite program
+    #
+    # min Tr(X)
+    # subject to
+    #     x_11 + 2 x_22 == 1
+    #     Tr(X) = x_11 + x_22 <= 10
+    #     X semidefinite
+    #
+    # The solution to this problem is
+    #
+    #     X = [[0, 0],
+    #          [0, .75]]
+    #
+    # from Lagrange multiplier.
 
-    min Tr(X)
-    subject to
-        x_11 + 2 x_22 == 1
-        Tr(X) = x_11 + x_22 <= 10
-        X semidefinite
-
-    The solution to this problem is
-
-        X = [[0, 0],
-             [0, .75]]
-
-    from Lagrange multiplier.
-    """
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 50
@@ -36,23 +37,22 @@ def test1():
             Fs, gradFs, Gs, gradGs)
     (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, disp=True, debug=False, Rs = Rs)
-    print "X:\n", X
+    print("X:\n", X)
     assert succeed == True
     assert np.abs(X[1,1] - 0.75) < search_tol
 
 def test2():
-    """
-    A simple semidefinite program to test trace search
-    min Tr(X)
-    subject to
-        x_11 + 2 x_22 == 50
-        X semidefinite
+    # A simple semidefinite program to test trace search
+    # min Tr(X)
+    # subject to
+    #     x_11 + 2 x_22 == 50
+    #     X semidefinite
+    #
+    # The solution to this problem is
+    #
+    #     X = [[0, 0],
+    #          [0, 25]]
 
-    The solution to this problem is
-
-        X = [[0, 0],
-             [0, 25]]
-    """
     tol = 1e-1
     search_tol = 1e-1
     N_iter = 50
@@ -68,23 +68,24 @@ def test2():
             Fs, gradFs, Gs, gradGs)
     (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=True,
             interactive=False, debug=False, Rs = Rs)
-    print "X:\n", X
+    print("X:\n", X)
     assert succeed == True
     assert np.abs(np.trace(X) - 25) < 2 
 
+
+@attr('broken')
 def test3():
-    """
-    A simple quadratic program
-    min x_1
-    subject to
-        x_1^2 + x_2^2 = 1
+    # A simple quadratic program
+    # min x_1
+    # subject to
+    #     x_1^2 + x_2^2 = 1
+    #
+    # The solution to this problem is
+    #
+    #     X = [[ 0, 0],
+    #          [ 0, 1]]
+    #     X semidefinite
 
-    The solution to this problem is
-
-        X = [[ 0, 0],
-             [ 0, 1]]
-        X semidefinite
-    """
     #import pdb, traceback, sys
     #try:
     tol = 1e-2
@@ -93,7 +94,7 @@ def test3():
     Rs = [10, 100]
     dim = 2
     As, bs, Cs, ds, Fs, gradFs = [], [], [], [], [], []
-    g = lambda(X): X[0,0]**2 + X[1,1]**2 - 1.
+    g = lambda X: X[0,0]**2 + X[1,1]**2 - 1.
     def gradg(X):
         (dim, _) = np.shape(X)
         grad = np.zeros(np.shape(X))
@@ -111,7 +112,7 @@ def test3():
             Fs, gradFs, Gs, gradGs)
     (U, X, succeed) = g.solve(N_iter, tol, search_tol, verbose=False,
             interactive=False, debug=False, Rs = Rs)
-    print "X:\n", X
+    print("X:\n", X)
     assert succeed == True
     assert np.abs(X[0,0] - 0) < search_tol
     #except:
@@ -120,18 +121,17 @@ def test3():
     #    pdb.post_mortem(tb)
 
 def test4():
-    """
-    Tests that feasibility of Q optimization runs.
+    # Tests that feasibility of Q optimization runs.
+    #
+    # min_Q -log det R + Tr(RF)
+    #       -------------------
+    #      |D-ADA.T  I         |
+    # X =  |   I     R         |
+    #      |            D   cI |
+    #      |           cI   R  |
+    #       -------------------
+    # X is PSD
 
-    min_Q -log det R + Tr(RF)
-          -------------------
-         |D-ADA.T  I         |
-    X =  |   I     R         |
-         |            D   cI |
-         |           cI   R  |
-          -------------------
-    X is PSD
-    """
     import pdb, traceback, sys
     try:
         tol = 1e-3
@@ -185,8 +185,8 @@ def test4():
             R_2 = scale*get_entries(X, R_2_cds)
             R_avg = (R_1 + R_2) / 2.
             Q = np.linalg.inv(R_avg)
-            print "D:\n", D
-            print "Q:\n", Q
+            print("D:\n", D)
+            print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
@@ -195,23 +195,22 @@ def test4():
         pdb.post_mortem(tb)
 
 def test5():
-    """
-    Tests feasibility of A optimization.
+    # Tests feasibility of A optimization.
+    #
+    # min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #
+    #       --------------------
+    #      | D-Q    A           |
+    # X =  | A.T  D^{-1}        |
+    #      |              I   A |
+    #      |             A.T  I |
+    #       --------------------
+    # A mu == 0
+    # X is PSD
+    #
+    # If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    # The solution to this problem is A = 0 when dim = 1.
 
-    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-          --------------------
-         | D-Q    A           |
-    X =  | A.T  D^{-1}        |
-         |              I   A |
-         |             A.T  I |
-          --------------------
-    A mu == 0
-    X is PSD
-
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
-    The solution to this problem is A = 0 when dim = 1.
-    """
     tol = 1e-3
     search_tol = 1e-2
     N_iter = 100
@@ -244,20 +243,19 @@ def test5():
         assert succeed == True
 
 def test6():
-    """
-    Tests feasibility Q optimization with realistic values for F,
-    D, A from the 1-d 2-well toy system.
+    # Tests feasibility Q optimization with realistic values for F,
+    # D, A from the 1-d 2-well toy system.
+    #
+    #
+    # min_Q -log det R + Tr(RF)
+    #       -------------------
+    #      |D-ADA.T  I         |
+    # X =  |   I     R         |
+    #      |            D   cI |
+    #      |           cI   R  |
+    #       -------------------
+    # X is PSD
 
-
-    min_Q -log det R + Tr(RF)
-          -------------------
-         |D-ADA.T  I         |
-    X =  |   I     R         |
-         |            D   cI |
-         |           cI   R  |
-          -------------------
-    X is PSD
-    """
     import pdb, traceback, sys
     try:
         tol = 1e-2
@@ -286,7 +284,7 @@ def test6():
             Dinv = np.linalg.inv(D)
             R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
             Rs = [R]
-            print "R: ", R
+            print("R: ", R)
 
             As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
                     Q_constraints(block_dim, A, F, D, c)
@@ -307,8 +305,8 @@ def test6():
             R_2  = scale*get_entries(X, R_2_cds)
             R_avg = (R_1 + R_2) / 2.
             Q = np.linalg.inv(R_avg)
-            print "D:\n", D
-            print "Q:\n", Q
+            print("D:\n", D)
+            print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
@@ -317,23 +315,22 @@ def test6():
         pdb.post_mortem(tb)
 
 def test7():
-    """
-    Tests feasibility of A optimization.
+    # Tests feasibility of A optimization.
+    #
+    # min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #
+    #       --------------------
+    #      | D-Q    A           |
+    # X =  | A.T  D^{-1}        |
+    #      |              I   A |
+    #      |             A.T  I |
+    #       --------------------
+    # A mu == 0
+    # X is PSD
+    #
+    # If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    # The solution to this problem is A = 0 when dim = 1.
 
-    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-          --------------------
-         | D-Q    A           |
-    X =  | A.T  D^{-1}        |
-         |              I   A |
-         |             A.T  I |
-          --------------------
-    A mu == 0
-    X is PSD
-
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
-    The solution to this problem is A = 0 when dim = 1.
-    """
     tol = 1e-2
     search_tol = 1e-2
     N_iter = 100
@@ -373,31 +370,30 @@ def test7():
         (U, X, succeed) = g.solve(N_iter, tol, search_tol,
                 verbose=False, disp=True, interactive=False)
         # Undo trace scaling
-        print "X\n", X
+        print("X\n", X)
         if X != None:
             A_1 = get_entries(X, A_1_cds)
             A_T_1 = get_entries(X, A_T_1_cds)
             A_2 = get_entries(X, A_2_cds)
             A_T_2 = get_entries(X, A_T_2_cds)
-            print "A_1:\n", A_1
-            print "A_T_1:\n", A_T_1
-            print "A_2:\n", A_2
-            print "A_T_2:\n", A_T_2
+            print("A_1:\n", A_1)
+            print("A_T_1:\n", A_T_1)
+            print("A_2:\n", A_2)
+            print("A_T_2:\n", A_T_2)
         assert succeed == True
 
 def test8():
-    """
-    Tests Q-solve on data generated from a run of Muller potential.
+    # Tests Q-solve on data generated from a run of Muller potential.
+    #
+    # min_R -log det R + Tr(RF)
+    #       -------------------
+    #      |D-ADA.T  I         |
+    # X =  |   I     R         |
+    #      |            D   cI |
+    #      |           cI   R  |
+    #       -------------------
+    # X is PSD
 
-    min_R -log det R + Tr(RF)
-          -------------------
-         |D-ADA.T  I         |
-    X =  |   I     R         |
-         |            D   cI |
-         |           cI   R  |
-          -------------------
-    X is PSD
-    """
     tol = 1e-2
     search_tol = 1
     N_iter = 100
@@ -455,8 +451,8 @@ def test8():
             R_2  = scale*get_entries(X, R_2_cds)
             R_avg = (R_1 + R_2) / 2.
             Q = np.linalg.inv(R_avg)
-            print "D:\n", D
-            print "Q:\n", Q
+            print("D:\n", D)
+            print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
     except:
@@ -465,23 +461,22 @@ def test8():
         pdb.post_mortem(tb)
 
 def test9():
-    """
-    Tests A-optimization on data generated from run of Muller potential.
+    # Tests A-optimization on data generated from run of Muller potential.
+    #
+    # min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
+    #
+    #       --------------------
+    #      | D-Q    A           |
+    # X =  | A.T  D^{-1}        |
+    #      |              I   A |
+    #      |             A.T  I |
+    #       --------------------
+    # A mu == 0
+    # X is PSD
+    #
+    # If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
+    # The solution to this problem is A = 0 when dim = 1.
 
-    min_A Tr [ Q^{-1} ([C - B] A.T + A [C - B].T + A E A.T]
-
-          --------------------
-         | D-Q    A           |
-    X =  | A.T  D^{-1}        |
-         |              I   A |
-         |             A.T  I |
-          --------------------
-    A mu == 0
-    X is PSD
-
-    If A is dim by dim, then this matrix is 4 * dim by 4 * dim.
-    The solution to this problem is A = 0 when dim = 1.
-    """
     eps = 1e-4
     tol = 2e-2
     search_tol = 1e-2
@@ -540,11 +535,11 @@ def test9():
                 A_2 = get_entries(X, A_2_cds)
                 A_T_2 = get_entries(X, A_T_2_cds)
                 A = (1./4) * (A_1 + A_T_1 + A_2 + A_T_2)
-                print "A_1:\n", A_1
-                print "A_T_1:\n", A_T_1
-                print "A_2:\n", A_2
-                print "A_T_2:\n", A_T_2
-                print "A:\n", A
+                print("A_1:\n", A_1)
+                print("A_T_1:\n", A_T_1)
+                print("A_2:\n", A_2)
+                print("A_T_2:\n", A_T_2)
+                print("A:\n", A)
             assert succeed == True
     except:
         type, value, tb = sys.exc_info()

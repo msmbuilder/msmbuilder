@@ -1,18 +1,24 @@
 language: c
+
 install:
-  - source tools/ci/install.sh
+  - source devtools/ci/install.sh
   - export PYTHONUNBUFFERED=true
+
 script:
   - git clone https://github.com/rmcgibbo/numpydoc.git
   - cd numpydoc && python setup.py install && cd -
+
   - python setup.py -q install
+  - nosetests --attr='!plots,!cuda,!broken,!slow' -v
+
 env:
   matrix:
     - python=2.7
+    - python=3.3
   global:
     - secure: "FHhyCiqHXTUjEMVXrxY1pVoO6iSXQediuIQbiHieX6enF0STEU0IOzQ4Ld2BY2oFmJlhZIr1uCzf++WktX8M4HKVl9ouGmhweFkXR/4BjKot9dB+dUiN9JnTbXPx5GgFqFPPedqMCeq/u8hRO/ZG3fyA2ERSnHe0QzeBY5aa5vw="
     - secure: "P+edtRE09wXe30kvZONNB/aMXlUrVDHYTAc4gNMFrDdxvBZonjwVSvSC+rOpgPOUKbFn7+MgIBlQoIqSpQ9PBY3aCOrbnemdgc41ZYLcZ8aLJD50kLtslW5rHZs/jyPHD/2IB3VSNK9GJAi0uQCF0YII3ng4wgrD6/jQtNR0tnU="
 
 after_success:
   - echo "after_success"
-  - source tools/ci/after_sucess.sh
+  - source devtools/ci/after_sucess.sh

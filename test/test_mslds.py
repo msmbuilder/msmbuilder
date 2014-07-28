@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 import numpy as np
 import warnings
 import mdtraj as md
@@ -12,7 +13,10 @@ from mixtape.datasets.alanine_dipeptide import TARGET_DIRECTORY \
 from mixtape.datasets.base import get_data_home
 from os.path import join
 from sklearn.mixture.gmm import log_multivariate_normal_density
+from nose.plugins.attrib import attr
 
+
+@attr('plots')
 def test_plusmin():
     # Set constants
     n_hotstart = 3
@@ -37,14 +41,14 @@ def test_plusmin():
     mslds_score = l.score(data)
     print("gamma = %f" % gamma)
     print("MSLDS Log-Likelihood = %f" %  mslds_score)
-    print
+    print()
 
     # Fit Gaussian HMM for comparison
     g = GaussianFusionHMM(plusmin.K, plusmin.x_dim)
     g.fit(data)
     hmm_score = g.score(data)
     print("HMM Log-Likelihood = %f" %  hmm_score)
-    print
+    print()
 
     # Plot sample from MSLDS
     sim_xs, sim_Ss = l.sample(T, init_state=0, init_obs=plusmin.mus[0])
@@ -56,6 +60,8 @@ def test_plusmin():
     plt.legend()
     plt.show()
 
+
+@attr('plots')
 def test_muller_potential():
     import pdb, traceback, sys
     try:
@@ -124,6 +130,7 @@ def test_muller_potential():
         pdb.post_mortem(tb)
 
 
+@attr('plots')
 def test_doublewell():
     import pdb, traceback, sys
     try:
@@ -148,7 +155,7 @@ def test_doublewell():
         g.fit(data)
         hmm_score = g.score(data)
         print("HMM Log-Likelihood = %f" %  hmm_score)
-        print
+        print()
 
         # Plot sample from MSLDS
         sim_xs, sim_Ss = model.sample(T, init_state=0)
@@ -163,6 +170,7 @@ def test_doublewell():
         traceback.print_exc()
         pdb.post_mortem(tb)
 
+@attr('plots')
 def test_alanine_dipeptide():
     import pdb, traceback, sys
     warnings.filterwarnings("ignore", 
@@ -203,7 +211,7 @@ def test_alanine_dipeptide():
         g.fit(data)
         hmm_score = g.score(data)
         print("HMM Log-Likelihood = %f" %  hmm_score)
-        print
+        print()
 
         # Generate a trajectory from learned model.
         sample_traj, hidden_states = model.sample(sim_T)
