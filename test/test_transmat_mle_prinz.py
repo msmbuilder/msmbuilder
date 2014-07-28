@@ -27,7 +27,7 @@ def reference_mle(Counts, NumIter=10000000, TerminationEpsilon=1E-10):
     Q=S.copy()
     XS=np.array(Q.sum(0)).flatten()
 
-    for k in xrange(NumIter):
+    for k in range(NumIter):
         Old=XS
         V=Na/XS
         Q.data[:]=S.data/(V[NZX]+V[NZY])
