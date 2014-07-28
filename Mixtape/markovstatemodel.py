@@ -717,11 +717,16 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
                                i in range(n_components)])
     which_component = component_pops.argmax()
 
+    def cpop(which):
+        csum = component_pops.sum()
+        return 100 * component_pops[which] / csum if csum != 0 else np.nan
+
     if verbose:
         print("MSM contains %d strongly connected component%s "
               "above weight=%.2f. Component %d selected, with "
-              "population %f%%" % (n_components, 's' if (n_components != 1) else '', weight, which_component,
-                                   100 * component_pops[which_component] / component_pops.sum()))
+              "population %f%%" % (n_components, 's' if (n_components != 1) else '',
+                                   weight, which_component, cpop(which_component)))
+
 
     # keys are all of the "input states" which have a valid mapping to the output.
     keys = np.arange(n_states_input)[component_assignments == which_component]
