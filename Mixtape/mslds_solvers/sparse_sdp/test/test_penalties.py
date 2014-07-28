@@ -100,6 +100,8 @@ def test4():
         print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
+
+@attr('broken')
 def test5():
     # Check log-sum-exp gradient on many linear inequalities.
     tol = 1e-3
