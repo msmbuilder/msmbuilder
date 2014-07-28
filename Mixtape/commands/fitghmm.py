@@ -107,7 +107,6 @@ class FitGHMM(Command, MDTrajInputMixin):
 
         self.featurizer = mixtape.featurizer.load(args.featurizer)
         self.filenames = glob.glob(os.path.expanduser(args.dir) + '/*.' + args.ext)
-        self.n_features = self.featurizer.n_features
 
     def start(self):
         args = self.args
@@ -132,7 +131,8 @@ class FitGHMM(Command, MDTrajInputMixin):
                     #     self.fit(subsampled, subsampled, n_states, lag_time, 0, args, outfile)
 
     def fit(self, train, test, n_states, train_lag_time, repetition, args, outfile):
-        kwargs = dict(n_states=n_states, n_features=self.n_features,
+        n_features = train[0].shape[1]
+        kwargs = dict(n_states=n_states, n_features=n_features,
                       n_init=args.n_init,
                       n_em_iter=args.n_em_iter, n_lqa_iter=args.n_lqa_iter,
                       fusion_prior=args.fusion_prior, thresh=args.thresh,
