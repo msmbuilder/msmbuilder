@@ -5,6 +5,8 @@ from ..objectives import *
 from ..constraints import *
 import scipy
 import numpy as np
+from nose.plugins.attrib import attr
+
 
 # Do a simple test of General SDP Solver with binary search
 
@@ -70,6 +72,8 @@ def test2():
     assert succeed == True
     assert np.abs(np.trace(X) - 25) < 2 
 
+
+@attr('broken')
 def test3():
     # A simple quadratic program
     # min x_1
