@@ -1,12 +1,16 @@
 language: c
+
 install:
   - source devtools/ci/install.sh
   - export PYTHONUNBUFFERED=true
+
 script:
   - git clone https://github.com/rmcgibbo/numpydoc.git
   - cd numpydoc && python setup.py install && cd -
+
   - python setup.py -q install
   - nosetests --attr='!plots,!cuda,!broken,!slow' -v
+
 env:
   matrix:
     - python=2.7

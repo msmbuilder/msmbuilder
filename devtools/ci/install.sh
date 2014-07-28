@@ -13,3 +13,10 @@ source activate $python
 conda install --yes mdtraj scikit-learn sphinx openmm ipython-notebook matplotlib
 conda list -e
 $HOME/miniconda/envs/${python}/bin/pip install $PIP_ARGS -r devtools/ci/requirements-${python}.txt
+
+# Install msmbuilder
+wget https://github.com/SimTk/msmbuilder/archive/master.zip
+unzip master.zip
+cd msmbuilder-master/
+python setup.py install
+cd ..

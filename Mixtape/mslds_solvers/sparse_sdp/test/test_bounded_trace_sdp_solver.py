@@ -6,6 +6,8 @@ from ..penalties import *
 import time
 import scipy
 import numpy as np
+from nose.plugins.attrib import attr
+
 """
 Tests for Hazan's core algorithm.
 
@@ -14,6 +16,7 @@ Tests for Hazan's core algorithm.
 
 """
 
+@attr('broken')
 def test1():
     # Test bounded trace solver on function f(x)  = -\sum_k x_kk^2
     # defined above.
