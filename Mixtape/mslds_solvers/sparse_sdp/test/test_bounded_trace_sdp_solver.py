@@ -1,14 +1,13 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-sys.path.append("..")
-from bounded_trace_sdp_solver import BoundedTraceSolver
-from objectives import neg_sum_squares, grad_neg_sum_squares
-from constraints import *
-from penalties import *
+from __future__ import division, print_function, absolute_import
+from ..bounded_trace_sdp_solver import BoundedTraceSolver
+from ..objectives import neg_sum_squares, grad_neg_sum_squares
+from ..constraints import *
+from ..penalties import *
 import time
 import scipy
 import numpy as np
+from nose.plugins.attrib import attr
+
 """
 Tests for Hazan's core algorithm.
 
@@ -17,21 +16,21 @@ Tests for Hazan's core algorithm.
 
 """
 
+@attr('broken')
 def test1():
-    """
-    Test bounded trace solver on function f(x)  = -\sum_k x_kk^2
-    defined above.
+    # Test bounded trace solver on function f(x)  = -\sum_k x_kk^2
+    # defined above.
+    #
+    # Now do a dummy optimization problem. The
+    # problem we consider is
+    #
+    #     max - sum_k x_k^2
+    #     subject to
+    #         Tr(X) = 1
+    #
+    # The optimal solution is -1/n, where
+    # n is the dimension.
 
-    Now do a dummy optimization problem. The
-    problem we consider is
-
-        max - sum_k x_k^2
-        subject to
-            Tr(X) = 1
-
-    The optimal solution is -1/n, where
-    n is the dimension.
-    """
     eps = 1e-3
     N_iter = 50
     # dimension of square matrix X
@@ -48,9 +47,8 @@ def test1():
         assert np.abs(fX - (-1./dim)) < eps
 
 def test2():
-    """
-    Check equality constraints for log_sum_exp constraints
-    """
+    # Check equality constraints for log_sum_exp constraints
+
     eps = 1e-3
     N_iter = 50
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
@@ -69,9 +67,8 @@ def test2():
     assert succeed == True
 
 def test3():
-    """
-    Check equality and inequality constraints for log_sum_exp penalty
-    """
+    # Check equality and inequality constraints for log_sum_exp penalty
+
     eps = 1e-3
     N_iter = 100
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
@@ -89,9 +86,8 @@ def test3():
     assert succeed == True
 
 def test4():
-    """
-    Check quadratic inequality for log_sum_exp penalty and gradients.
-    """
+    # Check quadratic inequality for log_sum_exp penalty and gradients.
+
     eps = 1e-3
     N_iter = 50
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
@@ -109,9 +105,8 @@ def test4():
     assert succeed == True
 
 def test5():
-    """
-    Stress test inequality constraints for log_sum_exp penalty.
-    """
+    # Stress test inequality constraints for log_sum_exp penalty.
+
     eps = 1e-3
     dims = [4,16]
     N_iter = 50
@@ -132,9 +127,8 @@ def test5():
         assert succeed == True
 
 def test6():
-    """
-    Stress test equality constraints for log_sum_exp_penalty
-    """
+    # Stress test equality constraints for log_sum_exp_penalty
+
     eps = 1e-3
     dims = [4,16]
     N_iter = 50
@@ -155,9 +149,8 @@ def test6():
         assert succeed == True
 
 def test7():
-    """
-    Stress test equality and inequality constraints for log_sum_exp_penalty
-    """
+    # Stress test equality and inequality constraints for log_sum_exp_penalty
+
     eps = 1e-5
     tol = 1e-2
     dims = [4,16]
@@ -179,9 +172,8 @@ def test7():
         assert succeed == True
 
 def test8():
-    """
-    Test block equality constraints.
-    """
+    # Test block equality constraints.
+
     eps = 1e-5
     tol = 1e-2
     #dims = [4,16]

@@ -1,15 +1,12 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-sys.path.append("..")
-from constraints import *
-from utils import numerical_derivative
+from __future__ import division, print_function, absolute_import
+
+from ..constraints import *
+from ..utils import numerical_derivative
 import numpy as np
 
 def test_quadratic_inequality():
-    """
-    Test quadratic inequality specification.
-    """
+    # Test quadratic inequality specification.
+
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             quadratic_inequality()
     tol = 1e-3
@@ -26,9 +23,8 @@ def test_quadratic_inequality():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_quadratic_equality():
-    """
-    Test quadratic equality specification.
-    """
+    # Test quadratic equality specification.
+
     dim, As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
             quadratic_equality()
     tol = 1e-3
@@ -45,9 +41,8 @@ def test_quadratic_equality():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_basic_batch_equality():
-    """
-    Test basic batch equality specification.
-    """
+    # Test basic batch equality specification.
+
     dims = [4, 8]
     for dim in dims:
         block_dim = int(dim/2)
@@ -76,9 +71,8 @@ def test_basic_batch_equality():
                 assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_l1_batch_equals():
-    """
-    Test l1_batch_equals operation.
-    """
+    # Test l1_batch_equals operation.
+
     dims = [4, 16]
     N_rand = 10
     eps = 1e-4
@@ -100,9 +94,8 @@ def test_l1_batch_equals():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_l2_batch_equals():
-    """
-    Test l2_batch_equals operation.
-    """
+    # Test l2_batch_equals operation.
+
     dims = [4, 16]
     N_rand = 10
     eps = 1e-4

@@ -84,7 +84,7 @@ class MetastableSwitchingLDSSolver(object):
     def print_aux_matrices(self, Bs, Cs, Es, Ds, Fs):
         # TODO: make choice of aux output automatic
         np.set_printoptions(threshold=np.nan)
-        with open("aux_matrices.txt", 'wb') as f:
+        with open("aux_matrices.txt", 'w') as f:
             display_string = """
             ++++++++++++++++++++++++++
             Current Aux Matrices.
@@ -136,7 +136,7 @@ def print_Q_test_case(test_file, A, D, F, dim):
                         + bcolors.ENDC)
     print(display_string)
     np.set_printoptions(threshold=np.nan)
-    with open(test_file, 'wb') as f:
+    with open(test_file, 'w') as f:
         test_string = ""
         test_string += "\ndef Q_solve_test():\n"
         test_string += "\t#Auto-generated test case from failing run of\n"
@@ -163,7 +163,7 @@ def print_A_test_case(test_file, B, C, D, E, Q, mu, dim):
     display_string = (bcolors.FAIL + display_string
                         + bcolors.ENDC)
     print(display_string)
-    with open(test_file, 'wb') as f:
+    with open(test_file, 'w') as f:
         test_string = ""
         np.set_printoptions(threshold=np.nan)
         test_string += "\ndef A_solve_test():\n"
