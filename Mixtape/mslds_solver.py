@@ -84,7 +84,7 @@ class MetastableSwitchingLDSSolver(object):
     def print_aux_matrices(self, Bs, Cs, Es, Ds, Fs):
         # TODO: make choice of aux output automatic
         np.set_printoptions(threshold=np.nan)
-        with open("aux_matrices.txt", 'wb') as f:
+        with open("aux_matrices.txt", 'w') as f:
             display_string = """
             ++++++++++++++++++++++++++
             Current Aux Matrices.
