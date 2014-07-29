@@ -6,6 +6,7 @@ import scipy.sparse
 from sklearn.externals.joblib import load, dump
 from mixtape import cluster
 from mixtape.markovstatemodel import MarkovStateModel
+from six import PY3
 
 
 def test_1():
@@ -160,11 +161,12 @@ def test_9():
     assert model.n_states_ == 2
     assert model.mapping_ == {0:0, 1:1}
 
-    model = MarkovStateModel()
-    seq = [0, 1, 0, None, 0, 1]
-    model.fit(seq)
-    assert model.n_states_ == 2
-    assert model.mapping_ == {0:0, 1:1}
+    if not PY3:
+        model = MarkovStateModel()
+        seq = [0, 1, 0, None, 0, 1]
+        model.fit(seq)
+        assert model.n_states_ == 2
+        assert model.mapping_ == {0:0, 1:1}
 
 def test_10():
     # test inverse transform

@@ -12,8 +12,8 @@ def test_2():
     # test a simple example
     c, m = _transition_counts([np.arange(10)])
     np.testing.assert_array_equal(c, np.eye(10, k=1))
-    assert m.keys() == list(range(10))
-    assert m.values() == list(range(10))
+    assert list(m.keys()) == list(range(10))
+    assert list(m.values()) == list(range(10))
 
 
 def test_3():
