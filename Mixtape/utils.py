@@ -89,6 +89,22 @@ def categorical(pvals, size=None, random_state=None):
     return np.sum(cumsum < random_state.random_sample(size), axis=axis)
 
 
+def list_of_1d(y):
+    if not hasattr(y, '__iter__') or len(y) == 0:
+        raise ValueError('Bad input shape')
+    if not hasattr(y[0], '__iter__'):
+        return [np.array(y)]
+
+    result = []
+    for i, x in enumerate(y):
+        value = np.array(x)
+        if value.ndim != 1:
+            raise ValueError(
+                "Bad input shape. Element %d has shape %s, but "
+                "should be 1D" % (i, str(value.shape)))
+        result.append(value)
+    return result
+
 ##########################################################################
 # MSLDS Utils (experimental)
 ##########################################################################

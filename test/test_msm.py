@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import os
 import numpy as np
 from mdtraj.testing import eq
@@ -6,34 +6,33 @@ import scipy.sparse
 from sklearn.externals.joblib import load, dump
 from mixtape import cluster
 from mixtape.markovstatemodel import MarkovStateModel
+from six import PY3
 
-def todense(mat):
-    if scipy.sparse.issparse(mat):
-        return np.asarray(mat.todense())
-    return mat
 
 def test_1():
     # test counts matrix without trimming
-    model = MarkovStateModel(n_states=2, reversible_type=None, ergodic_trim=False)
+    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
 
     model.fit([[1,1,1,1,1,1,1,1,1]])
-    eq(todense(model.countsmat_), np.array([[0, 0], [0, 8]]))
+    eq(model.countsmat_, np.array([[8.0]]))
+    eq(model.mapping_, {1: 0})
+
 
 def test_2():
     # test counts matrix with trimming
-    model = MarkovStateModel(n_states=2, reversible_type=None, ergodic_trim=True)
+    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=1)
 
-    model.fit([[1,1,1,1,1,1,1,1,1]])
+    model.fit([[1,1,1,1,1,1,1,1,1, 2]])
     eq(model.mapping_, {1: 0})
-    eq(todense(model.countsmat_), np.array([[8]]))
+    eq(model.countsmat_, np.array([[8]]))
 
 def test_3():
-    model = MarkovStateModel(n_states=3, reversible_type='mle', ergodic_trim=True)
+    model = MarkovStateModel(reversible_type='mle')
     model.fit([[0,0,0,0,1,1,1,1,0,0,0,0,2,2,2,2,0,0,0]])
 
     counts = np.array([[8, 1, 1], [1, 3, 0], [1, 0, 3]])
-    eq(todense(model.rawcounts_), counts)
-    eq(todense(model.countsmat_), counts)
+    eq(model.countsmat_, counts)
+    assert np.sum(model.populations_) == 1.0
     model.timescales_
 
     # test pickleable
@@ -53,3 +52,194 @@ def test_4():
     print(cluster.MeanShift().fit_predict(data))
     print(cluster.SpectralClustering(n_clusters=2).fit_predict(data))
     print(cluster.Ward(n_clusters=2).fit_predict(data))
+
+def test_5():
+    # test score_ll
+    model = MarkovStateModel(reversible_type='mle')
+    sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b']
+    model.fit([sequence])
+    assert model.mapping_ == {'a': 0, 'b': 1}
+
+    score_aa = model.score_ll([['a', 'a']])
+    assert score_aa == np.log(model.transmat_[0,0])
+    score_bb = model.score_ll([['b', 'b']])
+    assert score_bb == np.log(model.transmat_[1,1])
+    score_ab = model.score_ll([['a', 'b']])
+    assert score_ab == np.log(model.transmat_[0,1])
+    score_abb =  model.score_ll([['a', 'b', 'b']])
+    assert score_abb == np.log(model.transmat_[0,1]) + np.log(model.transmat_[1,1])
+
+    assert model.state_labels_ == ['a', 'b']
+    assert np.sum(model.populations_) == 1.0
+
+def test_51():
+    # test score_ll
+    model = MarkovStateModel(reversible_type='mle')
+    sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'c', 'c', 'c', 'a', 'a']
+    model.fit([sequence])
+    assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
+
+    score_ac = model.score_ll([['a', 'c']])
+    assert score_ac == np.log(model.transmat_[0,2])
+
+def test_6():
+    # test score_ll with novel entries
+    model = MarkovStateModel(reversible_type='mle')
+    sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b']
+    model.fit([sequence])
+
+    assert not np.isfinite(model.score_ll([['c']]))
+    assert not np.isfinite(model.score_ll([['c', 'c']]))
+    assert not np.isfinite(model.score_ll([['a', 'c']]))
+
+def test_7():
+    # test timescales
+    model = MarkovStateModel()
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1]])
+    assert np.all(np.isfinite(model.timescales_))
+    assert len(model.timescales_) == 1
+
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert np.all(np.isfinite(model.timescales_))
+    assert len(model.timescales_) == 2
+    assert model.n_states_ == 3
+
+    model = MarkovStateModel(n_timescales=1)
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert len(model.timescales_) == 1
+
+    model = MarkovStateModel(n_timescales=100)
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert len(model.timescales_) == 2
+    assert np.sum(model.populations_) == 1.0
+
+def test_8():
+    # test transform
+    model = MarkovStateModel()
+    model.fit([['a', 'a', 'b', 'b', 'c', 'c', 'a', 'a']])
+    assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
+
+    v = model.transform([['a', 'b', 'c']])
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.transform([['a', 'b', 'c', 'd']], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.transform([['a', 'b', 'c', 'd']], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.transform([['a', 'b', 'c', 'd']], 'fill')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.float
+    np.testing.assert_array_equal(v[0], [0, 1, 2, np.nan])
+
+    v = model.transform([['a', 'a', 'SPLIT', 'b', 'b', 'b']], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 2
+    assert v[0].dtype == np.int
+    assert v[1].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 0])
+    np.testing.assert_array_equal(v[1], [1, 1, 1])
+
+
+def test_9():
+    # what if the input data contains NaN? They should be ignored
+    model = MarkovStateModel(ergodic_cutoff=0)
+
+    seq = [0, 1, 0, 1, np.nan]
+    model.fit(seq)
+    assert model.n_states_ == 2
+    assert model.mapping_ == {0:0, 1:1}
+
+    if not PY3:
+        model = MarkovStateModel()
+        seq = [0, 1, 0, None, 0, 1]
+        model.fit(seq)
+        assert model.n_states_ == 2
+        assert model.mapping_ == {0:0, 1:1}
+
+def test_10():
+    # test inverse transform
+    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
+    model.fit([['a', 'b', 'c', 'a', 'a', 'b']])
+    v = model.inverse_transform([[0, 1, 2]])
+    assert len(v) == 1
+    np.testing.assert_array_equal(v[0], ['a', 'b', 'c'])
+
+def test_11():
+    # test sample
+    model = MarkovStateModel()
+    model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    sample = model.sample(n_steps=1000, random_state=0)
+    assert isinstance(sample, np.ndarray)
+    assert len(sample) == 1000
+
+    bc = np.bincount(sample)
+    diff = model.populations_ - (bc / np.sum(bc))
+
+    assert np.sum(np.abs(diff)) < 0.1
+
+def test_12():
+    # test eigtransform
+    model = MarkovStateModel(n_timescales=1)
+    model.fit([[4, 3, 0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
+    assert model.mapping_ == {0:0, 1:1, 2:2}
+    assert len(model.eigenvalues_) == 2
+    t = model.eigtransform([[0, 1]], right=True)
+    assert t[0][0] == model.right_eigenvectors_[0, 1]
+    assert t[0][1] == model.right_eigenvectors_[1, 1]
+
+    s = model.eigtransform([[0, 1]], right=False)
+    assert s[0][0] == model.left_eigenvectors_[0, 1]
+    assert s[0][1] == model.left_eigenvectors_[1, 1]
+
+def test_13():
+    model = MarkovStateModel(n_timescales=2)
+    model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 3, 3, 1, 1, 2, 2, 0, 0]])
+    left_right = np.dot(model.left_eigenvectors_.T, model.right_eigenvectors_)
+
+    # check biorthonormal
+    np.testing.assert_array_almost_equal(
+        left_right,
+        np.eye(3))
+
+    # check that the stationary left eigenvector is normalized to be 1
+    np.testing.assert_almost_equal(model.left_eigenvectors_[:, 0].sum(), 1)
+
+    # the left eigenvectors satisfy <\phi_i, \phi_i>_{\mu^{-1}} = 1
+    for i in range(3):
+        np.testing.assert_almost_equal(
+            np.dot(model.left_eigenvectors_[:, i], model.left_eigenvectors_[:, i] /
+            model.populations_), 1)
+
+    # and that the right eigenvectors satisfy  <\psi_i, \psi_i>_{\mu} = 1
+    for i in range(3):
+        np.testing.assert_almost_equal(
+            np.dot(model.right_eigenvectors_[:, i], model.right_eigenvectors_[:, i] *
+            model.populations_), 1)
+
+
+def test_14():
+    from mixtape.datasets import load_doublewell
+    from mixtape.cluster import NDGrid
+    from sklearn.pipeline import Pipeline
+
+    ds = load_doublewell(random_state=0)
+
+    p = Pipeline([
+        ('ndgrid', NDGrid(n_bins_per_feature=100)),
+        ('msm', MarkovStateModel(lag_time=100))
+    ])
+
+    p.fit(ds.trajectories)
+    p.named_steps['msm'].summary()
