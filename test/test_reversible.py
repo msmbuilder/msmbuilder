@@ -1,3 +1,4 @@
+from __future__ import division
 import scipy.optimize
 import scipy.misc
 import numpy as np

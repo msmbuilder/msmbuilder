@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 import simtk.openmm as mm
 import mdtraj as md

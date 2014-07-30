@@ -16,6 +16,7 @@ from mixtape.datasets.alanine_dipeptide import TARGET_DIRECTORY \
         as TARGET_DIRECTORY_ALANINE
 from mixtape.datasets.base import get_data_home
 from os.path import join
+from nose.plugins.skip import Skip, SkipTest
 
 def reference_estep(refmodel, data):
     curr_logprob = 0
@@ -130,6 +131,8 @@ def test_plusmin_stats():
             stats['trans'], rstats['trans'], decimal=1)
 
 def test_muller_potential_stats():
+    raise SkipTest('Not ready yet')
+
     # Set constants
     n_seq = 1
     num_trajs = 1

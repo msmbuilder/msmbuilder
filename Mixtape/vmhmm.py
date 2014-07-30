@@ -24,7 +24,7 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
-from six import PY3
+from six import PY3, PY2
 import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
@@ -209,7 +209,7 @@ class VonMisesHMM(_BaseHMM):
         return _vmhmm._compute_log_likelihood(obs, self._means_, self._kappas_)
 
     def _initialize_sufficient_statistics(self):
-        s = super(VonMisesHMM, self) if PY3 else super()
+        s = super(VonMisesHMM, self) if PY2 else super()
         stats = s._initialize_sufficient_statistics()
 
         stats['posteriors'] = []
@@ -219,7 +219,7 @@ class VonMisesHMM(_BaseHMM):
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                           posteriors, fwdlattice, bwdlattice,
                                           params):
-        s = super(VonMisesHMM, self) if PY3 else super()
+        s = super(VonMisesHMM, self) if PY2 else super()
         s._accumulate_sufficient_statistics(
             stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice,
             params)

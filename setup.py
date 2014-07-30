@@ -347,6 +347,12 @@ extensions.append(
               include_dirs=[np.get_include()]))
 
 extensions.append(
+    Extension('mixtape._markovstatemodel',
+              sources=['Mixtape/_markovstatemodel.pyx', 'Mixtape/src/msm/transmat_mle_prinz.c'],
+              libraries=['m'],
+              include_dirs=['Mixtape/src/msm', np.get_include()]))
+
+extensions.append(
     Extension('mixtape.cluster._regularspatialc',
               sources=['Mixtape/cluster/_regularspatialc.pyx'],
               libraries=['m'],

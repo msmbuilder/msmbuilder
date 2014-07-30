@@ -1,6 +1,9 @@
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 import numpy as np
-from penalties import *
-from bounded_trace_sdp_solver import BoundedTraceSolver
+from .penalties import *
+from .bounded_trace_sdp_solver import BoundedTraceSolver
 
 
 class FeasibilitySolver(object):
@@ -161,7 +164,7 @@ class FeasibilitySolver(object):
         """
         for R in Rs:
             if debug:
-                print "R: ", R
+                print("R: ", R)
             self.init_solver(R)
             if X_init != None:
                 dim = self.dim
