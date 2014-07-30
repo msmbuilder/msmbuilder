@@ -100,7 +100,6 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
         lumper.transmat_ = msm.transmat_
         lumper.populations_ = msm.populations_
         lumper.mapping_ = msm.mapping_
-        lumper.rawcounts_ = msm.rawcounts_
         lumper.countsmat_ = msm.countsmat_
         
         lumper._do_lumping()
