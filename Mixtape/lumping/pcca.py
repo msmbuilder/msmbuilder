@@ -57,7 +57,7 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
 
     @property
     def trimmed_microstates_to_macrostates(self):
-        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self.mapping_.iteritems())
+        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self.mapping_.items())
 
     def transform(self, sequences):
         """Map microstates onto macrostates, performing trimming if necessary.
