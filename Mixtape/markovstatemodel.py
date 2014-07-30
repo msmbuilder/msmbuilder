@@ -573,11 +573,6 @@ Timescales:
         u, lv, rv = self._get_eigensystem()
         return u
 
-    @property
-    def n_states_output_(self):
-        return max(self.mapping_.values()) + 1
-
-
     def draw_samples(self, sequences, n_samples, random_state=None):
         """Sample conformations from each state.
 
