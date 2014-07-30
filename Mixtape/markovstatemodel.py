@@ -26,6 +26,11 @@ import sys
 import warnings
 import operator
 import numpy as np
+import scipy.sparse
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils import check_random_state
+from mdtraj.utils import ensure_type
+from mixtape import _reversibility
 import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix
 from mixtape.utils import list_of_1d
@@ -613,6 +618,43 @@ Timescales:
     def state_labels_(self):
         return [k for k, v in sorted(self.mapping_.items(),
                                      key=operator.itemgetter(1))]
+
+    def draw_samples(self, sequences, n_samples, random_state=None):
+        """Sample conformations from each state.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        n_samples : int
+            How many samples to return from each state
+
+        Returns
+        -------
+        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
+            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
+            pairs from the specified state.
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+
+        """
+        n_states = max(map(lambda x: max(x), sequences)) + 1
+        n_states_2 = len(np.unique(np.concatenate(sequences)))
+        assert n_states == n_states_2, "Must have non-empty, zero-indexed, consecutive states: found %d states and %d unique states." % (n_states, n_states_2)
+        
+        random = check_random_state(random_state)
+        
+        selected_pairs_by_state = []
+        for state in range(n_states):
+            all_frames = [np.where(a == state)[0] for a in sequences]
+            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
+            selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
+        
+        return np.array(selected_pairs_by_state)
 
 
 def ndgrid_msm_likelihood_score(estimator, sequences):

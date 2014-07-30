@@ -21,4 +21,4 @@
 ##############################################################################
 
 
-from mixtape import featurizer, ghmm, markovstatemodel, tica, utils
+from mixtape import featurizer, ghmm, markovstatemodel, tica, utils, lumping, cluster
