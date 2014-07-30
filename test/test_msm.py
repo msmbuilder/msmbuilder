@@ -57,7 +57,6 @@ def test_4():
     print(cluster.SpectralClustering(n_clusters=2).fit_predict(data))
     print(cluster.Ward(n_clusters=2).fit_predict(data))
 
-
 def test_5():
     # test score_ll
     model = MarkovStateModel(reversible_type='mle')
