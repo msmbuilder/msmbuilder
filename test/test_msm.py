@@ -243,3 +243,12 @@ def test_14():
 
     p.fit(ds.trajectories)
     p.named_steps['msm'].summary()
+
+
+def test_15():
+    # test score
+    model = MarkovStateModel(reversible_type='mle', verbose=False, n_timescales=0)
+    sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'c', 'c', 'c', 'a', 'a']
+    model.fit([sequence])
+
+    model.score([['b', 'b', 'b', 'b', 'b', 'c', 'c', 'b', 'b', 'd', 'd', 'b', 'b']])
