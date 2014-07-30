@@ -1,10 +1,10 @@
 import msmbuilder.lumping
 import msmbuilder as msmb
 from sklearn.base import BaseEstimator, TransformerMixin, clone
-import mixtape
+from mixtape.markovstatemodel import MarkovStateModel
 import numpy as np
 
-class PCCA(mixtape.markovstatemodel.MarkovStateModel):
+class PCCA(MarkovStateModel):
     """Perron Cluster Cluster Analysis (PCCA) for coarse-graining (lumping)
         microstates into macrostates.  This reference implementation uses MSMBuilder
         for the PCCA code but uses the Mixtape MarkovStateModel class for
@@ -57,7 +57,7 @@ class PCCA(mixtape.markovstatemodel.MarkovStateModel):
 
     @property
     def trimmed_microstates_to_macrostates(self):
-        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self.mapping_.iteritems())
+        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self.mapping_.items())
 
     def transform(self, sequences):
         """Map microstates onto macrostates, performing trimming if necessary.
@@ -119,7 +119,7 @@ class PCCAPlus(PCCA):
         The desired number of macrostates in the lumped model.
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
-        mixtape.markovstatemodel.MarkovStateModel for possibile options.
+        mixtape.markovstatemodel.MarkovStateModel for possible options.
 
     Notes
     -----
