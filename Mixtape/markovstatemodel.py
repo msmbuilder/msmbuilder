@@ -766,17 +766,6 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
         csum = component_pops.sum()
         return 100 * component_pops[which] / csum if csum != 0 else np.nan
 
-def _apply_mapping_to_matrix(mat, mapping):
-    ndim_new = np.max(mapping.values()) + 1
-    mat_new = scipy.sparse.dok_matrix((ndim_new, ndim_new))
-    for (i, j), e in mat.todok().items():
-        try:
-            mat_new[mapping[i], mapping[j]] = e
-        except KeyError:
-            pass
-    return mat_new
-
-
     if verbose:
         print("MSM contains %d strongly connected component%s "
               "above weight=%.2f. Component %d selected, with "
