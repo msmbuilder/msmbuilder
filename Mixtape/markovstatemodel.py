@@ -660,6 +660,7 @@ Timescales:
         return [k for k, v in sorted(self.mapping_.items(),
                                      key=operator.itemgetter(1))]
 
+
 def ndgrid_msm_likelihood_score(estimator, sequences):
     """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
 
