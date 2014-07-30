@@ -148,6 +148,8 @@ def test6():
         print("\tComputation Time (s): ", elapsed)
         assert succeed == True
 
+
+@attr('broken')
 def test7():
     # Stress test equality and inequality constraints for log_sum_exp_penalty
 
