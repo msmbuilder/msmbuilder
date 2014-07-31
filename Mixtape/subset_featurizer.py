@@ -246,6 +246,41 @@ class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
+    
+
+class SubsetProductFeaturizer(BaseSubsetFeaturizer):
+    def __init__(self, featurizer0, featurizer1):
+        self.featurizer0 = featurizer0
+        self.featurizer1 = featurizer1
+        #self.featurizers = featurizers
+        #self._cumprod = None
+
+    def partial_transform(self, traj):
+        #return np.array([f.partial_transform(traj) for f in self.featurizers]).prod(0)
+        return np.array(self.featurizer0.partial_transform(traj) * self.featurizer1.partial_transform(traj))
+
+    @property
+    def n_max(self):
+        #return np.prod([f.n_max for f in self.featurizers])
+        return self.featurizer0.n_max * self.featurizer1.n_max
+
+    @property
+    def cumprod(self):
+        if self._cumprod:
+            return self._cumprod
+        else:
+            self._cumprod = np.cumprod([f.n_max for f in self.featurizers]) / self.featurizers[0].n_max  # Want 
+
+    @property
+    def subset(self):
+        #return np.sum([f.subset * self.cumprod[k] for k, f in enumerate(self.featurizers)], axis=0)
+        return self.featurizer0.subset * self.featurizer0.n_max + self.featurizer1.subset
+
+    @subset.setter
+    def subset(self, value):
+        value = np.array(value)
+        self.featurizer0.subset = value / self.featurizer0.n_max
+        self.featurizer1.subset = value % self.featurizer1.n_max 
 
 
 class SubsetFeatureUnion(mixtape.featurizer.TrajFeatureUnion):
@@ -302,3 +337,57 @@ class DummyCV(object):
 
     def __len__(self):
         return self.n
+
+
+class SubsetRMSDFeaturizer(BaseSubsetFeaturizer):
+    """Featurizer based on RMSD to a series of reference frames.
+
+    Parameters
+    ----------
+    trj0 : mdtraj.Trajectory
+        Reference trajectory.  trj0.n_frames gives the number of features
+        in this Featurizer.
+    atom_indices : np.ndarray, default=None
+        Which atom indices to use during RMSD calculation.  If None, MDTraj
+        should default to all atoms.
+
+    """
+
+    def __init__(self, trj0, atom_indices=None, subset=None):
+        self.trj0 = trj0
+        self.atom_indices = atom_indices
+        if subset is not None:
+            self.subset = subset
+        else:
+            self.subset = np.zeros(0, 'int')
+
+    @property
+    def n_max(self):
+        return self.trj0.n_frames
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space by calculating
+        the RMSD to each frame in a reference trajectory.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        X = np.zeros((traj.n_frames, self.n_features))
+
+        for frame in range(self.n_features):
+            X[:, frame] = md.rmsd(traj, self.trj0[self.subset], atom_indices=self.atom_indices, frame=frame)
+        return X
