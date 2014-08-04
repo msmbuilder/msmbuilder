@@ -138,6 +138,7 @@ def main():
                 cluster_id=cluster_id, quiet=q)))
             engine.daemon = True
             engine.start()
+            time.sleep(1)  # spread out ssh connections
     elif ARGS.launcher == 'mpi':
         engine = threading.Thread(target=lambda: os.system(
             ('mpiexec -machinefile {nodefile} '
