@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import warnings
 import numpy as np
 import scipy.linalg
 
@@ -75,27 +76,45 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self.random_state = random_state
         self.verbose = verbose
 
+        self.mapping_ = None
+        self.countsmat_ = None
+        self.transmat_samples_ = None
+        self.n_states_ = None
+
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
-        # step 1. count the number of transitions
         raw_counts, mapping = _transition_counts(sequences, self.lag_time)
 
         if self.ergodic_cutoff >= 1:
-            # step 2. restrict the counts to the maximal strongly ergodic
-            # subgraph
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
                 raw_counts, self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
-            # no ergodic trimming.
             self.countsmat_ = raw_counts
             self.mapping_ = mapping
 
         self.n_states_ = self.countsmat_.shape[0]
+        fit_method_map = {
+            True: self._fit_reversible,
+            False: self._fit_non_reversible}
 
-        raise NotImplementedError('okay... sample transmat')
+        try:
+            fit_method = fit_method_map[self.reversible]
+            self.transmat_samples_ = fit_method(self.countsmat_)
+        except KeyError:
+            raise ValueError('reversible_type must be one of %s: %s' % (
+                ', '.join(fit_method_map.keys()), self.reversible_type))
 
-        self._is_dirty = True
         return self
-        
+
+    def _fit_reversible(self, countsmat):
+        if self.ergodic_cutoff < 1:
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always")
+                warnings.warn("reversible=True and ergodic_cutoff < 1 "
+                              "are not generally compatible")
+        pass
+
+    def _fit_non_reversible(self):
+        raise NotImplementedError()
         
