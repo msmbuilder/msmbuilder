@@ -166,8 +166,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         fit_method_map = {
             'mle': self._fit_mle,
             'transpose': self._fit_transpose,
-            'none': self._fit_asymetric,
-        }
+            'none': self._fit_asymetric}
+
         try:
             # pull out the appropriate method
             fit_method = fit_method_map[str(self.reversible_type).lower()]
@@ -185,7 +185,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
             with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 warnings.warn("reversible_type='mle' and ergodic_cutoff < 1 "
-                              "are not generally compatibile")
+                              "are not generally compatible")
 
         transmat, populations = _transmat_mle_prinz(
             counts + self.prior_counts)
