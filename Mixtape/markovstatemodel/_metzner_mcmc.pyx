@@ -1,34 +1,85 @@
 import numpy as np
 from sklearn.utils import check_random_state
 
+cdef extern:
+    void metzner_mcmc_step(const double* Z, const double* N, double* K,
+                           double* Q, const double* random, double* sc,
+                           int n_states, int n_steps) nogil
 
-def metzner_mcmc_fast(Z, n_samples, n_thin=1, random_state=None):
-    # Prepare the variables
-    triu = np.triu_indices_from(Z)
 
-    # S is Z + Z.T in symmetric storage without double counting the diagonal
-    S = (Z + Z.T - np.diag(Z[np.diag_indices_from(Z)]))[triu].astype(np.double)
+def metzner_mcmc_fast(Z, int n_samples, int n_thin=1, random_state=None):
+    """Metropolis Markov chain Monte Carlo sampler for reversible transition
+    matrices
+
+    Parameters
+    ----------
+    Z : np.array, shape=(n_states, n_states)
+        The effective count matrix, the number of observed transitions
+        between states plus the number of prior counts
+    n_samples : int
+        Number of steps to iterate the chain for
+    n_thin : int
+        Yield every ``n_thin``-th sample from the MCMC chain
+    random_state : int or RandomState instance or None (default)
+        Pseudo Random Number generator seed control. If None, use the
+        numpy.random singleton.
+
+    Notes
+    -----
+    The transition matrix posterior distribution is ::
+
+        P(T | Z) \propto \Prod_{ij} T_{ij}^{Z_{ij}}
+
+    and constrained to be reversible, such that there exists a \pi s.t. ::
+
+        \pi_i T_{ij} = \pi_j T_{ji}
+
+
+    Yields
+    ------
+    T : np.array, shape=(n_states, n_states)
+        This generator yields samples from the transition matrix posterior
+
+    References
+    ----------
+    .. [1] P. Metzner, F. Noe and C. Schutte, "Estimating the sampling error:
+        Distribution of transition matrices and functions of transition
+        matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
+
+    See Also
+    --------
+    metzner_mcmc_slow
+    """
+
+    cdef int i
+    cdef double[::1] rand
+    cdef double[::1] Q
+    cdef double[::1] N
+    cdef double[:,::1] K
+    cdef double[:,::1] Zcopy = np.array(Z, copy=True, dtype=np.double)
+    cdef int n_states = len(Z)
+    cdef double sc
+    if not len(Z[0]) == n_states:
+        raise ValueError("Z must be square.")
+    random = check_random_state(random_state)
+
+    # K are the indepdent variables we're sampling, a symmetric non-negative 2D
+    # "virtual" count matrix.
+    K = (0.5 * (np.array(Zcopy) + np.array(Zcopy).T) / np.sum(Zcopy))
+    # Q is the row-sums of K
+    Q = np.sum(K, axis=1, dtype=float)
     # N is the row-sums of Z
-    N = np.sum(Z, axis=1).astype(np.double)
-    # K are the indepdent variables we're sampling, which conceptually represent
-    # a symmetric non-negative 2D "virtual" count matrix. We're storing them
-    # in symmetric storage.
-    Z_sum = np.sum(Z, dtype=float)
-    K = (0.5 * (Z + Z.T) / Z_sum)[triu]
-    # Q is the row-sums of 2D matrix, K. Note that since K is in symmetric
-    # storage, we need to be a little careful.
-    Q = 0.5 * (np.sum(Z, axis=1) + np.sum(Z, axis=0)) / Z_sum
+    N = np.sum(Zcopy, axis=1, dtype=float)
+    sc = np.sum(K)
 
-    
-    print "S", S
-    print 'N', N
-    print 'K', K
-    print 'Q', Q
-    print '\n\n'
-    
-    
-    
-    
+    for i in range(n_samples / n_thin):
+        rand = random.rand(4 * n_thin)
+        metzner_mcmc_step(
+            &Zcopy[0,0], &N[0], &K[0,0], &Q[0], &rand[0],
+            &sc, n_states, n_thin);
+
+        yield np.array(K) / np.array(Q)[:, np.newaxis]
+
 
 def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
     """Metropolis Markov chain Monte Carlo sampler for reversible transition
@@ -37,12 +88,30 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
     Parameters
     ----------
     Z : np.array, shape=(n_states, n_states)
+        The effective count matrix, the number of observed transitions
+        between states plus the number of prior counts
     n_samples : int
+        Number of steps to iterate the chain for
     n_thin : int
-    random_state : {None, int, RandomState}
+        Yield every ``n_thin``-th sample from the MCMC chain
+    random_state : int or RandomState instance or None (default)
+        Pseudo Random Number generator seed control. If None, use the
+        numpy.random singleton.
 
-    Returns
-    -------
+    Notes
+    -----
+    The transition matrix posterior distribution is ::
+
+        P(T | Z) \propto \Prod_{ij} T_{ij}^{Z_{ij}}
+
+    and constrained to be reversible, such that there exists a \pi s.t. ::
+
+        \pi_i T_{ij} = \pi_j T_{ji}
+
+    Yields
+    ------
+    T : np.array, shape=(n_states, n_states)
+        This generator yields samples from the transition matrix posterior
 
     References
     ----------
@@ -50,9 +119,9 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
         Distribution of transition matrices and functions of transition
         matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
 
-    Notes
-    -----
-    This implementation is not optimized.
+    See Also
+    --------
+    metzner_mcmc_fast
     """
     K_MINUS = 0.9
     K_PLUS = 1.1
@@ -67,8 +136,7 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
 
     for t in range(n_samples):
         # proposal
-        i, j = random.randint(n_states, size=2)
-        i, j = (0, 2)
+        i, j = (random.rand(2) * n_states).astype(np.int)
         
         sc = np.sum(K)
         if i == j:
@@ -77,7 +145,6 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
             a, b = max(-K[i,j], 0.5*(K_MINUS - sc)), 0.5*(K_PLUS - sc)
 
         epsilon = random.uniform(a, b)
-        epsilon = 0.01
         K_proposal = np.copy(K)
         K_proposal[i, j] += epsilon
         if i != j:
@@ -87,26 +154,19 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
         cutoff = np.exp(_logprob_T(_K_to_T(K_proposal), Z) -
                         _logprob_T(_K_to_T(K), Z))
         r = random.rand()
-        print "i=%d, j=%d" % (i, j)
-        print "a=%f, b=%f" % (a, b)
-        print "epsilon=%f" % epsilon
-        print "cutoff=%f" % cutoff
-        # print "new logprob", _logprob_T(_K_to_T(K_proposal), Z)
-        print "old logprob", _logprob_T(_K_to_T(K), Z)
-        print "old logprob 1", np.sum(np.multiply(Z, np.log(K)))
-        print "old logprpob 2", -np.sum(np.multiply(np.sum(Z, axis=1), np.log(np.sum(K, axis=1))))
-        print "sum of two old logprob",  np.sum(np.multiply(Z, np.log(K))) - np.sum(np.multiply(np.sum(Z, axis=1), np.log(np.sum(K, axis=1))))
-        print "Q", np.sum(K, axis=1)
-        print "N", np.sum(Z, axis=1)
-        print Z.flatten(), np.log(K).flatten()
-        print K
+        # print 'i', i, 'j', j
+        # print 'a', a, 'b', b
+        # print 'cutoff', cutoff
+        # print 'r', r
+        # print 'sc', sc
 
         if r < cutoff:
             n_accept += 1
             K = K_proposal
 
-        if t % n_thin == 0:
+        if (t+1) % n_thin == 0:
             yield _K_to_T(K)
+
 
 
 def _K_to_T(K):
@@ -143,13 +203,3 @@ def _metzner_figure_4():
     pp.figure(figsize=(6, 6)); pp.subplot(axisbg=(0,0,0,0))
     _scatter(Ts, 2, 0, 2, 1)
     pp.show()
-
-
-def main():
-    C = np.array([[1, 10, 2], [2, 26, 3], [15, 20, 20]])
-    list(metzner_mcmc_slow(C, 1, random_state=0))
-    print metzner_mcmc_fast(C, 1)
-
-if __name__ == '__main__':
-    # _metzner_figure_4()
-    main()

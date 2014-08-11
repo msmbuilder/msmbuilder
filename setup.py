@@ -353,6 +353,13 @@ extensions.append(
               include_dirs=['Mixtape/markovstatemodel/src', np.get_include()]))
 
 extensions.append(
+    Extension('mixtape.markovstatemodel._metzner_mcmc',
+              sources=['Mixtape/markovstatemodel/_metzner_mcmc.pyx',
+                       'Mixtape/markovstatemodel/src/metzner_mcmc.c'],
+              libraries=['m'],
+              include_dirs=['Mixtape/markovstatemodel/src', np.get_include()]))
+
+extensions.append(
     Extension('mixtape.cluster._regularspatialc',
               sources=['Mixtape/cluster/_regularspatialc.pyx'],
               libraries=['m'],

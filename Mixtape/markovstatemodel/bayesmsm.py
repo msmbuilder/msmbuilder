@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import warnings
+import itertools
 import numpy as np
 import scipy.linalg
 
@@ -12,6 +13,7 @@ from .core import (_MappingTransformMixin, _dict_compose,
                    _strongly_connected_subgraph,
                    _transition_counts,
                    ndgrid_msm_likelihood_score)
+from ._metzner_mcmc import metzner_mcmc_fast, metzner_mcmc_slow
 
 #-----------------------------------------------------------------------------
 # Code
@@ -25,9 +27,11 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     ----------
     lag_time : int
         The lag time of the model
-    n_burn : int, default=0
     n_samples : int, default=100
-    n_thin : int, default=1
+        Number of transition matrices to sample from the posterior
+    n_thin : int, default=n_states
+       Retain every ``n_thin``-th sample from the MCMC chain. By default, we
+       set n_thin=n_states_
     n_timescales : int, optional
         The number of dynamical timescales to calculate when diagonalizing
         the transition matrix.
@@ -62,11 +66,11 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         Distribution of transition matrices and functions of transition
         matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
     """
-    def __init__(self, lag_time, n_burn=0, n_samples=100, n_thin=1,
+    def __init__(self, lag_time=1, n_samples=100, n_thin=0,
                  n_timescales=None, reversible=True, ergodic_cutoff=1,
-                 prior_counts=0, random_state=None, verbose=False):
+                 prior_counts=0, random_state=None, sampler='metzner',
+                 verbose=False):
         self.lag_time = lag_time
-        self.n_burn = n_burn
         self.n_samples = n_samples
         self.n_thin = n_thin
         self.n_timescales = n_timescales
@@ -74,6 +78,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self.ergodic_cutoff = ergodic_cutoff
         self.prior_counts = prior_counts
         self.random_state = random_state
+        self.sampler = sampler
         self.verbose = verbose
 
         self.mapping_ = None
@@ -113,7 +118,19 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
                 warnings.simplefilter("always")
                 warnings.warn("reversible=True and ergodic_cutoff < 1 "
                               "are not generally compatible")
-        pass
+        Z = countsmat + self.prior_counts
+        n_thin = self.n_thin
+        if n_thin == 0:
+            n_thin = self.n_states_
+
+        if self.sampler == 'metzner':
+            gen = metzner_mcmc_fast(Z, self.n_samples, n_thin, self.random_state)
+        elif self.sampler == 'metzner_py':
+            gen = metzner_mcmc_slow(Z, self.n_samples, n_thin, self.random_state)
+        else:
+            raise AttributeError('sampler must be one of "metzner", "metzner_py"')
+
+        return np.array(list(gen))
 
     def _fit_non_reversible(self):
         raise NotImplementedError()
