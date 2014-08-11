@@ -1,4 +1,4 @@
 from __future__ import absolute_import
-from .core import *
-from .msm import MarkovStateModel
-from .bayesmsm import BayesianMarkovStateModel
+from mixtape.markovstatemodel.core import *
+from mixtape.markovstatemodel.msm import MarkovStateModel
+from mixtape.markovstatemodel.bayesmsm import BayesianMarkovStateModel
