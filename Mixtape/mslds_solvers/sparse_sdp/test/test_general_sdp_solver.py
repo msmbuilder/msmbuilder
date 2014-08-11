@@ -399,66 +399,60 @@ def test8():
     N_iter = 100
     dims = [8]
     gamma = .5
-    np.seterr(divide='raise')
-    np.seterr(over='raise')
-    np.seterr(invalid='raise')
-    import pdb, traceback, sys
-    try:
-        for dim in dims:
-            block_dim = int(dim/4)
+    with np.errstate(divide='raise', over='raise', invalid='raise'):
+        try:
+            for dim in dims:
+                block_dim = int(dim/4)
 
-            # Generate initial data
-            D = np.array([[0.00326556, 0.00196009],
-                          [0.00196009, 0.00322879]])
-            F = np.array([[2.62197238, 1.58163533],
-                          [1.58163533, 2.58977211]])
-            A = np.zeros((block_dim, block_dim))
-            c = np.sqrt(1/gamma)
+                # Generate initial data
+                D = np.array([[0.00326556, 0.00196009],
+                              [0.00196009, 0.00322879]])
+                F = np.array([[2.62197238, 1.58163533],
+                              [1.58163533, 2.58977211]])
+                A = np.zeros((block_dim, block_dim))
+                c = np.sqrt(1/gamma)
 
-            # Numerical stability 
-            scale = 1./np.linalg.norm(D,2)
+                # Numerical stability 
+                scale = 1./np.linalg.norm(D,2)
 
-            # Rescaling
-            D *= scale
+                # Rescaling
+                D *= scale
 
-            # Improving conditioning
-            delta=1e-2
-            D = D + delta*np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
+                # Improving conditioning
+                delta=1e-2
+                D = D + delta*np.eye(block_dim)
+                Dinv = np.linalg.inv(D)
 
-            # Trace upper bound
-            R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
-            Rs = [R]
+                # Trace upper bound
+                R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
+                Rs = [R]
 
-            # Specify problem
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, F, D, c)
-            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
-                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
-                    Q_coords(block_dim)
-            g = GeneralSolver()
-            def obj(X):
-                return log_det_tr(X, F)
-            def grad_obj(X):
-                return grad_log_det_tr(X, F)
-            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
-                    Fs, gradFs, Gs, gradGs)
-            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
-                verbose=False, interactive=False, debug=False, Rs=Rs)
+                # Specify problem
+                As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                        Q_constraints(block_dim, A, F, D, c)
+                (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+                    D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+                        Q_coords(block_dim)
+                g = GeneralSolver()
+                def obj(X):
+                    return log_det_tr(X, F)
+                def grad_obj(X):
+                    return grad_log_det_tr(X, F)
+                g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                        Fs, gradFs, Gs, gradGs)
+                (U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                    verbose=False, interactive=False, debug=False, Rs=Rs)
 
-            assert succeed == True
-            R_1  = scale*get_entries(X, R_1_cds)
-            R_2  = scale*get_entries(X, R_2_cds)
-            R_avg = (R_1 + R_2) / 2.
-            Q = np.linalg.inv(R_avg)
-            print("D:\n", D)
-            print("Q:\n", Q)
-            assert np.linalg.norm(Q, 2)**2 \
-                    < (gamma * np.linalg.norm(D, 2))**2 + search_tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+                assert succeed == True
+                R_1  = scale*get_entries(X, R_1_cds)
+                R_2  = scale*get_entries(X, R_2_cds)
+                R_avg = (R_1 + R_2) / 2.
+                Q = np.linalg.inv(R_avg)
+                print("D:\n", D)
+                print("Q:\n", Q)
+                assert np.linalg.norm(Q, 2)**2 \
+                        < (gamma * np.linalg.norm(D, 2))**2 + search_tol
+
 
 def test9():
     # Tests A-optimization on data generated from run of Muller potential.
