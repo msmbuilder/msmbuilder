@@ -1,8 +1,17 @@
+/**
+ * Author: Robert T. McGibbon
+ * Contributors:
+ * Copyright: 2014 Stanford University and the Authors
+ *
+ * Implementation of the reversible transition matrix sampler from [1].
+ *
+ * .. [1] P. Metzner, F. Noe and C. Schutte, "Estimating the sampling error:
+ * Distribution of transition matrices and functions of transition
+ * matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
+ */
+
 #include <stdio.h>
 #include <math.h>
-#include <time.h>
-#include <string.h>
-#include <stdlib.h>
 
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 static const double K_MINUS = 0.9;
@@ -77,12 +86,12 @@ metzner_mcmc_step(const double* Z, const double* N, double* K,
         epsilon = a + (*(random++)) * (b-a);
         cutoff = acceptance_ratio(i, j, n_states, epsilon, Z, K, N, Q);
         r = (*(random++));
-        // printf("i=%d, j=%d\n", i, j);
-        // printf("a=%f, b=%f\n", a, b);
-        // printf("epsilon=%f\n", epsilon);
-        // printf("cutoff=%f\n", cutoff);
-        // printf("sc = %f\n", (*sc));
-        // printf("r=%f\n", r);
+        /* printf("i=%d, j=%d\n", i, j); */
+        /* printf("a=%f, b=%f\n", a, b); */
+        /* printf("epsilon=%f\n", epsilon); */
+        /* printf("cutoff=%f\n", cutoff); */
+        /* printf("sc = %f\n", (*sc)); */
+        /* printf("r=%f\n", r); */
 
         if (r < cutoff) {
             K[i*n_states + j] += epsilon;
