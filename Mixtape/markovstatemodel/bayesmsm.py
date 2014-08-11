@@ -34,9 +34,9 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         The lag time of the model
     n_samples : int, default=100
         Total number of transition matrices to sample from the posterior
-    n_thin : int, default=n_states
+    n_steps : int, default=n_states
        Number of MCMC steps to take between sampled transition matrices. By
-       default, we use ``n_thin=n_states_``.
+       default, we use ``n_steps=n_states_``.
     n_timescales : int, optional
         The number of dynamical timescales to calculate when diagonalizing
         the transition matrix.
@@ -89,13 +89,13 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         Distribution of transition matrices and functions of transition
         matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
     """
-    def __init__(self, lag_time=1, n_samples=100, n_thin=0,
+    def __init__(self, lag_time=1, n_samples=100, n_steps=0,
                  n_timescales=None, reversible=True, ergodic_cutoff=1,
                  prior_counts=0, random_state=None, sampler='metzner',
                  verbose=False):
         self.lag_time = lag_time
         self.n_samples = n_samples
-        self.n_thin = n_thin
+        self.n_steps = n_steps
         self.n_timescales = n_timescales
         self.reversible = reversible
         self.ergodic_cutoff = ergodic_cutoff
@@ -143,14 +143,16 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
                 warnings.warn("reversible=True and ergodic_cutoff < 1 "
                               "are not generally compatible")
         Z = countsmat + self.prior_counts
-        n_thin = self.n_thin
-        if n_thin == 0:
-            n_thin = self.n_states_
+        n_steps = self.n_steps
+        if n_steps == 0:
+            n_steps = self.n_states_
 
         if self.sampler == 'metzner':
-            gen = metzner_mcmc_fast(Z, self.n_samples*n_thin, n_thin, self.random_state)
+            gen = metzner_mcmc_fast(Z, self.n_samples*n_steps, n_steps,
+                                    self.random_state)
         elif self.sampler == 'metzner_py':
-            gen = metzner_mcmc_slow(Z, self.n_samples*n_thin, n_thin, self.random_state)
+            gen = metzner_mcmc_slow(Z, self.n_samples*n_steps, n_steps,
+                                    self.random_state)
         else:
             raise AttributeError('sampler must be one of "metzner", "metzner_py"')
 

@@ -29,10 +29,10 @@ def test_3():
     trajectory = [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
                   1, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 0, 0, 0]
     msm1 = BayesianMarkovStateModel(
-        sampler='metzner', n_thin=1, n_samples=100, random_state=0)
+        sampler='metzner', n_steps=1, n_samples=100, random_state=0)
     msm1.fit([trajectory])
     msm2 = BayesianMarkovStateModel(
-        sampler='metzner_py', n_thin=1, n_samples=100, random_state=0)
+        sampler='metzner_py', n_steps=1, n_samples=100, random_state=0)
     msm2.fit([trajectory])
 
     np.testing.assert_array_almost_equal(
