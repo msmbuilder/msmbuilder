@@ -9,7 +9,7 @@ from nose.plugins.attrib import attr
 
 
 # Do a simple test of General SDP Solver with binary search
-
+@attr('broken')
 def test1():
     # A simple semidefinite program
     #
@@ -41,6 +41,8 @@ def test1():
     assert succeed == True
     assert np.abs(X[1,1] - 0.75) < search_tol
 
+
+@attr('broken')
 def test2():
     # A simple semidefinite program to test trace search
     # min Tr(X)
@@ -86,8 +88,6 @@ def test3():
     #          [ 0, 1]]
     #     X semidefinite
 
-    #import pdb, traceback, sys
-    #try:
     tol = 1e-2
     search_tol = 3e-2 # Figure out how to reduce this...
     N_iter = 50
@@ -115,10 +115,7 @@ def test3():
     print("X:\n", X)
     assert succeed == True
     assert np.abs(X[0,0] - 0) < search_tol
-    #except:
-    #    type, value, tb = sys.exc_info()
-    #    traceback.print_exc()
-    #    pdb.post_mortem(tb)
+
 
 @attr('broken')
 def test4():
@@ -133,68 +130,64 @@ def test4():
     #       -------------------
     # X is PSD
 
-    import pdb, traceback, sys
-    try:
-        tol = 1e-3
-        search_tol = 5e-2
-        N_iter = 50
-        dim = 2
-        Rs = [10, 100]
-        dims = [4]
-        gamma = .5
+    tol = 1e-3
+    search_tol = 5e-2
+    N_iter = 50
+    dim = 2
+    Rs = [10, 100]
+    dims = [4]
+    gamma = .5
 
-        for dim in dims:
-            block_dim = int(dim/4)
+    for dim in dims:
+        block_dim = int(dim/4)
 
-            # Generate initial data
-            D = np.eye(block_dim) 
-            F = np.eye(block_dim)
-            A = 0.5*(1./dim) * np.eye(block_dim)
-            c = np.sqrt(1/gamma)
-            
-            # Numerical stability (not really needed for this simple test case)
-            scale = 1./np.linalg.norm(D,2)
+        # Generate initial data
+        D = np.eye(block_dim) 
+        F = np.eye(block_dim)
+        A = 0.5*(1./dim) * np.eye(block_dim)
+        c = np.sqrt(1/gamma)
 
-            # Rescaling
-            D *= scale
+        # Numerical stability (not really needed for this simple test case)
+        scale = 1./np.linalg.norm(D,2)
 
-            # Improving conditioning
-            delta=1e-2
-            D = D + delta*np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
+        # Rescaling
+        D *= scale
 
-            # Compute trace upper bound
-            R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
-            Rs = [R]
+        # Improving conditioning
+        delta=1e-2
+        D = D + delta*np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
 
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, F, D, c)
-            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
-                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
-                    Q_coords(block_dim)
-            g = GeneralSolver()
-            def obj(X):
-                return log_det_tr(X, F)
-            def grad_obj(X):
-                return grad_log_det_tr(X, F)
-            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
-                    Fs, gradFs, Gs, gradGs)
-            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
-                    disp=True, interactive=False, debug=False, Rs=Rs)
-            assert succeed == True
-            R_1 = scale*get_entries(X, R_1_cds)
-            R_2 = scale*get_entries(X, R_2_cds)
-            R_avg = (R_1 + R_2) / 2.
-            Q = np.linalg.inv(R_avg)
-            print("D:\n", D)
-            print("Q:\n", Q)
-            assert np.linalg.norm(Q, 2)**2 \
-                    < (gamma * np.linalg.norm(D, 2))**2 + search_tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+        # Compute trace upper bound
+        R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
+        Rs = [R]
 
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                Q_constraints(block_dim, A, F, D, c)
+        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+            D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+                Q_coords(block_dim)
+        g = GeneralSolver()
+        def obj(X):
+            return log_det_tr(X, F)
+        def grad_obj(X):
+            return grad_log_det_tr(X, F)
+        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        (U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                disp=True, interactive=False, debug=False, Rs=Rs)
+        assert succeed == True
+        R_1 = scale*get_entries(X, R_1_cds)
+        R_2 = scale*get_entries(X, R_2_cds)
+        R_avg = (R_1 + R_2) / 2.
+        Q = np.linalg.inv(R_avg)
+        print("D:\n", D)
+        print("Q:\n", Q)
+        assert np.linalg.norm(Q, 2)**2 \
+                < (gamma * np.linalg.norm(D, 2))**2 + search_tol
+
+
+@attr('broken')
 def test5():
     # Tests feasibility of A optimization.
     #
@@ -243,6 +236,8 @@ def test5():
                 disp=True, interactive=False, Rs=Rs)
         assert succeed == True
 
+
+@attr('broken')
 def test6():
     # Tests feasibility Q optimization with realistic values for F,
     # D, A from the 1-d 2-well toy system.
@@ -257,64 +252,60 @@ def test6():
     #       -------------------
     # X is PSD
 
-    import pdb, traceback, sys
-    try:
-        tol = 1e-2
-        search_tol = 1e-2
-        N_iter = 150
-        Rs = [10, 100]
-        dims = [4]
-        gamma = .5
-        for dim in dims:
-            block_dim = int(dim/4)
+    tol = 1e-2
+    search_tol = 1e-2
+    N_iter = 150
+    Rs = [10, 100]
+    dims = [4]
+    gamma = .5
+    for dim in dims:
+        block_dim = int(dim/4)
 
-            # Generate initial data
-            D = .0204 * np.eye(block_dim)
-            F = 25.47 * np.eye(block_dim)
-            A = np.zeros(block_dim)
-            c = np.sqrt(1/gamma)
+        # Generate initial data
+        D = .0204 * np.eye(block_dim)
+        F = 25.47 * np.eye(block_dim)
+        A = np.zeros(block_dim)
+        c = np.sqrt(1/gamma)
 
-            # Numerical stability 
-            scale = 1./np.linalg.norm(D,2)
-            # Rescaling
+        # Numerical stability 
+        scale = 1./np.linalg.norm(D,2)
+        # Rescaling
 
-            D *= scale
-            # Improving conditioning
-            delta=1e-1
-            D = D + delta*np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
-            R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
-            Rs = [R]
-            print("R: ", R)
+        D *= scale
+        # Improving conditioning
+        delta=1e-1
+        D = D + delta*np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
+        R = (2*np.trace(D) + 2*(1./gamma)*np.trace(Dinv))
+        Rs = [R]
+        print("R: ", R)
 
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, F, D, c)
-            (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
-                D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
-                    Q_coords(block_dim)
-            g = GeneralSolver()
-            def obj(X):
-                return log_det_tr(X, F)
-            def grad_obj(X):
-                return grad_log_det_tr(X, F)
-            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
-                    Fs, gradFs, Gs, gradGs)
-            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
-                verbose=False, interactive=False, debug=False, Rs=Rs)
-            assert succeed == True
-            R_1  = scale*get_entries(X, R_1_cds)
-            R_2  = scale*get_entries(X, R_2_cds)
-            R_avg = (R_1 + R_2) / 2.
-            Q = np.linalg.inv(R_avg)
-            print("D:\n", D)
-            print("Q:\n", Q)
-            assert np.linalg.norm(Q, 2)**2 \
-                    < (gamma * np.linalg.norm(D, 2))**2 + search_tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                Q_constraints(block_dim, A, F, D, c)
+        (D_ADA_T_cds, I_1_cds, I_2_cds, R_1_cds, 
+            D_cds, c_I_1_cds, c_I_2_cds, R_2_cds) = \
+                Q_coords(block_dim)
+        g = GeneralSolver()
+        def obj(X):
+            return log_det_tr(X, F)
+        def grad_obj(X):
+            return grad_log_det_tr(X, F)
+        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        (U, X, succeed) = g.solve(N_iter, tol, search_tol,
+            verbose=False, interactive=False, debug=False, Rs=Rs)
+        assert succeed == True
+        R_1  = scale*get_entries(X, R_1_cds)
+        R_2  = scale*get_entries(X, R_2_cds)
+        R_avg = (R_1 + R_2) / 2.
+        Q = np.linalg.inv(R_avg)
+        print("D:\n", D)
+        print("Q:\n", Q)
+        assert np.linalg.norm(Q, 2)**2 \
+                < (gamma * np.linalg.norm(D, 2))**2 + search_tol
 
+
+@attr('broken')
 def test7():
     # Tests feasibility of A optimization.
     #
@@ -383,6 +374,8 @@ def test7():
             print("A_T_2:\n", A_T_2)
         assert succeed == True
 
+
+@attr('broken')
 def test8():
     # Tests Q-solve on data generated from a run of Muller potential.
     #
@@ -400,11 +393,7 @@ def test8():
     N_iter = 100
     dims = [8]
     gamma = .5
-    np.seterr(divide='raise')
-    np.seterr(over='raise')
-    np.seterr(invalid='raise')
-    import pdb, traceback, sys
-    try:
+    with np.errstate(divide='raise', over='raise', invalid='raise'):
         for dim in dims:
             block_dim = int(dim/4)
 
@@ -456,11 +445,9 @@ def test8():
             print("Q:\n", Q)
             assert np.linalg.norm(Q, 2)**2 \
                     < (gamma * np.linalg.norm(D, 2))**2 + search_tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
 
+
+@attr('broken')
 def test9():
     # Tests A-optimization on data generated from run of Muller potential.
     #
@@ -485,64 +472,58 @@ def test9():
     Rs = [10]
     np.set_printoptions(precision=2)
     dims = [8]
-    import pdb, traceback, sys
-    try:
-        for dim in dims:
-            block_dim = int(dim/4)
+    for dim in dims:
+        block_dim = int(dim/4)
 
-            # Generate random data
-            D = np.array([[0.00326556, 0.00196009],
-                          [0.00196009, 0.00322879]])
-            Dinv = np.linalg.inv(D)
-            Q = 0.9 * D
-            Qinv = np.linalg.inv(Q)
-            C = np.array([[202.83070879, -600.32796941],
-                          [-601.76432584, 1781.07130791]])
-            B = np.array([[208.27749525,  -597.11827148],
-                          [ -612.99179464, 1771.25551671]])
-            E = np.array([[205.80695137, -599.79918374],
-                          [-599.79918374, 1782.52514543]])
-            mu =  np.array([[-0.7010104, 1.29133034]])
-            #mu =  np.array([[ 0.68616771, 0.02634688]])
-            #mu =  np.array([[ 0.59087205,  0.03185492]])
-            mu = np.reshape(mu, (block_dim, 1))
+        # Generate random data
+        D = np.array([[0.00326556, 0.00196009],
+                      [0.00196009, 0.00322879]])
+        Dinv = np.linalg.inv(D)
+        Q = 0.9 * D
+        Qinv = np.linalg.inv(Q)
+        C = np.array([[202.83070879, -600.32796941],
+                      [-601.76432584, 1781.07130791]])
+        B = np.array([[208.27749525,  -597.11827148],
+                      [ -612.99179464, 1771.25551671]])
+        E = np.array([[205.80695137, -599.79918374],
+                      [-599.79918374, 1782.52514543]])
+        mu =  np.array([[-0.7010104, 1.29133034]])
+        #mu =  np.array([[ 0.68616771, 0.02634688]])
+        #mu =  np.array([[ 0.59087205,  0.03185492]])
+        mu = np.reshape(mu, (block_dim, 1))
 
-            scale = 1./np.amax(np.linalg.eigh(D)[0])
-            # Rescaling
-            D *= scale
-            Q *= scale
-            Dinv *= (1./scale)
-            Qinv *= (1./scale)
+        scale = 1./np.amax(np.linalg.eigh(D)[0])
+        # Rescaling
+        D *= scale
+        Q *= scale
+        Dinv *= (1./scale)
+        Qinv *= (1./scale)
 
-            (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
-                A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) \
-                        = A_coords(block_dim)
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    A_constraints(block_dim, D, Dinv, Q, mu)
-            def obj(X):
-                return A_dynamics(X, block_dim, C, B, E, Qinv)
-            def grad_obj(X):
-                return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
-            g = GeneralSolver()
-            g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
-                    Fs, gradFs, Gs, gradGs)
-            (U, X, succeed) = g.solve(N_iter, tol, search_tol,
-                    disp=True, interactive=False, debug=False,
-                    verbose=False, Rs=Rs)
-            # Undo trace scaling
-            if X != None:
-                A_1 = get_entries(X, A_1_cds)
-                A_T_1 = get_entries(X, A_T_1_cds)
-                A_2 = get_entries(X, A_2_cds)
-                A_T_2 = get_entries(X, A_T_2_cds)
-                A = (1./4) * (A_1 + A_T_1 + A_2 + A_T_2)
-                print("A_1:\n", A_1)
-                print("A_T_1:\n", A_T_1)
-                print("A_2:\n", A_2)
-                print("A_T_2:\n", A_T_2)
-                print("A:\n", A)
-            assert succeed == True
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+        (D_Q_cds, Dinv_cds, I_1_cds, I_2_cds,
+            A_1_cds, A_T_1_cds, A_2_cds, A_T_2_cds) \
+                    = A_coords(block_dim)
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                A_constraints(block_dim, D, Dinv, Q, mu)
+        def obj(X):
+            return A_dynamics(X, block_dim, C, B, E, Qinv)
+        def grad_obj(X):
+            return grad_A_dynamics(X, block_dim, C, B, E, Qinv)
+        g = GeneralSolver()
+        g.save_constraints(dim, obj, grad_obj, As, bs, Cs, ds,
+                Fs, gradFs, Gs, gradGs)
+        (U, X, succeed) = g.solve(N_iter, tol, search_tol,
+                disp=True, interactive=False, debug=False,
+                verbose=False, Rs=Rs)
+        # Undo trace scaling
+        if X != None:
+            A_1 = get_entries(X, A_1_cds)
+            A_T_1 = get_entries(X, A_T_1_cds)
+            A_2 = get_entries(X, A_2_cds)
+            A_T_2 = get_entries(X, A_T_2_cds)
+            A = (1./4) * (A_1 + A_T_1 + A_2 + A_T_2)
+            print("A_1:\n", A_1)
+            print("A_T_1:\n", A_T_1)
+            print("A_2:\n", A_2)
+            print("A_T_2:\n", A_T_2)
+            print("A:\n", A)
+        assert succeed == True
