@@ -120,6 +120,8 @@ def test3():
     #    traceback.print_exc()
     #    pdb.post_mortem(tb)
 
+
+@attr('broken')
 def test4():
     # Tests that feasibility of Q optimization runs.
     #
