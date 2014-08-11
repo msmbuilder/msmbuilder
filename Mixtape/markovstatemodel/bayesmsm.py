@@ -23,7 +23,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     When ``fit()``, this model runs a Metroplis Markov chain Monte Carlo
     sampler (from Ref [1]) to estimate transition matrices. This produces
     an ensemble of ``n_samples`` transition matrices asymptotically sampled
-    from the distribution :math:`P(transmat | countsmat)`. This distribution
+    from the distribution :math:`P(T | C)`. This distribution
     gives some information about the statistical uncertainty in the transition
     matrix (and functions of the transition matrix).
 
@@ -36,7 +36,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         Total number of transition matrices to sample from the posterior
     n_thin : int, default=n_states
        Number of MCMC steps to take between sampled transition matrices. By
-       default, we set n_thin=n_states_.
+       default, we use ``n_thin=n_states_``.
     n_timescales : int, optional
         The number of dynamical timescales to calculate when diagonalizing
         the transition matrix.

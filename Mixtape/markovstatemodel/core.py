@@ -37,7 +37,7 @@ class _MappingTransformMixin(TransformerMixin):
                sequence will be shorted. If they occur in the middle of a
                sequence, that sequence will be broken into two (or more)
                sequences. (Default)
-            ``fill``
+           ``fill``
                Unmapped labels will be replaced with NaN, to signal missing
                data. [The use of NaN to signal missing data is not fantastic,
                but it's consistent with current behavior of the ``pandas``
