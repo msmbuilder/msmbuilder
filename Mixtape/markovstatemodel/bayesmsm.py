@@ -6,10 +6,11 @@ import scipy.linalg
 
 from mixtape.utils import list_of_1d
 from sklearn.base import BaseEstimator
-from .core import (_MappingTransformMixin, _dict_compose,
-                   _strongly_connected_subgraph,
-                   _transition_counts)
-from ._metzner_mcmc import metzner_mcmc_fast, metzner_mcmc_slow
+from mixtape.markovstatemodel.core import (_MappingTransformMixin, _dict_compose,
+                                           _strongly_connected_subgraph,
+                                           _transition_counts)
+from mixtape.markovstatemodel._metzner_mcmc import (metzner_mcmc_fast,
+                                                    metzner_mcmc_slow)
 
 #-----------------------------------------------------------------------------
 # Code
