@@ -9,7 +9,7 @@ from nose.plugins.attrib import attr
 
 
 # Do a simple test of General SDP Solver with binary search
-
+@attr('broken')
 def test1():
     # A simple semidefinite program
     #
