@@ -9,7 +9,7 @@ script:
   - cd numpydoc && python setup.py install && cd -
 
   - python setup.py -q install
-  - cd tests
+  - cd test
   - nosetests --attr='!plots,!cuda,!broken,!slow' -v
 
 env:
