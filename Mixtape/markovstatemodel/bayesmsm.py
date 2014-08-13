@@ -12,8 +12,8 @@ from sklearn.base import BaseEstimator
 from mixtape.markovstatemodel.core import (_MappingTransformMixin, _dict_compose,
                                            _strongly_connected_subgraph,
                                            _transition_counts)
-from mixtape.markovstatemodel._metzner_mcmc import (metzner_mcmc_fast,
-                                                    metzner_mcmc_slow)
+from mixtape.markovstatemodel._metzner_mcmc_fast import metzner_mcmc_fast
+from mixtape.markovstatemodel._metzner_mcmc_slow import metzner_mcmc_slow
 
 #-----------------------------------------------------------------------------
 # Code
