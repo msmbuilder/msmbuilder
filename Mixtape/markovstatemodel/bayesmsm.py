@@ -26,9 +26,10 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     When ``fit()``, this model runs a Metropolis Markov chain Monte Carlo
     sampler (from Ref [1]) to estimate transition matrices. This produces
     an ensemble of ``n_samples`` transition matrices asymptotically sampled
-    from the distribution :math:`P(T | C)`. This distribution
-    gives some information about the statistical uncertainty in the transition
-    matrix (and functions of the transition matrix).
+    from the distribution :math:`P(T | C)`. This distribution gives some
+    information about the statistical uncertainty in the transition matrix
+    (and functions of the transition matrix), and is stored in
+    ``all_transmats_``
 
     Parameters
     ----------
@@ -127,7 +128,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
         self.mapping_ = None
         self.countsmat_ = None
-        self.transmats_ = None
+        self.all_transmats_ = None
         self.n_states_ = None
         self._is_dirty = True
 
@@ -150,7 +151,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
         try:
             fit_method = fit_method_map[self.reversible]
-            self.transmats_ = fit_method(self.countsmat_)
+            self.all_transmats_ = fit_method(self.countsmat_)
         except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(fit_method_map.keys()), self.reversible_type))
@@ -212,20 +213,20 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
     def _get_eigensystem(self):
         if not self._is_dirty:
-            return (self._eigenvalues,
-                    self._left_eigenvectors,
-                    self._right_eigenvectors)
+            return (self._all_eigenvalues,
+                    self._all_left_eigenvectors,
+                    self._all_right_eigenvectors)
 
         n_timescales = self.n_timescales
         if n_timescales is None:
             n_timescales = self.n_states_ - 1
 
         k = n_timescales + 1
-        self._eigenvalues = []
-        self._left_eigenvectors = []
-        self._right_eigenvectors = []
+        self._all_eigenvalues = []
+        self._all_left_eigenvectors = []
+        self._all_right_eigenvectors = []
 
-        for transmat in self.transmats_:
+        for transmat in self.all_transmats_:
             u, lv, rv = scipy.linalg.eig(transmat, left=True, right=True)
             order = np.argsort(-np.real(u))
             u = np.real_if_close(u[order[:k]])
@@ -254,21 +255,21 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
                 # the right eigenvectors to satisfy <\phi_i, \psi_j> = \delta_{ij}
                 rv[:, i] = rv[:, i] / np.dot(lv[:, i], rv[:, i])
 
-            self._eigenvalues.append(u)
-            self._left_eigenvectors.append(lv)
-            self._right_eigenvectors.append(rv)
+            self._all_eigenvalues.append(u)
+            self._all_left_eigenvectors.append(lv)
+            self._all_right_eigenvectors.append(rv)
 
-        self._eigenvalues = np.array(self._eigenvalues)
-        self._left_eigenvectors = np.array(self._left_eigenvectors)
-        self._right_eigenvectors = np.array(self._right_eigenvectors)
+        self._all_eigenvalues = np.array(self._all_eigenvalues)
+        self._all_left_eigenvectors = np.array(self._all_left_eigenvectors)
+        self._all_right_eigenvectors = np.array(self._all_right_eigenvectors)
         self._is_dirty = False
 
-        return (self._eigenvalues,
-                self._left_eigenvectors,
-                self._right_eigenvectors)
+        return (self._all_eigenvalues,
+                self._all_left_eigenvectors,
+                self._all_right_eigenvectors)
 
     @property
-    def timescales_(self):
+    def all_timescales_(self):
         """Implied relaxation timescales each sample in the ensemble
 
         Returns
@@ -291,7 +292,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return timescales
 
     @property
-    def eigenvalues_(self):
+    def all_eigenvalues_(self):
         """Eigenvalues of the transition matrices.
 
         Returns
@@ -303,7 +304,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return us
 
     @property
-    def left_eigenvectors_(self):
+    def all_left_eigenvectors_(self):
         r"""Left eigenvectors, :math:`\Phi`, of each transition matrix in the
         ensemble
 
@@ -325,7 +326,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return lvs
 
     @property
-    def right_eigenvectors_(self):
+    def all_right_eigenvectors_(self):
         r"""Right eigenvectors, :math:`\Psi`, of each transition matrix in the
         ensemble
 
@@ -346,6 +347,6 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return rvs
 
     @property
-    def populations_(self):
+    def all_populations_(self):
         us, lvs, rvs = self._get_eigensystem()
         return lvs[:, :, 0]

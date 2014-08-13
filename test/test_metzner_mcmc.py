@@ -39,16 +39,16 @@ def test_3():
     msm2.fit([trajectory])
 
     np.testing.assert_array_almost_equal(
-        msm1.transmats_,
-        msm2.transmats_)
+        msm1.all_transmats_,
+        msm2.all_transmats_)
 
-    assert msm1.timescales_.shape == (100, 2)
-    assert msm1.eigenvalues_.shape == (100, 3)
-    assert msm1.left_eigenvectors_.shape == (100, 3, 3)
-    assert msm1.right_eigenvectors_.shape == (100, 3, 3)
-    assert msm1.populations_.shape == (100, 3)
+    assert msm1.all_timescales_.shape == (100, 2)
+    assert msm1.all_eigenvalues_.shape == (100, 3)
+    assert msm1.all_left_eigenvectors_.shape == (100, 3, 3)
+    assert msm1.all_right_eigenvectors_.shape == (100, 3, 3)
+    assert msm1.all_populations_.shape == (100, 3)
     np.testing.assert_array_almost_equal(
-        msm1.populations_.sum(axis=1),
+        msm1.all_populations_.sum(axis=1),
         np.ones(100))
 
 def test_4():
@@ -56,11 +56,11 @@ def test_4():
                   1, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 0, 0, 0]
     msm1 = BayesianMarkovStateModel(
         n_steps=3, n_samples=10, n_chains=1, random_state=0).fit([trajectory])
-    assert msm1.transmats_.shape[0] == 10
+    assert msm1.all_transmats_.shape[0] == 10
 
     msm2 = BayesianMarkovStateModel(
         n_steps=4, n_samples=10, n_chains=3, random_state=0).fit([trajectory])
-    assert msm2.transmats_.shape[0] == 10
+    assert msm2.all_transmats_.shape[0] == 10
 
 
 def test_5():
@@ -79,4 +79,4 @@ def test_5():
     # matrix is not so dissimilar from the MLE transition matrix.
     # This shouldn't necessarily be the case anyways -- the likelihood is
     # not "symmetric". And the cutoff chosen is just heuristic.
-    assert np.linalg.norm(b_msm.transmats_.mean(axis=0) - mle_msm.transmat_) < 1e-3
+    assert np.linalg.norm(b_msm.all_transmats_.mean(axis=0) - mle_msm.transmat_) < 1e-3
