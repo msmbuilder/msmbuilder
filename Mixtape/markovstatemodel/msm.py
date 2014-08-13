@@ -55,7 +55,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
     reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
-        solved by numerical optimization (BFGS), and 'transpose'
+        solved by numerical optimization, and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
     ergodic_cutoff : int, default=1
@@ -81,7 +81,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
     mapping_ : dict
         Mapping between "input" labels and internal state indices used by the
         counts and transition matrix for this Markov state model. Input states
-        need not necessrily be integers in (0, ..., n_states_ - 1), for
+        need not necessarily be integers in (0, ..., n_states_ - 1), for
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
     countsmat_ : array_like, shape = (n_states_, n_states_)
