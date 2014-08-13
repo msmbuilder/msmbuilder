@@ -356,7 +356,8 @@ extensions.append(
     Extension('mixtape.markovstatemodel._metzner_mcmc',
               sources=['Mixtape/markovstatemodel/_metzner_mcmc.pyx',
                        'Mixtape/markovstatemodel/src/metzner_mcmc.c'],
-              libraries=['m'],
+              libraries=['m'] + libraries,
+              extra_compile_args=extra_compile_args,
               include_dirs=['Mixtape/markovstatemodel/src', np.get_include()]))
 
 extensions.append(

@@ -1,5 +1,8 @@
 import numpy as np
+from mixtape.cluster import NDGrid
+from mixtape.datasets import load_doublewell
 from mixtape.markovstatemodel import BayesianMarkovStateModel
+from mixtape.markovstatemodel import MarkovStateModel
 from mixtape.markovstatemodel._metzner_mcmc import (metzner_mcmc_fast,
                                                     metzner_mcmc_slow)
 
@@ -29,10 +32,10 @@ def test_3():
     trajectory = [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
                   1, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 0, 0, 0]
     msm1 = BayesianMarkovStateModel(
-        sampler='metzner', n_steps=1, n_samples=100, random_state=0)
+        sampler='metzner', n_steps=1, n_samples=100, n_chains=1, random_state=0)
     msm1.fit([trajectory])
     msm2 = BayesianMarkovStateModel(
-        sampler='metzner_py', n_steps=1, n_samples=100, random_state=0)
+        sampler='metzner_py', n_steps=1, n_samples=100, n_chains=1, random_state=0)
     msm2.fit([trajectory])
 
     np.testing.assert_array_almost_equal(
@@ -47,3 +50,33 @@ def test_3():
     np.testing.assert_array_almost_equal(
         msm1.populations_.sum(axis=1),
         np.ones(100))
+
+def test_4():
+    trajectory = [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+                  1, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 0, 0, 0]
+    msm1 = BayesianMarkovStateModel(
+        n_steps=3, n_samples=10, n_chains=1, random_state=0).fit([trajectory])
+    assert msm1.transmats_.shape[0] == 10
+
+    msm2 = BayesianMarkovStateModel(
+        n_steps=4, n_samples=10, n_chains=2, random_state=0).fit([trajectory])
+    assert msm2.transmats_.shape[0] == 10
+
+
+def test_5():
+    trjs = load_doublewell(random_state=0)['trajectories']
+    clusterer = NDGrid(n_bins_per_feature=5)
+    mle_msm = MarkovStateModel(lag_time=100, verbose=False)
+    b_msm = BayesianMarkovStateModel(
+        lag_time=100, n_samples=1000, n_chains=8, n_steps=1000,
+        random_state=0)
+
+    states = clusterer.fit_transform(trjs)
+    b_msm.fit(states)
+    mle_msm.fit(states)
+
+    # this is a pretty silly test. it checks that the mean transition
+    # matrix is not so dissimilar from the MLE transition matrix.
+    # This shouldn't necessarily be the case anyways -- the likelihood is
+    # not "symmetric". And the cutoff chosen is just heuristic.
+    assert np.linalg.norm(b_msm.transmats_.mean(axis=0) - mle_msm.transmat_) < 1e-3

@@ -1,5 +1,7 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
+import multiprocessing
+import itertools
 import warnings
 import numpy as np
 import scipy.linalg
@@ -27,7 +29,6 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     gives some information about the statistical uncertainty in the transition
     matrix (and functions of the transition matrix).
 
-
     Parameters
     ----------
     lag_time : int
@@ -37,6 +38,10 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     n_steps : int, default=n_states
        Number of MCMC steps to take between sampled transition matrices. By
        default, we use ``n_steps=n_states_``.
+    n_chains : int, default=n_procs
+       Number of independent Markov chains to simulate. The requested
+       number of transition matrix samples will be generated from n_chains
+       independent MCMC chains.
     n_timescales : int, optional
         The number of dynamical timescales to calculate when diagonalizing
         the transition matrix.
@@ -83,19 +88,34 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     transmats_ : array_like, shape = (n_samples, n_states_, n_states_)
         Samples from the posterior ensemble of transition matrices.
 
+    Notes
+    -----
+    Markov chain Monte Carlo can be computationally expensive. To get good
+    (converged) results and acceptable performance, you'll likely need to
+    play around with the ``n_samples``, ``n_steps`` and ``n_chains`` parameters.
+    ``n_samples`` gives the *total* number of transition matrices sampled
+    from the posterior. These samples are generated from ``n_chains`` different
+    independent MCMC chains, at an interval of ``n_steps``. The total number
+    of iterations of MCMC performed during ``fit()`` is ``n_samples * n_steps``.
+    Increasing ``n_chains`` therefore does not alter the total number of
+    iterations -- instead it controlls whether those iterations occur as part
+    of one long chain or multiple shorter chains (which are run in parallel
+    for ``sampler=='metzner'``).
+
     References
     ----------
     .. [1] P. Metzner, F. Noe and C. Schutte, "Estimating the sampling error:
         Distribution of transition matrices and functions of transition
         matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
     """
-    def __init__(self, lag_time=1, n_samples=100, n_steps=0,
+    def __init__(self, lag_time=1, n_samples=100, n_steps=0, n_chains=None,
                  n_timescales=None, reversible=True, ergodic_cutoff=1,
                  prior_counts=0, random_state=None, sampler='metzner',
                  verbose=False):
         self.lag_time = lag_time
         self.n_samples = n_samples
         self.n_steps = n_steps
+        self.n_chains = n_chains
         self.n_timescales = n_timescales
         self.reversible = reversible
         self.ergodic_cutoff = ergodic_cutoff
@@ -146,17 +166,40 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         n_steps = self.n_steps
         if n_steps == 0:
             n_steps = self.n_states_
+        n_chains = self.n_chains
+        if n_chains is None:
+            n_chains = multiprocessing.cpu_count()
+
+        # Each MCMC chain iterates for a total of chain_length steps.
+        # and results are saved every n_steps. Therefore each chain
+        # generates (self.n_samples // n_chains) samples. After
+        # running n_chains independent chains, we get a total of
+        # n_samples.
+        chain_length = self.n_samples * n_steps // n_chains
 
         if self.sampler == 'metzner':
-            gen = metzner_mcmc_fast(Z, self.n_samples*n_steps, n_steps,
-                                    self.random_state)
+            gen = metzner_mcmc_fast(
+                Z, n_samples=chain_length,
+                n_thin=n_steps, n_chains=n_chains,
+                random_state=self.random_state)
         elif self.sampler == 'metzner_py':
-            gen = metzner_mcmc_slow(Z, self.n_samples*n_steps, n_steps,
-                                    self.random_state)
+            gen = itertools.chain(*(metzner_mcmc_slow(
+                Z, n_samples=chain_length,
+                n_thin=n_steps, random_state=self.random_state)
+                                  for _ in range(n_chains)))
+
         else:
             raise AttributeError('sampler must be one of "metzner", "metzner_py"')
 
-        return np.array(list(gen))
+        result = np.array(list(gen))
+
+        # For parallel 'metzner', the chains are inter-leaved in the
+        # output. This can be a little confusing if you're trying to
+        # look at the decorrelation time of the sampler.
+        if self.sampler == 'metzner' and n_chains > 1:
+            result = np.concatenate([result[i::n_chains]
+                                      for i in range(n_chains)])
+        return result
 
     def _fit_non_reversible(self):
         raise NotImplementedError('Only the reversible sampler is currently implemented')
