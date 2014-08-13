@@ -22,7 +22,7 @@ from mixtape.markovstatemodel._metzner_mcmc import (metzner_mcmc_fast,
 class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     """Bayesian Markov state model
 
-    When ``fit()``, this model runs a Metroplis Markov chain Monte Carlo
+    When ``fit()``, this model runs a Metropolis Markov chain Monte Carlo
     sampler (from Ref [1]) to estimate transition matrices. This produces
     an ensemble of ``n_samples`` transition matrices asymptotically sampled
     from the distribution :math:`P(T | C)`. This distribution
@@ -77,7 +77,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     mapping_ : dict
         Mapping between "input" labels and internal state indices used by the
         counts and transition matrix for this Markov state model. Input states
-        need not necessrily be integers in (0, ..., n_states_ - 1), for
+        need not necessarily be integers in (0, ..., n_states_ - 1), for
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
     countsmat_ : array_like, shape = (n_states_, n_states_)
@@ -98,7 +98,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     independent MCMC chains, at an interval of ``n_steps``. The total number
     of iterations of MCMC performed during ``fit()`` is ``n_samples * n_steps``.
     Increasing ``n_chains`` therefore does not alter the total number of
-    iterations -- instead it controlls whether those iterations occur as part
+    iterations -- instead it controls whether those iterations occur as part
     of one long chain or multiple shorter chains (which are run in parallel
     for ``sampler=='metzner'``).
 
@@ -198,12 +198,11 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         # look at the decorrelation time of the sampler.
         if self.sampler == 'metzner' and n_chains > 1:
             result = np.concatenate([result[i::n_chains]
-                                      for i in range(n_chains)])
+                                     for i in range(n_chains)])
         return result
 
     def _fit_non_reversible(self):
         raise NotImplementedError('Only the reversible sampler is currently implemented')
-
 
     def _get_eigensystem(self):
         if not self._is_dirty:
@@ -262,7 +261,6 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
                 self._left_eigenvectors,
                 self._right_eigenvectors)
 
-
     @property
     def timescales_(self):
         """Implied relaxation timescales each sample in the ensemble
@@ -285,7 +283,6 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         # make sure to leave off equilibrium distribution
         timescales = - self.lag_time / np.log(us[:, 1:])
         return timescales
-
 
     @property
     def eigenvalues_(self):
