@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import math
 import multiprocessing
 import itertools
 import warnings
@@ -172,10 +173,10 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
         # Each MCMC chain iterates for a total of chain_length steps.
         # and results are saved every n_steps. Therefore each chain
-        # generates (self.n_samples // n_chains) samples. After
+        # generates (self.n_samples / n_chains) samples. After
         # running n_chains independent chains, we get a total of
         # n_samples.
-        chain_length = self.n_samples * n_steps // n_chains
+        chain_length = n_steps * int(math.ceil(self.n_samples / n_chains))
 
         if self.sampler == 'metzner':
             gen = metzner_mcmc_fast(
@@ -192,13 +193,18 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
             raise AttributeError('sampler must be one of "metzner", "metzner_py"')
 
         result = np.array(list(gen))
-
         # For parallel 'metzner', the chains are inter-leaved in the
         # output. This can be a little confusing if you're trying to
         # look at the decorrelation time of the sampler.
         if self.sampler == 'metzner' and n_chains > 1:
             result = np.concatenate([result[i::n_chains]
                                      for i in range(n_chains)])
+
+        # The length of result will be exactly n_samples if n_chains evenly
+        # divides into the number of requested steps per chain, but otherwise
+        # we round chain_length UP, so we might have generated a few extra
+        # samples.
+        result = result[-self.n_samples:]
         return result
 
     def _fit_non_reversible(self):

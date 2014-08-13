@@ -59,7 +59,7 @@ def test_4():
     assert msm1.transmats_.shape[0] == 10
 
     msm2 = BayesianMarkovStateModel(
-        n_steps=4, n_samples=10, n_chains=2, random_state=0).fit([trajectory])
+        n_steps=4, n_samples=10, n_chains=3, random_state=0).fit([trajectory])
     assert msm2.transmats_.shape[0] == 10
 
 
