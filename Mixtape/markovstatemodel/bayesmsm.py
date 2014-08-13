@@ -1,3 +1,32 @@
+"""Bayesian Markov state model, with MCMC sampling of the transition matrix
+posterior distribution. This can be used to assess sampling uncertainty
+in the MSM transition matrix and functions of the transition matrix.
+
+TODO
+----
+* MCMC for models which are not constrained to be reversible is currently
+  not implemented. This requires implementing ``_fit_non_reversible``, and
+  a new sampler in C. This will not be very hard -- it's very close to
+  the reversible version.
+* Find a faster sampler. The MCMC is excruciatingly slow to converge for
+  larger models.
+  - Perhaps this could be improved by tweaking the proposal distribution
+    (truncated normal?).
+  - We can calculate the gradient of the log-posterior, so Hamiltonian
+    Monte Carlo is possible. This could be a big win.
+    * Note that there is a gauge-fixing issue here. When the independent
+      variables are the "virtual counts", there is a scale invariance,
+      which I think is a problem for the HMC, so we'd need to slightly
+      reparameterize.
+  - The Gibbs sampler from 10.1103/PhysRevE.82.031114 (Metzner, Weber,
+    and Schutte) could be more efficient. Figure 6 of that paper seems to
+    show a ~10x improvement in the mixing time vs. number of iterations,
+    but each iteration takes ~10x longer in wall-clock, so it might be a
+    wash.
+* Implement some covergence diagonistics for the MCMC. For example, the
+  Gellman-Rubin diagonstic (potential scale factor reduction). See eq.
+  31 of 10.1103/PhysRevE.82.031114.
+"""
 from __future__ import absolute_import, division
 
 import math
@@ -39,7 +68,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         Total number of transition matrices to sample from the posterior
     n_steps : int, default=n_states
        Number of MCMC steps to take between sampled transition matrices. By
-       default, we use ``n_steps=n_states_``.
+       default, we use ``n_steps=n_states_**2``.
     n_chains : int, default=n_procs
        Number of independent Markov chains to simulate. The requested
        number of transition matrix samples will be generated from n_chains
@@ -167,7 +196,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         Z = countsmat + self.prior_counts
         n_steps = self.n_steps
         if n_steps == 0:
-            n_steps = self.n_states_
+            n_steps = self.n_states_**2
         n_chains = self.n_chains
         if n_chains is None:
             n_chains = multiprocessing.cpu_count()
