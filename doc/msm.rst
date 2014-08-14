@@ -27,6 +27,61 @@ Algorithms
     :template: class.rst
 
     MarkovStateModel
+    BayesianMarkovStateModel
+
+Maximum Likelihood and Bayesian Estimation
+------------------------------------------
+There are two steps in constructing an MSM
+
+  1. Count the number of observed transitions between states. That is,
+     construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number
+     of observed transitions from state :math:`i` at time :math:`t` to
+     state :math:`j` at time :math:`t+\tau`, summed over all times :math:`t`.
+
+  2. Estimate the transition probability matrix, :math:`\mathbf{T}`
+
+     .. math ::
+         T_{ij} = P( s_{t+\tau} = j | s_t = i)
+
+     where :math:`S = (s_t)` is a trajectory in state-index space of length
+     :math:`N`, and :math:`s_t \in \{1, \ldots, k\}` the state-index of the
+     trajectory at time :math:`t`.
+
+The probability that a given transition probability matrix would
+generate some observed trajectory (the likelihood) is
+
+.. math ::
+  \mathcal{L}(\mathbf{T}) = P(S | \mathbf{T}) =
+  \prod_{t=0}^{N-\tau} T_{s_t, s_{t+\tau}} = \prod_{i,j}^{k} T_{ij}^{C_{ij}}.
+
+Assuming a prior distribution on :math:`T` of the form
+:math:`P(T)=\prod_{ij} T_{ij}^{B_{ij}}`, we then have a posterior distribution
+
+.. math ::
+   P(\mathbf{T} | S) \propto \prod_{i,j}^{k} T_{ij}^{B_{ij} + C_{ij}}.
+
+
+Mixtape implements two MSM estimators.
+
+ -  :class:`MarkovStateModel` performs maximum likelihood estimation.
+    It estimates a single transition matrix, :math:`\mathbf{T}`, to
+    maximimize :math:`\mathcal{L}(\mathbf{T})`.
+ - :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte Carlo
+   to (approximately) draw a sample of transition matrices from the posterior
+   distribution :math:`P(\mathbf{T} | S)`. This sampler is described in Metzner
+   et al. [#f5]_ This can be used to estimate the sampling uncertainty in
+   functions of the transition matrix (e.g. relaxation timescales).
+
+.. note::
+
+   The uncertainty in the transition matrix (and functions of the transition
+   matrix) that can be estimated from :class:`BayesianMarkovStateModel` do not
+   **fully** account for all sources of error. In particular, the discretization
+   induced by clustering produces a negative bias on  the eigenvalues of the
+   transition matrix -- they asymptotically underestimate the eigenvalues of
+   the propagator / transfer operator in the limit of infinite sampling. [#f6]_
+   See section 3D (Quantifying the discretization error) of Prinz et al. for
+   more discussion on the discretization error. [#f1]_
 
 
 Tradeoffs and Parameter Selection
@@ -59,8 +114,7 @@ References
 ----------
 .. [#f1] Prinz, J.-H., et al. `Markov models of molecular kinetics: Generation and validation <http://dx.doi.org/10.1063/1.3565032>`_ J. Chem. Phys. 134.17 (2011): 174105.
 .. [#f2] Pande, V. S., K. A. Beauchamp, and G. R. Bowman. `Everything you wanted to know about Markov State Models but were afraid to ask <http://dx.doi.org/10.1016/j.ymeth.2010.06.002>`_ Methods 52.1 (2010): 99-105.
-.. [#f3] McGibbon, R. T., C. R. Schwantes, and Vijay S. Pande. `Statistical Model Selection for Markov Models of Biomolecular Dynamics. <http://dx.doi.org/10.1021/jp411822r> J. Phys. Chem. B (2014).
-.. [#f4] Kellogg, E. H., O. F. Lange, and D. Baker. `Evaluation and optimization of discrete state models of protein folding. <http:/dx.doi.org//10.1021/jp3044303>`_ J. Phys. Chem. B 116.37 (2012): 11405-11413.
-
-
-
+.. [#f3] McGibbon, R. T., C. R. Schwantes, and Vijay S. Pande. `Statistical Model Selection for Markov Models of Biomolecular Dynamics. <http://dx.doi.org/10.1021/jp411822r>`_ J. Phys. Chem. B (2014).
+.. [#f4] Kellogg, E. H., O. F. Lange, and D. Baker. `Evaluation and optimization of discrete state models of protein folding. <http://dx.doi.org//10.1021/jp3044303>`_ J. Phys. Chem. B 116.37 (2012): 11405-11413.
+.. [#f5] Metzner, P., F. Noé, and C. Schütte. `Estimating the sampling error: Distribution of transition matrices and functions of transition matrices for given trajectory data. <http://journals.aps.org/pre/abstract/10.1103/PhysRevE.80.021106>`_ Phys. Rev. E 80.2 (2009): 021106.
+.. [#f6] Nüske, F., et al. `Variational approach to molecular kinetics. <http://pubs.acs.org/doi/abs/10.1021/ct4009156>`_ J. Chem. Theory Comput.10.4 (2014): 1739-1752.

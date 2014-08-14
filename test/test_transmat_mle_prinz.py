@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.optimize
 from mdtraj.utils import timing
-from mixtape._markovstatemodel import _transmat_mle_prinz
+from mixtape.markovstatemodel._markovstatemodel import _transmat_mle_prinz
 from mixtape._reversibility import reversible_transmat
 
 random = np.random.RandomState(0)

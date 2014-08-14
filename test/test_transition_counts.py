@@ -1,4 +1,5 @@
 import numpy as np
+from six import PY3
 from mixtape.markovstatemodel import _transition_counts
 
 
@@ -55,7 +56,8 @@ def test_7():
     assert m == {}
     np.testing.assert_array_equal(c, np.zeros((0,0)))
 
-    c, m = _transition_counts([[None, None]])
-    assert m == {}
-    np.testing.assert_array_equal(c, np.zeros((0,0)))
+    if not PY3:
+        c, m = _transition_counts([[None, None]])
+        assert m == {}
+        np.testing.assert_array_equal(c, np.zeros((0,0)))
 
