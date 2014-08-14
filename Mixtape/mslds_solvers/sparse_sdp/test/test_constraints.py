@@ -3,6 +3,8 @@ from __future__ import division, print_function, absolute_import
 from ..constraints import *
 from ..utils import numerical_derivative
 import numpy as np
+from nose.plugins.attrib import attr
+
 
 def test_quadratic_inequality():
     # Test quadratic inequality specification.
@@ -70,6 +72,8 @@ def test_basic_batch_equality():
                 print("num_grad:\n", num_grad)
                 assert np.sum(np.abs(grad - num_grad)) < tol
 
+
+@attr('broken')
 def test_l1_batch_equals():
     # Test l1_batch_equals operation.
 
@@ -117,67 +121,56 @@ def test_l2_batch_equals():
             assert np.sum(np.abs(grad - num_grad)) < tol
 
 def test_Q_constraints():
-    import pdb, traceback, sys
-    try:
-        dims = [4, 8]
+    dims = [4, 8]
+    N_rand = 10
+    eps = 1e-4
+    tol = 1e-3
+    for dim in dims:
+        block_dim = int(dim/4)
+        # Generate initial data
+        D = np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
+        B = np.eye(block_dim)
+        A = 0.5 * np.eye(block_dim)
+        c = 0.5
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+            Q_constraints(block_dim, A, B, D, c)
         N_rand = 10
-        eps = 1e-4
-        tol = 1e-3
-        for dim in dims:
-            block_dim = int(dim/4)
-            # Generate initial data
-            D = np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
-            B = np.eye(block_dim)
-            A = 0.5 * np.eye(block_dim)
-            c = 0.5
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    Q_constraints(block_dim, A, B, D, c)
-            N_rand = 10
-            for (g, gradg) in zip(Gs, gradGs):
-                for i in range(N_rand):
-                    X = np.random.rand(dim, dim)
-                    val = g(X)
-                    grad = gradg(X)
-                    print("grad:\n", grad)
-                    num_grad = numerical_derivative(g, X, eps)
-                    print("num_grad:\n", num_grad)
-                    assert np.sum(np.abs(grad - num_grad)) < tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+        for (g, gradg) in zip(Gs, gradGs):
+            for i in range(N_rand):
+                X = np.random.rand(dim, dim)
+                val = g(X)
+                grad = gradg(X)
+                print("grad:\n", grad)
+                num_grad = numerical_derivative(g, X, eps)
+                print("num_grad:\n", num_grad)
+                assert np.sum(np.abs(grad - num_grad)) < tol
+
 
 def test_A_constraints():
-    import pdb, traceback, sys
-    try:
-        dims = [4, 8]
-        N_rand = 10
-        eps = 1e-5
+    dims = [4, 8]
+    N_rand = 10
+    eps = 1e-5
+    tol = 1e-3
+    np.set_printoptions(precision=3)
+    for dim in dims:
+        block_dim = int(dim/4)
+        # Generate initial data
+        D = np.eye(block_dim)
+        Dinv = np.linalg.inv(D)
+        Q = 0.5*np.eye(block_dim)
+        mu = np.ones((block_dim, 1))
+        As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
+                A_constraints(block_dim, D, Dinv, Q, mu)
         tol = 1e-3
-        np.set_printoptions(precision=3)
-        for dim in dims:
-            block_dim = int(dim/4)
-            # Generate initial data
-            D = np.eye(block_dim)
-            Dinv = np.linalg.inv(D)
-            Q = 0.5*np.eye(block_dim)
-            mu = np.ones((block_dim, 1))
-            As, bs, Cs, ds, Fs, gradFs, Gs, gradGs = \
-                    A_constraints(block_dim, D, Dinv, Q, mu)
-            tol = 1e-3
-            eps = 1e-4
-            N_rand = 10
-            for (g, gradg) in zip(Gs, gradGs):
-                for i in range(N_rand):
-                    X = np.random.rand(dim, dim)
-                    val = g(X)
-                    grad = gradg(X)
-                    print("grad:\n", grad)
-                    num_grad = numerical_derivative(g, X, eps)
-                    print("num_grad:\n", num_grad)
-                    assert np.sum(np.abs(grad - num_grad)) < tol
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+        eps = 1e-4
+        N_rand = 10
+        for (g, gradg) in zip(Gs, gradGs):
+            for i in range(N_rand):
+                X = np.random.rand(dim, dim)
+                val = g(X)
+                grad = gradg(X)
+                print("grad:\n", grad)
+                num_grad = numerical_derivative(g, X, eps)
+                print("num_grad:\n", num_grad)
+                assert np.sum(np.abs(grad - num_grad)) < tol
