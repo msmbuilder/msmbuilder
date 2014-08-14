@@ -59,6 +59,14 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
 
     for t in range(n_samples):
         # proposal
+        # Select two indices in [0...n_states). We draw them by drawing a
+        # random floats in [0,1) and then rounding to int so that this method
+        # is exactly analogous to `metzner_mcmc_fast`, which, for each MCMC
+        # iteration, draws 4 random floats in [0,1) from the same numpy PSRNG,
+        # and then inside the C step kernel (src/metzner_mcmc.c) uses two of
+        # them like this. This ensures that this function and
+        # `metzner_mcmc_fast` give _exactly_ the same sequence of transition
+        # matricies, given the same random seed.
         i, j = (random.rand(2) * n_states).astype(np.int)
         
         sc = np.sum(K)
