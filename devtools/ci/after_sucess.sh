@@ -27,4 +27,4 @@ pip install triangle
 
 cd doc && make html && cd -
 cat /tmp/sphinx-*
-python tools/ci/push-docs-to-s3.py
+python devtools/ci/push-docs-to-s3.py
