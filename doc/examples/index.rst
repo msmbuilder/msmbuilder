@@ -25,5 +25,3 @@ notebook server:
    :glob:
 
    *
-
-[TODO: ADD SOME EXAPLES]
