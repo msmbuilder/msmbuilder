@@ -44,6 +44,8 @@ def metzner_mcmc_slow(Z, n_samples, n_thin=1, random_state=None):
     --------
     metzner_mcmc_fast
     """
+    # Upper and lower bounds on the sum of the K matrix, to ensure proper
+    # proposal weights. See Eq. 17 of [1].
     K_MINUS = 0.9
     K_PLUS = 1.1
 

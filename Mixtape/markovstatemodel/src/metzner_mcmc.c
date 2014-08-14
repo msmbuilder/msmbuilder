@@ -14,6 +14,9 @@
 #include <math.h>
 
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
+
+/* Upper and lower bounds on the sum of the K matrix, to ensure proper *
+/* proposal weights. See Eq. 17 of [1]. */
 static const double K_MINUS = 0.9;
 static const double K_PLUS = 1.1;
 
