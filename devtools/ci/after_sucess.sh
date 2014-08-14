@@ -23,7 +23,8 @@ fi
 sudo apt-get install -qq pandoc         # notebook -> rst
 conda install --yes matplotlib scikit-learn sphinx boto ipython-notebook jinja2
 pip install runipy==0.0.4                      # example notebooks
+pip install triangle
 
 cd doc && make html && cd -
 cat /tmp/sphinx-*
-python tools/ci/push-docs-to-s3.py
+python devtools/ci/push-docs-to-s3.py
