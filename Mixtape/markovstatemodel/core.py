@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
+import scipy.linalg
 from mixtape.utils import list_of_1d
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
 from sklearn.base import TransformerMixin
@@ -8,6 +9,7 @@ from sklearn.base import TransformerMixin
 __all__ = [
     '_MappingTransformMixin', '_dict_compose', '_strongly_connected_subgraph',
     '_transition_counts', 'ndgrid_msm_likelihood_score',
+    '_solve_msm_eigensystem',
 ]
 
 
@@ -162,6 +164,58 @@ def ndgrid_msm_likelihood_score(estimator, sequences):
     #     emission_log_likelihood += -1 * np.log(width) * len(X)
     #
     # return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
+
+
+def _solve_msm_eigensystem(transmat, k):
+    """Find the dominant eigenpairs of an MSM transition matrix
+
+    Parameters
+    ----------
+    transmat : np.ndarray, shape=(n_states, n_states)
+        The transition matrix
+    k : int
+        The number of eigenpairs to find.
+
+    Notes
+    -----
+    Normalize the left (:math:`\phi`) and right (:math:``\psi``) eigenfunctions
+    according to the following criteria.
+      * The first left eigenvector, \phi_1, _is_ the stationary
+        distribution, and thus should be normalized to sum to 1.
+      * The left-right eigenpairs should be biorthonormal:
+        <\phi_i, \psi_j> = \delta_{ij}
+      * The left eigenvectors should satisfy
+        <\phi_i, \phi_i>_{\mu^{-1}} = 1
+      * The right eigenvectors should satisfy <\psi_i, \psi_i>_{\mu} = 1
+
+    Returns
+    -------
+    eigvals : np.ndarray, shape=(k,)
+        The largest `k` eigenvalues
+    lv : np.ndarray, shape=(n_states, k)
+        The normalized left eigenvectors (:math:`\phi`) of ``transmat``
+    rv :  np.ndarray, shape=(n_states, k)
+        The normalized right eigenvectors (:math:`\psi`) of ``transmat``
+    """
+    u, lv, rv = scipy.linalg.eig(transmat, left=True, right=True)
+    order = np.argsort(-np.real(u))
+    u = np.real_if_close(u[order[:k]])
+    lv = np.real_if_close(lv[:, order[:k]])
+    rv = np.real_if_close(rv[:, order[:k]])
+
+    # first normalize the stationary distribution separately
+    lv[:, 0] = lv[:, 0] / np.sum(lv[:, 0])
+
+    for i in range(1, lv.shape[1]):
+        # the remaining left eigenvectors to satisfy
+        # <\phi_i, \phi_i>_{\mu^{-1}} = 1
+        lv[:, i] = lv[:, i] / np.sqrt(np.dot(lv[:, i], lv[:, i] / lv[:, 0]))
+
+    for i in range(rv.shape[1]):
+        # the right eigenvectors to satisfy <\phi_i, \psi_j> = \delta_{ij}
+        rv[:, i] = rv[:, i] / np.dot(lv[:, i], rv[:, i])
+
+    return u, lv, rv
 
 
 def _strongly_connected_subgraph(counts, weight=1, verbose=True):

@@ -34,13 +34,13 @@ import multiprocessing
 import itertools
 import warnings
 import numpy as np
-import scipy.linalg
 
 from mixtape.utils import list_of_1d
 from sklearn.base import BaseEstimator
 from mixtape.markovstatemodel.core import (_MappingTransformMixin, _dict_compose,
                                            _strongly_connected_subgraph,
-                                           _transition_counts)
+                                           _transition_counts,
+                                           _solve_msm_eigensystem)
 from mixtape.markovstatemodel._metzner_mcmc_fast import metzner_mcmc_fast
 from mixtape.markovstatemodel._metzner_mcmc_slow import metzner_mcmc_slow
 
@@ -256,34 +256,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self._all_right_eigenvectors = []
 
         for transmat in self.all_transmats_:
-            u, lv, rv = scipy.linalg.eig(transmat, left=True, right=True)
-            order = np.argsort(-np.real(u))
-            u = np.real_if_close(u[order[:k]])
-            lv = np.real_if_close(lv[:, order[:k]])
-            rv = np.real_if_close(rv[:, order[:k]])
-
-            # Normalize the left (\phi) and right (\psi) eigenfunctions according
-            # to the following criteria.
-            # (1) The first left eigenvector, \phi_1, _is_ the stationary
-            # distribution, and thus should be normalized to sum to 1.
-            # (2) The left-right eigenpairs should be biorthonormal:
-            #    <\phi_i, \psi_j> = \delta_{ij}
-            # (3) The left eigenvectors should satisfy
-            #    <\phi_i, \phi_i>_{\mu^{-1}} = 1
-            # (4) The right eigenvectors should satisfy <\psi_i, \psi_i>_{\mu} = 1
-
-            # first normalize the stationary distribution separately
-            lv[:, 0] = lv[:, 0] / np.sum(lv[:, 0])
-
-            for i in range(1, lv.shape[1]):
-                # the remaining left eigenvectors to satisfy
-                # <\phi_i, \phi_i>_{\mu^{-1}} = 1
-                lv[:, i] = lv[:, i] / np.sqrt(np.dot(lv[:, i], lv[:, i] / lv[:, 0]))
-
-            for i in range(rv.shape[1]):
-                # the right eigenvectors to satisfy <\phi_i, \psi_j> = \delta_{ij}
-                rv[:, i] = rv[:, i] / np.dot(lv[:, i], rv[:, i])
-
+            u, lv, rv = _solve_msm_eigensystem(transmat, k)
             self._all_eigenvalues.append(u)
             self._all_left_eigenvectors.append(lv)
             self._all_right_eigenvectors.append(rv)
