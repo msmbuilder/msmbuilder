@@ -369,3 +369,46 @@ class tICA(BaseEstimator, TransformerMixin):
 
         self._is_dirty = True
 
+    def score(self, sequences, y=None):
+        """Score the model on new data using the generalized matrix Rayleigh quotient
+
+        Parameters
+        ----------
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
+
+        Returns
+        -------
+        gmrq : float
+            Generalized matrix Rayleigh quotient. This number indicates how
+            well the top ``n_timescales+1`` eigenvectors of this MSM perform as
+            slowly decorrelating collective variables for the new data in
+            ``sequences``.
+
+        References
+        ----------
+        .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
+           of slow dynamical modes in molecular kinetics"
+           http://arxiv.org/abs/1407.8083 (2014)
+        """
+
+        assert self._initialized
+        V = self.eigenvectors_
+
+        # Note: How do we deal with regularization parameters like gamma
+        # here? I'm not sure. Should C and S be estimated using self's
+        # regularization parameters?
+        m2 = self.__class__(lag_time=self.lag_time)
+        for X in sequences:
+            m2.partial_fit(X)
+
+        numerator = V.T.dot(m2.offset_correlation_).dot(V)
+        denominator = V.T.dot(m2.covariance_).dot(V)
+
+        try:
+            trace = np.trace(numerator.dot(np.linalg.inv(denominator)))
+        except np.linalg.LinAlgError:
+            trace = np.nan
+        return trace

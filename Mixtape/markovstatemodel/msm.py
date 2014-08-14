@@ -424,7 +424,7 @@ Timescales:
             ))
 
     def score(self, sequences, y=None):
-        """Score a Markov state model on new data using the generalized matrix Rayleigh quotient
+        """Score the model on new data using the generalized matrix Rayleigh quotient
 
         Parameters
         ----------
@@ -436,9 +436,10 @@ Timescales:
         Returns
         -------
         gmrq : float
-            Generalized matrix Rayleigh quotient. This number indicates how well the top
-            `n_timescales+1` eigenvectors of this MSM perform as slowly decorrelating
-            collective variables for the new data in `sequences`.
+            Generalized matrix Rayleigh quotient. This number indicates how
+            well the top ``n_timescales+1`` eigenvectors of this MSM perform as
+            slowly decorrelating collective variables for the new data in
+            ``sequences``.
 
         References
         ----------
@@ -446,10 +447,12 @@ Timescales:
            of slow dynamical modes in molecular kinetics"
            http://arxiv.org/abs/1407.8083 (2014)
         """
-
         # eigenvectors from the model we're scoring, `self`
         V = self.right_eigenvectors_
 
+        # Note: How do we deal with regularization parameters like prior_counts
+        # here? I'm not sure. Should C and S be estimated using self's
+        # regularization parameters?
         m2 = self.__class__(**self.get_params())
         m2.fit(sequences)
 
