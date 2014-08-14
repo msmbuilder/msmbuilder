@@ -31,10 +31,10 @@ Algorithms
 
 Maximum Likelihood and Bayesian Estimation
 ------------------------------------------
-There are two steps in contructing an MSM
+There are two steps in constructing an MSM
 
   1. Count the number of observed transitions between states. That is,
-     constuct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number
+     construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number
      of observed transitions from state :math:`i` at time :math:`t` to
      state :math:`j` at time :math:`t+\tau`, summed over all times :math:`t`.
 
@@ -67,21 +67,21 @@ Mixtape implements two MSM estimators.
     It estimates a single transition matrix, :math:`\mathbf{T}`, to
     maximimize :math:`\mathcal{L}(\mathbf{T})`.
  - :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte Carlo
-   to (approximately) draw a sample of transition matricies from the posterior
+   to (approximately) draw a sample of transition matrices from the posterior
    distribution :math:`P(\mathbf{T} | S)`. This sampler is described in Metzner
    et al. [#f5]_ This can be used to estimate the sampling uncertainty in
    functions of the transition matrix (e.g. relaxation timescales).
 
 .. note::
 
-   The uncerainty in the transition matrix (and functions of the transition matrix)
-   that can be estimated from :class:`BayesianMarkovStateModel` do not **fully**
-   account for all sources of error. In particular, the discretization induced
-   by clustering produces a negative bias on  the eigenvalues of the transition
-   matrix -- they asymptotically underestimate the eigenvalues of the propagator /
-   transfer operator in the limit of infinite sampling. [#f6]_ See section 3D
-   (Quantifying the discretization error) of Prinz et al. for more discussion
-   on the discreization error. [#f1]_
+   The uncertainty in the transition matrix (and functions of the transition
+   matrix) that can be estimated from :class:`BayesianMarkovStateModel` do not
+   **fully** account for all sources of error. In particular, the discretization
+   induced by clustering produces a negative bias on  the eigenvalues of the
+   transition matrix -- they asymptotically underestimate the eigenvalues of
+   the propagator / transfer operator in the limit of infinite sampling. [#f6]_
+   See section 3D (Quantifying the discretization error) of Prinz et al. for
+   more discussion on the discretization error. [#f1]_
 
 
 Tradeoffs and Parameter Selection
