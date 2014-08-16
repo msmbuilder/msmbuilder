@@ -423,6 +423,66 @@ Timescales:
             ts=', '.join(['{:.2f}'.format(t) for t in self.timescales_]),
             ))
 
+    def score(self, sequences, y=None):
+        """Score the model on new data using the generalized matrix Rayleigh quotient
+
+        Parameters
+        ----------
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
+
+        Returns
+        -------
+        gmrq : float
+            Generalized matrix Rayleigh quotient. This number indicates how
+            well the top ``n_timescales+1`` eigenvectors of this MSM perform as
+            slowly decorrelating collective variables for the new data in
+            ``sequences``.
+
+        References
+        ----------
+        .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
+           of slow dynamical modes in molecular kinetics"
+           http://arxiv.org/abs/1407.8083 (2014)
+        """
+        # eigenvectors from the model we're scoring, `self`
+        V = self.right_eigenvectors_
+
+        # Note: How do we deal with regularization parameters like prior_counts
+        # here? I'm not sure. Should C and S be estimated using self's
+        # regularization parameters?
+        m2 = self.__class__(**self.get_params())
+        m2.fit(sequences)
+
+        if self.mapping_ != m2.mapping_:
+            V = self._map_eigenvectors(V, m2.mapping_)
+            # we need to map this model's eigenvectors
+            # into the m2 space
+
+        # How well do they diagonalize S and C, which are
+        # computed from the new test data?
+        S = np.diag(m2.populations_)
+        C = S.dot(m2.transmat_)
+
+        try:
+            trace = np.trace(V.T.dot(C.dot(V)).dot(np.linalg.inv(V.T.dot(S.dot(V)))))
+        except np.linalg.LinAlgError:
+            trace = np.nan
+
+        return trace
+
+    def _map_eigenvectors(self, V, other_mapping):
+        self_inverse_mapping = {v: k for k, v in self.mapping_.items()}
+        transform_mapping = _dict_compose(self_inverse_mapping, other_mapping)
+        source_indices, dest_indices = zip(*transform_mapping.items())
+
+        #print(source_indices, dest_indices)
+        mapped_V = np.zeros((len(other_mapping), V.shape[1]))
+        mapped_V[dest_indices, :] = np.take(V, source_indices, axis=0)
+        return mapped_V
+
     @property
     def timescales_(self):
         """Implied relaxation timescales of the model.

@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import os
 import numpy as np
+from numpy.testing import assert_approx_equal
 from mdtraj.testing import eq
 import scipy.sparse
 from sklearn.externals.joblib import load, dump
@@ -249,7 +250,8 @@ def test_14():
     p.named_steps['msm'].summary()
 
 
-def test_sample_1():  # Test that the code actually runs and gives something non-crazy
+def test_sample_1():
+    # Test that the code actually runs and gives something non-crazy
     # Make an ergodic dataset with two gaussian centers offset by 25 units.
     chunk = np.random.normal(size=(20000, 3))
     data = [np.vstack((chunk, chunk + 25)), np.vstack((chunk + 25, chunk))]
@@ -281,3 +283,16 @@ def test_sample_1():  # Test that the code actually runs and gives something non
     trj_samples = map_drawn_samples(pairs, trajectories)
     mu = np.array([t.xyz.mean(0)[0] for t in trj_samples])
     eq(mu, np.array([[0., 0., 0.0], [25., 25., 25.]]), decimal=1)
+
+
+def test_score_1():
+    # test that GMRQ is equal to the sum of the first n eigenvalues,
+    # when testing and training on the same dataset.
+    sequence = [0,0,0,1,1,1,2,2,2,1,1,1,0,0,0,1,2,2,2,1,1,1,0,0]
+    for n in [0, 1, 2]:
+        model = MarkovStateModel(verbose=False, n_timescales=n)
+        model.fit([sequence])
+
+        assert_approx_equal(
+            model.score([sequence]),
+            model.eigenvalues_.sum())
