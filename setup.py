@@ -346,6 +346,12 @@ extensions.append(
               include_dirs=[np.get_include()]))
 
 extensions.append(
+    Extension('mixtape.datasets._muller',
+              sources=['Mixtape/datasets/_muller.pyx'],
+              libraries=['m'],
+              include_dirs=[np.get_include()]))
+
+extensions.append(
     Extension('mixtape.markovstatemodel._markovstatemodel',
               sources=['Mixtape/markovstatemodel/_markovstatemodel.pyx',
                        'Mixtape/markovstatemodel/src/transmat_mle_prinz.c'],

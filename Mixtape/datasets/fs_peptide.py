@@ -1,17 +1,17 @@
 """Fs peptide (implicit solvent) dataset
 
-This dataset consists of 28 molecular dynamics trajectories of Fs peptide
-(Ace-A_5(AAARA)_3A-NME), a widely studied model system for protein folding.
-Each trajectory is 500 ns in length, and saved at a 50 ps time interval (14
-us aggegrate sampling). The simulations were performed using the AMBER99SB-ILDN
-force field with GBSA-OBC implicit solvent at 300K, starting from randomly
-sampled conformations from an initial 400K unfolding simulation. The
-simulations were performed with OpenMM 6.0.1.
+    This dataset consists of 28 molecular dynamics trajectories of Fs peptide
+    (Ace-A_5(AAARA)_3A-NME), a widely studied model system for protein folding.
+    Each trajectory is 500 ns in length, and saved at a 50 ps time interval (14
+    us aggegrate sampling). The simulations were performed using the AMBER99SB-ILDN
+    force field with GBSA-OBC implicit solvent at 300K, starting from randomly
+    sampled conformations from an initial 400K unfolding simulation. The
+    simulations were performed with OpenMM 6.0.1.
 
-The dataset, including the script used to generate the dataset
-is available on figshare at
+    The dataset, including the script used to generate the dataset
+    is available on figshare at
 
-    http://dx.doi.org/10.6084/m9.figshare.1030363    
+        http://dx.doi.org/10.6084/m9.figshare.1030363
 """
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
@@ -69,6 +69,9 @@ def fetch_fs_peptide(data_home=None, download_if_missing=True):
     download_if_missing: optional, True by default
         If False, raise a IOError if the data is not locally available
         instead of trying to download the data from the source site.
+
+    Notes
+    -----
     """
     data_home = get_data_home(data_home=data_home)
     if not exists(data_home):
@@ -91,3 +94,5 @@ def fetch_fs_peptide(data_home=None, download_if_missing=True):
         trajectories.append(md.load(fn, top=top))
 
     return Bunch(trajectories=trajectories, DESCR=__doc__)
+
+fetch_fs_peptide.__doc__ += __doc__
