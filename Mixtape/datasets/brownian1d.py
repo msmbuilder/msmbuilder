@@ -3,29 +3,29 @@
 DOUBLEWELL_DESCRIPTION = r"""Brownian dynamics on a 1D double well potential
 
     This dataset consists of 10 trajectories simulated with Brownian dynamics on
-    the reduced potential function:
+    the reduced potential function
 
         V(x) = 1 + cos(2x)
 
-        with reflecting boundary conditions at x=-pi and x=pi. The simulation
-        are governed by the stochastic differential equation
+    with reflecting boundary conditions at x=-pi and x=pi. The simulations
+    are governed by the stochastic differential equation
 
-        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t)
+        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t),
 
-        where R(t) is a standard normal white-noise process, and D=1e3. The
-        timsetep is 1e-3. Each trajectory is 10^5 steps long, and starts at
-        x_0 = 0.
+    where R(t) is a standard normal white-noise process, and D=1e3. The
+    timsetep is 1e-3. Each trajectory is 10^5 steps long, and starts at
+    x_0 = 0.
 """
 QUADWELL_DESCRIPTION = r"""Brownian dynamics on a 1D four well potential
 
     This dataset consists of 100 trajectories simulated with Brownian dynamics
-    on the reduced potential function:
+    on the reduced potential function
 
-        V = 4(x^8 + 0.8 exp(-80 x^2**2) + 0.2 exp(-80 (x-0.5)^2) + 0.5 exp(-40 (x+0.5)^2))
+        V = 4(x^8 + 0.8 exp(-80 x^2**2) + 0.2 exp(-80 (x-0.5)^2) + 0.5 exp(-40 (x+0.5)^2)).
 
     The simulations are governed by the stochastic differential equation
 
-        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t)
+        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t),
 
     where R(t) is a standard normal white-noise process, and D=1e3. The timsetep
     is 1e-3. Each trajectory is 10^3 steps long, and starts from a random
