@@ -208,6 +208,21 @@ def test_12():
     assert s[0][0] == model.left_eigenvectors_[0, 1]
     assert s[0][1] == model.left_eigenvectors_[1, 1]
 
+
+def test_eigtransform_2():
+    model = MarkovStateModel(n_timescales=2)
+    traj = [4, 3, 0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]
+    model.fit([traj])
+
+    transformed_0 = model.eigtransform([traj], mode='clip')
+    # clip off the first two states (not ergodic)
+    assert transformed_0[0].shape == (len(traj)-2, model.n_timescales)
+
+    transformed_1 = model.eigtransform([traj], mode='fill')
+    assert transformed_1[0].shape == (len(traj), model.n_timescales)
+    assert np.all(np.isnan(transformed_1[0][:2, :]))
+    assert not np.any(np.isnan(transformed_1[0][2:]))
+
 def test_13():
     model = MarkovStateModel(n_timescales=2)
     model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 3, 3, 1, 1, 2, 2, 0, 0]])
