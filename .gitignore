@@ -54,3 +54,4 @@ Mixtape/version.py
 
 doc/_build
 doc/generated
+examples/.ipynb_checkpoints/
