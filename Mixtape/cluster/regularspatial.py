@@ -43,12 +43,13 @@ def _arrayify(list_like):
     
     Notes
     -----
-    See Issue #249
+    See Issue #249.  This is a hack to make md.trajectory work using
+    metric=md.rmsd    
     """
-    if isinstance(list_like[0], md.Trajectory):
-        return list_like[0].join(list_like[1:])
+    if isinstance(list_like[0], np.ndarray):
+        return np.concatenate(list_like)
     else:
-        return np.array(list_like)
+        return list_like[0].join(list_like[1:])
 
 class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
     """Regular spatial clustering.
