@@ -47,7 +47,7 @@ def _arrayify(list_like):
     metric=md.rmsd    
     """
     if isinstance(list_like[0], np.ndarray):
-        return np.concatenate(list_like)
+        return np.array(list_like)
     else:
         return list_like[0].join(list_like[1:])
 
