@@ -55,6 +55,7 @@ def test2():
         print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
+@attr('broken')
 def test3():
     # Check log-sum-exp gradient on quadratic inequality problem.
 
@@ -78,6 +79,7 @@ def test3():
         print("num_grad:\n", num_grad)
         assert np.sum(np.abs(grad - num_grad)) < tol
 
+@attr('broken')
 def test4():
     # Check log-sum-exp gradient on quadratic equality problem.
 
@@ -127,6 +129,7 @@ def test5():
             print("num_grad:\n", num_grad)
             assert np.sum(np.abs(grad - num_grad)) < tol
 
+@attr('broken')
 def test6():
     # Check log-sum-exp gradient on many linear equalities.
     tol = 1e-3

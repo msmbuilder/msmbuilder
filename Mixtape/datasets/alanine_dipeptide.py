@@ -69,7 +69,6 @@ def fetch_alanine_dipeptide(data_home=None, download_if_missing=True):
 
     Notes
     -----
-    This dataset contains 10 MD trajectories
     """
     data_home = get_data_home(data_home=data_home)
     if not exists(data_home):
@@ -91,3 +90,6 @@ def fetch_alanine_dipeptide(data_home=None, download_if_missing=True):
         trajectories.append(md.load(fn, top=top))
 
     return Bunch(trajectories=trajectories, DESCR=__doc__)
+
+fetch_alanine_dipeptide.__doc__ += __doc__
+

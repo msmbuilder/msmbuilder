@@ -1,5 +1,6 @@
 
 import numpy as np
+from numpy.testing import assert_approx_equal
 from mdtraj.testing import eq
 from mixtape.tica import tICA
 from msmbuilder.reduce import tICA as tICAr
@@ -55,8 +56,21 @@ def test_singular_2():
     assert tica.components_.dtype == np.float64
     assert tica.eigenvalues_.dtype == np.float64
 
+
 def test_shape():
     model = tICA(n_components=3).fit([np.random.randn(100,10)])
     eq(model.eigenvalues_.shape, (3,))
     eq(model.eigenvectors_.shape, (10, 3))
     eq(model.components_.shape, (3, 10))
+
+
+def test_score_1():
+    X = np.random.randn(100, 5)
+    for n in range(1, 5):
+        tica = tICA(n_components=n, gamma=0)
+        tica.fit([X])
+        assert_approx_equal(
+            tica.score([X]),
+            tica.eigenvalues_.sum())
+        X2 = np.random.randn(100, 5)
+        assert tica.score([X2]) < tica.score([X])

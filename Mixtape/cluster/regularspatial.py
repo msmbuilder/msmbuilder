@@ -30,11 +30,26 @@ from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
 from mixtape.cluster import _regularspatialc
 from mixtape.cluster import MultiSequenceClusterMixin
 
+import mdtraj as md
+
 __all__ = ['RegularSpatial']
 
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
+
+def _arrayify(list_like):
+    """Transform a list into a MDTraj Trajectory or a Numpy array.
+    
+    Notes
+    -----
+    See Issue #249.  This is a hack to make md.trajectory work using
+    metric=md.rmsd    
+    """
+    if isinstance(list_like[0], np.ndarray):
+        return np.array(list_like)
+    else:
+        return list_like[0].join(list_like[1:])
 
 class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
     """Regular spatial clustering.
@@ -103,11 +118,11 @@ class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
 
         self.cluster_centers_ = [X[0]]
         for i in range(1, len(X)):
-            d = metric_function(np.array(self.cluster_centers_), X, i)
+            d = metric_function(_arrayify(self.cluster_centers_), X, i)
             if np.all(d > self.d_min):
                 self.cluster_centers_.append(X[i])
         
-        self.cluster_centers_ = np.array(self.cluster_centers_)
+        self.cluster_centers_ = _arrayify(self.cluster_centers_)
         self.n_clusters_ = len(self.cluster_centers_)
         return self
 

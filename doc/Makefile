@@ -6,7 +6,7 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
-TOOLSPATH			= ../tools/
+TOOLSPATH			= ../devtools/
 EXAMPLEBUILD  = examples_rst.py
 
 # Internal variables.
