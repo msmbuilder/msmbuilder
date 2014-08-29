@@ -124,7 +124,7 @@ def iter_vars(A, Q, N):
 # END of MSLDS Utils (experimental)
 ##########################################################################
 
-def map_drawn_samples(selected_pairs_by_state, trajectories):
+def map_drawn_samples(selected_pairs_by_state, trajectories, top=None):
     """Lookup trajectory frames using pairs of (trajectory, frame) indices.
 
     Parameters
@@ -132,11 +132,13 @@ def map_drawn_samples(selected_pairs_by_state, trajectories):
     selected_pairs_by_state : np.ndarray, dtype=int, shape=(n_states, n_samples, 2)
         selected_pairs_by_state[state, sample] gives the (trajectory, frame)
         index associated with a particular sample from that state.
-    trajectories : list(md.Trajectory) or list(np.ndarray)
+    trajectories : list(md.Trajectory) or list(np.ndarray) or list(filenames)
         The trajectories assocated with sequences,
         which will be used to extract coordinates of the state centers
         from the raw trajectory data.  This can also be a list of np.ndarray
-        objects
+        objects or filenames.  If they are filenames, mdtraj will be used to load
+    top : md.Topology, optional, default=None
+        Use this topology object to help mdtraj load filenames
 
     Returns
     -------
@@ -165,7 +167,16 @@ def map_drawn_samples(selected_pairs_by_state, trajectories):
     frames_by_state = []
 
     for state, pairs in enumerate(selected_pairs_by_state):
-        frames = [trajectories[trj][frame] for trj, frame in pairs]
+        if isinstance(trajectories[0], str):
+            import mdtraj as md
+            if top:
+                process = lambda x: md.load(x, top=top)
+            else:
+                process = lambda x: md.load(x)
+        else:
+            process = lambda x: x
+
+        frames = [process(trajectories[trj])[frame] for trj, frame in pairs]
         try:  # If frames are mdtraj Trajectories
             state_trj = frames[0][0:0].join(frames)  # Get an empty trajectory with correct shape and call the join method on it to merge trajectories
         except AttributeError:
