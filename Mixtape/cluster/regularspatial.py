@@ -30,8 +30,6 @@ from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
 from mixtape.cluster import _regularspatialc
 from mixtape.cluster import MultiSequenceClusterMixin
 
-import mdtraj as md
-
 __all__ = ['RegularSpatial']
 
 #-----------------------------------------------------------------------------
