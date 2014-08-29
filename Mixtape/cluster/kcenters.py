@@ -30,6 +30,7 @@ from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
 from mixtape.cluster._kcentersc import _kcenters_euclidean
 from mixtape.cluster import MultiSequenceClusterMixin
+from mixtape.cluster.regularspatial import _arrayify
 
 __all__ = ['KCenters']
 
@@ -130,12 +131,7 @@ class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
             new_center_index = np.argmax(self.distances_)
 
         if not isinstance(self.metric, string_types):
-            if isinstance(self.cluster_centers_[0], np.ndarray):
-                self.cluster_centers_ = np.concatenate(self.cluster_centers_)
-            else:
-                # this is a hack to make md.trajectory work using
-                # metric=md.rmsd
-                self.cluster_centers_ = self.cluster_centers_[0].join(self.cluster_centers_[1:])
+            self.cluster_centers_ = _arrayify(self.cluster_centers_)
 
         return self
 
