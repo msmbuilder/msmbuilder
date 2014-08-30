@@ -170,13 +170,13 @@ def map_drawn_samples(selected_pairs_by_state, trajectories, top=None):
         if isinstance(trajectories[0], str):
             import mdtraj as md
             if top:
-                process = lambda x: md.load(x, top=top)
+                process = lambda x, frame: md.load_frame(x, frame, top=top)
             else:
-                process = lambda x: md.load(x)
+                process = lambda x, frame: md.load_frame(x, frame)
         else:
-            process = lambda x: x
+            process = lambda x, frame: x[frame]
 
-        frames = [process(trajectories[trj])[frame] for trj, frame in pairs]
+        frames = [process(trajectories[trj], frame) for trj, frame in pairs]
         try:  # If frames are mdtraj Trajectories
             state_trj = frames[0][0:0].join(frames)  # Get an empty trajectory with correct shape and call the join method on it to merge trajectories
         except AttributeError:
