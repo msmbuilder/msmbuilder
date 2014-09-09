@@ -7,7 +7,7 @@ Conformation Dynamics in Mixtape
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 `This slide deck <http://htmlpreview.github.io/?https://rawgit.com/kyleabeauchamp/MixtapeTalk/master/index.html>`_,
 by Kyle A. Beauchamp, gives an introduction to the Mixtape package and the
-design of it's Python API. The code for the slides can be found
+design of its Python API. The code for the slides can be found
 `here <https://github.com/kyleabeauchamp/MixtapeTalk>`_.
 
 
