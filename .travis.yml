@@ -20,4 +20,4 @@ env:
     - secure: "P+edtRE09wXe30kvZONNB/aMXlUrVDHYTAc4gNMFrDdxvBZonjwVSvSC+rOpgPOUKbFn7+MgIBlQoIqSpQ9PBY3aCOrbnemdgc41ZYLcZ8aLJD50kLtslW5rHZs/jyPHD/2IB3VSNK9GJAi0uQCF0YII3ng4wgrD6/jQtNR0tnU="
 
 after_success:
-  - # source devtools/ci/after_sucess.sh
+  - source devtools/ci/after_sucess.sh

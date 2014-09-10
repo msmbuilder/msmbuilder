@@ -20,7 +20,7 @@ for dirpath, dirnames, filenames in os.walk(root):
         fn = os.path.join(dirpath, filename)
         print 'Uploading', fn, '...'
         k = Key(bucket)
-        if not mdtraj.version.release:
+        if not mixtape.version.release:
             prefix = 'latest'
         else:
             prefix = mdtraj.version.short_version
