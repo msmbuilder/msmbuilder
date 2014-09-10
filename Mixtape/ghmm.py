@@ -129,8 +129,8 @@ class GaussianFusionHMM(object):
     -----
     """
 
-    def __init__(self, n_states, n_features, n_init=10, n_em_iter=10,
-                 n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
+    def __init__(self, n_states, n_features, lag_time=1, n_init=10,
+                 n_em_iter=10, n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
                  vars_weight=1, random_state=None, params='tmv',
                  init_params='tmv', platform='cpu', precision='mixed',
@@ -138,6 +138,7 @@ class GaussianFusionHMM(object):
         self.n_states = n_states
         self.n_init = n_init
         self.n_features = n_features
+        self.lag_time = lag_time
         self.n_em_iter = n_em_iter
         self.n_lqa_iter = n_lqa_iter
         self.fusion_prior = fusion_prior
@@ -159,6 +160,10 @@ class GaussianFusionHMM(object):
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % reversible_type)
+
+        if not lag_time >= 1:
+            raise ValueError('Invalid lag time: %s. Must be >= 1' % lag_time)
+
         if n_init < 1:
             raise ValueError('HMM estimation requires at least one run')
         if n_em_iter < 1:
@@ -181,7 +186,7 @@ class GaussianFusionHMM(object):
         else:
             raise ValueError('Invalid platform "%s". Available platforms are '
                              '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))
-        
+
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
 
@@ -204,6 +209,7 @@ class GaussianFusionHMM(object):
         y : unused
             Needed for sklearn API consistency.
         """
+        sequences = self._lag_sequences(sequences)
         n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
         # counter for the total number of EM iters performed
@@ -263,6 +269,39 @@ class GaussianFusionHMM(object):
 
         return self
 
+    def _lag_sequences(self, sequences):
+        """Support lag times greater than 1
+
+        Stride the input trajectories by the lag time and emulate a
+        'sliding window' by returning N strided trajectories starting from
+        frame 0, 1, ..., lag_time - 1
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+
+        Returns
+        -------
+        lagged_seqs : list
+            List of 2-dimensional array observation sequences consistent with
+            the desired lag time. There will be (lag_time) times as many
+            sequences returned as inputted.
+        """
+        if self.lag_time == 1:
+            return sequences
+
+        lagged_seqs = []
+        for seq in sequences:
+            for i in range(self.lag_time):
+                lagged_seqs.append(seq[i::self.lag_time])
+
+        return lagged_seqs
+
+
+
     def _init(self, sequences, init_params):
         '''
         Find initial means(hot start)
@@ -275,7 +314,7 @@ class GaussianFusionHMM(object):
             small_dataset = np.vstack(sequences)
         else:
             small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
-        
+
         if self.init_algo == "GMM" and ("m" in init_params or "v" in init_params):
             mixture = sklearn.mixture.GMM(self.n_states, n_init=1, random_state=self.random_state)
             mixture.fit(small_dataset)
@@ -550,8 +589,8 @@ class GaussianFusionHMM(object):
         GaussianFusionHMM.draw_samples : Draw samples from GHMM
         
 
-        """    
-        
+        """
+
         logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
 
         argm = np.array([lp.argmax(0) for lp in logprob])
@@ -561,9 +600,9 @@ class GaussianFusionHMM(object):
         frame_ind = argm[trj_ind, np.arange(self.n_states)]
 
         mean_approx = np.array([sequences[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)])
-        
+
         centroid_pairs_by_state = np.array(list(zip(trj_ind, frame_ind)))
-        
+
         return centroid_pairs_by_state[:, np.newaxis, :], mean_approx[:, np.newaxis, :]  # np.newaxis changes arrays from 2D to 3D for consistency with `sample_states()`
 
 
@@ -613,19 +652,19 @@ class GaussianFusionHMM(object):
         from states--e.g. use either the base class function or a 
         different one.
         """
-        
+
         random = check_random_state(self.random_state)
-        
+
         if scheme == 'even':
             logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
             ass = [lp.argmax(1) for lp in logprob]
-            
+
             selected_pairs_by_state = []
             for state in range(self.n_states):
                 all_frames = [np.where(a == state)[0] for a in ass]
                 pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
                 selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
-        
+
         elif scheme == "maxent":
             X_concat = np.concatenate(sequences)
             all_pairs = np.array([(trj, frame) for trj, X in enumerate(sequences) for frame in range(X.shape[0])])
@@ -645,10 +684,10 @@ class GaussianFusionHMM(object):
 
         else:
             raise(ValueError("scheme must be one of ['even', 'maxent'])"))
-        
+
         return np.array(selected_pairs_by_state)
 
-        
+
 class _SklearnGaussianHMMCPUImpl(object):
 
     def __init__(self, n_states, n_features):

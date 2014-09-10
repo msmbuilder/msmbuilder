@@ -5,6 +5,36 @@ from mixtape.ghmm import GaussianFusionHMM
 
 PLOT = False
 
+
+def test_lagtime():
+    # Make a trajectory that starts at x=0 and transitions to x=10
+    traj = np.asarray([np.append(np.zeros(10), 10 * np.ones(10))]).T
+
+    # Make correct dimensionality and make it reversible just because
+    seqs = [
+        traj,
+        10 - traj
+    ]
+
+    ghmm = GaussianFusionHMM(n_states=2, n_features=2, lag_time=3)
+    lagged = ghmm._lag_sequences(seqs)
+
+    should_be = [
+        traj[::3],
+        traj[1::3],
+        traj[2::3],
+        10 - traj[::3],
+        10 - traj[1::3],
+        10 - traj[2::3]
+    ]
+
+    assert len(lagged) == len(should_be)
+
+    for lag, should in zip(lagged, should_be):
+        np.testing.assert_almost_equal(lag, should)
+
+
+
 def test_viterbi():
     data = [np.random.randn(1000, 3) + np.tile(np.sin(np.arange(1000)/100.0), (3,1)).T]
 
