@@ -449,7 +449,8 @@ class RawPositionsFeaturizer(Featurizer):
     ref_traj : None or md.Trajectory
         If specified, superpose each trajectory to the first frame of
         ref_traj before getting positions. If atom_indices is also
-        specified, only superpose based on those atoms.
+        specified, only superpose based on those atoms. The superposition
+        will modify each transformed trajectory *in place*.
 
     """
 
@@ -480,6 +481,11 @@ class RawPositionsFeaturizer(Featurizer):
             `(length_of_trajectory x n_features)` where each `features[i]`
             vector is computed by applying the featurization function
             to the `i`th snapshot of the input trajectory.
+
+        Notes
+        -----
+        If you requested superposition (gave `ref_traj` in __init__) the
+        input trajectory will be modified.
 
         See Also
         --------
