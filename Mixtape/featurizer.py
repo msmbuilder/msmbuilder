@@ -506,7 +506,6 @@ class RawPositionsFeaturizer(Featurizer):
         return value
 
 
-
 class RMSDFeaturizer(Featurizer):
     """Featurizer based on RMSD to a series of reference frames.
 
