@@ -145,7 +145,7 @@ def test_help():
 
 def test_fitghmm():
     with tempdir():
-        RawPositionsFeaturizer(n_features=3).save('featurizer.pickl')
+        RawPositionsFeaturizer().save('featurizer.pickl')
         shell('hmsm fit-ghmm --featurizer featurizer.pickl  --n-init 10  '
                   ' --n-states 4 --dir %s --ext h5 --top %s' % (
                       DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
