@@ -2,9 +2,11 @@ from __future__ import print_function
 from __future__ import division
 import numpy as np
 from mixtape.ghmm import GaussianFusionHMM
+from nose.plugins.attrib import attr
 
 PLOT = False
 
+@attr('broken')
 def test_viterbi():
     data = [np.random.randn(1000, 3) + np.tile(np.sin(np.arange(1000)/100.0), (3,1)).T]
 
