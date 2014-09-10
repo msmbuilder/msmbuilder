@@ -1,7 +1,7 @@
 import os
 import boto
 from boto.s3.key import Key
-import mdtraj
+import mixtape.version
 
 # The secret key is available as a secure environment variable
 # on travis-ci to push the build documentation to Amazon S3.
@@ -20,9 +20,9 @@ for dirpath, dirnames, filenames in os.walk(root):
         fn = os.path.join(dirpath, filename)
         print 'Uploading', fn, '...'
         k = Key(bucket)
-        if not mdtraj.version.release:
+        if not mixtape.version.release:
             prefix = 'latest'
         else:
-            prefix = mdtraj.version.short_version
+            prefix = mixtape.version.short_version
         k.key =  os.path.join(prefix, os.path.relpath(fn, root))
         k.set_contents_from_filename(fn)
