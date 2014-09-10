@@ -438,9 +438,32 @@ class GaussianSolventFeaturizer(Featurizer):
 
 
 class RawPositionsFeaturizer(Featurizer):
+    """Featurize an MD trajectory into a vector space with the raw
+    cartesian coordinates
 
-    def __init__(self, n_features):
-        self.n_features = n_features
+    Parameters
+    ----------
+    atom_indices : None or array-like, dtype=int, shape=(n_atoms)
+        If specified, only return the coordinates for the atoms
+        given by atom_indices. Otherwise return all atoms
+    ref_traj : None or md.Trajectory
+        If specified, superpose each trajectory to the first frame of
+        ref_traj before getting positions. If atom_indices is also
+        specified, only superpose based on those atoms. The superposition
+        will modify each transformed trajectory *in place*.
+
+    """
+
+    def __init__(self, atom_indices=None, ref_traj=None):
+        super(RawPositionsFeaturizer, self).__init__()
+
+        self.atom_indices = atom_indices
+
+        if atom_indices is not None and ref_traj is not None:
+            self.ref_traj = ref_traj.atom_slice(atom_indices)
+        else:
+            self.ref_traj = ref_traj
+
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space with the raw
@@ -459,13 +482,27 @@ class RawPositionsFeaturizer(Featurizer):
             vector is computed by applying the featurization function
             to the `i`th snapshot of the input trajectory.
 
+        Notes
+        -----
+        If you requested superposition (gave `ref_traj` in __init__) the
+        input trajectory will be modified.
+
         See Also
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
+        # Optionally take only certain atoms
+        if self.atom_indices is not None:
+            p_traj = traj.atom_slice(self.atom_indices)
+        else:
+            p_traj = traj
+
+        # Optionally superpose to a reference trajectory.
+        if self.ref_traj is not None:
+            p_traj.superpose(self.ref_traj, parallel=False)
+
+        # Get the positions and reshape.
         value = traj.xyz.reshape(len(traj), -1)
-        if value.shape[1] != self.n_features:
-            warnings.warn('wrong n_features in RawPositionsFeaturizer')
         return value
 
 
