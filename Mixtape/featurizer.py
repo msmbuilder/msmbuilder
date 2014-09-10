@@ -438,6 +438,32 @@ class GaussianSolventFeaturizer(Featurizer):
 
 
 class RawPositionsFeaturizer(Featurizer):
+    """Featurize an MD trajectory into a vector space with the raw
+    cartesian coordinates
+
+    Parameters
+    ----------
+    atom_indices : None or array-like, dtype=int, shape=(n_atoms)
+        If specified, only return the coordinates for the atoms
+        given by atom_indices. Otherwise return all atoms
+    ref_traj : None or md.Trajectory
+        If specified, superpose each trajectory to the first frame of
+        ref_traj before getting positions. If atom_indices is also
+        specified, only superpose based on those atoms.
+
+    """
+
+    def __init__(self, atom_indices=None, ref_traj=None):
+        super(RawPositionsFeaturizer, self).__init__()
+
+        self.atom_indices = atom_indices
+
+        if atom_indices is not None and ref_traj is not None:
+            self.ref_traj = ref_traj.atom_slice(atom_indices)
+        else:
+            self.ref_traj = ref_traj
+
+
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space with the raw
         cartesian coordinates.
@@ -459,24 +485,20 @@ class RawPositionsFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
+        # Optionally take only certain atoms
+        if self.atom_indices is not None:
+            p_traj = traj.atom_slice(self.atom_indices)
+        else:
+            p_traj = traj
+
+        # Optionally superpose to a reference trajectory.
+        if self.ref_traj is not None:
+            p_traj.superpose(self.ref_traj, parallel=False)
+
+        # Get the positions and reshape.
         value = traj.xyz.reshape(len(traj), -1)
         return value
 
-
-class RawPositionsSuperposeFeaturizer(RawPositionsFeaturizer):
-    def __init__(self, ref_traj, atom_indices):
-        super().__init__()
-
-        self.ref_traj = ref_traj
-        self.atom_indices = atom_indices
-
-        self.ref_traj.restrict_atoms(atom_indices)
-
-    def partial_transform(self, traj):
-        traj.restrict_atoms(self.atom_indices)
-        traj.superpose(self.ref_traj, parallel=False)
-
-        return super().partial_transform(traj)
 
 
 class RMSDFeaturizer(Featurizer):
