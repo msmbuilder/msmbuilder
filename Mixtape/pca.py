@@ -40,8 +40,8 @@ class MultiSequenceDecompositionMixin(object):
     #
     # This code is copied and modified from cluster.MultiSequenceClusterMixin
 
-    def fit(self, sequences):
-        """Fit the  clustering on the data
+    def fit(self, sequences, y=None):
+        """Fit the model
 
         Parameters
         ----------
@@ -49,6 +49,8 @@ class MultiSequenceDecompositionMixin(object):
             A list of multivariate timeseries. Each sequence may have
             a different length, but they all must have the same number
             of features.
+        y : None
+            Ignored
 
         Returns
         -------
@@ -79,13 +81,39 @@ class MultiSequenceDecompositionMixin(object):
                 zip(np.cumsum(self.__lengths), self.__lengths)]
 
     def transform(self, sequences):
+        """Apply dimensionality reduction to sequences
+
+        Parameters
+        ----------
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+
+        Returns
+        -------
+        sequence_new : list of array-like, each of shape (n_samples_i, n_components)
+        """
         s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
         transforms = []
         for sequence in sequences:
             transforms.append(s.transform(sequence))
         return transforms
 
-    def fit_transform(self, sequences):
+    def fit_transform(self, sequences, y=None):
+        """Fit the model and apply dimensionality reduction
+
+        Parameters
+        ----------
+        sequences: list of array-like, each of shape (n_samples_i, n_features)
+            Training data, where n_samples_i in the number of samples
+            in sequence i and n_features is the number of features.
+        y : None
+            Ignored
+
+        Returns
+        -------
+        sequence_new : list of array-like, each of shape (n_samples_i, n_components)
+        """
         self.fit(sequences)
         transforms = self.transform(sequences)
 

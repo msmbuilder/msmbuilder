@@ -1,14 +1,13 @@
 import numpy as np
+from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA as PCAr
-
 from mixtape.pca import PCA
-
+from mixtape.cluster import KCenters
+random = np.random.RandomState(42)
+trajs = [random.randn(10, 3) for _ in range(5)]
 
 def test_1():
     #Compare mixtape.pca with sklearn.decomposition
-
-    np.random.seed(42)
-    trajs = [np.random.randn(10, 3) for _ in range(5)]
 
     pcar = PCAr()
     pcar.fit(np.concatenate(trajs))
@@ -28,3 +27,9 @@ def test_1():
     np.testing.assert_array_almost_equal(pca.noise_variance_,
                                          pcar.noise_variance_)
 
+
+def test_2():
+    # Tet that PCA it works in a mixtape pipeline
+
+    p = Pipeline([('pca', PCA()), ('cluster', KCenters())])
+    p.fit(trajs)
