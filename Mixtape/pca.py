@@ -86,7 +86,7 @@ class MultiSequenceDecompositionMixin(object):
         Parameters
         ----------
         sequences: list of array-like, each of shape (n_samples_i, n_features)
-            Training data, where n_samples_i in the number of samples
+            Sequence data to transform, where n_samples_i in the number of samples
             in sequence i and n_features is the number of features.
 
         Returns
