@@ -25,7 +25,8 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
-import sklearn.base, sklearn.pipeline
+import sklearn.base
+import sklearn.pipeline
 import warnings
 from sklearn.externals.joblib import Parallel, delayed
 
@@ -90,7 +91,6 @@ def load(filename):
     with open(filename, 'rb') as f:
         featurizer = cPickle.load(f)
     return featurizer
-
 
 
 class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
@@ -302,6 +302,37 @@ class DihedralFeaturizer(Featurizer):
             else:
                 x.append(y)
         return np.hstack(x)
+
+
+class KappaAngleFeaturizer(Featurizer):
+    """Featurizer to extract kappa angles.
+
+    The kappa angle of residue `i` is the angle formed by the three CA atoms
+    of residues `i-2`, `i` and `i+2`. This featurizer extracts the
+    `n_residues - 4` kappa angles of each frame in a trajectory.
+
+    Parameters
+    ----------
+    cos : bool
+        Compute the cosine of the angle instead of the angle itself.
+    """
+    def __init__(self, cos=True):
+        self.cos = cos
+
+    def partial_transform(self, traj):
+        ca = [a.index for a in traj.top.atoms if a.name == 'CA']
+        if len(ca) < 5:
+            return np.zeros((len(traj), 0), dtype=np.float32)
+
+        angle_indices = np.array(
+            [(ca[i - 2], ca[i], ca[i + 2]) for i in range(2, len(ca) - 2)])
+        result = md.compute_angles(traj, angle_indices)
+
+        if self.cos:
+            return np.cos(result)
+
+        assert result.shape == (traj.n_frames, traj.n_residues - 4)
+        return result
 
 
 class ContactFeaturizer(Featurizer):
@@ -619,7 +650,6 @@ class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
         """
         self.fit(traj_list, y, **fit_params)
         return self.transform(traj_list)
-
 
     def transform(self, traj_list):
         """Transform traj_list separately by each transformer, concatenate results.
