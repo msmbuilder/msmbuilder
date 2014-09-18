@@ -321,7 +321,7 @@ class KappaAngleFeaturizer(Featurizer):
 
     def partial_transform(self, traj):
         ca = [a.index for a in traj.top.atoms if a.name == 'CA']
-        if len(ca) <= 5:
+        if len(ca) < 5:
             return np.zeros((len(traj), 0), dtype=np.float32)
 
         angle_indices = np.array(
