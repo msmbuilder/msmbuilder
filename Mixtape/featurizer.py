@@ -358,6 +358,9 @@ class SASAFeaturizer(Featurizer):
     --------
     mdtraj.shrake_rupley
     """
+    # TODO(rmcgibbo)
+    # Simplify this code to simply use md.shrake_rupley(...mode=self.mode)
+    # https://github.com/SimTk/mdtraj/pull/605
     def __init__(self, mode='residue', **kwargs):
         self.mode = mode
         self.kwargs = kwargs
