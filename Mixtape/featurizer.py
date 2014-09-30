@@ -335,6 +335,37 @@ class KappaAngleFeaturizer(Featurizer):
         return result
 
 
+class SASAFeaturizer(Featurizer):
+    """Featurizer based on solvent-accessible surface areas.
+
+    Parameters
+    ----------
+
+    mode : {'atom', 'residue'}, default='residue'
+        In mode == 'atom', the extracted features are the per-atom
+        SASA. In mode == 'residue', this is consolidated down to
+        the per-residue SASA by summing over the atoms in each
+        residue.
+
+    Other Parameters
+    ----------------
+    probe_radius : float
+    n_sphere_points : int
+        If supplied, these arguments will be passed directly to
+        `mdtraj.shrake_rupley`, overriding default values.
+
+    See Also
+    --------
+    mdtraj.shrake_rupley
+    """
+    def __init__(self, mode='residue', **kwargs):
+        self.mode = mode
+        self.kwargs = kwargs
+
+    def partial_transform(self, traj):
+        return md.shrake_rupley(traj, mode=self.mode, **self.kwargs)
+
+
 class ContactFeaturizer(Featurizer):
     """Featurizer based on residue-residue distances
 

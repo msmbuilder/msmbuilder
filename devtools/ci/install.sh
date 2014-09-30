@@ -9,7 +9,9 @@ export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
 conda config --add channels http://conda.binstar.org/omnia
-conda create --yes -n ${python} --file devtools/ci/requirements-conda-${python}.txt
+conda create --yes -n $python python=$python numpy scipy pytables cython \
+    pandas pyyaml pip nose mdtraj-dev scikit-learn \
+    sphinx openmm ipython-notebook matplotlib
 source activate $python
 conda list -e
 $HOME/miniconda/envs/${python}/bin/pip install $PIP_ARGS -r devtools/ci/requirements-${python}.txt
