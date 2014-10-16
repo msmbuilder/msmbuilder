@@ -1,4 +1,5 @@
 .. _commandline:
+.. highlight:: bash
 
 Command Line Interface (CLI)
 ============================
@@ -10,7 +11,7 @@ with large datasets). But there is a limited CLI as well.
 Tutorial
 --------
 
-1. The command line tool is `msmb`. Read the help options::
+1. The command line tool is ``msmb``. Read the help options::
 
     msmb -h
 
@@ -24,7 +25,7 @@ Tutorial
     msmb AlanineDipeptide --data_home ./
     ls alanine_dipeptide/
 
-  You should see 10 `.dcd` trajectory files and an `ala2.pdb` topology file.
+  You should see 10 ``.dcd`` trajectory files and an ``ala2.pdb`` topology file.
 
 3. First, we need to turn the time-series of atomic coordinates we get from
    MD into useable "features". There are many choices of relevant features.
@@ -50,12 +51,14 @@ Tutorial
     msmb tICA --inp pairs.jl --out tica_model.jl --transformed tica_trajs.jl \
         --n_components 4
 
-  This code takes our feature trajectories stored in `pairs.jl`, fits a tICA
-  model (saved as `tica_model.jl`) and transforms our feature trajectories
-  into new trajectories (`tica_trajs.jl`). We specify that we want the
+  This code takes our feature trajectories stored in ``pairs.jl``, fits a tICA
+  model (saved as ``tica_model.jl``) and transforms our feature trajectories
+  into new trajectories (``tica_trajs.jl``). We specify that we want the
   top `4` slowest-components.
 
-6. We can plot a 2d histogram of the top two tICA coordinates::
+6. We can plot a 2d histogram of the top two tICA coordinates
+
+.. code-block:: python
 
     import mixtape.utils
     from matplotlib import pyplot as plt
