@@ -3,7 +3,7 @@ from .base import get_data_home
 from .base import clear_data_home
 from .brownian1d import load_doublewell, load_quadwell
 from .brownian1d import doublewell_eigs, quadwell_eigs
-from .alanine_dipeptide import fetch_alanine_dipeptide
+from .alanine_dipeptide import fetch_alanine_dipeptide, AlanineDipeptide
 from .met_enkephalin import fetch_met_enkephalin
 from .fs_peptide import fetch_fs_peptide
 
