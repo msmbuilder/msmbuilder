@@ -19,11 +19,11 @@
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
-from mixtape.utils import verboseload, verbosedump
-from mixtape.ghmm import GaussianFusionHMM
-from mixtape.cmdline import NumpydocClassCommand, argument
+from ..utils import verboseload, verbosedump
+from ..hiddenmarkovmodel import GaussianFusionHMM
+from ..cmdline import NumpydocClassCommand, argument
 
 
 class FitCommand(NumpydocClassCommand):

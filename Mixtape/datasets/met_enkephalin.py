@@ -54,8 +54,8 @@ except ImportError:
     from urllib.request import urlopen
 
 import mdtraj as md
-from mixtape.datasets.base import Bunch
-from mixtape.datasets.base import get_data_home
+from .base import Bunch
+from .base import get_data_home
 
 DATA_URL = "http://downloads.figshare.com/article/public/1026324"
 TARGET_DIRECTORY = "met_enkephalin"

@@ -22,12 +22,12 @@
 # Imports
 # -----------------------------------------------------------------------------
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
-from mixtape.utils import verboseload, verbosedump
-from mixtape.tica import tICA
-from mixtape.cluster import KMeans, KCenters
-from mixtape.cmdline import NumpydocClassCommand, argument
+from ..utils import verboseload, verbosedump
+from ..decomposition import tICA
+from ..cluster import KMeans, KCenters
+from ..cmdline import NumpydocClassCommand, argument
 
 
 class FitTransformCommand(NumpydocClassCommand):

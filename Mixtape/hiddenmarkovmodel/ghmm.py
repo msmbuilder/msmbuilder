@@ -29,8 +29,7 @@ from __future__ import print_function, division, absolute_import
 import time
 import warnings
 import numpy as np
-import random
-from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
+from ..discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from sklearn import cluster
 import sklearn.mixture
 _AVAILABLE_PLATFORMS = ['cpu', 'sklearn']

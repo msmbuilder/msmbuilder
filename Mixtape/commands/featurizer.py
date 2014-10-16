@@ -1,13 +1,13 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import os
 import sys
 import glob
 
-from mixtape.cmdline import NumpydocClassCommand, argument
-from mixtape.utils import verbosedump
+from ..cmdline import NumpydocClassCommand, argument
+from ..utils import verbosedump
 import numpy as np
 import mdtraj as md
-from mixtape.featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
+from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                                 DRIDFeaturizer, DihedralFeaturizer)
 
 
