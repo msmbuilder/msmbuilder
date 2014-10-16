@@ -4,3 +4,4 @@ from .featurizer import AtomPairsFeaturizerCommand, ContactFeaturizerCommand, \
 from .fit import GaussianFusionHMMCommand
 from .fit_transform import KMeansCommand, KCentersCommand
 from .datasets import AlanineDipeptideDatasetCommand
+from .atomindices import AtomIndices
