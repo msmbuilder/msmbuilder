@@ -23,6 +23,7 @@ from __future__ import print_function, absolute_import
 
 from ..utils import verboseload, verbosedump
 from ..hiddenmarkovmodel import GaussianFusionHMM
+from ..markovstatemodel import MarkovStateModel
 from ..cmdline import NumpydocClassCommand, argument
 
 
@@ -53,4 +54,8 @@ class FitCommand(NumpydocClassCommand):
 
 class GaussianFusionHMMCommand(FitCommand):
     klass = GaussianFusionHMM
+    _concrete = True
+
+class MarkovStateModelCommand(FitCommand):
+    klass = MarkovStateModel
     _concrete = True
