@@ -2,7 +2,7 @@
 'Hidden Markov Models of Biomolecular Dynamics'
 from mixtape.cmdline import App, NumpydocClassCommand
 # the commands register themselves when they're imported
-from mixtape.commands import *
+from mixtape.oldcommands import *
 
 
 class HMSMApp(App):

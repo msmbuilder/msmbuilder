@@ -2,18 +2,15 @@
 'Mixtape commands'
 from mixtape.cmdline import App, NumpydocClassCommand
 # the commands register themselves when they're imported
-from mixtape.commands2 import *
+from mixtape.commands import *
 
 
 class MixtapeApp(App):
     def _subcommands(self):
-        cmds = []
-        for e in super(MixtapeApp, self)._subcommands():
-            if issubclass(e, NumpydocClassCommand):
-                cmds.append(e)
+        cmds = super(MixtapeApp, self)._subcommands()
 
         # sort the commands in some arbitrary order.
-        return sorted(cmds, key=lambda e : ''.join(x.__name__ for x in e.mro()))
+        return sorted(cmds, key=lambda e: ''.join(x.__name__ for x in e.mro()))
 
 
 app = MixtapeApp(name='mixtape', description=__doc__)
