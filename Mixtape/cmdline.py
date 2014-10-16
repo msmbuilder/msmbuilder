@@ -406,9 +406,8 @@ class App(object):
     @classmethod
     def _subcommands(cls):
         for subclass in all_subclasses(Command):
-            # we don't want the raw "Command" or "NumydocClassCommand" to appear
-            # in the list of subcommands.
-            if subclass not in [cls, NumpydocClassCommand]:
+            # Only include classes which define klass
+            if subclass.klass is not None:
                 yield subclass
 
 
