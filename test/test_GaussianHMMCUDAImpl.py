@@ -1,6 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
-import numpy  as np
+import numpy as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
 from nose.plugins.attrib import attr
@@ -9,7 +9,7 @@ from nose.plugins.attrib import attr
 @attr('cuda')
 def test_1():
     "Test the getters and setters, which transfer data to/from the GPU"
-    # from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
+    from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
     
     t1 = np.random.randn(10, 2).astype(np.float32)
     n_features = 2
@@ -35,7 +35,7 @@ def test_1():
 
 @attr('cuda')
 def test_2():
-    # from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
+    from mixtape._cuda_ghmm_mixed import GaussianHMMCUDAImpl
     
     np.random.seed(42)
     n_features = 32
@@ -93,7 +93,7 @@ def test_2():
         print('ref transcounts')
         print(transitioncounts(cufwdlattice, cubwdlattice, cuframelogprob, np.log(transmat)))
         print('cutranscounts')
-        print(ustats['trans'])
+        print(custats['trans'])
 
         yield lambda: np.testing.assert_array_almost_equal(stats['trans'], custats['trans'], decimal=3)
         yield lambda: np.testing.assert_array_almost_equal(stats['post'], custats['post'], decimal=3)

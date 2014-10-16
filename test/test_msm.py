@@ -1,17 +1,18 @@
 from __future__ import print_function, division
 import os
+
 import numpy as np
 from numpy.testing import assert_approx_equal
 from mdtraj.testing import eq
-import scipy.sparse
 from sklearn.externals.joblib import load, dump
 import sklearn.pipeline
-from mixtape import cluster
 from mixtape.markovstatemodel import MarkovStateModel
 from mixtape.utils import map_drawn_samples
 import mdtraj as md
 import pandas as pd
 from six import PY3
+
+from mixtape import cluster
 
 
 def test_1():

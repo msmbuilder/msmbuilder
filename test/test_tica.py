@@ -2,7 +2,7 @@
 import numpy as np
 from numpy.testing import assert_approx_equal
 from mdtraj.testing import eq
-from mixtape.tica import tICA
+from mixtape.decomposition import tICA
 from msmbuilder.reduce import tICA as tICAr
 
 def test_1():

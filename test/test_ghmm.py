@@ -1,7 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 import numpy as np
-from mixtape.ghmm import GaussianFusionHMM
+from mixtape.hiddenmarkovmodel import GaussianFusionHMM
 from nose.plugins.attrib import attr
 
 PLOT = False

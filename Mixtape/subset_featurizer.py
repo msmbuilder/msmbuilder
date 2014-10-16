@@ -1,6 +1,6 @@
 import itertools
 import numpy as np
-import mixtape.featurizer, mixtape.tica
+import mixtape.featurizer
 import mdtraj as md
 
 ATOM_NAMES = ["N", "CA", "CB", "C", "O", "H"]
