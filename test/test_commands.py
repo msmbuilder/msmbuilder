@@ -74,16 +74,16 @@ def test_atomindices():
     fn = get_mdtraj_fn('2EQQ.pdb')
     t = md.load(fn)
     with tempdir():
-        shell('hmsm atomindices -o all.dat --all -a -p %s' % fn)
-        shell('hmsm atomindices -o all-pairs.dat --all -d -p %s' % fn)
+        shell('msmb AtomIndices -o all.dat --all -a -p %s' % fn)
+        shell('msmb AtomIndices -o all-pairs.dat --all -d -p %s' % fn)
         atoms = np.loadtxt('all.dat', int)
         pairs =  np.loadtxt('all-pairs.dat', int)
         eq(t.n_atoms, len(atoms))
         eq(int(t.n_atoms * (t.n_atoms-1) / 2), len(pairs))
 
     with tempdir():
-        shell('hmsm atomindices -o heavy.dat --heavy -a -p %s' % fn)
-        shell('hmsm atomindices -o heavy-pairs.dat --heavy -d -p %s' % fn)
+        shell('msmb AtomIndices -o heavy.dat --heavy -a -p %s' % fn)
+        shell('msmb AtomIndices -o heavy-pairs.dat --heavy -d -p %s' % fn)
         atoms = np.loadtxt('heavy.dat', int)
         pairs = np.loadtxt('heavy-pairs.dat', int)
         assert all(t.topology.atom(i).element.symbol != 'H' for i in atoms)
@@ -91,8 +91,8 @@ def test_atomindices():
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
     
     with tempdir():
-        shell('hmsm atomindices -o alpha.dat --alpha -a -p %s' % fn)
-        shell('hmsm atomindices -o alpha-pairs.dat --alpha -d -p %s' % fn)
+        shell('msmb AtomIndices -o alpha.dat --alpha -a -p %s' % fn)
+        shell('msmb AtomIndices -o alpha-pairs.dat --alpha -d -p %s' % fn)
         atoms = np.loadtxt('alpha.dat', int)
         pairs = np.loadtxt('alpha-pairs.dat', int)
         assert all(t.topology.atom(i).name == 'CA' for i in atoms)
@@ -100,8 +100,8 @@ def test_atomindices():
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
 
     with tempdir():
-        shell('hmsm atomindices -o minimal.dat --minimal -a -p %s' % fn)
-        shell('hmsm atomindices -o minimal-pairs.dat --minimal -d -p %s' % fn)
+        shell('msmb AtomIndices -o minimal.dat --minimal -a -p %s' % fn)
+        shell('msmb AtomIndices -o minimal-pairs.dat --minimal -d -p %s' % fn)
         atoms = np.loadtxt('minimal.dat', int)
         pairs = np.loadtxt('minimal-pairs.dat', int)
         assert all(t.topology.atom(i).name in ['CA', 'CB', 'C', 'N' , 'O'] for i in atoms)
@@ -112,28 +112,28 @@ def test_dihedralindices():
     fn = get_mdtraj_fn('1bpi.pdb')
     t = md.load(fn)
     with tempdir():
-        shell('hmsm dihedralindices -o phi.dat --phi -p %s' % fn)
-        shell('hmsm dihedralindices -o psi.dat --psi -p %s' % fn)
+        shell('hmsm DihedralIndices -o phi.dat --phi -p %s' % fn)
+        shell('hmsm DihedralIndices -o psi.dat --psi -p %s' % fn)
         eq(len(np.loadtxt('phi.dat', int)), len(np.loadtxt('psi.dat', int)))
-        shell('hmsm dihedralindices -o chi1.dat --chi1 -p %s' % fn)
-        shell('hmsm dihedralindices -o chi2.dat --chi2 -p %s' % fn)
+        shell('hmsm DihedralIndices -o chi1.dat --chi1 -p %s' % fn)
+        shell('hmsm DihedralIndices -o chi2.dat --chi2 -p %s' % fn)
         assert len(np.loadtxt('chi2.dat')) < len(np.loadtxt('chi1.dat'))
-        shell('hmsm dihedralindices -o chi3.dat --chi3 -p %s' % fn)
-        shell('hmsm dihedralindices -o chi4.dat --chi4 -p %s' % fn)
-        shell('hmsm dihedralindices -o omega.dat --omega -p %s' % fn)
-        shell('hmsm dihedralindices -o all.dat --phi --psi --chi1 --chi2 --chi3 --chi4 --omega -p %s' % fn)
+        shell('hmsm DihedralIndices -o chi3.dat --chi3 -p %s' % fn)
+        shell('hmsm DihedralIndices -o chi4.dat --chi4 -p %s' % fn)
+        shell('hmsm DihedralIndices -o omega.dat --omega -p %s' % fn)
+        shell('hmsm DihedralIndices -o all.dat --phi --psi --chi1 --chi2 --chi3 --chi4 --omega -p %s' % fn)
 
 
 def test_featurizer():
     fn = get_mdtraj_fn('1bpi.pdb')
     with tempdir():
-        shell('hmsm atomindices -o alpha.dat --alpha -a -p %s' % fn)
+        shell('msmb AtomIndices -o alpha.dat --alpha -a -p %s' % fn)
         shell('hmsm featurizer --top %s -o alpha.pickl -a alpha.dat' % fn)
         f = np.load('alpha.pickl')
         eq(f.atom_indices, np.loadtxt('alpha.dat', int))
 
     with tempdir():
-        shell('hmsm atomindices -o alphapairs.dat --alpha -d -p %s' % fn)
+        shell('msmb AtomIndices -o alphapairs.dat --alpha -d -p %s' % fn)
         shell('hmsm featurizer --top %s -o alpha.pickl -d alphapairs.dat' % fn)
         f = np.load('alpha.pickl')
         eq(f.pair_indices, np.loadtxt('alphapairs.dat', int))
@@ -149,7 +149,7 @@ def test_fitghmm():
         shell('hmsm fit-ghmm --featurizer featurizer.pickl  --n-init 10  '
                   ' --n-states 4 --dir %s --ext h5 --top %s' % (
                       DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
-        shell('hmsm inspect -i hmms.jsonlines --details')
+        shell('hmsm Inspect -i hmms.jsonlines --details')
         shell('hmsm sample-ghmm --no-match-vars -i hmms.jsonlines --lag-time 1 --n-state 4 '
               '--featurizer featurizer.pickl --dir %s --ext h5 --top %s' % (
                   DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))

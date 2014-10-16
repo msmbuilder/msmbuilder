@@ -34,7 +34,7 @@ import pandas as pd
 from mixtape.utils import iterobjects
 from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from mixtape.cmdline import FlagAction, Command, argument, argument_group
-from mixtape.commands.mixins import MDTrajInputMixin
+from mixtape.oldcommands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['SampleGHMM']
@@ -45,6 +45,7 @@ __all__ = ['SampleGHMM']
 
 
 class SampleGHMM(Command, MDTrajInputMixin):
+    _concrete = True
     name = 'sample-ghmm'
     description = '''Draw iid samples from each state in a Gaussian HMM.
 

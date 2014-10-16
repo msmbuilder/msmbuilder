@@ -30,7 +30,7 @@ import pandas as pd
 from sklearn.mixture.gmm import log_multivariate_normal_density
 
 from mixtape.cmdline import argument_group
-from mixtape.commands.sample import SampleGHMM
+from mixtape.oldcommands.sample import SampleGHMM
 import mixtape.featurizer
 
 __all__ = ['PullMeansGHMM']
@@ -41,6 +41,7 @@ __all__ = ['PullMeansGHMM']
 
 
 class PullMeansGHMM(SampleGHMM):
+    _concrete = True
     name = 'means-ghmm'
     description = '''Draw samples at the center of each state in a Gaussian HMM.'''
 

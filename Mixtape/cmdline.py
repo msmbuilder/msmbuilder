@@ -188,12 +188,13 @@ class ClassProperty(property):
         return self.fget.__get__(None, owner)()
 
 class Command(with_metaclass(abc.ABCMeta, object)):
+    _concrete = False
 
     @classmethod
     def _get_name(cls):
         if hasattr(cls, 'name'):
             return cls.name
-        return cls.__name__.lower()
+        return cls.__name__
 
     @abc.abstractproperty
     def description(self):
@@ -406,8 +407,7 @@ class App(object):
     @classmethod
     def _subcommands(cls):
         for subclass in all_subclasses(Command):
-            # Only include classes which define klass
-            if subclass.klass is not None:
+            if subclass._concrete:
                 yield subclass
 
 

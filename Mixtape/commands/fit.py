@@ -53,3 +53,4 @@ class FitCommand(NumpydocClassCommand):
 
 class GaussianFusionHMMCommand(FitCommand):
     klass = GaussianFusionHMM
+    _concrete = True

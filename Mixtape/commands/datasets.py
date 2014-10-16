@@ -1,9 +1,6 @@
 from __future__ import print_function, absolute_import
-import os
-import sys
-import glob
 
-from ..cmdline import NumpydocClassCommand, argument
+from ..cmdline import NumpydocClassCommand
 from ..datasets import AlanineDipeptide
 
 
@@ -14,5 +11,6 @@ class DatasetCommand(NumpydocClassCommand):
 
 
 class AlanineDipeptideDatasetCommand(DatasetCommand):
+    _concrete = True
     klass = AlanineDipeptide
 

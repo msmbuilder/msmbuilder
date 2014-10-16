@@ -41,6 +41,7 @@ __all__ = ['DihedralIndices']
 
 
 class DihedralIndices(Command):
+    _concrete = True
     description = "Create index file for dihedral angles."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
     out = argument('-o', '--out', required=True, help='Path to output file')

@@ -29,7 +29,7 @@ import numpy as np
 import mdtraj as md
 
 from mixtape.cmdline import Command, argument_group
-from mixtape.commands.mixins import GaussianFeaturizationMixin
+from mixtape.oldcommands.mixins import GaussianFeaturizationMixin
 from mixtape.featurizer import SuperposeFeaturizer, AtomPairsFeaturizer, \
     GaussianSolventFeaturizer
 
@@ -41,6 +41,7 @@ __all__ = ['SaveFeaturizer']
 
 
 class SaveFeaturizer(Command, GaussianFeaturizationMixin):
+    _concrete = True
     name = 'featurizer'
     description = '''Create and save a featurizer for later use.'''
 

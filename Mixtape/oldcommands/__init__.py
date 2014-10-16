@@ -25,7 +25,7 @@ __all__ = []
 for _fn in _os.listdir(_os.path.dirname(_os.path.abspath(__file__))):
     if _fn in _exclude or _fn.endswith('.pyc'):
         continue
-    _name = 'mixtape.commands.' + _fn.split('.py')[0]
+    _name = 'mixtape.oldcommands.' + _fn.split('.py')[0]
     _module = __import__(_name, globals(), locals())
     _items = getattr(_module, '__all__', [])
     __all__.extend(_items)

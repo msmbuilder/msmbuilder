@@ -8,7 +8,8 @@ from ..utils import verbosedump
 import numpy as np
 import mdtraj as md
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
-                                DRIDFeaturizer, DihedralFeaturizer)
+                          DRIDFeaturizer, DihedralFeaturizer,
+                          ContactFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -55,11 +56,13 @@ class FeaturizerCommand(NumpydocClassCommand):
 
 
 class DihedralFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
     klass = DihedralFeaturizer
 
 
 class AtomPairsFeaturizerCommand(FeaturizerCommand):
     klass = AtomPairsFeaturizer
+    _concrete = True
 
     def _pair_indices_type(self, fn):
         if fn is None:
@@ -69,6 +72,7 @@ class AtomPairsFeaturizerCommand(FeaturizerCommand):
 
 class SuperposeFeaturizerCommand(FeaturizerCommand):
     klass = SuperposeFeaturizer
+    _concrete = True
 
     def _reference_traj_type(self, fn):
         return md.load(fn)
@@ -81,6 +85,7 @@ class SuperposeFeaturizerCommand(FeaturizerCommand):
 
 class DRIDFeaturizerCommand(FeaturizerCommand):
     klass = DRIDFeaturizer
+    _concrete = True
 
     def _atom_indices_type(self, fn):
         if fn is None:
@@ -89,6 +94,9 @@ class DRIDFeaturizerCommand(FeaturizerCommand):
 
 
 class ContactFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = ContactFeaturizer
+
     def _contacts_type(self, val):
         if val is 'all':
             return val

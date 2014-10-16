@@ -73,10 +73,12 @@ class FitTransformCommand(NumpydocClassCommand):
 
 class tICACommand(FitTransformCommand):
     klass = tICA
+    _concrete = True
 
 
 class KMeansCommand(FitTransformCommand):
     klass = KMeans
+    _concrete = True
 
     def _random_state_type(self, state):
         if state is None:
@@ -86,5 +88,5 @@ class KMeansCommand(FitTransformCommand):
 
 class KCentersCommand(KMeansCommand):
     klass = KCenters
-
+    _concrete = True
 

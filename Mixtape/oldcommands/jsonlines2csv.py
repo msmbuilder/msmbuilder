@@ -37,6 +37,7 @@ __all__ = ['Jsonlines2CSV']
 
 
 class Jsonlines2CSV(Command):
+    _concrete = True
     name = 'jsonlines2csv'
     description = '''Save a small CSV summary of one or more jsonlines files.
 
