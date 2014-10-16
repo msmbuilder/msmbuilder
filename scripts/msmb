@@ -1,17 +1,16 @@
 #!/usr/bin/env python
-'Mixtape commands'
-from mixtape.cmdline import App, NumpydocClassCommand
+from mixtape.cmdline import App
 # the commands register themselves when they're imported
 from mixtape.commands import *
 
 
-class MixtapeApp(App):
+class MSMBuilderApp(App):
     def _subcommands(self):
-        cmds = super(MixtapeApp, self)._subcommands()
+        cmds = super(MSMBuilderApp, self)._subcommands()
 
         # sort the commands in some arbitrary order.
         return sorted(cmds, key=lambda e: ''.join(x.__name__ for x in e.mro()))
 
 
-app = MixtapeApp(name='mixtape', description=__doc__)
+app = MSMBuilderApp(name='MSMBuilder', description=__doc__)
 app.start()
