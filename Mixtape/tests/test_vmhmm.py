@@ -5,7 +5,7 @@ import time
 import numpy as np
 from mixtape.hiddenmarkovmodel import VonMisesHMM
 from mixtape.hiddenmarkovmodel.vmhmm import inverse_mbessel_ratio, circwrap
-from mixtape import _vmhmm
+from mixtape.hiddenmarkovmodel import _vmhmm
 from sklearn.hmm import GaussianHMM
 
 try:
