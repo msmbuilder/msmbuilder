@@ -9,7 +9,8 @@ script:
   - cd numpydoc && python setup.py install && cd -
 
   - python setup.py -q install
-  - nosetests --attr='!plots,!cuda,!broken,!slow' -v
+  - cd ../
+  - nosetests mixtape --attr='!plots,!cuda,!broken,!slow' -v
 
 env:
   matrix:
