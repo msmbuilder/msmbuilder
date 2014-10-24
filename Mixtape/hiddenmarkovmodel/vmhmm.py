@@ -24,14 +24,14 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
-from six import PY3, PY2
+from six import PY2
 import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
 import scipy.special
 from sklearn.utils.extmath import logsumexp
 from scipy.stats.distributions import vonmises
-from mixtape import _vmhmm, _reversibility
+from . import _vmhmm, _reversibility
 
 #-----------------------------------------------------------------------------
 # Globals

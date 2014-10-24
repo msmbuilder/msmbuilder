@@ -33,16 +33,19 @@ import math
 import multiprocessing
 import itertools
 import warnings
-import numpy as np
 
+import numpy as np
 from mixtape.utils import list_of_1d
 from sklearn.base import BaseEstimator
-from mixtape.markovstatemodel.core import (_MappingTransformMixin, _dict_compose,
-                                           _strongly_connected_subgraph,
-                                           _transition_counts,
-                                           _solve_msm_eigensystem)
-from mixtape.markovstatemodel._metzner_mcmc_fast import metzner_mcmc_fast
-from mixtape.markovstatemodel._metzner_mcmc_slow import metzner_mcmc_slow
+
+from .core import (_MappingTransformMixin, _dict_compose,
+                   _strongly_connected_subgraph, _transition_counts,
+                   _solve_msm_eigensystem)
+from ._metzner_mcmc_fast import metzner_mcmc_fast
+from ._metzner_mcmc_slow import metzner_mcmc_slow
+
+
+
 
 #-----------------------------------------------------------------------------
 # Code

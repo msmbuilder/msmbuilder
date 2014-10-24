@@ -24,7 +24,7 @@ import itertools
 
 import mdtraj as md
 import numpy as np
-from mixtape.cmdline import Command, argument, argument_group
+from ..cmdline import Command, argument, argument_group
 
 
 class AtomIndices(Command):

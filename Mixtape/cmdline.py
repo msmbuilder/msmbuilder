@@ -188,6 +188,8 @@ class ClassProperty(property):
         return self.fget.__get__(None, owner)()
 
 class Command(with_metaclass(abc.ABCMeta, object)):
+
+    # Set _concrete to true for all final classes in the heirarchy
     _concrete = False
 
     @classmethod

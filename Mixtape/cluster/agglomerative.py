@@ -28,7 +28,7 @@ from scipy.cluster.hierarchy import fcluster
 from sklearn.externals.joblib import Memory
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
-from mixtape.cluster import MultiSequenceClusterMixin
+from . import MultiSequenceClusterMixin
 
 try:
     from fastcluster import linkage
