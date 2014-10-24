@@ -93,12 +93,60 @@ def _lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
     all_keys = all_pair_indices[:, 0] + n * all_pair_indices[:, 1]
     optimal_keys = subset_pair_indices[:, 0] + n * subset_pair_indices[:, 1]
     subset = np.where(np.in1d(all_keys, optimal_keys))[0]
+
     if n_choose is not None:
         subset[0:min(len(subset), n_choose)] = subset[0:min(len(subset), n_choose)]
 
     return subset
 
+def guess_featurizers(trj0, n_choose, rmsd_trajectory=None):
+    """Get a SubsetUnionFeaturizer that includes "best-practices" features.
     
+    Parameters
+    ----------
+    trj0 : md.Trajectory
+        Reference Trajectory, used for looking up dihedrals.
+    n_choose : int
+        Number of features to activate.  
+    rmsd_trajectory : MD.Trajectory, optional, default=None
+        If given, also use the RMSD to the frames in this trajectory as
+        features.  For example, this trajectory could be a single crystal
+        structure or a trajectory of cluster centers.
+    
+    Returns
+    -------
+    featurizer : SubsetUnionFeaturizer
+        Returns a featurizer that includes best-practices features that
+        can be enabled or disabled via subsets.
+    
+    """
+    trj0 = trj0[0]  # Slice the first frame of the reference trajectory to avoid huge memory consumption.
+    
+    atom_indices, pair_indices = get_atompair_indices(trj0, keep_atoms=None, exclude_atoms=np.array([]))
+    
+    atom_featurizer1m = SubsetAtomPairs(pair_indices, trj0, exponent=-1.0)
+    atom_featurizer2m = SubsetAtomPairs(pair_indices, trj0, exponent=-2.0)
+    atom_featurizer1p = SubsetAtomPairs(pair_indices, trj0, exponent= 1.0)
+    
+    prod_featurizer = SubsetProductFeaturizer(SubsetAtomPairs(pair_indices, trj0, exponent=-1.0), SubsetAtomPairs(pair_indices, trj0, exponent=-1.0))
+    
+    cosphi = SubsetCosPhiFeaturizer(trj0)
+    sinphi = SubsetSinPhiFeaturizer(trj0)
+    cospsi = SubsetCosPsiFeaturizer(trj0)
+    sinpsi = SubsetSinPsiFeaturizer(trj0)
+
+    if rmsd_trajectory is None:
+        featurizer = SubsetFeatureUnion([("pairs1m", atom_featurizer1m), ("pairs2m", atom_featurizer2m), ("pairs1p", atom_featurizer1p), ("prod1m", prod_featurizer), ("cosphi", cosphi), ("sinphi", sinphi), ("cospsi", cospsi), ("sinpsi", sinpsi)])
+    else:
+        rmsd_featurizer = SubsetRMSDFeaturizer(rmsd_trajectory)
+        featurizer = SubsetFeatureUnion([("pairs1m", atom_featurizer1m), ("pairs2m", atom_featurizer2m), ("pairs1p", atom_featurizer1p), ("prod1m", prod_featurizer), ("cosphi", cosphi), ("sinphi", sinphi), ("cospsi", cospsi), ("sinpsi", sinpsi), ("rmsd", rmsd_featurizer)])
+    
+    subsets = [[] for i in range(featurizer.n_featurizers)]
+    subsets[0] = np.random.randint(0, atom_featurizer1m.n_max - 1, n_choose)
+    featurizer.subsets = subsets    
+
+    return featurizer
+
 
 class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
     """Base class for featurizers that have a subset of active features.
@@ -248,6 +296,101 @@ class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
 
 
+class SubsetProductFeaturizer(BaseSubsetFeaturizer):
+    """Subset Featurizer that gives elementwise proudcts of two featurizers.
+    
+    Parameters
+    ----------
+    featurizer0 : SubsetFeaturizer
+        First featurizer
+    featurizer1 : SubsetFeaturizer
+        Second featurizer
+    """
+    def __init__(self, featurizer0, featurizer1):
+        self.featurizer0 = featurizer0
+        self.featurizer1 = featurizer1
+
+    def partial_transform(self, traj):
+        return np.array(self.featurizer0.partial_transform(traj) * self.featurizer1.partial_transform(traj))
+
+    @property
+    def n_max(self):
+        return self.featurizer0.n_max * self.featurizer1.n_max
+
+    @property
+    def cumprod(self):
+        if self._cumprod:
+            return self._cumprod
+        else:
+            self._cumprod = np.cumprod([f.n_max for f in self.featurizers]) / self.featurizers[0].n_max
+
+    @property
+    def subset(self):
+        return self.featurizer0.subset * self.featurizer0.n_max + self.featurizer1.subset
+
+    @subset.setter
+    def subset(self, value):
+        value = np.array(value)
+        self.featurizer0.subset = value / self.featurizer0.n_max
+        self.featurizer1.subset = value % self.featurizer1.n_max 
+
+
+
+class SubsetRMSDFeaturizer(BaseSubsetFeaturizer):
+    """Featurizer based on RMSD to a series of reference frames.
+
+    Parameters
+    ----------
+    trj0 : mdtraj.Trajectory
+        Reference trajectory.  trj0.n_frames gives the number of features
+        in this Featurizer.
+    atom_indices : np.ndarray, default=None
+        Which atom indices to use during RMSD calculation.  If None, MDTraj
+        should default to all atoms.
+
+    """
+
+    def __init__(self, trj0, atom_indices=None, subset=None):
+        self.trj0 = trj0
+        self.atom_indices = atom_indices
+        if subset is not None:
+            self.subset = subset
+        else:
+            self.subset = np.zeros(0, 'int')
+
+
+    @property
+    def n_max(self):
+        return self.trj0.n_frames
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space by calculating
+        the RMSD to each frame in a reference trajectory.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        X = np.zeros((traj.n_frames, self.n_features))
+
+        for frame in range(self.n_features):
+            X[:, frame] = md.rmsd(traj, self.trj0[self.subset], atom_indices=self.atom_indices, frame=frame)
+        return X
+
+
 class SubsetFeatureUnion(mixtape.featurizer.TrajFeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion with feature subset selection.
     
@@ -287,9 +430,6 @@ class SubsetFeatureUnion(mixtape.featurizer.TrajFeatureUnion):
     @property
     def n_features(self):
         return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
-
-
-
 
 
 class DummyCV(object):
