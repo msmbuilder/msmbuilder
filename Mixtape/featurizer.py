@@ -261,10 +261,10 @@ class DihedralFeaturizer(Featurizer):
         Transform to sine and cosine (double the number of featurizers)
     """
 
-    def __init__(self, types, sincos=True):
+    def __init__(self, types=['phi', 'psi'], sincos=True):
         if isinstance(types, str):
             types = [types]
-        self.types = types
+        self.types = list(types)  # force a copy
         self.sincos = sincos
 
         known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
