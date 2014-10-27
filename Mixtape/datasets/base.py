@@ -8,20 +8,13 @@ Base IO code for all datasets
 # License: BSD 3 clause
 # Adapted for mixtape from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/datasets/base.py
 
-import os
-import csv
 import shutil
-import warnings
 from os import environ
-from os.path import dirname
 from os.path import join
 from os.path import exists
 from os.path import expanduser
-from os.path import isdir
-from os import listdir
 from os import makedirs
 
-import numpy as np
 
 class Bunch(dict):
     """Container object for datasets: dictionary-like object that

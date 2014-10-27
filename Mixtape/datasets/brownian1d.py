@@ -1,5 +1,6 @@
 """Very simple datasets of brownian dynamics in one dimension.
 """
+from __future__ import absolute_import
 DOUBLEWELL_DESCRIPTION = r"""Brownian dynamics on a 1D double well potential
 
     This dataset consists of 10 trajectories simulated with Brownian dynamics on
@@ -35,7 +36,6 @@ QUADWELL_DESCRIPTION = r"""Brownian dynamics on a 1D four well potential
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
-
 import time
 import numbers
 from os import makedirs
@@ -43,10 +43,10 @@ from os.path import join
 from os.path import exists
 import numpy as np
 from sklearn.utils import check_random_state
-from mixtape.utils import verboseload, verbosedump
+from ..utils import verboseload, verbosedump
 
-from mixtape.datasets.base import Bunch
-from mixtape.datasets.base import get_data_home
+from .base import Bunch
+from .base import get_data_home
 
 #-----------------------------------------------------------------------------
 # Globals

@@ -1,6 +1,3 @@
-import msmbuilder.lumping
-import msmbuilder as msmb
-from sklearn.base import BaseEstimator, TransformerMixin, clone
 from mixtape.markovstatemodel import MarkovStateModel
 import numpy as np
 
@@ -28,8 +25,9 @@ class PCCA(MarkovStateModel):
 
     """
 
-    def __init__(self, n_macrostates, **kwargs):
+    def __init__(self, n_macrostates, pcca_tolerance=1e-5, **kwargs):
         self.n_macrostates = n_macrostates
+        self.pcca_tolerance = pcca_tolerance
         super(PCCA, self).__init__(**kwargs)
 
     def fit(self, sequences, y=None):
@@ -46,18 +44,45 @@ class PCCA(MarkovStateModel):
         -------
         self
         """
-        
         super(PCCA, self).fit(sequences, y=y)
         self._do_lumping()
         return self
 
     def _do_lumping(self):
-        """Does the actual lumping part, change this function in subclasses."""
-        self._pcca =  msmb.lumping.PCCA(self.transmat_, self.n_macrostates)
+        """Do the PCCA lumping.
+
+        Notes
+        -------
+        1.  Iterate over the eigenvectors, starting with the slowest.
+        2.  Calculate the spread of that eigenvector within each existing
+            macrostate.
+        3.  Pick the macrostate with the largest eigenvector spread.
+        4.  Split the macrostate based on the sign of the eigenvector.
+        """
+
+        # Extract non-perron eigenvectors
+        right_eigenvectors = self.right_eigenvectors_[:, 1:]
+
+        microstate_mapping = np.zeros(self.n_states_, dtype=int)
+        def spread(x):
+            return x.max() - x.min()
+
+        for i in range(self.n_macrostates - 1):
+            v = right_eigenvectors[:, i]
+            all_spreads = np.array([spread(v[microstate_mapping == k])
+                                    for k in range(i + 1)])
+            state_to_split = np.argmax(all_spreads)
+            inds = ((microstate_mapping == state_to_split) &
+                   (v >= self.pcca_tolerance))
+            microstate_mapping[inds] = i + 1
+
+        self.microstate_mapping_ = microstate_mapping
 
     @property
     def trimmed_microstates_to_macrostates(self):
-        return dict((key, self._pcca.microstate_mapping[val]) for (key, val) in self.mapping_.items())
+        """TODO: Kyle put a docstring here"""
+        return dict((key, self.microstate_mapping_[val])
+                    for (key, val) in self.mapping_.items())
 
     def transform(self, sequences):
         """Map microstates onto macrostates, performing trimming if necessary.
@@ -93,7 +118,6 @@ class PCCA(MarkovStateModel):
         lumper : cls
             The fit PCCA(+) object.
         """
-        
         params = msm.get_params()
         lumper = cls(n_macrostates, **params)
         
@@ -107,28 +131,4 @@ class PCCA(MarkovStateModel):
         return lumper
         
 
-class PCCAPlus(PCCA):
-    """Perron Cluster Cluster Analysis Plus (PCCA+) for coarse-graining (lumping)
-        microstates into macrostates.  This reference implementation uses MSMBuilder
-        for the PCCA+ code but uses the Mixtape MarkovStateModel class for
-        estimating the microstate transition matrix.
-    
-    Parameters
-    ----------
-    n_macrostates : int
-        The desired number of macrostates in the lumped model.
-    kwargs : optional
-        Additional keyword arguments to be passed to MarkovStateModel.  See
-        mixtape.markovstatemodel.MarkovStateModel for possible options.
 
-    Notes
-    -----
-    PCCAPlus is a subclass of MarkovStateModel.  However, the MSM properties
-    and attributes on PCCAPlus refer to the MICROSTATE properties--e.g. 
-    pcca.transmat_ is the microstate transition matrix.  To get the
-    macrostate transition matrix, you must fit a new MarkovStateModel
-    object on the output (assignments) of PCCAPlus().  
-
-    """
-    def _do_lumping(self):
-        self._pcca =  msmb.lumping.PCCAPlus(self.transmat_, self.n_macrostates)

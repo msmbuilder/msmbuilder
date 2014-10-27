@@ -27,10 +27,10 @@ from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
-from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
-from mixtape.cluster._kcentersc import _kcenters_euclidean
-from mixtape.cluster import MultiSequenceClusterMixin
-from mixtape.cluster.regularspatial import _arrayify
+from ._commonc import _predict_labels, _predict_labels_euclidean
+from ._kcentersc import _kcenters_euclidean
+from . import MultiSequenceClusterMixin
+from .regularspatial import _arrayify
 
 __all__ = ['KCenters']
 
