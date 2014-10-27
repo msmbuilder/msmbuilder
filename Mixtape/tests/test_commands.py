@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 import os
-from glob import glob
 import itertools
 import tempfile
 import shutil

@@ -33,8 +33,7 @@ def test_3():
 
 
 def test_6():
-    """"Test that _c_fitkappa is consistent with the two-step python
-    implementation"""
+    #Test that _c_fitkappa is consistent with the two-step python implementation
     np.random.seed(42)
     vm = VonMisesHMM(n_states=13)
     kappas = np.random.randn(13, 7)
