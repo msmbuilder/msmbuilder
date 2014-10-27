@@ -12,7 +12,7 @@ export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
 conda config --add channels http://conda.binstar.org/omnia
-conda create --yes -n $python python=$python `cat requirements-$python.txt | xargs`
+conda create --yes -n $python python=$python `cat devtools/ci/requirements-$python.txt | xargs`
 source activate $python
 
 pip install munkres
