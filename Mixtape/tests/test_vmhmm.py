@@ -11,7 +11,8 @@ from sklearn.hmm import GaussianHMM
 try:
     from munkres import Munkres
 except ImportError:
-    print('https://pypi.python.org/pypi/munkres/ for hungarian algorithim', file=sys.stderr)
+    print('https://pypi.python.org/pypi/munkres/ for hungarian algorithim',
+          file=sys.stderr)
     raise
     
 
@@ -93,7 +94,8 @@ def test_log_likelihood():
     
     t0 = time.time()
     from scipy.stats.distributions import vonmises
-    reference = np.array([np.sum(vonmises.logpdf(obs, vm.kappas_[i], vm.means_[i]), axis=1) for i in range(n_states)]).T
+    reference = np.array([np.sum(vonmises.logpdf(obs, vm.kappas_[i], vm.means_[i]), axis=1)
+                          for i in range(n_states)]).T
     t1 = time.time()
     value = _vmhmm._compute_log_likelihood(obs, vm.means_, vm.kappas_)
     t2 = time.time()
