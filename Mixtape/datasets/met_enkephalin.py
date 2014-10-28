@@ -35,7 +35,7 @@ The dataset is available on figshare at
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
 from __future__ import print_function, absolute_import, division
@@ -46,6 +46,7 @@ from os import makedirs
 from os.path import exists
 from os.path import join
 from zipfile import ZipFile
+
 try:
     # Python 2
     from urllib2 import urlopen
@@ -54,13 +55,14 @@ except ImportError:
     from urllib.request import urlopen
 
 import mdtraj as md
-from mixtape.datasets.base import Bunch
-from mixtape.datasets.base import get_data_home
+from .base import Bunch, Dataset
+from .base import get_data_home
 
 DATA_URL = "http://downloads.figshare.com/article/public/1026324"
 TARGET_DIRECTORY = "met_enkephalin"
 
-def fetch_met_enkephalin(data_home=None, download_if_missing=True):
+
+class MetEnkephalin(Dataset):
     """Loader for the met-enkephalin dataset
 
     Parameters
@@ -73,23 +75,42 @@ def fetch_met_enkephalin(data_home=None, download_if_missing=True):
         If False, raise a IOError if the data is not locally available
         instead of trying to download the data from the source site.
     """
-    data_home = get_data_home(data_home=data_home)
-    if not exists(data_home):
-        makedirs(data_home)
 
-    data_dir = join(data_home, TARGET_DIRECTORY)
-    if not exists(data_dir):
-        print('downloading met-enk from %s to %s' % (DATA_URL, data_home))
-        fhandle = urlopen(DATA_URL)
-        buf = BytesIO(fhandle.read())
-        zip_file = ZipFile(buf)
-        makedirs(data_dir)
-        for name in zip_file.namelist():
-            zip_file.extract(name, path=data_dir)
+    def __init__(self, data_home=None):
+        self.data_home = get_data_home(data_home)
+        self.cache_dir = join(self.data_home, TARGET_DIRECTORY)
+        self.cached = False
 
-    top = md.load(join(data_dir, '1plx.pdb'))
-    trajectories = []
-    for fn in glob(join(data_dir, 'trajectory*.dcd')):
-        trajectories.append(md.load(fn, top=top))
+    def cache(self):
+        if not exists(self.data_home):
+            makedirs(self.data_home)
 
-    return Bunch(trajectories=trajectories, DESCR=__doc__)
+        if not exists(self.cache_dir):
+            print('downloading met-enk from %s to %s' %
+                  (DATA_URL, self.cache_dir))
+            fhandle = urlopen(DATA_URL)
+            buf = BytesIO(fhandle.read())
+            zip_file = ZipFile(buf)
+            makedirs(self.cache_dir)
+            for name in zip_file.namelist():
+                zip_file.extract(name, path=self.cache_dir)
+
+        self.cached = True
+
+    def get(self):
+        if not self.cached:
+            self.cache()
+
+        top = md.load(join(self.cache_dir, '1plx.pdb'))
+        trajectories = []
+        for fn in glob(join(self.cache_dir, 'trajectory*.dcd')):
+            trajectories.append(md.load(fn, top=top))
+
+        return Bunch(trajectories=trajectories, DESCR=self.description())
+
+
+def fetch_met_enkephalin(data_home=None):
+    return MetEnkephalin(data_home).get()
+
+
+fetch_met_enkephalin.__doc__ = MetEnkephalin.__doc__
