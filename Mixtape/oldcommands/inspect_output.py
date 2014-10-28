@@ -39,6 +39,7 @@ __all__ = ['Inspect']
 
 
 class Inspect(Command):
+    _concrete = True
     description = "Inspect the content of a '.jsonlines' output file"
     input = argument('-i', '--filename', metavar='JSONLINES_FILE', required=True, help='''
         Path to .jsonlines file''')

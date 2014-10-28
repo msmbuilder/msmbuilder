@@ -189,11 +189,14 @@ class ClassProperty(property):
 
 class Command(with_metaclass(abc.ABCMeta, object)):
 
+    # Set _concrete to true for all final classes in the heirarchy
+    _concrete = False
+
     @classmethod
     def _get_name(cls):
         if hasattr(cls, 'name'):
             return cls.name
-        return cls.__name__.lower()
+        return cls.__name__
 
     @abc.abstractproperty
     def description(self):
@@ -406,9 +409,7 @@ class App(object):
     @classmethod
     def _subcommands(cls):
         for subclass in all_subclasses(Command):
-            # we don't want the raw "Command" or "NumydocClassCommand" to appear
-            # in the list of subcommands.
-            if subclass not in [cls, NumpydocClassCommand]:
+            if subclass._concrete:
                 yield subclass
 
 

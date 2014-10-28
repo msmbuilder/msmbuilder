@@ -31,9 +31,9 @@ import time
 import numpy as np
 import mdtraj as md
 
-from mixtape.vmhmm import VonMisesHMM
+from mixtape.hiddenmarkovmodel import VonMisesHMM
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin
+from mixtape.oldcommands.mixins import MDTrajInputMixin
 
 __all__ = ['FitVMHMM']
 
@@ -43,6 +43,7 @@ __all__ = ['FitVMHMM']
 
 
 class FitVMHMM(Command, MDTrajInputMixin):
+    _concrete = True
     name = 'fit-vmhmm'
     description = '''Fit von-Mises hidden Markov models with EM.
 

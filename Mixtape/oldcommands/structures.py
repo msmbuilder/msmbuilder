@@ -36,6 +36,7 @@ __all__ = ['Structures']
 
 
 class Structures(Command):
+    _concrete = True
     name = 'structures'
     description = 'Extract protein structures (.pdb/.xtc/etc) from a CSV file.'
     filename = argument('filename', metavar='CSV_PATH', help='Path to csv file.')

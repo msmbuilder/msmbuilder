@@ -32,10 +32,10 @@ import numpy as np
 import mdtraj as md
 
 # from sklearn.cross_validation import KFold
-from mixtape.ghmm import GaussianFusionHMM
+from mixtape.hiddenmarkovmodel import GaussianFusionHMM
 # from mixtape.lagtime import contraction
 from mixtape.cmdline import Command, argument_group, MultipleIntAction
-from mixtape.commands.mixins import MDTrajInputMixin
+from mixtape.oldcommands.mixins import MDTrajInputMixin
 import mixtape.featurizer
 
 __all__ = ['FitGHMM']
@@ -46,6 +46,7 @@ __all__ = ['FitGHMM']
 
 
 class FitGHMM(Command, MDTrajInputMixin):
+    _concrete = True
     name = 'fit-ghmm'
     description = '''Fit L1-Regularized Reversible Gaussian hidden Markov models with EM.'''
 

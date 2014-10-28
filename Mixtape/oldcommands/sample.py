@@ -31,11 +31,12 @@ import numpy as np
 import mdtraj as md
 import pandas as pd
 
-from mixtape.utils import iterobjects
-from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
-from mixtape.cmdline import FlagAction, Command, argument, argument_group
-from mixtape.commands.mixins import MDTrajInputMixin
-import mixtape.featurizer
+from ..utils import iterobjects
+from ..hiddenmarkovmodel.discrete_approx import discrete_approx_mvn, \
+    NotSatisfiableError
+from ..cmdline import FlagAction, Command, argument, argument_group
+from .mixins import MDTrajInputMixin
+from ..featurizer import load as feat_load, featurize_all
 
 __all__ = ['SampleGHMM']
 
@@ -45,6 +46,7 @@ __all__ = ['SampleGHMM']
 
 
 class SampleGHMM(Command, MDTrajInputMixin):
+    _concrete = True
     name = 'sample-ghmm'
     description = '''Draw iid samples from each state in a Gaussian HMM.
 
@@ -111,7 +113,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
         self.out = args.out
         self.topology = md.load(args.top)
         self.filenames = glob.glob(os.path.join(os.path.expanduser(args.dir), '*.%s' % args.ext))
-        self.featurizer = mixtape.featurizer.load(args.featurizer)
+        self.featurizer = feat_load(args.featurizer)
         self.match_vars = args.match_vars
         self.stride = args.stride
 
@@ -120,7 +122,7 @@ class SampleGHMM(Command, MDTrajInputMixin):
 
     def start(self):
         print('loading all data...')
-        xx, ii, ff = mixtape.featurizer.featurize_all(
+        xx, ii, ff = featurize_all(
             self.filenames, self.featurizer, self.topology, self.stride)
         print('done loading')
 
