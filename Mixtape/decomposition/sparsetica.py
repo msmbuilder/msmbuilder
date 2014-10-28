@@ -24,7 +24,7 @@ from __future__ import print_function, division, absolute_import
 from six import PY2
 import numpy as np
 import scipy.linalg
-from mixtape.tica import tICA
+from .tica import tICA
 # import cvxpy as cp
 # (^ this import is now done lazily, inside the function)
 
