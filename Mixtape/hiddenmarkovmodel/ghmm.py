@@ -28,22 +28,17 @@ from __future__ import print_function, division, absolute_import
 
 import time
 import warnings
+
 import numpy as np
-import random
-from mixtape.discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from sklearn import cluster
 import sklearn.mixture
-_AVAILABLE_PLATFORMS = ['cpu', 'sklearn']
-from mixtape import _ghmm, _reversibility
 from mdtraj.utils import ensure_type
 from sklearn.utils import check_random_state
 
-try:
-    from mixtape import _cuda_ghmm_single
-    from mixtape import _cuda_ghmm_mixed
-    _AVAILABLE_PLATFORMS.append('cuda')
-except ImportError:
-    pass
+from .discrete_approx import discrete_approx_mvn, NotSatisfiableError
+from . import _ghmm
+from ..markovstatemodel._markovstatemodel import _transmat_mle_prinz
+
 
 EPS = np.finfo(np.float32).eps
 
@@ -133,7 +128,7 @@ class GaussianFusionHMM(object):
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
                  vars_weight=1, random_state=None, params='tmv',
-                 init_params='tmv', platform='cpu', precision='mixed',
+                 init_params='tmv', precision='mixed',
                  timing=False, n_hotstart='all', init_algo="kmeans"):
         self.n_states = n_states
         self.n_init = n_init
@@ -149,7 +144,6 @@ class GaussianFusionHMM(object):
         self.random_state = random_state
         self.params = params
         self.init_params = init_params
-        self.platform = platform
         self.timing = timing
         self.n_hotstart = n_hotstart
         self.init_algo = init_algo
@@ -164,24 +158,8 @@ class GaussianFusionHMM(object):
         if n_em_iter < 1:
             raise ValueError('HMM estimation requires at least one em iter')
 
-        if self.platform == 'cpu':
-            self._impl = _ghmm.GaussianHMMCPUImpl(
-                self.n_states, self.n_features, precision)
-        elif self.platform == 'sklearn':
-            self._impl = _SklearnGaussianHMMCPUImpl(self.n_states, self.n_features)
-        elif self.platform == 'cuda':
-            if precision == 'single':
-                self._impl = _cuda_ghmm_single.GaussianHMMCUDAImpl(
-                    self.n_states, self.n_features)
-            elif precision == 'mixed':
-                self._impl = _cuda_ghmm_mixed.GaussianHMMCUDAImpl(
-                    self.n_states, self.n_features)
-            else:
-                raise ValueError('Only single and mixed precision are supported on CUDA')
-        else:
-            raise ValueError('Invalid platform "%s". Available platforms are '
-                             '%s.' % (platform, ', '.join(_AVAILABLE_PLATFORMS)))
-        
+        self._impl = _ghmm.GaussianHMMCPUImpl(self.n_states, self.n_features, precision)
+
         if self.transmat_prior is None:
             self.transmat_prior = 1.0
 
@@ -255,7 +233,7 @@ class GaussianFusionHMM(object):
                 (sum(len(s) for s in sequences) * total_em_iters)
             print('GaussianFusionHMM EM Fitting')
             print('----------------------------')
-            print('Platform: %s    n_features: %d' % (self.platform, self.n_features))
+            print('n_features: %d' % (self.n_features))
             print('TOTAL EM Iters: %s' % total_em_iters)
             print('Speed:    %.3f +/- %.3f us/(sample * em-iter)' % (
                 np.mean(s_per_sample_per_em * 10 ** 6),
@@ -264,9 +242,7 @@ class GaussianFusionHMM(object):
         return self
 
     def _init(self, sequences, init_params):
-        '''
-        Find initial means(hot start)
-        '''
+        """Find initial means(hot start)"""
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s', warn_on_cast=False)
                      for s in sequences]
         self._impl._sequences = sequences
@@ -275,7 +251,7 @@ class GaussianFusionHMM(object):
             small_dataset = np.vstack(sequences)
         else:
             small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
-        
+
         if self.init_algo == "GMM" and ("m" in init_params or "v" in init_params):
             mixture = sklearn.mixture.GMM(self.n_states, n_init=1, random_state=self.random_state)
             mixture.fit(small_dataset)
@@ -304,8 +280,7 @@ class GaussianFusionHMM(object):
             if self.reversible_type == 'mle':
                 counts = np.maximum(
                     stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
-                self.transmat_, self.populations_ = _reversibility.reversible_transmat(
-                    counts)
+                self.transmat_, self.populations_ = _transmat_mle_prinz(counts)
             elif self.reversible_type == 'transpose':
                 revcounts = np.maximum(
                     self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
@@ -360,8 +335,9 @@ class GaussianFusionHMM(object):
                             # I'm not really sure what exactly causes the ridge
                             # approximation to be non-solvable, but it probably
                             # means we're too close to the merging. Maybe 1e-10
-                            # is cutting it too close. ANyways, just break now and
-                            # use the last valid value of the means.
+                            # is cutting it too close. Anyways,
+                            # just break now and use the last valid value
+                            # of the means.
                             break_lqa = True
 
                 for i in range(self.n_features):
@@ -513,10 +489,6 @@ class GaussianFusionHMM(object):
         hidden_sequences : list of np.ndarrays[dtype=int, shape=n_samples_i]
             Index of the most likely states for each observation.
         """
-        if not hasattr(self._impl, 'do_viterbi'):
-            raise NotImplementedError(
-                'The %s platform does not support this algorithm (yet)' %
-                self.platform)
 
         self._impl._sequences = sequences
         logprob, state_sequences = self._impl.do_viterbi()
@@ -550,9 +522,11 @@ class GaussianFusionHMM(object):
         GaussianFusionHMM.draw_samples : Draw samples from GHMM
         
 
-        """    
-        
-        logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
+        """
+
+        logprob = [sklearn.mixture.log_multivariate_normal_density(
+            x, self.means_, self.vars_, covariance_type='diag'
+        ) for x in sequences]
 
         argm = np.array([lp.argmax(0) for lp in logprob])
         probm = np.array([lp.max(0) for lp in logprob])
@@ -560,11 +534,15 @@ class GaussianFusionHMM(object):
         trj_ind = probm.argmax(0)
         frame_ind = argm[trj_ind, np.arange(self.n_states)]
 
-        mean_approx = np.array([sequences[trj_ind_i][frame_ind_i] for trj_ind_i, frame_ind_i in zip(trj_ind, frame_ind)])
-        
+        mean_approx = np.array([sequences[trj_ind_i][frame_ind_i]
+                                for trj_ind_i, frame_ind_i
+                                in zip(trj_ind, frame_ind)])
+
         centroid_pairs_by_state = np.array(list(zip(trj_ind, frame_ind)))
-        
-        return centroid_pairs_by_state[:, np.newaxis, :], mean_approx[:, np.newaxis, :]  # np.newaxis changes arrays from 2D to 3D for consistency with `sample_states()`
+
+        # Change from 2D to 3D for consistency with `sample_states()`
+        return (centroid_pairs_by_state[:, np.newaxis, :],
+                mean_approx[:, np.newaxis, :])
 
 
     def draw_samples(self, sequences, n_samples, scheme="even", match_vars=False):
@@ -594,11 +572,11 @@ class GaussianFusionHMM(object):
             
         Notes
         -----
-        With scheme='even', this function assigns frames to states crisply then samples from
-        the uniform distribution on the frames belonging to each state.
-        With scheme='maxent', this scheme uses a maximum entropy method to
-        determine a discrete distribution on samples whose mean (and possibly variance)
-        matches the GHMM means.
+        With scheme='even', this function assigns frames to states crisply
+        then samples from the uniform distribution on the frames belonging
+        to each state. With scheme='maxent', this scheme uses a maximum
+        entropy method to determine a discrete distribution on samples
+        whose mean (and possibly variance) matches the GHMM means.
 
         See Also
         --------
@@ -613,31 +591,44 @@ class GaussianFusionHMM(object):
         from states--e.g. use either the base class function or a 
         different one.
         """
-        
+
         random = check_random_state(self.random_state)
-        
+
         if scheme == 'even':
-            logprob = [sklearn.mixture.log_multivariate_normal_density(x, self.means_, self.vars_, covariance_type='diag') for x in sequences]
+            logprob = [
+                sklearn.mixture.log_multivariate_normal_density(
+                    x, self.means_, self.vars_, covariance_type='diag'
+                ) for x in sequences]
             ass = [lp.argmax(1) for lp in logprob]
-            
+
             selected_pairs_by_state = []
             for state in range(self.n_states):
                 all_frames = [np.where(a == state)[0] for a in ass]
-                pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
-                selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
-        
+                pairs = [(trj, frame) for (trj, frames)
+                         in enumerate(all_frames) for frame in frames]
+                selected_pairs_by_state.append(
+                    [pairs[random.choice(len(pairs))]
+                     for i in range(n_samples)]
+                )
+
         elif scheme == "maxent":
             X_concat = np.concatenate(sequences)
-            all_pairs = np.array([(trj, frame) for trj, X in enumerate(sequences) for frame in range(X.shape[0])])
+            all_pairs = np.array([(trj, frame) for trj, X
+                                  in enumerate(sequences)
+                                  for frame in range(X.shape[0])])
             selected_pairs_by_state = []
             for k in range(self.n_states):
                 print('computing weights for k=%d...' % k)
                 try:
-                    weights = discrete_approx_mvn(X_concat, self.means_[k], self.vars_[k], match_vars)
+                    weights = discrete_approx_mvn(X_concat, self.means_[k],
+                                                  self.vars_[k], match_vars)
                 except NotSatisfiableError:
-                    self.error('Satisfiability failure. Could not match the means & '
-                               'variances w/ discrete distribution. Try removing the '
-                               'constraint on the variances with --no-match-vars?')
+                    err = ''.join([
+                        'Satisfiability failure. Could not match the means & ',
+                        'variances w/ discrete distribution. Try removing the ',
+                        'constraint on the variances with --no-match-vars?',
+                    ])
+                    self.error(err)
 
                 weights /= weights.sum()
                 frames = random.choice(len(all_pairs), n_samples, p=weights)
@@ -645,51 +636,6 @@ class GaussianFusionHMM(object):
 
         else:
             raise(ValueError("scheme must be one of ['even', 'maxent'])"))
-        
+
         return np.array(selected_pairs_by_state)
 
-        
-class _SklearnGaussianHMMCPUImpl(object):
-
-    def __init__(self, n_states, n_features):
-        from sklearn.hmm import GaussianHMM
-        self.impl = GaussianHMM(n_states, params='stmc')
-
-        self._sequences = None
-        self.means_ = None
-        self.vars_ = None
-        self.transmat_ = None
-        self.startprob_ = None
-
-    def do_estep(self):
-        from sklearn.utils.extmath import logsumexp
-
-        self.impl.means_ = self.means_.astype(np.double)
-        self.impl.covars_ = self.vars_.astype(np.double)
-        self.impl.transmat_ = self.transmat_.astype(np.double)
-        self.impl.startprob_ = self.startprob_.astype(np.double)
-        stats = self.impl._initialize_sufficient_statistics()
-        curr_logprob = 0
-        for seq in self._sequences:
-            seq = seq.astype(np.double)
-            framelogprob = self.impl._compute_log_likelihood(seq)
-            lpr, fwdlattice = self.impl._do_forward_pass(framelogprob)
-            bwdlattice = self.impl._do_backward_pass(framelogprob)
-            gamma = fwdlattice + bwdlattice
-            posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
-            curr_logprob += lpr
-            self.impl._accumulate_sufficient_statistics(
-                stats, seq, framelogprob, posteriors, fwdlattice,
-                bwdlattice, self.impl.params)
-
-        return curr_logprob, stats
-
-    def do_viterbi(self):
-        logprob = 0
-        state_sequences = []
-        for obs in self._sequences:
-            lpr, ss = self.impl._decode_viterbi(obs)
-            logprob += lpr
-            state_sequences.append(ss)
-
-        return logprob, state_sequences

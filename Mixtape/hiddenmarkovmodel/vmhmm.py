@@ -24,14 +24,15 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
-from six import PY3, PY2
+from six import PY2
 import numpy as np
 from sklearn import cluster
 from sklearn.hmm import _BaseHMM
 import scipy.special
 from sklearn.utils.extmath import logsumexp
 from scipy.stats.distributions import vonmises
-from mixtape import _vmhmm, _reversibility
+from . import _vmhmm
+from ..markovstatemodel._markovstatemodel import _transmat_mle_prinz
 
 #-----------------------------------------------------------------------------
 # Globals
@@ -260,7 +261,7 @@ class VonMisesHMM(_BaseHMM):
             if self.reversible_type == 'mle':
                 counts = np.maximum(
                     stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
-                self.transmat_, self.populations_ = _reversibility.reversible_transmat(counts)
+                self.transmat_, self.populations_ = _transmat_mle_prinz(counts)
             elif self.reversible_type == 'transpose':
                 revcounts = np.maximum(
                     self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
