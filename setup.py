@@ -1,19 +1,17 @@
-"""mixtape: hidden Markov models and beyond
+"""MSMBuilder: robust time series analysis for molecular dynamics and more.
 """
 
 from __future__ import print_function
+
 DOCLINES = __doc__.split("\n")
 
 import os
 import sys
 import glob
-import copy
 import shutil
-import textwrap
 import tempfile
 import subprocess
 from distutils.ccompiler import new_compiler
-from distutils.spawn import find_executable
 from setuptools import setup, Extension, find_packages
 
 import numpy as np
@@ -23,17 +21,18 @@ from numpy.distutils import system_info
 try:
     import Cython
     from Cython.Distutils import build_ext
+
     if Cython.__version__ < '0.18':
         raise ImportError()
 except ImportError:
     print('Cython version 0.18 or later is required. Try "easy_install cython"')
     sys.exit(1)
 
-##########################
-VERSION = '0.2'
+# #########################
+VERSION = '3.0.0-beta'
 ISRELEASED = False
 __version__ = VERSION
-##########################
+# #########################
 
 CLASSIFIERS = """\
 Intended Audience :: Science/Research
@@ -41,7 +40,7 @@ Intended Audience :: Developers
 License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)
 Programming Language :: C++
 Programming Language :: Python
-Development Status :: 3 - Alpha
+Development Status :: 4 - Beta
 Topic :: Software Development
 Topic :: Scientific/Engineering
 Operating System :: POSIX
@@ -52,9 +51,10 @@ Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
 Programming Language :: Python :: 3.3
+Programming Language :: Python :: 3.4
 """
 
-################################################################################
+# ###############################################################################
 # Writing version control information to the module
 ################################################################################
 
@@ -118,107 +118,8 @@ if not release:
         a.close()
 
 
-###############################################################################
-# CUDA stuff
-###############################################################################
-
-
-def customize_compiler_for_nvcc(self):
-    """inject deep into distutils to customize how the dispatch
-    to gcc/nvcc works.
-
-    If you subclass UnixCCompiler, it's not trivial to get your subclass
-    injected in, and still have the right customizations (i.e.
-    distutils.sysconfig.customize_compiler) run on it. So instead of going
-    the OO route, I have this. Note, it's kindof like a wierd functional
-    subclassing going on."""
-
-    # tell the compiler it can processes .cu
-    self.src_extensions.append('.cu')
-
-    # save references to the default compiler_so and _comple methods
-    default_compiler_so = self.compiler_so
-    #default_compiler_so[0] = 'g++'
-    super = self._compile
-
-    # now redefine the _compile method. This gets executed for each
-    # object but distutils doesn't have the ability to change compilers
-    # based on source extension: we add it.
-    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-        if os.path.splitext(src)[1] == '.cu':
-            # use the cuda for .cu files
-            self.set_executable('compiler_so', CUDA['nvcc'])
-            # use only a subset of the extra_postargs, which are 1-1 translated
-            # from the extra_compile_args in the Extension class
-            postargs = extra_postargs['nvcc']
-        else:
-            try:
-                postargs = extra_postargs['gcc']
-            except TypeError:
-                postargs = extra_postargs
-
-        super(obj, src, ext, cc_args, postargs, pp_opts)
-        # reset the default compiler_so, which we might have changed for cuda
-        self.compiler_so = default_compiler_so
-
-    # inject our redefined _compile method into the class
-    self._compile = _compile
-
-
-def get_lapack():
-    from collections import defaultdict
-    lapack_info = defaultdict(lambda: [])
-    lapack_info.update(system_info.get_info('lapack'))
-    if len(lapack_info) == 0:
-        try:
-            from scipy.linalg import _flapack
-            lapack_info['extra_link_args'] = [_flapack.__file__]
-            return lapack_info
-        except ImportError:
-            pass
-        print('LAPACK libraries could not be located.', file=sys.stderr)
-        sys.exit(1)
-    return lapack_info
-
-
-def locate_cuda():
-    """Locate the CUDA environment on the system
-
-    Returns a dict with keys 'home', 'nvcc', 'include', and 'lib64'
-    and values giving the absolute path to each directory.
-
-    Starts by looking for the CUDAHOME env variable. If not found, everything
-    is based on finding 'nvcc' in the PATH.
-    """
-
-    # first check if the CUDAHOME env variable is in use
-    if 'CUDAHOME' in os.environ:
-        home = os.environ['CUDAHOME']
-        nvcc = os.path.join(home, 'bin', 'nvcc')
-    else:
-        # otherwise, search the PATH for NVCC
-        nvcc = find_executable('nvcc')
-        if nvcc is None:
-            raise EnvironmentError(
-                'The nvcc compiler could not be located in your $PATH. '
-                'To enable CUDA acceleration, either add it to your path, '
-                'or set $CUDAHOME')
-        home = os.path.dirname(os.path.dirname(nvcc))
-
-    cudaconfig = {'home':home, 'nvcc':nvcc,
-                  'include': os.path.join(home, 'include'),
-                  'lib64': os.path.join(home, 'lib64')}
-    for k, v in cudaconfig.items():
-        if not os.path.exists(v):
-            raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
-
-    return cudaconfig
-
-
 class custom_build_ext(build_ext):
     def build_extensions(self):
-        # Add the NVCC hacks
-        customize_compiler_for_nvcc(self.compiler)
 
         # Here come the cython hacks
         from distutils.command.build_ext import build_ext as _build_ext
@@ -253,18 +154,36 @@ class custom_build_ext(build_ext):
         build_ext.build_extension(self, ext)
 
 
+def get_lapack():
+    from collections import defaultdict
 
-###############################################################################
-###############################################################################
+    lapack_info = defaultdict(lambda: [])
+    lapack_info.update(system_info.get_info('lapack'))
+    if len(lapack_info) == 0:
+        try:
+            from scipy.linalg import _flapack
+
+            lapack_info['extra_link_args'] = [_flapack.__file__]
+            return lapack_info
+        except ImportError:
+            pass
+        print('LAPACK libraries could not be located.', file=sys.stderr)
+        sys.exit(1)
+    return lapack_info
+
 
 def write_spline_data():
     """Precompute spline coefficients and save them to data files that
     are #included in the remaining c source code. This is a little devious.
     """
+    VMDIR = "Mixtape/hiddenmarkovmodel/vonmises"
     import scipy.special
-    import pyximport; pyximport.install(setup_args={'include_dirs':[np.get_include()]})
-    sys.path.insert(0, 'src/vonmises')
+    import pyximport;
+
+    pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+    sys.path.insert(0, VMDIR)
     import buildspline
+
     del sys.path[0]
     n_points = 1024
     miny, maxy = 1e-5, 700
@@ -273,12 +192,14 @@ def write_spline_data():
 
     # fit the inverse function
     derivs = buildspline.createNaturalSpline(x, np.log(y))
-    if not os.path.exists('src/vonmises/data/inv_mbessel_x.dat'):
-        np.savetxt('src/vonmises/data/inv_mbessel_x.dat', x, newline=',\n')
-    if not os.path.exists('src/vonmises/data/inv_mbessel_y.dat'):
-        np.savetxt('src/vonmises/data/inv_mbessel_y.dat', np.log(y), newline=',\n')
-    if not os.path.exists('src/vonmises/data/inv_mbessel_deriv.dat'):
-        np.savetxt('src/vonmises/data/inv_mbessel_deriv.dat', derivs, newline=',\n')
+    if not os.path.exists('%s/data/inv_mbessel_x.dat' % VMDIR):
+        np.savetxt('%s/data/inv_mbessel_x.dat' % VMDIR, x, newline=',\n')
+    if not os.path.exists('%s/data/inv_mbessel_y.dat' % VMDIR):
+        np.savetxt('%s/data/inv_mbessel_y.dat' % VMDIR, np.log(y),
+                   newline=',\n')
+    if not os.path.exists('%s/data/inv_mbessel_deriv.dat' % VMDIR):
+        np.savetxt('%s/data/inv_mbessel_deriv.dat' % VMDIR, derivs,
+                   newline=',\n')
 
 
 def hasfunction(cc, funcname, include=None, extra_postargs=None):
@@ -316,18 +237,18 @@ def hasfunction(cc, funcname, include=None, extra_postargs=None):
 def detect_openmp():
     "Does this compiler support OpenMP parallelization?"
     compiler = new_compiler()
-    print('\n\033[95mAttempting to autodetect OpenMP support...\033[0m')
+    print('\nAttempting to autodetect OpenMP support...')
     hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
     needs_gomp = hasopenmp
     if not hasopenmp:
         compiler.add_library('gomp')
         hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
         needs_gomp = hasopenmp
-    print
+    print()
     if hasopenmp:
-        print('\033[92mCompiler supports OpenMP\033[0m\n')
+        print('Compiler supports OpenMP\n')
     else:
-        print('\033[91mDid not detect OpenMP support; parallel support disabled\033[0m\n')
+        print('Did not detect OpenMP support; parallel support disabled\n')
     return hasopenmp, needs_gomp
 
 
@@ -338,12 +259,6 @@ if openmp_enabled:
 libraries = ['gomp'] if needs_gomp else []
 extensions = []
 lapack_info = get_lapack()
-
-extensions.append(
-    Extension('mixtape._reversibility',
-              sources=['src/reversibility.pyx'],
-              libraries=['m'],
-              include_dirs=[np.get_include()]))
 
 extensions.append(
     Extension('mixtape.markovstatemodel._markovstatemodel',
@@ -364,68 +279,47 @@ extensions.append(
     Extension('mixtape.cluster._regularspatialc',
               sources=['Mixtape/cluster/_regularspatialc.pyx'],
               libraries=['m'],
-              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas',
+                            np.get_include()]))
 
 extensions.append(
     Extension('mixtape.cluster._kcentersc',
               sources=['Mixtape/cluster/_kcentersc.pyx'],
               libraries=['m'],
-              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas',
+                            np.get_include()]))
 
 extensions.append(
     Extension('mixtape.cluster._commonc',
               sources=['Mixtape/cluster/_commonc.pyx'],
               libraries=['m'],
-              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas', np.get_include()]))
+              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas',
+                            np.get_include()]))
 
 extensions.append(
-    Extension('mixtape._ghmm',
+    Extension('mixtape.hiddenmarkovmodel._ghmm',
               language='c++',
-              sources=['platforms/cpu/wrappers/GaussianHMMCPUImpl.pyx'] +
-                        glob.glob('platforms/cpu/kernels/*.c') +
-                        glob.glob('platforms/cpu/kernels/*.cpp'),
+              sources=[
+                          'Mixtape/hiddenmarkovmodel/wrappers/GaussianHMMCPUImpl.pyx'] +
+                      glob.glob('Mixtape/hiddenmarkovmodel/src/*.c') +
+                      glob.glob('Mixtape/hiddenmarkovmodel/src/*.cpp'),
               libraries=libraries + lapack_info['libraries'],
               extra_compile_args=extra_compile_args,
               extra_link_args=lapack_info['extra_link_args'],
-              include_dirs=[np.get_include(), 'platforms/cpu/kernels/include/',
-                            'platforms/cpu/kernels/']))
+              include_dirs=[np.get_include(),
+                            'Mixtape/hiddenmarkovmodel/src/include/',
+                            'Mixtape/hiddenmarkovmodel/src/']))
 
 extensions.append(
-    Extension('mixtape._vmhmm',
-              sources=['src/vonmises/vmhmm.c', 'src/vonmises/vmhmmwrap.pyx',
-                       'src/vonmises/spleval.c',
-                       'src/cephes/i0.c', 'src/cephes/chbevl.c'],
+    Extension('mixtape.hiddenmarkovmodel._vmhmm',
+              sources=['Mixtape/hiddenmarkovmodel/vonmises/vmhmm.c',
+                       'Mixtape/hiddenmarkovmodel/vonmises/vmhmmwrap.pyx',
+                       'Mixtape/hiddenmarkovmodel/vonmises/spleval.c',
+                       'Mixtape/hiddenmarkovmodel/cephes/i0.c',
+                       'Mixtape/hiddenmarkovmodel/cephes/chbevl.c'],
               libraries=['m'],
-              include_dirs=[np.get_include(), 'src/cephes']))
-
-try:
-    if '--disable-cuda' in sys.argv:
-        sys.argv.remove('--disable-cuda')
-        raise EnvironmentError()
-
-    CUDA = locate_cuda()
-    kwargs = dict(
-        language="c++",
-        library_dirs=[CUDA['lib64']],
-        libraries=['cudart', 'cublas'],
-        runtime_library_dirs=[CUDA['lib64']],
-        extra_compile_args={'gcc': [],
-                            'nvcc': ['-arch=sm_30', '-c', '--compiler-options', "'-fPIC'"]},
-        sources=['platforms/cuda/wrappers/GaussianHMMCUDAImpl.pyx',
-                 'platforms/cuda/src/CUDAGaussianHMM.cu'],
-        include_dirs=[np.get_include(), 'platforms/cuda/include', 'platforms/cuda/kernels'])
-
-    extensions.append(
-        Extension('mixtape._cuda_ghmm_single', define_macros=[('mixed', 'float')], **kwargs))
-    extensions.append(
-        Extension('mixtape._cuda_ghmm_mixed', define_macros=[('mixed', 'double')], **kwargs))
-
-
-except EnvironmentError as e:
-    print('\033[91m%s' % '#'*60)
-    print("\n".join(textwrap.wrap(str(e), 60)))
-    print('#'*60, '\033[0m\n')
-
+              include_dirs=[np.get_include(),
+                            'Mixtape/hiddenmarkovmodel/cephes']))
 
 write_version_py()
 write_spline_data()
@@ -438,12 +332,10 @@ setup(name='mixtape',
       url='https://github.com/rmcgibbo/mixtape',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),
-      packages=['mixtape'] + ['mixtape.%s' % e for e in find_packages('Mixtape')],
+      packages=['mixtape'] + ['mixtape.%s' % e for e in
+                              find_packages('Mixtape')],
       package_dir={'mixtape': 'Mixtape'},
-      scripts=['scripts/hmsm', 'scripts/mixtape', 'scripts/pbsipcluster'],
+      scripts=['scripts/msmb'],
       zip_safe=False,
       ext_modules=extensions,
-#      install_requires=['IPython', 'scikit-learn>=0.14', 'six', 'numpydoc',
-#                        'mdtraj>=0.8.0', 'scipy>=0.11.0',
-#                        'pandas>=0.9.0', 'cvxopt>=1.1.5'],
       cmdclass={'build_ext': custom_build_ext})
