@@ -27,7 +27,6 @@ import numpy as np
 import mdtraj as md
 import sklearn.base
 import sklearn.pipeline
-import warnings
 from sklearn.externals.joblib import Parallel, delayed
 
 

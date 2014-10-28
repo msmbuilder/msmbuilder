@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
-import mixtape.featurizer, mixtape.tica
 import mdtraj as md
+from . import Featurizer, TrajFeatureUnion
 
 ATOM_NAMES = ["N", "CA", "CB", "C", "O", "H"]
 
@@ -100,7 +100,7 @@ def _lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
 
     
 
-class BaseSubsetFeaturizer(mixtape.featurizer.Featurizer):
+class BaseSubsetFeaturizer(Featurizer):
     """Base class for featurizers that have a subset of active features.
     n_features refers to the number of active features.  n_max refers to the 
     number of possible features.
@@ -248,7 +248,7 @@ class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
 
 
-class SubsetFeatureUnion(mixtape.featurizer.TrajFeatureUnion):
+class SubsetFeatureUnion(TrajFeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion with feature subset selection.
     
     Notes
