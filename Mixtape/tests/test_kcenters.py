@@ -1,13 +1,13 @@
 from __future__ import division
-import os
 import operator
+from functools import reduce
+
 import numpy as np
 import mdtraj as md
-from functools import reduce
 from mdtraj.testing import eq
-from sklearn.externals.joblib import load
 from mixtape.cluster import KCenters
 import scipy.spatial.distance
+
 
 def test_kcenters_1():
     # make sure all the shapes are correct of the fit parameters

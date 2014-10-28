@@ -1,11 +1,11 @@
 from __future__ import print_function
-import os
+
 import numpy as np
 from mdtraj.testing import eq
-import scipy.sparse
-from sklearn.externals.joblib import load, dump
 import sklearn.pipeline
+
 from mixtape import lumping, markovstatemodel
+
 
 def test_pcca_1():
     # Make a simple dataset with four states, where there are 2 obvious macrostate basins--the remaining states interconvert quickly

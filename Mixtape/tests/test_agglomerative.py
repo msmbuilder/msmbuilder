@@ -1,10 +1,7 @@
-
-import os
 import numpy as np
 from mdtraj.testing import eq
 from sklearn.base import clone
 from mixtape.cluster import LandmarkAgglomerative
-import scipy.spatial.distance
 from sklearn.metrics import adjusted_rand_score
 
 random = np.random.RandomState(2)
