@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA as PCAr
-from mixtape.pca import PCA
+from mixtape.decomposition import PCA
 from mixtape.cluster import KCenters
 random = np.random.RandomState(42)
 trajs = [random.randn(10, 3) for _ in range(5)]

@@ -2,10 +2,10 @@ from __future__ import division
 import numpy as np
 from scipy.misc import logsumexp
 from sklearn.hmm import GaussianHMM
-from mixtape._ghmm import GaussianHMMCPUImpl
+from mixtape.hiddenmarkovmodel._ghmm import GaussianHMMCPUImpl
 
 def test_1():
-    "Test the getters and setters"
+    # Test the getters and setters
     t1 = np.random.randn(10, 2)
     n_features = 2
     for n_states in [3, 4]:

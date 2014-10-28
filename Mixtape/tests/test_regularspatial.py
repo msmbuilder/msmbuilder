@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
-from mdtraj.utils import timing
 from mixtape.cluster import RegularSpatial
 
 X = 0.3*np.random.RandomState(0).randn(1000, 10).astype(np.float64)
