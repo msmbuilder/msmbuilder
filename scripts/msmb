@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+"""Construct models of high-dimensional time-series data."""
+from mixtape.cmdline import App
+# the commands register themselves when they're imported
+from mixtape.commands import *
+
+
+class MSMBuilderApp(App):
+    def _subcommands(self):
+        cmds = super(MSMBuilderApp, self)._subcommands()
+
+        # sort the commands in some arbitrary order.
+        return sorted(cmds, key=lambda e: ''.join(x.__name__ for x in e.mro()))
+
+
+app = MSMBuilderApp(name='MSMBuilder', description=__doc__)
+app.start()
