@@ -1,0 +1,10 @@
+scipy
+pytables
+cython
+pandas
+nose
+mdtraj-dev
+scikit-learn
+numpydoc
+ipython
+pip
