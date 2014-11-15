@@ -3,7 +3,7 @@ pytables
 cython
 pandas
 nose
-mdtraj-dev
+mdtraj
 scikit-learn
 numpydoc
 ipython
