@@ -26,9 +26,9 @@ from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 
-from mixtape.cluster._commonc import _predict_labels, _predict_labels_euclidean
-from mixtape.cluster import _regularspatialc
-from mixtape.cluster import MultiSequenceClusterMixin
+from ._commonc import _predict_labels, _predict_labels_euclidean
+from . import _regularspatialc
+from . import MultiSequenceClusterMixin
 
 __all__ = ['RegularSpatial']
 

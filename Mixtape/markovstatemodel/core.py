@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 import scipy.linalg
-from mixtape.utils import list_of_1d
+from ..utils import list_of_1d
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
 from sklearn.base import TransformerMixin
 

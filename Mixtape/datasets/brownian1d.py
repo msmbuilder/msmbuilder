@@ -1,41 +1,9 @@
-"""Very simple datasets of brownian dynamics in one dimension.
-"""
-DOUBLEWELL_DESCRIPTION = r"""Brownian dynamics on a 1D double well potential
+"""Very simple datasets of brownian dynamics in one dimension."""
+from __future__ import absolute_import
 
-    This dataset consists of 10 trajectories simulated with Brownian dynamics on
-    the reduced potential function
-
-        V(x) = 1 + cos(2x)
-
-    with reflecting boundary conditions at x=-pi and x=pi. The simulations
-    are governed by the stochastic differential equation
-
-        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t),
-
-    where R(t) is a standard normal white-noise process, and D=1e3. The
-    timsetep is 1e-3. Each trajectory is 10^5 steps long, and starts at
-    x_0 = 0.
-"""
-QUADWELL_DESCRIPTION = r"""Brownian dynamics on a 1D four well potential
-
-    This dataset consists of 100 trajectories simulated with Brownian dynamics
-    on the reduced potential function
-
-        V = 4(x^8 + 0.8 exp(-80 x^2**2) + 0.2 exp(-80 (x-0.5)^2) + 0.5 exp(-40 (x+0.5)^2)).
-
-    The simulations are governed by the stochastic differential equation
-
-        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t),
-
-    where R(t) is a standard normal white-noise process, and D=1e3. The timsetep
-    is 1e-3. Each trajectory is 10^3 steps long, and starts from a random
-    initial point sampled from the uniform distribution on [-1, 1].
-"""
-
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Imports
-#-----------------------------------------------------------------------------
-
+# -----------------------------------------------------------------------------
 import time
 import numbers
 from os import makedirs
@@ -43,12 +11,12 @@ from os.path import join
 from os.path import exists
 import numpy as np
 from sklearn.utils import check_random_state
-from mixtape.utils import verboseload, verbosedump
+from ..utils import verboseload, verbosedump
 
-from mixtape.datasets.base import Bunch
-from mixtape.datasets.base import get_data_home
+from .base import Bunch, Dataset
+from .base import get_data_home
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Globals
 #-----------------------------------------------------------------------------
 
@@ -65,8 +33,66 @@ __all__ = ['load_doublewell', 'load_quadwell',
 # User functions
 #-----------------------------------------------------------------------------
 
-def load_doublewell(data_home=None, random_state=None):
-    """Loader for double-well dataset
+class _NWell(Dataset):
+    """Base class for brownian dynamics on [double, quad] well potentials
+
+    Parameters
+    ----------
+    data_home : optional, default: None
+        Specify another cache folder for the datasets. By default
+        all mixtape data is stored in '~/mixtape_data' subfolders.
+    random_state : {int, None}, default: None
+        Seed the psuedorandom number generator to generate trajectories. If
+        seed is None, the global numpy PRNG is used. If random_state is an
+        int, the simulations will be cached in ``data_home``, or loaded from
+        ``data_home`` if simulations with that seed have been performed already.
+        With random_state=None, new simulations will be performed and the
+        trajectories will not be cached.
+    """
+
+    def simulate_func(self, random):
+        # Implement in subclass
+        raise NotImplementedError
+
+    target_name = ""  # define in subclass
+
+    def __init__(self, data_home=None, random_state=None):
+        self.data_home = get_data_home(data_home)
+        self.data_dir = join(self.data_home, self.target_name)
+        self.random_state = random_state
+        self.cache_path = None
+
+    def cache(self):
+        random = check_random_state(self.random_state)
+        if not exists(self.data_dir):
+            makedirs(self.data_dir)
+
+        if self.random_state is None:
+            trajectories = self.simulate_func(random)
+            return trajectories
+        else:
+            if not isinstance(self.random_state, numbers.Integral):
+                raise TypeError('random_state must be an int')
+            path = join(self.data_dir,
+                        'version-1_random-state-%d.pkl' % self.random_state)
+            self.cache_path = path
+            if exists(path):
+                return verboseload(path)
+            else:
+                trajectories = self.simulate_func(random)
+                verbosedump(trajectories, path)
+                return trajectories
+
+    def get(self):
+        if self.cache_path is None:
+            trajectories = self.cache()
+        else:
+            trajectories = verboseload(self.cache_path)
+        return Bunch(trajectories=trajectories, DESCR=self.description())
+
+
+class DoubleWell(_NWell):
+    r"""Brownian dynamics on a 1D double well potential
 
     Parameters
     ----------
@@ -83,69 +109,76 @@ def load_doublewell(data_home=None, random_state=None):
 
     Notes
     -----
+    This dataset consists of 10 trajectories simulated with Brownian dynamics on
+    the reduced potential function
+
+        V(x) = 1 + cos(2x)
+
+    with reflecting boundary conditions at x=-pi and x=pi. The simulations
+    are governed by the stochastic differential equation
+
+        dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t),
+
+    where R(t) is a standard normal white-noise process, and D=1e3. The
+    timsetep is 1e-3. Each trajectory is 10^5 steps long, and starts at
+    x_0 = 0.
     """
-    random = check_random_state(random_state)
-    data_home = join(get_data_home(data_home=data_home), 'doublewell')
-    if not exists(data_home):
-        makedirs(data_home)
+    target_name = "doublewell"
 
-    if random_state is None:
-        trajectories = _simulate_doublewell(random)
-    else:
-        if not isinstance(random_state, numbers.Integral):
-            raise TypeError('random_state must be an int')
-        path = join(data_home, 'version-1_random-state-%d.pkl' % random_state)
-        if exists(path):
-            trajectories = verboseload(path)
-        else:
-            trajectories = _simulate_doublewell(random)
-            verbosedump(trajectories, path)
+    def simulate_func(self, random):
+        return _simulate_doublewell(random)
 
-    return Bunch(trajectories=trajectories, DESCR=DOUBLEWELL_DESCRIPTION)
-load_doublewell.__doc__ += DOUBLEWELL_DESCRIPTION
+
+def load_doublewell(data_home=None, random_state=None):
+    return DoubleWell(data_home, random_state).get()
+
+
+load_doublewell.__doc__ = DoubleWell.__doc__
+
+
+class QuadWell(_NWell):
+    r"""Brownian dynamics on a 1D four well potential
+
+    Parameters
+    ----------
+    data_home : optional, default: None
+        Specify another cache folder for the datasets. By default
+        all mixtape data is stored in '~/mixtape_data' subfolders.
+    random_state : {int, None}, default: None
+        Seed the psuedorandom number generator to generate trajectories. If
+        seed is None, the global numpy PRNG is used. If random_state is an
+        int, the simulations will be cached in ``data_home``, or loaded from
+        ``data_home`` if simulations with that seed have been performed already.
+        With random_state=None, new simulations will be performed and the
+        trajectories will not be cached.
+
+    Notes
+    -----
+    This dataset consists of 100 trajectories simulated with Brownian dynamics
+    on the reduced potential function
+
+    V = 4(x^8 + 0.8 exp(-80 x^2**2) + 0.2 exp(-80 (x-0.5)^2) + 0.5 exp(-40 (x+0.5)^2)).
+
+    The simulations are governed by the stochastic differential equation
+
+    dx_t/dt = -\nabla V(x) + \sqrt{2D} * R(t),
+
+    where R(t) is a standard normal white-noise process, and D=1e3. The timsetep
+    is 1e-3. Each trajectory is 10^3 steps long, and starts from a random
+    initial point sampled from the uniform distribution on [-1, 1].
+    """
+
+    target_name = "quadwell"
+
+    def simulate_func(self, random):
+        return _simulate_quadwell(random)
 
 
 def load_quadwell(data_home=None, random_state=None):
-    """Loader for quad-well dataset
+    return QuadWell(data_home, random_state).get()
 
-    Parameters
-    ----------
-    data_home : optional, default: None
-        Specify another cache folder for the datasets. By default
-        all mixtape data is stored in '~/mixtape_data' subfolders.
-    random_state : {int, None}, default: None
-        Seed the psuedorandom number generator to generate trajectories. If
-        seed is None, the global numpy PRNG is used. If random_state is an
-        int, the simulations will be cached in ``data_home``, or loaded from
-        ``data_home`` if simulations with that seed have been performed already.
-        With random_state=None, new simulations will be performed and the
-        trajectories will not be cached.
 
-    Notes
-    -----
-    """
-
-    # V = 4*(x**8 + 0.8*np.exp(-80*x**2) + 0.2*(-80*(x-0.5)**2) + 0.5*np.exp(-40*(x+0.5)**2))
-
-    random = check_random_state(random_state)
-    data_home = join(get_data_home(data_home=data_home), 'quadwell')
-    if not exists(data_home):
-        makedirs(data_home)
-
-    if random_state is None:
-        trajectories = _simulate_quadwell(random)
-    else:
-        if not isinstance(random_state, numbers.Integral):
-            raise TypeError('random_state must be an int')
-        path = join(data_home, 'version-0_random-state-%d.pkl' % random_state)
-        if exists(path):
-            trajectories = verboseload(path)
-        else:
-            trajectories = _simulate_quadwell(random)
-            verbosedump(trajectories, path)
-
-    return Bunch(trajectories=trajectories, DESCR=QUADWELL_DESCRIPTION)
-load_quadwell.__doc__ += QUADWELL_DESCRIPTION
+load_quadwell.__doc__ = QuadWell.__doc__
 
 
 def doublewell_eigs(n_grid, lag_time=1):
@@ -154,7 +187,8 @@ def doublewell_eigs(n_grid, lag_time=1):
     TODO: DOCUMENT ME
     """
     return _brownian_eigs(n_grid, lag_time, DOUBLEWELL_GRAD_POTENTIAL,
-                         -np.pi, np.pi, reflect_bc=True)
+                          -np.pi, np.pi, reflect_bc=True)
+
 
 def quadwell_eigs(n_grid, lag_time=1):
     """Analytic eigenvalues/eigenvectors for the quadwell system
@@ -162,15 +196,17 @@ def quadwell_eigs(n_grid, lag_time=1):
     TODO: DOCUMENT ME
     """
     return _brownian_eigs(n_grid, lag_time, QUADWELL_GRAD_POTENTIAL,
-                         -1.2, 1.2, reflect_bc=False)
+                          -1.2, 1.2, reflect_bc=False)
 
 #-----------------------------------------------------------------------------
 # Internal functions
 #-----------------------------------------------------------------------------
 
-DOUBLEWELL_GRAD_POTENTIAL = lambda x : -2 * np.sin(2 * x)
-QUADWELL_GRAD_POTENTIAL =  lambda x: 4*(8*x**7 - 128*x*np.exp(-80*x**2) - \
-    32*(x-0.5)*np.exp(-80 * (x-0.5)**2) - 40*(x+0.5)*np.exp(-40*(x+0.5)**2))
+DOUBLEWELL_GRAD_POTENTIAL = lambda x: -2 * np.sin(2 * x)
+QUADWELL_GRAD_POTENTIAL = lambda x: 4 * (
+    8 * x ** 7 - 128 * x * np.exp(-80 * x ** 2) - \
+    32 * (x - 0.5) * np.exp(-80 * (x - 0.5) ** 2) - 40 * (x + 0.5) * np.exp(
+        -40 * (x + 0.5) ** 2))
 
 
 def _simulate_doublewell(random):
@@ -184,7 +220,7 @@ def _simulate_doublewell(random):
     trajectories = [_propagate1d(
         x0, n_steps, DOUBLEWELL_GRAD_POTENTIAL, random, bc_min=-np.pi,
         bc_max=np.pi, verbose=True).reshape(-1, 1)
-            for i in range(n_trajectories)]
+                    for i in range(n_trajectories)]
     return trajectories
 
 
@@ -199,15 +235,15 @@ def _simulate_quadwell(random):
     trajectories = [_propagate1d(
         x0[i], n_steps, QUADWELL_GRAD_POTENTIAL,
         random=random, verbose=False).reshape(-1, 1)
-            for i in range(n_trajectories)]
+                    for i in range(n_trajectories)]
     return trajectories
 
 
 def _reflect_boundary_conditions(x, min, max):
     if x > max:
-        return 2*max - x
+        return 2 * max - x
     if x < min:
-        return 2*min - x
+        return 2 * min - x
     return x
 
 
@@ -217,16 +253,16 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None,
     n_steps = int(n_steps)
 
     if bc_min is None and bc_max is None:
-        bc = lambda x : x
+        bc = lambda x: x
     else:
         bc = lambda x: _reflect_boundary_conditions(x, bc_min, bc_max)
 
     rand = random.randn(n_steps)
-    x = np.zeros(n_steps+1)
+    x = np.zeros(n_steps + 1)
     x[0] = x0
     for i in range(n_steps):
-        x_i_plus_1 = x[i] -DT * grad_potential(x[i]) + DT_SQRT_2D*rand[i]
-        x[i+1] = bc(x_i_plus_1)
+        x_i_plus_1 = x[i] - DT * grad_potential(x[i]) + DT_SQRT_2D * rand[i]
+        x[i + 1] = bc(x_i_plus_1)
 
     if verbose:
         print('%d steps/s' % (n_steps / (time.time() - start)))
@@ -237,17 +273,18 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
     """Analytic eigenvalues/eigenvectors for 1D Brownian dynamics
     """
     import scipy.linalg
-    ONE_OVER_SQRT_2PI = 1.0 / (np.sqrt(2*np.pi))
-    normalpdf = lambda x : ONE_OVER_SQRT_2PI * np.exp(-0.5 * (x*x))
+
+    ONE_OVER_SQRT_2PI = 1.0 / (np.sqrt(2 * np.pi))
+    normalpdf = lambda x: ONE_OVER_SQRT_2PI * np.exp(-0.5 * (x * x))
 
     grid = np.linspace(xmin, xmax, n_grid)
-    width = grid[1]-grid[0]
+    width = grid[1] - grid[0]
     transmat = np.zeros((n_grid, n_grid))
     for i, x_i in enumerate(grid):
         if reflect_bc:
-            for offset in range(-(n_grid-1), n_grid):
+            for offset in range(-(n_grid - 1), n_grid):
                 x_j = x_i + (offset * width)
-                j = _reflect_boundary_conditions(i+offset, 0, n_grid-1)
+                j = _reflect_boundary_conditions(i + offset, 0, n_grid - 1)
 
                 # What is the probability of going from x_i to x_j in one step?
                 diff = (x_j - x_i + DT * grad_potential(x_i)) / DT_SQRT_2D
@@ -258,7 +295,7 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
                 diff = (x_j - x_i + DT * grad_potential(x_i)) / DT_SQRT_2D
                 transmat[i, j] += normalpdf(diff)
 
-        transmat[i, :] =  transmat[i, :] / np.sum(transmat[i, :])
+        transmat[i, :] = transmat[i, :] / np.sum(transmat[i, :])
 
     transmat = np.linalg.matrix_power(transmat, lag_time)
     u, v = scipy.linalg.eig(transmat)

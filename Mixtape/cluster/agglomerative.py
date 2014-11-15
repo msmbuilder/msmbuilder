@@ -28,7 +28,7 @@ from scipy.cluster.hierarchy import fcluster
 from sklearn.externals.joblib import Memory
 from sklearn.utils import check_random_state
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
-from mixtape.cluster import MultiSequenceClusterMixin
+from . import MultiSequenceClusterMixin
 
 try:
     from fastcluster import linkage
@@ -180,7 +180,7 @@ class _LandmarkAgglomerative(BaseEstimator, ClusterMixin, TransformerMixin):
             if self.landmark_strategy == 'random':
                 land_indices = check_random_state(self.random_state).randint(len(X), size=self.n_landmarks)
             else:
-                land_indices = np.arange(len(X))[::(len(X)/self.n_landmarks)][:self.n_landmarks]
+                land_indices = np.arange(len(X))[::(len(X)//self.n_landmarks)][:self.n_landmarks]
             distances = memory.cache(pdist)(X[land_indices], self.metric)
 
         tree = memory.cache(linkage)(distances, method=self.linkage)

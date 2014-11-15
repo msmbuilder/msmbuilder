@@ -1,6 +1,1 @@
-pyflakes
-scripttest
-nose
-coverage
-coveralls
-munkres
+requirements.txt

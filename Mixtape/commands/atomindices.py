@@ -1,5 +1,4 @@
-'''Create an index file for specified atoms in a PDB
-'''
+"""Create an index file for specified atoms in a PDB"""
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
@@ -18,31 +17,18 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 
-#-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
 import os
 import itertools
+
 import mdtraj as md
 import numpy as np
-from mdtraj.core import element
-
-from mixtape.cmdline import Command, argument, argument_group
-
-__all__ = ['AtomIndices']
-PROTEIN_RESIDUES = set([
-    'ACE', 'AIB', 'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'FOR', 'GLN', 'GLU',
-    'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'NH2', 'NME', 'ORN', 'PCA',
-    'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'UNK', 'VAL'])
-
-#-----------------------------------------------------------------------------
-# Code
-#-----------------------------------------------------------------------------
+from ..cmdline import Command, argument, argument_group
 
 
 class AtomIndices(Command):
+    _concrete = True
     description = "Create index file for atoms or distance pairs."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
     out = argument('-o', '--out', required=True, help='Path to output file')
@@ -84,25 +70,24 @@ class AtomIndices(Command):
 
     def start(self):
         if self.args.all:
-            atom_indices = np.arange(self.pdb.n_atoms)
+            s = 'all'
         elif self.args.alpha:
-            atom_indices = [a.index for a in self.pdb.topology.atoms if a.name == 'CA']
+            s = 'alpha'
         elif self.args.minimal:
-            atom_indices = [a.index for a in self.pdb.topology.atoms if a.name in
-                            ['CA', 'CB', 'C', 'N', 'O'] and a.residue.name in PROTEIN_RESIDUES]
+            s = 'minimal'
         elif self.args.heavy:
-            atom_indices = [a.index for a in self.pdb.topology.atoms if a.element != element.hydrogen
-                            and a.residue.name in PROTEIN_RESIDUES]
+            s = 'heavy'
         elif self.args.water:
-            atom_indices = [a.index for a in self.pdb.topology.atoms if
-                            a.name in ['O', 'OW']
-                            and a.residue.name in ['HOH', 'SOL']]
+            s = 'water'
         else:
             raise RuntimeError()
 
+        atom_indices = self.pdb.topology.select_atom_indices(s)
         n_atoms = len(atom_indices)
-        n_residues = len(np.unique([self.pdb.topology.atom(i).residue.index for i in atom_indices]))
-        print('Selected (%d) atoms from (%d) unique residues.' % (n_atoms, n_residues))
+        n_residues = len(np.unique(
+            [self.pdb.topology.atom(i).residue.index for i in atom_indices]))
+        print('Selected (%d) atoms from (%d) unique residues.' % (
+            n_atoms, n_residues))
 
         if self.args.distance_pairs:
             out = np.array(list(itertools.combinations(atom_indices, 2)))

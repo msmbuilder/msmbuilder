@@ -25,7 +25,7 @@ import numbers
 import numpy as np
 from sklearn.utils import array2d
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
-from mixtape.cluster import MultiSequenceClusterMixin
+from . import MultiSequenceClusterMixin
 
 __all__ = ['NDGrid']
 EPS = 1e-10
