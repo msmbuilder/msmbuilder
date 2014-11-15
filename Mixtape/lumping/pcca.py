@@ -1,4 +1,4 @@
-from mixtape.msm import MarkovStateModel
+from ..msm import MarkovStateModel
 import numpy as np
 
 class PCCA(MarkovStateModel):
