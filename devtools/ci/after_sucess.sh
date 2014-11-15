@@ -19,8 +19,7 @@ fi
 # Install stuff for running the example IPython notebooks
 sudo apt-get update -qq
 sudo apt-get install -qq pandoc         # notebook -> rst
-conda install --yes matplotlib sphinx boto ipython-notebook jinja2
-pip install runipy==0.0.4                      # example notebooks
+conda install --yes matplotlib sphinx boto ipython-notebook jinja2, runipy
 pip install triangle
 
 cd doc && make html && cd -
