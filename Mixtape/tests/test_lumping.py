@@ -4,19 +4,20 @@ import numpy as np
 from mdtraj.testing import eq
 import sklearn.pipeline
 
-from mixtape import lumping, markovstatemodel
+from mixtape.lumping import PCCA, PCCAPlus
+from mixtape.msm import MarkovStateModel
 
 
 def test_pcca_1():
     # Make a simple dataset with four states, where there are 2 obvious macrostate basins--the remaining states interconvert quickly
     n_frames = 10000
     chunk = np.zeros(n_frames, 'int')
-    rnd = lambda : np.random.randint(0, 2, n_frames)  # Generates random noise states within each basin
+    rnd = lambda: np.random.randint(0, 2, n_frames)  # Generates random noise states within each basin
     # States 0 and 1 interconvert, states 2 and 3 interconvert.  
     assignments = [np.hstack((chunk + rnd(), chunk + 2  + rnd())), np.hstack((chunk + 2 + rnd(), chunk + rnd()))]
 
-    pcca = lumping.PCCA(2)
-    macro_msm = markovstatemodel.MarkovStateModel()
+    pcca = PCCA(2)
+    macro_msm = MarkovStateModel()
 
     pipeline = sklearn.pipeline.Pipeline([("pcca", pcca), ("macro_msm", macro_msm)])
     macro_assignments = pipeline.fit_transform(assignments)
@@ -40,8 +41,8 @@ def test_pccaplus_1():
     # States 0 and 1 interconvert, states 2 and 3 interconvert.  
     assignments = [np.hstack((chunk + rnd(), chunk + 2  + rnd())), np.hstack((chunk + 2 + rnd(), chunk + rnd()))]
 
-    pcca = lumping.PCCAPlus(2)
-    macro_msm = markovstatemodel.MarkovStateModel()
+    pcca = PCCAPlus(2)
+    macro_msm = MarkovStateModel()
 
     pipeline = sklearn.pipeline.Pipeline([("pcca", pcca), ("macro_msm", macro_msm)])
     macro_assignments = pipeline.fit_transform(assignments)
@@ -65,10 +66,10 @@ def test_from_msm():
     # States 0 and 1 interconvert, states 2 and 3 interconvert.  
     assignments = [np.hstack((chunk + rnd(), chunk + 2  + rnd())), np.hstack((chunk + 2 + rnd(), chunk + rnd()))]
     
-    msm = markovstatemodel.MarkovStateModel()
+    msm = MarkovStateModel()
     msm.fit(assignments)
-    pcca = lumping.PCCA.from_msm(msm, 2)
+    pcca = PCCA.from_msm(msm, 2)
 
-    msm = markovstatemodel.MarkovStateModel()
+    msm = MarkovStateModel()
     msm.fit(assignments)
-    pccaplus = lumping.PCCAPlus.from_msm(msm, 2)
+    pccaplus = PCCAPlus.from_msm(msm, 2)
