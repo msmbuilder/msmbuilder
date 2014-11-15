@@ -25,6 +25,7 @@ from six import PY2
 import numpy as np
 from sklearn import cluster
 from sklearn import mixture
+from ..base import BaseEstimator
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
@@ -35,7 +36,7 @@ __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
 # Code
 #-----------------------------------------------------------------------------
 
-class MultiSequenceClusterMixin(object):
+class MultiSequenceClusterMixin(BaseEstimator):
 
     # The API for the scikit-learn Cluster object is, in fit(), that
     # they take a single 2D array of shape (n_data_points, n_features).

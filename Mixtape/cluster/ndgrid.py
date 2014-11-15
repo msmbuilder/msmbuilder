@@ -24,7 +24,7 @@ from __future__ import absolute_import, print_function, division
 import numbers
 import numpy as np
 from sklearn.utils import array2d
-from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
+from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 
 __all__ = ['NDGrid']
@@ -34,7 +34,7 @@ EPS = 1e-10
 # Code
 #-----------------------------------------------------------------------------
 
-class _NDGrid(BaseEstimator, ClusterMixin, TransformerMixin):
+class _NDGrid(ClusterMixin, TransformerMixin):
     """Discretize continuous data points onto an N-dimensional
     grid.
 

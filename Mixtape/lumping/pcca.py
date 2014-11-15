@@ -1,5 +1,8 @@
-from mixtape.markovstatemodel import MarkovStateModel
+from __future__ import print_function, division, absolute_import
+
+from ..markovstatemodel import MarkovStateModel
 import numpy as np
+
 
 class PCCA(MarkovStateModel):
     """Perron Cluster Cluster Analysis (PCCA) for coarse-graining (lumping)

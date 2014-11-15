@@ -24,7 +24,7 @@ from __future__ import absolute_import, print_function, division
 import numpy as np
 from six import string_types, PY2
 from scipy.spatial.distance import cdist
-from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
+from sklearn.base import ClusterMixin, TransformerMixin
 
 from ._commonc import _predict_labels, _predict_labels_euclidean
 from . import _regularspatialc
@@ -49,7 +49,7 @@ def _arrayify(list_like):
     else:
         return list_like[0].join(list_like[1:])
 
-class _RegularSpatial(BaseEstimator, ClusterMixin, TransformerMixin):
+class _RegularSpatial(ClusterMixin, TransformerMixin):
     """Regular spatial clustering.
 
     Parameters

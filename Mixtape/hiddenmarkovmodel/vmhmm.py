@@ -33,6 +33,7 @@ from sklearn.utils.extmath import logsumexp
 from scipy.stats.distributions import vonmises
 from . import _vmhmm
 from ..markovstatemodel._markovstatemodel import _transmat_mle_prinz
+from ..base import BaseEstimator
 
 #-----------------------------------------------------------------------------
 # Globals
@@ -45,7 +46,7 @@ __all__ = ['VonMisesHMM']
 #-----------------------------------------------------------------------------
 
 
-class VonMisesHMM(_BaseHMM):
+class VonMisesHMM(BaseEstimator, _BaseHMM):
 
     """Hidden Markov Model with von Mises Emissions
 

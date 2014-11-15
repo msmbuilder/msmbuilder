@@ -19,13 +19,14 @@
 from __future__ import print_function, division, absolute_import
 from sklearn import decomposition
 import numpy as np
-
 from six import PY2
+
+from mixtape.base import BaseEstimator
 
 __all__ = ['PCA']
 
 
-class MultiSequenceDecompositionMixin(object):
+class MultiSequenceDecompositionMixin(BaseEstimator):
     # The API for the scikit-learn decomposition object is, in fit(), that
     # they take a single 2D array of shape (n_data_points, n_features).
     #

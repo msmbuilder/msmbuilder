@@ -25,7 +25,7 @@ import numpy as np
 from six import string_types, PY2
 from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
-from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
+from sklearn.base import ClusterMixin, TransformerMixin
 
 from ._commonc import _predict_labels, _predict_labels_euclidean
 from ._kcentersc import _kcenters_euclidean
@@ -38,7 +38,7 @@ __all__ = ['KCenters']
 # Code
 #-----------------------------------------------------------------------------
 
-class _KCenters(BaseEstimator, ClusterMixin, TransformerMixin):
+class _KCenters(ClusterMixin, TransformerMixin):
     """K-Centers clustering
 
     Parameters
