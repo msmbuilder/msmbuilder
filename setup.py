@@ -16,6 +16,7 @@ from setuptools import setup, Extension, find_packages
 
 import numpy as np
 from numpy.distutils import system_info
+from os.path import join as pjoin
 
 
 try:
@@ -54,9 +55,14 @@ Programming Language :: Python :: 3.3
 Programming Language :: Python :: 3.4
 """
 
-# ###############################################################################
+# Where to find extensions
+MSMDIR = 'Mixtape/msm/'
+HMMDIR = 'Mixtape/hmm/'
+CLUSTERDIR = 'Mixtape/cluster/'
+
+# ##############################################################################
 # Writing version control information to the module
-################################################################################
+# ##############################################################################
 
 def git_version():
     # Return the git revision as a string
@@ -176,12 +182,12 @@ def write_spline_data():
     """Precompute spline coefficients and save them to data files that
     are #included in the remaining c source code. This is a little devious.
     """
-    VMDIR = "Mixtape/hiddenmarkovmodel/vonmises"
+    vmhmmdir = pjoin(HMMDIR, 'vonmises')
     import scipy.special
-    import pyximport;
+    import pyximport
 
     pyximport.install(setup_args={'include_dirs': [np.get_include()]})
-    sys.path.insert(0, VMDIR)
+    sys.path.insert(0, vmhmmdir)
     import buildspline
 
     del sys.path[0]
@@ -192,19 +198,19 @@ def write_spline_data():
 
     # fit the inverse function
     derivs = buildspline.createNaturalSpline(x, np.log(y))
-    if not os.path.exists('%s/data/inv_mbessel_x.dat' % VMDIR):
-        np.savetxt('%s/data/inv_mbessel_x.dat' % VMDIR, x, newline=',\n')
-    if not os.path.exists('%s/data/inv_mbessel_y.dat' % VMDIR):
-        np.savetxt('%s/data/inv_mbessel_y.dat' % VMDIR, np.log(y),
+    if not os.path.exists(pjoin(vmhmmdir, 'data/inv_mbessel_x.dat')):
+        np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_x.dat'), x, newline=',\n')
+    if not os.path.exists(pjoin(vmhmmdir, 'data/inv_mbessel_y.dat')):
+        np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_y.dat'), np.log(y),
                    newline=',\n')
-    if not os.path.exists('%s/data/inv_mbessel_deriv.dat' % VMDIR):
-        np.savetxt('%s/data/inv_mbessel_deriv.dat' % VMDIR, derivs,
+    if not os.path.exists(pjoin(vmhmmdir, 'data/inv_mbessel_deriv.dat')):
+        np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_deriv.dat'), derivs,
                    newline=',\n')
 
 
 def hasfunction(cc, funcname, include=None, extra_postargs=None):
     # From http://stackoverflow.com/questions/
-    #            7018879/disabling-output-when-compiling-with-distutils
+    # 7018879/disabling-output-when-compiling-with-distutils
     tmpdir = tempfile.mkdtemp(prefix='hasfunction-')
     devnull = oldstderr = None
     try:
@@ -237,7 +243,7 @@ def hasfunction(cc, funcname, include=None, extra_postargs=None):
 def detect_openmp():
     "Does this compiler support OpenMP parallelization?"
     compiler = new_compiler()
-    print('\nAttempting to autodetect OpenMP support...')
+    print('Attempting to autodetect OpenMP support...')
     hasopenmp = hasfunction(compiler, 'omp_get_num_threads()')
     needs_gomp = hasopenmp
     if not hasopenmp:
@@ -261,65 +267,67 @@ extensions = []
 lapack_info = get_lapack()
 
 extensions.append(
-    Extension('mixtape.markovstatemodel._markovstatemodel',
-              sources=['Mixtape/markovstatemodel/_markovstatemodel.pyx',
-                       'Mixtape/markovstatemodel/src/transmat_mle_prinz.c'],
+    Extension('mixtape.msm._markovstatemodel',
+              sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),
+                       pjoin(MSMDIR, 'src/transmat_mle_prinz.c')],
               libraries=['m'],
-              include_dirs=['Mixtape/markovstatemodel/src', np.get_include()]))
+              include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
 
 extensions.append(
-    Extension('mixtape.markovstatemodel._metzner_mcmc_fast',
-              sources=['Mixtape/markovstatemodel/_metzner_mcmc_fast.pyx',
-                       'Mixtape/markovstatemodel/src/metzner_mcmc.c'],
+    Extension('mixtape.msm._metzner_mcmc_fast',
+              sources=[pjoin(MSMDIR, '_metzner_mcmc_fast.pyx'),
+                       pjoin(MSMDIR, 'src/metzner_mcmc.c')],
               libraries=['m'] + libraries,
               extra_compile_args=extra_compile_args,
-              include_dirs=['Mixtape/markovstatemodel/src', np.get_include()]))
+              include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
 
 extensions.append(
     Extension('mixtape.cluster._regularspatialc',
-              sources=['Mixtape/cluster/_regularspatialc.pyx'],
+              sources=[pjoin(CLUSTERDIR, '_regularspatialc.pyx')],
               libraries=['m'],
-              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas',
+              include_dirs=['Mixtape/src/f2py',
+                            'Mixtape/src/blas',
                             np.get_include()]))
 
 extensions.append(
     Extension('mixtape.cluster._kcentersc',
-              sources=['Mixtape/cluster/_kcentersc.pyx'],
+              sources=[pjoin(CLUSTERDIR, '_kcentersc.pyx')],
               libraries=['m'],
-              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas',
+              include_dirs=['Mixtape/src/f2py',
+                            'Mixtape/src/blas',
                             np.get_include()]))
 
 extensions.append(
     Extension('mixtape.cluster._commonc',
-              sources=['Mixtape/cluster/_commonc.pyx'],
+              sources=[pjoin(CLUSTERDIR, '_commonc.pyx')],
               libraries=['m'],
-              include_dirs=['Mixtape/src/f2py', 'Mixtape/src/blas',
+              include_dirs=['Mixtape/src/f2py',
+                            'Mixtape/src/blas',
                             np.get_include()]))
 
 extensions.append(
-    Extension('mixtape.hiddenmarkovmodel._ghmm',
+    Extension('mixtape.hmm._ghmm',
               language='c++',
-              sources=[
-                          'Mixtape/hiddenmarkovmodel/wrappers/GaussianHMMCPUImpl.pyx'] +
-                      glob.glob('Mixtape/hiddenmarkovmodel/src/*.c') +
-                      glob.glob('Mixtape/hiddenmarkovmodel/src/*.cpp'),
+              sources=[pjoin(HMMDIR, 'wrappers/GaussianHMMCPUImpl.pyx')] +
+                      glob.glob(pjoin(HMMDIR, 'src/*.c')) +
+                      glob.glob(pjoin(HMMDIR, 'src/*.cpp')),
               libraries=libraries + lapack_info['libraries'],
               extra_compile_args=extra_compile_args,
               extra_link_args=lapack_info['extra_link_args'],
               include_dirs=[np.get_include(),
-                            'Mixtape/hiddenmarkovmodel/src/include/',
-                            'Mixtape/hiddenmarkovmodel/src/']))
+                            pjoin(HMMDIR, 'src/include/'),
+                            pjoin(HMMDIR, 'src/')]))
 
 extensions.append(
-    Extension('mixtape.hiddenmarkovmodel._vmhmm',
-              sources=['Mixtape/hiddenmarkovmodel/vonmises/vmhmm.c',
-                       'Mixtape/hiddenmarkovmodel/vonmises/vmhmmwrap.pyx',
-                       'Mixtape/hiddenmarkovmodel/vonmises/spleval.c',
-                       'Mixtape/hiddenmarkovmodel/cephes/i0.c',
-                       'Mixtape/hiddenmarkovmodel/cephes/chbevl.c'],
+    Extension('mixtape.hmm._vmhmm',
+              sources=[pjoin(HMMDIR, 'vonmises/vmhmm.c'),
+                       pjoin(HMMDIR, 'vonmises/vmhmmwrap.pyx'),
+                       pjoin(HMMDIR, 'vonmises/spleval.c'),
+                       pjoin(HMMDIR, 'cephes/i0.c'),
+                       pjoin(HMMDIR, 'cephes/chbevl.c')],
               libraries=['m'],
               include_dirs=[np.get_include(),
-                            'Mixtape/hiddenmarkovmodel/cephes']))
+                            pjoin(HMMDIR, 'cephes')]))
 
 write_version_py()
 write_spline_data()

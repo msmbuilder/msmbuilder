@@ -1,10 +1,10 @@
 import numpy as np
 from mixtape.cluster import NDGrid
 from mixtape.datasets import load_doublewell
-from mixtape.markovstatemodel import BayesianMarkovStateModel
-from mixtape.markovstatemodel import MarkovStateModel
-from mixtape.markovstatemodel._metzner_mcmc_fast import metzner_mcmc_fast
-from mixtape.markovstatemodel._metzner_mcmc_slow import metzner_mcmc_slow
+from mixtape.msm import BayesianMarkovStateModel
+from mixtape.msm import MarkovStateModel
+from mixtape.msm._metzner_mcmc_fast import metzner_mcmc_fast
+from mixtape.msm._metzner_mcmc_slow import metzner_mcmc_slow
 
 
 def test_1():

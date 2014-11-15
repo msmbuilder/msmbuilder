@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.optimize
-from mixtape.markovstatemodel._markovstatemodel import _transmat_mle_prinz
+from mixtape.msm._markovstatemodel import _transmat_mle_prinz
 
 random = np.random.RandomState(0)
+
 
 def reference_mle(Counts, NumIter=10000000, TerminationEpsilon=1E-10):
     # "Boxer method", from Equation (A4) in Bowman et al.
@@ -12,28 +13,28 @@ def reference_mle(Counts, NumIter=10000000, TerminationEpsilon=1E-10):
     Counts = Counts.asformat("csr").asfptype()
     Counts.eliminate_zeros()
 
-    S=Counts+Counts.transpose()
-    N=np.array(Counts.sum(1)).flatten()
-    Na=N
+    S = Counts + Counts.transpose()
+    N = np.array(Counts.sum(1)).flatten()
+    Na = N
 
-    NS=np.array(S.sum(1)).flatten()
-    NS/=NS.sum()
-    Ind=np.argmax(NS)
+    NS = np.array(S.sum(1)).flatten()
+    NS /= NS.sum()
+    Ind = np.argmax(NS)
 
-    NZX,NZY=np.array(S.nonzero())
+    NZX, NZY = np.array(S.nonzero())
 
-    Q=S.copy()
-    XS=np.array(Q.sum(0)).flatten()
+    Q = S.copy()
+    XS = np.array(Q.sum(0)).flatten()
 
     for k in range(NumIter):
-        Old=XS
-        V=Na/XS
-        Q.data[:]=S.data/(V[NZX]+V[NZY])
-        QS=np.array(Q.sum(0)).flatten()
+        Old = XS
+        V = Na / XS
+        Q.data[:] = S.data / (V[NZX] + V[NZY])
+        QS = np.array(Q.sum(0)).flatten()
 
-        XS=QS
-        XS/=XS.sum()
-        PiDiffNorm=np.linalg.norm(XS-Old)
+        XS = QS
+        XS /= XS.sum()
+        PiDiffNorm = np.linalg.norm(XS - Old)
         if PiDiffNorm < TerminationEpsilon:
             break
 
@@ -59,7 +60,7 @@ def _test(C):
     # make sure that T1 is reversible
     for i in range(n):
         for j in range(n):
-            np.testing.assert_almost_equal(T1[i,j]*pi[i], T1[j,i] * pi[j])
+            np.testing.assert_almost_equal(T1[i, j] * pi[i], T1[j, i] * pi[j])
 
 
 def test_1():
@@ -95,9 +96,9 @@ def test_3():
 
 def test_4():
     with np.testing.assert_raises(ValueError):
-        _transmat_mle_prinz(np.zeros((3,3)), tol=1e-10)
+        _transmat_mle_prinz(np.zeros((3, 3)), tol=1e-10)
     with np.testing.assert_raises(ValueError):
-        _transmat_mle_prinz(-1*np.ones((3,3)), tol=1e-10)
+        _transmat_mle_prinz(-1 * np.ones((3, 3)), tol=1e-10)
 
 
 def test_5():
@@ -106,6 +107,7 @@ def test_5():
     assert np.all(np.isfinite(transmat))
     assert np.all(np.isfinite(populations))
     np.testing.assert_array_equal(transmat, C)
+
 
 def test_6():
     C = np.array([[1]], dtype=float)
