@@ -3,6 +3,7 @@ import os
 import sys
 import six
 import time
+import json
 import datetime
 import numpy as np
 from scipy.stats import sem
@@ -27,19 +28,37 @@ except ImportError as e:
 
 
 def _fit_and_score_helper(args):
+    (estimator, X, y, scorer, train, test, verbose, parameters,
+     fit_params, return_train_scores, return_parameters, fold) = args
+
     import numpy as np
     from sklearn.externals import six
     from sklearn.externals.joblib import load
     from sklearn.cross_validation import _fit_and_score
-    args = list(args)
-    if isinstance(args[1], six.string_types):
-        args[1] = load(args[1], mmap_mode='c')
-        if isinstance(args[1], np.memmap):
-            args[1] = np.asarray(args[1])
-    return _fit_and_score(*args)
+    if isinstance(X, six.string_types):
+        X = load(X, mmap_mode='c')
+        if isinstance(X, np.memmap):
+            X = np.asarray(X)
+    results = list(_fit_and_score(
+        estimator, X, y, scorer, train, test, verbose,
+        parameters, fit_params, return_train_scores, return_parameters))
 
+    dict_results = {'fold': fold}
+    if return_train_scores:
+        dict_results['train_score'] = results.pop(0)
+    dict_results['test_score'] = results.pop(0)
+    dict_results['n_test_samples'] = results.pop(0)
+    dict_results['scoring_time'] = results.pop(0)
+    if return_parameters:
+        dict_results['parameters'] = results.pop(0)
+    assert len(results) == 0
+    return dict_results
 
-def verbose_wait(amr, clientview, return_train_scores):
+def verbose_wait(amr, clientview, return_train_scores, log, verbose):
+    print_ = print
+    if verbose <= 0:
+        print_ = lambda *args, **kwargs: None
+
     N = len(amr)
     pending = set(amr.msg_ids)
     while pending:
@@ -59,19 +78,21 @@ def verbose_wait(amr, clientview, return_train_scores):
             ar = clientview.get_result(msg_id)
             try:
                 for result in ar.result:
-                    elapsed, params = result[-2], result[-1]
-                    test_score = result[1] if return_train_scores else result[0]
                     left = '[CV engine={}] {}   '.format(ar.engine_id,
-                        ', '.join('{}={}'.format(k, v) for k, v in params.items()))
-                    right = '  score = {:5f}  {}'.format(test_score, short_format_time(elapsed))
-                    print(left + right.rjust(70-len(left), '-'))
+                        ', '.join('{}={}'.format(k, v) for k, v in result['parameters'].items()))
+                    right = '  score = {:5f}  {}'.format(result['test_score'],
+                                                         short_format_time(result['scoring_time']))
+                    print_(left + right.rjust(70-len(left), '-'))
+
+                    json.dump(result, log)
+                    log.write(os.linesep)
             except RemoteError as e:
                 e.print_traceback()
                 raise
         else:
             left = '\r[Parallel] {0:d}/{1:d}  tasks finished'.format(n_completed, N)
             right = 'elapsed {0}         '.format(short_format_time(amr.elapsed))
-            print(left + right.rjust(71-len(left)), end='')
+            print_(left + right.rjust(71-len(left)), end='')
             sys.stdout.flush()
             time.sleep(1 + round(amr.elapsed) - amr.elapsed)
 
@@ -85,13 +106,13 @@ def verbose_wait(amr, clientview, return_train_scores):
     m3b = '{:.3f}'.format(engine_time/ amr.elapsed).rjust(len(m2)-len(m3a))
     m4a = 'Number of engines:'
     m4b = '{}'.format(n_engines).rjust(len(m2)-len(m4a))
-    print('\n\nTasks completed')
-    print('-'*len(m2))
-    print(m1)
-    print(m2)
-    print(m3a + m3b)
-    print(m4a + m4b)
-    print('-'*len(m2))
+    print_('\n\nTasks completed')
+    print_('-'*len(m2))
+    print_(m1)
+    print_(m2)
+    print_(m3a + m3b)
+    print_(m4a + m4b)
+    print_('-'*len(m2))
 
 
 
@@ -99,7 +120,7 @@ class DistributedBaseSeachCV(BaseSearchCV):
     def __init__(self, estimator, scoring=None, loss_func=None,
                  score_func=None, fit_params=None, iid=True,
                  refit=True, cv=None, verbose=0, client=None,
-                 return_train_scores=False, tmp_dir='.'):
+                 return_train_scores=False, tmp_dir='.', log_file='gridsearch.jsonl'):
         super(DistributedBaseSeachCV, self).__init__(
             estimator=estimator, scoring=scoring, loss_func=loss_func,
             score_func=score_func, iid=iid, refit=refit,
@@ -107,6 +128,25 @@ class DistributedBaseSeachCV(BaseSearchCV):
         self.client = client
         self.return_train_scores = return_train_scores
         self.tmp_dir = tmp_dir
+        self.log_file = log_file
+
+    def _filter_parameter_iterable(self, parameter_iterable, cv):
+        finished = []
+        if self.log_file is not None and os.path.isfile(self.log_file):
+            with open(self.log_file) as f:
+                for line in f:
+                    try:
+                        finished.append(json.loads(line).get('parameters', {}))
+                    except ValueError:
+                        pass
+
+        for param in parameter_iterable:
+            # only skip this param if ALL of the folds have finished
+            if len(cv) == sum(1 for f in finished if param==f):
+                if self.verbose > 0:
+                    print('skipping %s. already computed' % str(param))
+            else:
+                yield param
 
     def _fit(self, X, y, parameter_iterable):
         """Actual fitting,  performing the search over parameters."""
@@ -134,10 +174,18 @@ class DistributedBaseSeachCV(BaseSearchCV):
         if not isinstance(client, Client):
             client = Client(client)
 
+        parameter_iterable = list(self._filter_parameter_iterable(parameter_iterable, cv))
+
         if verbose > 0:
             print('Fitting %d folds for each of %d candidates, totalling %d fits on %d engines' % (
                     len(cv), len(parameter_iterable), len(cv)*len(parameter_iterable),
                     len(client)))
+
+        if self.log_file is None:
+            log_file = open(os.devnull, 'w')
+        else:
+            print('Writing results to %s' % self.log_file)
+            log_file = open(self.log_file, 'a', 0)
 
         if self.tmp_dir:
             tmpfn = os.path.abspath(os.path.join(self.tmp_dir,
@@ -160,17 +208,16 @@ class DistributedBaseSeachCV(BaseSearchCV):
             async = view.map(_fit_and_score_helper,
                              ((clone(base_estimator), Xscatter, y, self.scorer_, train, test,
                                self.verbose, parameters, self.fit_params,
-                               self.return_train_scores, True)
+                               self.return_train_scores, True, fold)
                     for parameters in parameter_iterable
-                    for train, test in cv), block=False, chunksize=1)
+                    for fold, (train, test) in enumerate(cv)), block=False, chunksize=1)
 
-            if verbose > 0:
-                verbose_wait(async, view, self.return_train_scores)
-            async.wait()
+            verbose_wait(async, view, self.return_train_scores, log_file, verbose)
+
             if verbose > 0:
                 async.display_outputs()
             try:
-                out = async.result
+                out = async.result if len(async) > 0 else []
             except RemoteError as e:
                 e.print_traceback()
                 raise
@@ -182,6 +229,10 @@ class DistributedBaseSeachCV(BaseSearchCV):
                     os.unlink(fn)
 
         # Out is a list of triplet: score, estimator, n_test_samples
+        if self.log_file is not None:
+            with open(self.log_file) as f:
+                out.extend([json.loads(line) for line in f])
+
         n_fits = len(out)
         n_folds = len(cv)
 
@@ -297,6 +348,9 @@ class DistributedGridSearchCV(DistributedBaseSeachCV):
         supplied, the default client will be constructed. You can
         also path a string, the path to the ipcontroller-client.json file.
 
+    log_file : str
+        Path to a file where the results of each experiment will be saved.
+
     Attributes
     ----------
     `grid_scores_` : list of dicts
@@ -357,12 +411,13 @@ class DistributedGridSearchCV(DistributedBaseSeachCV):
     def __init__(self, estimator, param_grid, scoring=None, loss_func=None,
                  score_func=None, fit_params=None, iid=True,
                  refit=True, cv=None, verbose=0, client=None,
-                 return_train_scores=False, tmp_dir='.'):
+                 return_train_scores=False, tmp_dir='.', log_file='gridsearch.jsonl'):
         super(DistributedGridSearchCV, self).__init__(
             estimator, scoring=scoring, loss_func=loss_func,
             score_func=score_func, fit_params=fit_params, iid=iid,
             refit=refit, cv=cv, verbose=verbose, client=client,
-            return_train_scores=return_train_scores, tmp_dir=tmp_dir)
+            return_train_scores=return_train_scores, tmp_dir=tmp_dir,
+            log_file=log_file)
         self.param_grid = param_grid
         _check_param_grid(param_grid)
 
