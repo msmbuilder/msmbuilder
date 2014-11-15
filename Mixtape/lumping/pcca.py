@@ -1,4 +1,4 @@
-from mixtape.markovstatemodel import MarkovStateModel
+from mixtape.msm import MarkovStateModel
 import numpy as np
 
 class PCCA(MarkovStateModel):
@@ -13,7 +13,7 @@ class PCCA(MarkovStateModel):
         The desired number of macrostates in the lumped model.
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
-        mixtape.markovstatemodel.MarkovStateModel for possibile options.
+        mixtape.msm.MarkovStateModel for possible options.
     
     Notes
     -----
@@ -108,7 +108,7 @@ class PCCA(MarkovStateModel):
         
         Parameters
         ----------
-        msm : Mixtape.markovstatemodel.MarkovStateModel
+        msm : Mixtape.msm.MarkovStateModel
             The input microstate msm to use.
         n_macrostates : int
             The number of macrostates
