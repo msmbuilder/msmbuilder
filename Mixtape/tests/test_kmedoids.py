@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform, euclidean
-from mixtape.cluster._kmedoids import kmedoids, triu_to_tril, contigify_ids
+from mixtape.cluster._kmedoids import kmedoids, triu_to_tril, contigify_ids, intertia_euclidean
 from mixtape.cluster.kmedoids import _KMedoids, _MinibatchKMedoids
 
 def test_1():
@@ -75,3 +75,18 @@ def test_contigify_ids_2():
     # it's inplace, so they should be equal now
     assert np.all(inp == out)
     assert mapping == {2:0, 0:1, 10:2}
+
+
+def test_intertia_euclid():
+    n = 20
+    n_clusters = 5
+    random = np.random.RandomState(0)
+    X = random.rand(20, 2)
+    cluster_ids = random.random_integers(
+        low=0, high=n-1, size=n_clusters).astype(np.int32)
+    labels = random.random_integers(
+        low=0, high=n_clusters-1, size=n).astype(np.int32)
+
+    ref = sum(euclidean(X[i], X[cluster_ids[labels[i]]]) for i in range(n))
+    val = intertia_euclidean(X, cluster_ids, labels)
+    assert ref == val

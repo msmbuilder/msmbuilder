@@ -11,14 +11,16 @@ cdef extern from "limits.h":
     cdef int INT_MAX
 
 cdef extern from "src/cluster.h":
-  void _kmedoids "kmedoids" (int nclusters, int nelements, double** distmatrix,
-                            int npass, int clusterid[], double* error,
-                            int* ifound)
+  void _kmedoids "kmedoids" (
+      int nclusters, int nelements, double** distmatrix, int npass,
+       int clusterid[], double* error, int* ifound)
 cdef extern from "src/utils.h":
-    int _triu_to_tril "triu_to_tril"(double* upper, size_t length,
-                                     double* lower)
+    int _triu_to_tril "triu_to_tril"(
+        const double* upper, size_t length, double* lower)
     map[int, int] _contigify_ids "contigify_ids" (int* ids, size_t length)
-
+    double _intertia_euclidean "intertia_euclidean"(
+        const double* X, const int* labels, const int* cluster_ids,
+        int n_samples, int n_features)
 
 
 def kmedoids(int n_clusters, double[::1] condensed_distmatrix, int n_pass,
@@ -193,3 +195,10 @@ def contigify_ids(int[::1] clusterids):
     """
     mapping = _contigify_ids(&clusterids[0], len(clusterids))
     return np.array(clusterids, copy=False), mapping
+
+
+def intertia_euclidean(double[:, ::1] X, int[::1] cluster_ids, int[::1] labels):
+    assert len(X) == len(labels)
+    cdef double d = _intertia_euclidean(&X[0,0], &labels[0], &cluster_ids[0],
+                                        X.shape[0], X.shape[1])
+    return d

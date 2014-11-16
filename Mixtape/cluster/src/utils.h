@@ -36,7 +36,7 @@ The condensed lower triangular format (reading the rows across):
 
     [d(1,0)  d(2,0)  d(2,1), d(3,0)  d(3,1), d(3,2)]
 */
-int triu_to_tril(double* upper, size_t length, double* lower);
+int triu_to_tril(const double* upper, size_t length, double* lower);
 
 
 /*
@@ -44,5 +44,8 @@ Renumber cluster ids to go from 0 to n_clusters - 1.
 This function modifies the array inplace.
 */
 std::map<int, int> contigify_ids(int* ids, size_t length);
+
+double intertia_euclidean(const double* X, const int* labels,
+                          const int* cluster_ids, int n_samples, int n_features);
 
 #endif

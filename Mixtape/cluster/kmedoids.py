@@ -104,10 +104,11 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
     """
 
     def __init__(self, n_clusters=8, max_iter=100, batch_size=100,
-                 metric='euclidean', random_state=None):
+                 metric='euclidean', max_no_improvement=10, random_state=None):
         self.n_clusters = n_clusters
         self.batch_size = batch_size
         self.max_iter = max_iter
+        self.max_no_improvement = max_no_improvement
         self.metric = metric
         self.random_state = random_state
 
@@ -117,70 +118,49 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
         n_iter = int(self.max_iter * n_batches)
         random_state = check_random_state(self.random_state)
 
-        cid = random_state.random_integers(
-            low=0, high=self.n_clusters-1, size=n_samples)
-        unique_labels = random_state.random_integers(
-            low=0, high=n_samples-1, size=self.n_clusters)
-        labels = unique_labels[cid].astype(np.int32)
+        cluster_ids_ = random_state.random_integers(
+            low=0, high=n_samples-1, size=self.n_clusters).astype(np.int32)
+        labels_ = random_state.random_integers(
+            low=0, high=self.n_clusters-1, size=n_samples).astype(np.int32)
 
+        n_iters_no_improvement = 0
         for kk in range(n_iter):
             # each minibatch includes the random indices AND the
             # current cluster centers
-            _, mapping = _kmedoids.contigify_ids(np.copy(labels))
-            vmapping = np.array(sorted(mapping.items(), key=itemgetter(1)))
-
             minibatch_indices = np.concatenate([
-                vmapping[:, 0],
+                cluster_ids_,
                 random_state.random_integers(
                     0, n_samples - 1, self.batch_size),
             ])
-
             dmat = pdist(X[minibatch_indices], metric=self.metric)
-
-            minibatch_labels = np.vectorize(mapping.get, otypes=[np.int32])(
-                labels[minibatch_indices])
-
-            # print('\nminibatch indices', minibatch_indices)
-            # print('mapping', mapping)
-            # print('labels', labels[minibatch_indices])
-            # print('mapped labels', minibatch_labels)
-            assert np.all(minibatch_labels[np.arange(self.n_clusters)] ==
-                          np.arange(self.n_clusters))
+            minibatch_labels = np.concatenate([
+                np.arange(self.n_clusters, dtype=np.int32),
+                labels_[minibatch_indices[self.n_clusters:]]
+            ])
 
             ids, intertia, _ = _kmedoids.kmedoids(
                 self.n_clusters, dmat, 0, minibatch_labels)
-            # Here, there are two things that can happen. First, we included
-            # the current centers in the batch as any other point, and they
-            # (probably) got assigned to someone else. Since they're not longer
-            # centers, we need to remap every point in the _whole_dataset_
-            # that used to map to these centers to new place that these guys
-            # are now assigned to.  Second, there's the rest of the guys in
-            # the minibatch (the regular points). Those points have new labels,
-            # and we need to copy back those new labels into their proper place
-            # in the whole dataset array.
+            minibatch_labels, m = _kmedoids.contigify_ids(ids)
 
-            # print('output ids', ids)
+            # Copy back the new cluster_ids_ for the centers
+            minibatch_cluster_ids = np.array(
+                sorted(m.items(), key=itemgetter(1)))[:,0]
+            cluster_ids_ = minibatch_indices[minibatch_cluster_ids].astype(np.int32)
 
-            # mapping from original centers to new centers,
-            new_centers = dict((vmapping[i, 0], minibatch_indices[ids[i]])
-                               for i in range(self.n_clusters))
-            # apply this mapping to the whole labels array
-            labels = np.vectorize(new_centers.get, otypes=[np.int32])(labels)
+            # Copy back the new labels for the elements
+            n_changed = np.sum(labels_[minibatch_indices] != minibatch_labels)
+            if n_changed == 0:
+                n_iters_no_improvement += 1
+            else:
+                labels_[minibatch_indices] = minibatch_labels
+                n_iters_no_improvement = 0
+            if n_iters_no_improvement >= self.max_no_improvement:
+                break
 
-            # manually map the elements that were in the minibatch to their
-            # new labels
-            labels[minibatch_indices[self.n_clusters:]] = \
-                minibatch_indices[ids[self.n_clusters:]]
-
-            unique_labels = np.unique(labels)
-            assert np.all(labels[unique_labels] == unique_labels)
-
-            from scipy.spatial.distance import euclidean
-            print('intertia', sum(euclidean(X[i], X[labels[i]]) for i in range(n_samples)))
-
-        self.labels_, mapping = _kmedoids.contigify_ids(labels)
-        smapping = sorted(mapping.items(), key=itemgetter(1))
-        self.cluster_ids_ = np.array(smapping)[:, 0]
-        self.intertia_ = 0  # TODO()
-
+        self.cluster_ids_ = cluster_ids_
+        self.labels_ = labels_
+        if self.metric == 'euclidean':
+            self.intertia_ = _kmedoids.intertia_euclidean(X, cluster_ids_, labels_)
+        else:
+            raise NotImplementedError()
         return self
