@@ -19,7 +19,6 @@ fi
 # Install stuff for running the example IPython notebooks
 sudo apt-get update -qq
 sudo apt-get install -qq pandoc         # notebook -> rst
-pip install triangle
 conda install --yes `cat doc/requirements.txt | xargs`
 
 cd doc && make html && cd -
