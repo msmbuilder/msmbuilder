@@ -28,9 +28,9 @@ import operator
 import numpy as np
 import scipy.linalg
 
-from mixtape.utils import list_of_1d
 from sklearn.utils import check_random_state
-from sklearn.base import BaseEstimator
+from ..utils import list_of_1d
+from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _dict_compose,
                    _strongly_connected_subgraph, _transition_counts,

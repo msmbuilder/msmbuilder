@@ -27,7 +27,7 @@ import scipy.spatial.distance
 from scipy.cluster.hierarchy import fcluster
 from sklearn.externals.joblib import Memory
 from sklearn.utils import check_random_state
-from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
+from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 
 try:
@@ -81,7 +81,7 @@ def cdist(XA, XB, metric='euclidean'):
 #-----------------------------------------------------------------------------
 
 
-class _LandmarkAgglomerative(BaseEstimator, ClusterMixin, TransformerMixin):
+class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
     """Landmark-based agglomerative hierarchical clustering
 
     Landmark-based agglomerative clustering is a simple scalable version of

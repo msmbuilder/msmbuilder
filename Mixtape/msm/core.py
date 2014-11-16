@@ -8,7 +8,7 @@ from sklearn.base import TransformerMixin
 
 __all__ = [
     '_MappingTransformMixin', '_dict_compose', '_strongly_connected_subgraph',
-    '_transition_counts', 'ndgrid_msm_likelihood_score',
+    '_transition_counts',
     '_solve_msm_eigensystem',
 ]
 
@@ -101,69 +101,6 @@ class _MappingTransformMixin(TransformerMixin):
 
             result.append(f(y))
         return result
-
-
-
-def ndgrid_msm_likelihood_score(estimator, sequences):
-    """Log-likelihood score function for an (NDGrid, MarkovStateModel) pipeline
-
-    Parameters
-    ----------
-    estimator : sklearn.pipeline.Pipeline
-        A pipeline estimator containing an NDGrid followed by a
-        MarkovStateModel
-    sequences: list of array-like, each of shape (n_samples_i, n_features)
-        Data sequences, where n_samples_i in the number of samples
-        in sequence i and n_features is the number of features.
-
-    Returns
-    -------
-    log_likelihood : float
-        Mean log-likelihood per data point.
-
-    Examples
-    --------
-    >>> pipeline = Pipeline([
-    >>>    ('grid', NDGrid()),
-    >>>    ('msm', MarkovStateModel())
-    >>> ])
-    >>> grid = GridSearchCV(pipeline, param_grid={
-    >>>    'grid__n_bins_per_feature': [10, 20, 30, 40]
-    >>> }, scoring=ndgrid_msm_likelihood_score)
-    >>> grid.fit(dataset)
-    >>> print grid.grid_scores_
-
-    References
-    ----------
-    .. [1] McGibbon, R. T., C. R. Schwantes, and V. S. Pande. "Statistical
-       Model Selection for Markov Models of Biomolecular Dynamics." J. Phys.
-       Chem B. (2014)
-    """
-    from mixtape import cluster
-    grid = [model for (name, model) in estimator.steps if isinstance(model, cluster.NDGrid)][0]
-    msm = [model for (name, model) in estimator.steps if isinstance(model, MarkovStateModel)][0]
-
-    # NDGrid supports min/max being different along different directions, which
-    # means that the bin widths are coordinate dependent. But I haven't
-    # implemented that because I've only been using this for 1D data
-    if grid.n_features != 1:
-        raise NotImplementedError("file an issue on github :)")
-
-    raise NotImplementedError()
-
-    # transition_log_likelihood = 0
-    # emission_log_likelihood = 0
-    # logtransmat = np.nan_to_num(np.log(np.asarray(msm.transmat_.todense())))
-    # width = grid.grid[0,1] - grid.grid[0,0]
-    #
-    # for X in grid.transform(sequences):
-    #     counts = np.asarray(_apply_mapping_to_matrix(
-    #         msmlib.get_counts_from_traj(X, n_states=grid.n_bins),
-    #         msm.mapping_).todense())
-    #     transition_log_likelihood += np.multiply(counts, logtransmat).sum()
-    #     emission_log_likelihood += -1 * np.log(width) * len(X)
-    #
-    # return (transition_log_likelihood + emission_log_likelihood) / sum(len(x) for x in sequences)
 
 
 def _solve_msm_eigensystem(transmat, k):

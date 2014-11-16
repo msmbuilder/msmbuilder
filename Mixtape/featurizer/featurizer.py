@@ -25,10 +25,11 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
-import sklearn.base
+from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
 
+from ..base import BaseEstimator
 
 #-----------------------------------------------------------------------------
 # Code
@@ -92,7 +93,7 @@ def load(filename):
     return featurizer
 
 
-class Featurizer(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
+class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
 
     Notes
@@ -651,7 +652,7 @@ class DRIDFeaturizer(Featurizer):
         return md.geometry.compute_drid(traj, self.atom_indices)
 
 
-class TrajFeatureUnion(sklearn.pipeline.FeatureUnion):
+class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion
 
     Notes

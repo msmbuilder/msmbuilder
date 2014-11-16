@@ -35,16 +35,13 @@ import itertools
 import warnings
 
 import numpy as np
-from mixtape.utils import list_of_1d
-from sklearn.base import BaseEstimator
-
+from ..utils import list_of_1d
+from ..base import BaseEstimator
 from .core import (_MappingTransformMixin, _dict_compose,
                    _strongly_connected_subgraph, _transition_counts,
                    _solve_msm_eigensystem)
 from ._metzner_mcmc_fast import metzner_mcmc_fast
 from ._metzner_mcmc_slow import metzner_mcmc_slow
-
-
 
 
 #-----------------------------------------------------------------------------
