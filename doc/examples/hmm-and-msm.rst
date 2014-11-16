@@ -1,5 +1,5 @@
 HMM and MSM Timescales for Ala2
 ===============================
 
-.. notebook:: hmm-and-msm.ipynb
+.. notebook:: examples/hmm-and-msm.ipynb
 

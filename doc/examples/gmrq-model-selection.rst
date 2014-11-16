@@ -1,4 +1,4 @@
 GMRQ hyperparameter selection
 =============================
 
-.. notebook:: gmrq-model-selection.ipynb
+.. notebook:: examples/gmrq-model-selection.ipynb
