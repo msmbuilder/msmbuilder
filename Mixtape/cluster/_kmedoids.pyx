@@ -5,7 +5,10 @@ in src/cluster.c. It is not designed to be a user-facing module.
 from __future__ import print_function, division, absolute_import
 import numpy as np
 from libc.stdlib cimport malloc, free
+from libcpp.map cimport map
 
+cdef extern from "limits.h":
+    cdef int INT_MAX
 
 cdef extern from "src/cluster.h":
   void _kmedoids "kmedoids" (int nclusters, int nelements, double** distmatrix,
@@ -14,7 +17,7 @@ cdef extern from "src/cluster.h":
 cdef extern from "src/utils.h":
     int _triu_to_tril "triu_to_tril"(double* upper, size_t length,
                                      double* lower)
-    int _contigify_ids "contigify_ids" (int* ids, size_t length)
+    map[int, int] _contigify_ids "contigify_ids" (int* ids, size_t length)
 
 
 
@@ -75,8 +78,7 @@ def kmedoids(int n_clusters, double[::1] condensed_distmatrix, int n_pass,
     ifound : int
         If kmedoids is successful: the number of times the optimal clustering
         solution was found. The value of ifound is at least 1; its maximum
-        value is npass. If the user requested more clusters than elements
-        available, ifound is set to 0.
+        value is npass.
     """
     cdef double error
     cdef int i, ifound
@@ -95,6 +97,8 @@ def kmedoids(int n_clusters, double[::1] condensed_distmatrix, int n_pass,
                          'n_elements')
     if n_pass < 0:
         raise ValueError('n_pass must be greater than or equal to zero.')
+    if n_elements >= INT_MAX:
+        raise ValueError("number of elements must be less than %d" % INT_MAX)
 
     # setup distmatrix, which, for this library, is a double**
     # each distmatrix[i] needs to point to an array containing that row
@@ -133,7 +137,7 @@ def kmedoids(int n_clusters, double[::1] condensed_distmatrix, int n_pass,
               &clusterid_[0], &error, &ifound)
     free(distmatrix)
 
-    return contigify_ids(clusterid_), error, ifound
+    return np.array(clusterid_, copy=False), error, ifound
 
 
 # ========================================================================= #
@@ -187,5 +191,5 @@ def contigify_ids(int[::1] clusterids):
 
     This function modifies the array inplace
     """
-    _contigify_ids(&clusterids[0], len(clusterids))
-    return np.array(clusterids, copy=False)
+    mapping = _contigify_ids(&clusterids[0], len(clusterids))
+    return np.array(clusterids, copy=False), mapping

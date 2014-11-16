@@ -3,7 +3,7 @@ from __future__ import print_function, absolute_import, division
 import numpy as np
 from scipy.spatial.distance import pdist, squareform, euclidean
 from mixtape.cluster._kmedoids import kmedoids, triu_to_tril, contigify_ids
-
+from mixtape.cluster.kmedoids import _KMedoids
 
 def test_1():
     random = np.random.RandomState(0)
@@ -17,7 +17,18 @@ def test_1():
 
     cid, i1, f = kmedoids(n_clusters, distmatrix, n_pass)
     cid, i2, f = kmedoids(n_clusters, distmatrix, n_pass, cid)
-    assert np.all(np.unique(cid) == np.arange(n_clusters))
+
+
+def test_2():
+    random = np.random.RandomState(0)
+    X = random.randn(10, 2)
+
+    km = _KMedoids(n_clusters=2, n_passes=1).fit(X)
+
+    intertia = 0
+    for i in range(len(X)):
+        intertia += euclidean(X[km.cluster_ids_[km.labels_[i]]], X[i])
+    assert intertia == km.intertia_
 
 
 def test_triu_to_tril_1():
@@ -36,15 +47,19 @@ def test_triu_to_tril_1():
 
 def test_contigify_ids_1():
     inp = np.array([0, 10, 10, 20, 20, 21], dtype=np.int32)
-    out = np.array([0, 1,  1,  2,  2,  3], dtype=np.int32)
-    assert np.all(contigify_ids(inp) == out)
+    ref = np.array([0, 1,  1,  2,  2,  3], dtype=np.int32)
+    out, mapping = contigify_ids(inp)
+    assert np.all(out == ref)
     # it's inplace, so they should be equal now
     assert np.all(inp == out)
+    assert mapping == {0:0, 10:1, 20:2, 21:3}
 
 
 def test_contigify_ids_2():
     inp = np.array([2, 0, 10, 2, 2, 10], dtype=np.int32)
-    out = np.array([0, 1,  2, 0, 0,  2], dtype=np.int32)
-    assert np.all(contigify_ids(inp) == out)
+    ref = np.array([0, 1,  2, 0, 0,  2], dtype=np.int32)
+    out, mapping = contigify_ids(inp)
+    assert np.all(out == ref)
     # it's inplace, so they should be equal now
     assert np.all(inp == out)
+    assert mapping == {2:0, 0:1, 10:2}

@@ -29,7 +29,7 @@ int triu_to_tril(double* upper, size_t length, double* lower)
 }
 
 
-int contigify_ids(int* ids, size_t length)
+std::map<int, int> contigify_ids(int* ids, size_t length)
 {
     size_t i = 0;
     int id, new_id;
@@ -44,5 +44,5 @@ int contigify_ids(int* ids, size_t length)
         ids[i] = mapping[id];
     }
 
-    return 1;
+    return mapping;
 }

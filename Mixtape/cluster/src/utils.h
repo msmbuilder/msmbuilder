@@ -1,8 +1,6 @@
 #ifndef MIXTAPE_CLUSTER_UTILS_H
 #define MIXTAPE_CLUSTER_UTILS_H
-
-#include <cstdlib>
-extern "C" {
+#include <map>
 
 /*
 Convert a distance matrix storage in upper-triangular format to lower
@@ -45,7 +43,6 @@ int triu_to_tril(double* upper, size_t length, double* lower);
 Renumber cluster ids to go from 0 to n_clusters - 1.
 This function modifies the array inplace.
 */
-int contigify_ids(int* ids, size_t length);
+std::map<int, int> contigify_ids(int* ids, size_t length);
 
-}
 #endif
