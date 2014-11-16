@@ -1,22 +1,3 @@
-"""Met-enkephalin dataset
-
-The dataset consists of ten ~50 ns molecular dynamics (MD) simulation
-trajectories of the 5 residue Met-enkaphalin peptide. The aggregate
-sampling is 499.58 ns. Simulations were performed starting from the 1st
-model in the 1PLX PDB file, solvated with 832 TIP3P water molecules using
-OpenMM 6.0. The coordinates (protein only -- the water was stripped)
-are saved every 5 picoseconds. Each of the ten trajectories is roughly
-50 ns long and contains about 10,000 snapshots.  
-
-Forcefield: amber99sb-ildn; water: tip3p; nonbonded method: PME; cutoffs:
-1nm; bonds to hydrogen were constrained; integrator: langevin dynamics;
-temperature: 300K; friction coefficient: 1.0/ps; pressure control: Monte
-Carlo barostat (interval of 25 steps); timestep 2 fs.
-
-The dataset is available on figshare at
-
-    http://dx.doi.org/10.6084/m9.figshare.1026324
-"""
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University and the Authors
@@ -74,6 +55,25 @@ class MetEnkephalin(Dataset):
     download_if_missing: optional, True by default
         If False, raise a IOError if the data is not locally available
         instead of trying to download the data from the source site.
+
+    Notes
+    -----
+    The dataset consists of ten ~50 ns molecular dynamics (MD) simulation
+    trajectories of the 5 residue Met-enkaphalin peptide. The aggregate
+    sampling is 499.58 ns. Simulations were performed starting from the 1st
+    model in the 1PLX PDB file, solvated with 832 TIP3P water molecules using
+    OpenMM 6.0. The coordinates (protein only -- the water was stripped)
+    are saved every 5 picoseconds. Each of the ten trajectories is roughly
+    50 ns long and contains about 10,000 snapshots.
+
+    Forcefield: amber99sb-ildn; water: tip3p; nonbonded method: PME; cutoffs:
+    1nm; bonds to hydrogen were constrained; integrator: langevin dynamics;
+    temperature: 300K; friction coefficient: 1.0/ps; pressure control: Monte
+    Carlo barostat (interval of 25 steps); timestep 2 fs.
+
+    The dataset is available on figshare at
+
+    http://dx.doi.org/10.6084/m9.figshare.1026324
     """
 
     def __init__(self, data_home=None):
