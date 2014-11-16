@@ -23,7 +23,8 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.linalg
-from sklearn.base import BaseEstimator, TransformerMixin
+from ..base import BaseEstimator
+from sklearn.base import TransformerMixin
 from sklearn.utils import array2d
 
 __all__ = ['tICA']

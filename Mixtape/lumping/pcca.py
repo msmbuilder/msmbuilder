@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import
-from ..msm import MarkovStateModel
+
 import numpy as np
+from ..msm import MarkovStateModel
 
 
 class PCCA(MarkovStateModel):
