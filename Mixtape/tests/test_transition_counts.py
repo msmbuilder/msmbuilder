@@ -1,6 +1,6 @@
 import numpy as np
 from six import PY3
-from mixtape.markovstatemodel import _transition_counts
+from mixtape.msm import _transition_counts
 
 
 def test_1():

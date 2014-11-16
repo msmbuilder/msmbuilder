@@ -25,7 +25,7 @@ class PCCAPlus(PCCA):
         Possible objective functions.  See objective for details.
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
-        mixtape.markovstatemodel.MarkovStateModel for possible options.
+        mixtape.msm.MarkovStateModel for possible options.
 
 
     Notes

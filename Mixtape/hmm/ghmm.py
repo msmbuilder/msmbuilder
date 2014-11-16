@@ -37,7 +37,7 @@ from sklearn.utils import check_random_state
 
 from .discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from . import _ghmm
-from ..markovstatemodel._markovstatemodel import _transmat_mle_prinz
+from ..msm._markovstatemodel import _transmat_mle_prinz
 
 
 EPS = np.finfo(np.float32).eps

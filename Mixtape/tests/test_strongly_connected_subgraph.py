@@ -1,5 +1,5 @@
 import numpy as np
-from mixtape.markovstatemodel import _strongly_connected_subgraph
+from mixtape.msm import _strongly_connected_subgraph
 
 def test_0():
     # what do you do with 1 state that is not even connected
