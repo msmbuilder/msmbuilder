@@ -1,5 +1,5 @@
 Visualization with tICA
 =======================
 
-.. notebook:: plot-tica-heatmap.ipynb
+.. notebook:: examples/plot-tica-heatmap.ipynb
 

@@ -21,7 +21,7 @@ class Dataset(object):
         """Get a description from the Notes section of the docstring."""
         lines = [s.strip() for s in cls.__doc__.splitlines()]
         note_i = lines.index("Notes")
-        return " ".join(lines[note_i + 2:])
+        return "\n".join(lines[note_i + 2:])
 
     def cache(self):
         raise NotImplementedError

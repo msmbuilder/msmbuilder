@@ -279,7 +279,8 @@ class GaussianFusionHMM(object):
         if 't' in params:
             if self.reversible_type == 'mle':
                 counts = np.maximum(
-                    stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
+                    np.nan_to_num(stats['trans']) + self.transmat_prior - 1.0,
+                        1e-20).astype(np.float64)
                 self.transmat_, self.populations_ = _transmat_mle_prinz(counts)
             elif self.reversible_type == 'transpose':
                 revcounts = np.maximum(
@@ -509,18 +510,18 @@ class GaussianFusionHMM(object):
         Returns
         -------
         centroid_pairs_by_state : np.ndarray, dtype=int, shape = (n_states, 1, 2)
-            centroid_pairs_by_state[state, 0] = (trj, frame) gives the 
-            trajectory and frame index associated with the 
+            centroid_pairs_by_state[state, 0] = (trj, frame) gives the
+            trajectory and frame index associated with the
             mean of `state`
         mean_approx : np.ndarray, dtype=float, shape = (n_states, 1, n_features)
-            mean_approx[state, 0] gives the features at the representative 
+            mean_approx[state, 0] gives the features at the representative
             point for `state`
 
         See Also
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
         GaussianFusionHMM.draw_samples : Draw samples from GHMM
-        
+
 
         """
 
@@ -557,7 +558,7 @@ class GaussianFusionHMM(object):
         n_samples : int
             How many samples to return from each state
         scheme : str, optional, default='even'
-            Must be one of ['even', "maxent"].  
+            Must be one of ['even', "maxent"].
         match_vars : bool, default=False
             Flag for matching variances in maxent discrete approximation
 
@@ -567,9 +568,9 @@ class GaussianFusionHMM(object):
             selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
             pairs from the specified state.
         sample_features : np.ndarray, dtype=float, shape = (n_states, n_samples, n_features)
-            sample_features[state, sample] gives the features for the given `sample` of 
+            sample_features[state, sample] gives the features for the given `sample` of
             `state`
-            
+
         Notes
         -----
         With scheme='even', this function assigns frames to states crisply
@@ -582,13 +583,13 @@ class GaussianFusionHMM(object):
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
         GaussianFusionHMM.draw_centroids : Draw centers from GHMM
-        
+
         ToDo
         ----
         This function could be separated into several MixIns for
         models with crisp and fuzzy state assignments.  Then we could have
         an optional argument that specifies which way to do the sampling
-        from states--e.g. use either the base class function or a 
+        from states--e.g. use either the base class function or a
         different one.
         """
 

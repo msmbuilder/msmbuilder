@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import sys, os
+import sys
+import os
 import mixtape
 import mixtape.version
-sys.path.insert(0, os.path.abspath('sphinxext'))
+
 sys.path.insert(0, os.path.abspath('themes/sphinx_rtd_theme-0.1.5'))
 import sphinx_rtd_theme
 
@@ -11,7 +12,7 @@ import sphinx_rtd_theme
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration -----------------------------------------------------
 
@@ -20,11 +21,13 @@ import sphinx_rtd_theme
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.autosummary',
-              'sphinx.ext.viewcode', 'sphinx.ext.autodoc', 'numpydoc',
+extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig',
+              'sphinx.ext.autosummary', 'sphinx.ext.viewcode',
+              'sphinx.ext.autodoc', 'numpydoc',
               'sphinx.ext.intersphinx', 'sphinx.ext.viewcode',
-              'ipython_console_highlighting', 'ipython_directive',
-              'matplotlib.sphinxext.plot_directive']
+              'matplotlib.sphinxext.plot_directive',
+              'IPython.sphinxext.ipython_console_highlighting',
+              'IPython.sphinxext.ipython_directive']
 
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
@@ -37,20 +40,8 @@ html_context = {
     'conf_py_path': '/doc/'
 }
 
-
-
-import runipy
-import IPython.nbconvert.utils.pandoc
+sys.path.insert(0, os.path.abspath('sphinxext'))
 extensions.append('notebook_sphinxext')
-extensions.append('notebookcell_sphinxext')
-
-# _python_doc_base = 'http://docs.python.org/2.7'
-# intersphinx_mapping = {
-#     _python_doc_base: None,
-#     'http://docs.scipy.org/doc/numpy': None,
-#     'http://docs.scipy.org/doc/scipy/reference': None,
-#     'http://scikit-learn.org/stable': None
-# }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -116,7 +107,6 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'mixtape'
 html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -126,7 +116,6 @@ html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
-html_theme_path = ['themes']
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 
@@ -199,21 +188,21 @@ htmlhelp_basename = 'mixtapedoc'
 # -- Options for LaTeX output --------------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'mixtape.tex', u'Mixtap Documentation',
-   u'Robert McGibbon', 'manual'),
+    ('index', 'mixtape.tex', u'Mixtape Documentation',
+     u'Robert McGibbon', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -256,9 +245,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Mixtape', u'Mixtape Documentation',
-   u'Robert McGibbon', 'Mixtape', 'One line description of project.',
-   'Miscellaneous'),
+    ('index', 'Mixtape', u'Mixtape Documentation',
+     u'Robert McGibbon', 'Mixtape', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
