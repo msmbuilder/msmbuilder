@@ -81,7 +81,7 @@ def kmedoids(int n_clusters, double[::1] condensed_distmatrix, int n_pass,
     cdef double error
     cdef int i, ifound
     cdef int[::1] clusterid_
-    cdef int n_elements = int(1 + np.sqrt(8*len(condensed_distmatrix) + 1)) / 2.0;
+    cdef int n_elements = int(1 + np.sqrt(8*len(condensed_distmatrix) + 1) / 2.0)
     if len(condensed_distmatrix) != (n_elements * (n_elements-1) / 2):
         raise ValueError('len(condensed_distmatrix)=%s is not a valid size '
                          'of a condensed distance matrix, which should be of '
