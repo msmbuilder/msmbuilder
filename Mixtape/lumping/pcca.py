@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
-from ..msm import MarkovStateModel
 import numpy as np
+from ..msm import MarkovStateModel
 
 
 class PCCA(MarkovStateModel):
@@ -66,6 +66,7 @@ class PCCA(MarkovStateModel):
         # Extract non-perron eigenvectors
         right_eigenvectors = self.right_eigenvectors_[:, 1:]
 
+        assert self.n_states_ > 0
         microstate_mapping = np.zeros(self.n_states_, dtype=int)
         def spread(x):
             return x.max() - x.min()
@@ -128,6 +129,7 @@ class PCCA(MarkovStateModel):
         lumper.populations_ = msm.populations_
         lumper.mapping_ = msm.mapping_
         lumper.countsmat_ = msm.countsmat_
+        lumper.n_states_ = msm.n_states_
         
         lumper._do_lumping()
         

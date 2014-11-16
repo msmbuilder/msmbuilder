@@ -9,8 +9,8 @@ from .pcca import PCCA
 
 
 class PCCAPlus(PCCA):
-    """Perron Cluster Cluster Analysis Plus (PCCA+) for coarse-graining (lumping)
-        microstates into macrostates.
+    """Perron Cluster Cluster Analysis Plus (PCCA+) for coarse-graining
+    (lumping) microstates into macrostates.
 
     Parameters
     ----------
@@ -100,13 +100,12 @@ class PCCAPlus(PCCA):
         )
         try:
             self._objective_function = obj_functions[objective_function]
-        except KeyError as e:
+        except KeyError:
             raise AttributeError("Objective function must be one of %s",
                                  list(obj_functions.keys()))
 
         self.objective_function = objective_function
         self.do_minimization = do_minimization
-
 
     def _do_lumping(self):
         """Perform PCCA+ algorithm by optimizing transformation matrix A.
@@ -121,22 +120,22 @@ class PCCAPlus(PCCA):
             Mapping from microstates to macrostates.
 
         """
-        index = index_search(self.right_eigenvectors_)
+        right_eigenvectors = self.right_eigenvectors_[:, :self.n_macrostates]
+        index = index_search(right_eigenvectors)
 
-        # compute transformation matrix A as initial guess for local optimization
-        # (maybe not feasible)
-        A = self.right_eigenvectors_[index, :]
+        # compute transformation matrix A as initial guess for local
+        # optimization (maybe not feasible)
+        A = right_eigenvectors[index, :]
 
         A = inv(A)
-        A = fill_A(A, self.right_eigenvectors_)
+        A = fill_A(A, right_eigenvectors)
 
         if self.do_minimization:
             A = self._optimize_A(A)
 
-        A = fill_A(A, self.right_eigenvectors_)
-        chi = dot(self.right_eigenvectors_, A)
-        microstate_mapping = np.argmax(chi, 1)
-        self.A_, self.chi_, self.microstate_mapping_ = A, chi, microstate_mapping
+        self.A_ = fill_A(A, right_eigenvectors)
+        self.chi_ = dot(right_eigenvectors, self.A_)
+        self.microstate_mapping_ = np.argmax(self.chi_, 1)
 
     def _optimize_A(self, A):
         """Find optimal transformation matrix A by minimization.
@@ -151,12 +150,13 @@ class PCCAPlus(PCCA):
         A : ndarray
             The transformation matrix.
         """
+        right_eigenvectors = self.right_eigenvectors_[:, :self.n_macrostates]
         flat_map, square_map = get_maps(A)
         alpha = to_flat(1.0 * A, flat_map)
 
         def obj(x):
             return -1 * self._objective_function(
-                x, self.transmat_, self.right_eigenvectors_, square_map,
+                x, self.transmat_, right_eigenvectors, square_map,
                 self.populations_
             )
 
@@ -211,8 +211,8 @@ def metastability(alpha, T, right_eigenvectors, square_map, pi):
     A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
 
     # If current point is infeasible or leads to degenerate lumping.
-    if len(np.unique(mapping)) != right_eigenvectors.shape[
-        1] or has_constraint_violation(A, right_eigenvectors):
+    if (len(np.unique(mapping)) != right_eigenvectors.shape[1] or
+            has_constraint_violation(A, right_eigenvectors)):
         return -1.0 * np.inf
 
     obj = 0.0
@@ -261,8 +261,8 @@ def crisp_metastability(alpha, T, right_eigenvectors, square_map, pi):
     chi[np.arange(num_micro), mapping] = 1.
 
     # If current point is infeasible or leads to degenerate lumping.
-    if len(np.unique(mapping)) != right_eigenvectors.shape[
-        1] or has_constraint_violation(A, right_eigenvectors):
+    if (len(np.unique(mapping)) != right_eigenvectors.shape[1]
+            or has_constraint_violation(A, right_eigenvectors)):
         return -1.0 * np.inf
 
     obj = 0.0
@@ -303,8 +303,8 @@ def crispness(alpha, T, right_eigenvectors, square_map, pi):
     A, chi, mapping = calculate_fuzzy_chi(alpha, square_map, right_eigenvectors)
 
     # If current point is infeasible or leads to degenerate lumping.
-    if len(np.unique(mapping)) != right_eigenvectors.shape[
-        1] or has_constraint_violation(A, right_eigenvectors):
+    if (len(np.unique(mapping)) != right_eigenvectors.shape[1] or
+            has_constraint_violation(A, right_eigenvectors)):
         return -1.0 * np.inf
 
     obj = tr(dot(diag(1. / A[0]), dot(A.transpose(), A)))
@@ -313,7 +313,8 @@ def crispness(alpha, T, right_eigenvectors, square_map, pi):
 
 
 def get_maps(A):
-    """Get mappings from the square array A to the flat vector of parameters alpha.
+    """Get mappings from the square array A to the flat vector of parameters
+    alpha.
 
     Helper function for PCCA+ optimization.
 
@@ -516,9 +517,12 @@ def calculate_fuzzy_chi(alpha, square_map, right_eigenvectors):
     mapping: ndarray
         The mapping from microstates to macrostates.
     """
-    A = to_square(alpha, square_map)  # Convert parameter vector into matrix A
-    A = fill_A(A, right_eigenvectors)  # Make A feasible.
-    chi_fuzzy = np.dot(right_eigenvectors,
-                       A)  # Calculate the fuzzy membership matrix.
-    mapping = np.argmax(chi_fuzzy, 1)  # Calculate the microstate mapping.
+    # Convert parameter vector into matrix A
+    A = to_square(alpha, square_map)
+    # Make A feasible.
+    A = fill_A(A, right_eigenvectors)
+    # Calculate the fuzzy membership matrix.
+    chi_fuzzy = np.dot(right_eigenvectors, A)
+    # Calculate the microstate mapping.
+    mapping = np.argmax(chi_fuzzy, 1)
     return A, chi_fuzzy, mapping
