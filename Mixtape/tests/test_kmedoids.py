@@ -3,7 +3,7 @@ from __future__ import print_function, absolute_import, division
 import numpy as np
 from scipy.spatial.distance import pdist, squareform, euclidean
 from mixtape.cluster._kmedoids import kmedoids, triu_to_tril, contigify_ids
-from mixtape.cluster.kmedoids import _KMedoids
+from mixtape.cluster.kmedoids import _KMedoids, _MinibatchKMedoids
 
 def test_1():
     random = np.random.RandomState(0)
@@ -29,6 +29,18 @@ def test_2():
     for i in range(len(X)):
         intertia += euclidean(X[km.cluster_ids_[km.labels_[i]]], X[i])
     assert intertia == km.intertia_
+
+
+def test_3():
+    random = np.random.RandomState(0)
+    X = random.randn(40, 2)
+    X[20:] += 5
+
+    k1 = _MinibatchKMedoids(n_clusters=2, max_iter=5, random_state=0, batch_size=20).fit(X)
+    k2 = _KMedoids(n_clusters=2, n_passes=10).fit(X)
+
+    assert (np.all(k1.labels_ == k2.labels_) or
+            np.all(k1.labels_ == np.logical_not(k2.labels_)))
 
 
 def test_triu_to_tril_1():
