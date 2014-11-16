@@ -1,5 +1,5 @@
 .. _hmm:
-.. currentmodule:: mixtape
+.. currentmodule:: mixtape.hmm
 
 Hidden Markov models (HMMs)
 ===========================
@@ -65,8 +65,8 @@ Algorithms
     :toctree: generated/
     :template: class.rst
 
-    ~ghmm.GaussianFusionHMM
-    ~vmhmm.VonMisesHMM
+    ~GaussianFusionHMM
+    ~VonMisesHMM
 
 Example
 -------
