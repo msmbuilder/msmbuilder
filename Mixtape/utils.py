@@ -26,7 +26,8 @@ import json
 import numpy as np
 from sklearn.utils import check_random_state
 from sklearn.externals.joblib import load, dump
-import sklearn.base
+from sklearn.base import TransformerMixin
+from .base import BaseEstimator
 import sklearn.pipeline
 
 #-----------------------------------------------------------------------------
@@ -168,7 +169,7 @@ def map_drawn_samples(selected_pairs_by_state, trajectories, top=None):
     return frames_by_state
 
 
-class Subsampler(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
+class Subsampler(BaseEstimator, TransformerMixin):
     """Convert a list of feature time series (`X_all`) into a `lag_time` subsampled time series.
 
     Parameters
