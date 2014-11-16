@@ -297,6 +297,16 @@ extensions.append(
                             'Mixtape/src/blas',
                             np.get_include()]))
 
+
+extensions.append(
+    Extension('mixtape.cluster._kmedoids',
+              language='c++',
+              sources=[pjoin(CLUSTERDIR, '_kmedoids.pyx'),
+                       pjoin(CLUSTERDIR, 'src', 'cluster.c'),
+                       pjoin(CLUSTERDIR, 'src', 'utils.cc')],
+              libraries=['m']))
+
+
 extensions.append(
     Extension('mixtape.cluster._commonc',
               sources=[pjoin(CLUSTERDIR, '_commonc.pyx')],
