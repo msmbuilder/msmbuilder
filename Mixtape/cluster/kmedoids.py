@@ -149,14 +149,24 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
 
             ids, intertia, _ = _kmedoids.kmedoids(
                 self.n_clusters, dmat, 0, minibatch_labels)
+            # Here, there are two things that can happen. First, we included
+            # the current centers in the batch as any other point, and they
+            # (probably) got assigned to someone else. Since they're not longer
+            # centers, we need to remap every point in the _whole_dataset_
+            # that used to map to these centers to new place that these guys
+            # are now assigned to.  Second, there's the rest of the guys in
+            # the minibatch (the regular points). Those points have new labels,
+            # and we need to copy back those new labels into their proper place
+            # in the whole dataset array.
+
             # print('output ids', ids)
 
-            # mapping from original centers to new centers, from the begining
-            # of the output
+            # mapping from original centers to new centers,
             new_centers = dict((vmapping[i, 0], minibatch_indices[ids[i]])
                                for i in range(self.n_clusters))
-            # perform the mapping to the whole labels array
+            # apply this mapping to the whole labels array
             labels = np.vectorize(new_centers.get, otypes=[np.int32])(labels)
+
             # manually map the elements that were in the minibatch to their
             # new labels
             labels[minibatch_indices[self.n_clusters:]] = \
