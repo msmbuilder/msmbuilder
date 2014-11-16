@@ -1,3 +1,7 @@
+"""
+This module contains a low-level python wrapper for the kmedoid function
+in src/cluster.c. It is not designed to be a user-facing module.
+"""
 from __future__ import print_function, division, absolute_import
 import numpy as np
 from libc.stdlib cimport malloc, free
