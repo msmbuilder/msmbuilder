@@ -1,5 +1,5 @@
 .. _msm:
-.. currentmodule:: mixtape.markovstatemodel
+.. currentmodule:: mixtape.msm
 
 Markov state models (MSMs)
 ===========================

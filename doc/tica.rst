@@ -30,8 +30,8 @@ Algorithms
     :toctree: generated/
     :template: class.rst
 
-    ~tica.tICA
-    ~sparsetica.SparseTICA
+    ~decomposition.tICA
+    ~decomposition.SparseTICA
 
 Combination with MSM
 --------------------
@@ -51,9 +51,9 @@ Example
 
 .. code-block:: python
 
-    from mixtape.tica import tICA
+    from mixtape.decomposition import tICA
     from mixtape.cluster import KMeans
-    from mixtape.markovstatemodel import MarkovStateModel
+    from mixtape.msm import MarkovStateModel
     from sklearn.pipeline import Pipeline
 
     pipeline = Pipeline([

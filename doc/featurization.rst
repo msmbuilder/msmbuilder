@@ -10,7 +10,7 @@ Background
 
 Many analyses require that the input data be vectors in a (euclidean) vector
 space. This includes :class:`~mixtape.cluster.KMeans` clustering,
-:class:`~mixtape.tica.tICA` and others. Furthermore, other analyses like
+:class:`~mixtape.decomposition.tICA` and others. Furthermore, other analyses like
 :class:`~mixtape.cluster.KCenters` clustering require that, if the data are not
 vectors, that a pairwise distance metric be supplied.
 

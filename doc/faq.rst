@@ -219,7 +219,7 @@ Why am I getting MemoryErrors?
     memory requirement against accuracy.
 
     If you're trying to build models with thousands of features, consider running
-    a dimensionality reduction algorithm like PCA or :class:`~mixtape.tica.tICA`
+    a dimensionality reduction algorithm like :class:`~mixtape.decomposition.PCA` or :class:`~mixtape.decomposition.tICA`
     first. Or if you have milliseconds of MD data sampled at a picosecond frequency,
     consider subsampling (e.g. only analyze every 100th or 10,000th snapshot from
     your simulations).
