@@ -1,6 +1,5 @@
 Bootstraped MSM CIs
 ===================
 
-
-.. notebook:: quadwell.ipynb
+.. notebook:: examples/quadwell.ipynb
 
