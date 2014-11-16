@@ -16,7 +16,7 @@ the ``__init__`` method and set as instance attributes.
 
 .. code-block:: python
 
-    from mixtape.tica import tICA
+    from mixtape.decomposition import tICA
     tica = tICA(gamma=0.05)
     tica.fit(...)
 
@@ -81,7 +81,7 @@ The models in mixtape are designed to work together as part of a
 .. code-block:: python
 
     from mixtape.cluster import KMeans
-    from mixtape.markovstatemodel import MarkovStateModel
+    from mixtape.msm import MarkovStateModel
     from sklearn.pipeline import Pipeline
     pipeline = Pipeline([
         ('cluster', KMeans(n_clusters=100)),
