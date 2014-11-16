@@ -1,11 +1,11 @@
 from __future__ import print_function
 
 import numpy as np
-from mdtraj.testing import eq
 from sklearn.pipeline import Pipeline
 
 from mixtape.lumping import PCCA, PCCAPlus
 from mixtape.msm import MarkovStateModel
+
 
 def _metastable_system():
     # Make a simple dataset with four states, where there are 2 obvious
@@ -18,7 +18,7 @@ def _metastable_system():
         0 + random.randint(2, size=n),  # states 0, 1 interconverting
         2 + random.randint(2, size=n)   # states 2, 3 interconverting
     ])
-    
+
     # the true (2-state) macrostate assignments
     macro_assignments = np.concatenate([
         np.zeros(n, dtype=int),
@@ -37,7 +37,7 @@ def test_pcca_1():
         ('pcca+', PCCA(2))
     ])
     macro_assignments = pipeline.fit_transform(assignments)[0]
-    
+
     # we need to consider any permutation of the state labels when we
     # test for equality. Since it's only a 2-state that's simple using
     # the logical_not to flip the assignments.
@@ -45,15 +45,13 @@ def test_pcca_1():
             np.all(macro_assignments == np.logical_not(ref_macrostate_assignments)))
 
 
-def test_pcca_1():
+def test_pcca_plus_1():
     assignments, ref_macrostate_assignments = _metastable_system()
     pipeline = Pipeline([
         ('msm', MarkovStateModel()),
         ('pcca+', PCCAPlus(2))
     ])
     macro_assignments = pipeline.fit_transform(assignments)[0]
-    print(macro_assignments)
-    
     # we need to consider any permutation of the state labels when we
     # test for equality. Since it's only a 2-state that's simple using
     # the logical_not to flip the assignments.
