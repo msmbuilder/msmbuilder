@@ -163,7 +163,6 @@ extensions.append(
                        pjoin(HMMDIR, 'vonmises/spleval.c'),
                        pjoin(HMMDIR, 'cephes/i0.c'),
                        pjoin(HMMDIR, 'cephes/chbevl.c')],
-              libraries=['m'],
               include_dirs=[np.get_include(),
                             pjoin(HMMDIR, 'cephes')]))
 
