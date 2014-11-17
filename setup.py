@@ -151,7 +151,7 @@ extensions.append(
                       glob.glob(pjoin(HMMDIR, 'src/*.cpp')),
               libraries=compiler.compiler_libraries_openmp + lapack_info['libraries'],
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
-              extra_link_args=lapack_info['extra_link_args'] + compiler.compiler_libraries_openmp,
+              extra_link_args=lapack_info['extra_link_args'],
               include_dirs=[np.get_include(),
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
