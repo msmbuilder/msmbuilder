@@ -17,7 +17,12 @@ from setuptools import setup, Extension, find_packages
 import numpy as np
 from numpy.distutils import system_info
 from os.path import join as pjoin
-
+try:
+    import mdtraj
+    mdtraj_capi = mdtraj.capi()
+except (ImportError, AttributeError):
+    print('MDTraj version 1.1.X or later is required')
+    sys.exit(1)
 
 try:
     import Cython
@@ -303,8 +308,12 @@ extensions.append(
               language='c++',
               sources=[pjoin(CLUSTERDIR, '_kmedoids.pyx'),
                        pjoin(CLUSTERDIR, 'src', 'cluster.c'),
-                       pjoin(CLUSTERDIR, 'src', 'utils.cc')],
-              libraries=['m']))
+                       pjoin(CLUSTERDIR, 'src', 'utils.cc'),
+                       pjoin(CLUSTERDIR, 'src', 'inertia.c')],
+              libraries=['m', 'theobald'],
+              include_dirs=[mdtraj_capi['include_dir'], np.get_include()],
+              library_dirs=[mdtraj_capi['lib_dir']],
+             ))
 
 
 extensions.append(

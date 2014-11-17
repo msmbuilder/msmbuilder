@@ -1,9 +1,11 @@
 from __future__ import print_function, absolute_import, division
 
 import numpy as np
+from numpy.testing import assert_raises
 from scipy.spatial.distance import pdist, squareform, euclidean
-from mixtape.cluster._kmedoids import kmedoids, triu_to_tril, contigify_ids, intertia_euclidean
+from mixtape.cluster._kmedoids import kmedoids, triu_to_tril, contigify_ids, inertia
 from mixtape.cluster.kmedoids import _KMedoids, _MinibatchKMedoids
+
 
 def test_1():
     random = np.random.RandomState(0)
@@ -43,6 +45,10 @@ def test_3():
             np.all(k1.labels_ == np.logical_not(k2.labels_)))
 
 
+def test_4():
+    assert_raises(ValueError, lambda: _MinibatchKMedoids(metric='sdf').fit([]))
+
+
 def test_triu_to_tril_1():
     n = 10
     random = np.random.RandomState(0)
@@ -77,7 +83,7 @@ def test_contigify_ids_2():
     assert mapping == {2:0, 0:1, 10:2}
 
 
-def test_intertia_euclid():
+def test_intertia():
     n = 20
     n_clusters = 5
     random = np.random.RandomState(0)
@@ -88,5 +94,6 @@ def test_intertia_euclid():
         low=0, high=n_clusters-1, size=n).astype(np.int32)
 
     ref = sum(euclidean(X[i], X[cluster_ids[labels[i]]]) for i in range(n))
-    val = intertia_euclidean(X, cluster_ids, labels)
+    val = inertia(X, cluster_ids, labels, 'euclidean')
+
     assert ref == val

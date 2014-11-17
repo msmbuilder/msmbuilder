@@ -47,29 +47,3 @@ std::map<int, int> contigify_ids(int* ids, size_t length)
 
     return mapping;
 }
-
-
-static double
-euclidean_distance_double(const double *u, const double *v, size_t n)
-{
-    double s = 0.0, d;
-    size_t i;
-
-    for (i = 0; i < n; i++) {
-        d = u[i] - v[i];
-        s += d * d;
-    }
-    return sqrt(s);
-}
-
-double intertia_euclidean(const double* X, const int* labels,
-                       const int* cluster_ids, int n_samples, int n_features)
-{
-    size_t i = 0;
-    double d = 0;
-    for (i = 0; i < n_samples; i++) {
-        d += euclidean_distance_double(
-            &X[i*n_features], &X[cluster_ids[labels[i]]*n_features], n_features);
-    }
-    return d;
-}

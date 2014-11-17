@@ -45,7 +45,4 @@ This function modifies the array inplace.
 */
 std::map<int, int> contigify_ids(int* ids, size_t length);
 
-double intertia_euclidean(const double* X, const int* labels,
-                          const int* cluster_ids, int n_samples, int n_features);
-
 #endif

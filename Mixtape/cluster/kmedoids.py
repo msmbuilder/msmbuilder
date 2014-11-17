@@ -113,6 +113,8 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
         self.random_state = random_state
 
     def fit(self, X, y=None):
+        _kmedoids.check_metric(self.metric)
+
         n_samples = len(X)
         n_batches = int(np.ceil(float(n_samples) / self.batch_size))
         n_iter = int(self.max_iter * n_batches)
@@ -159,8 +161,6 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
 
         self.cluster_ids_ = cluster_ids_
         self.labels_ = labels_
-        if self.metric == 'euclidean':
-            self.intertia_ = _kmedoids.intertia_euclidean(X, cluster_ids_, labels_)
-        else:
-            raise NotImplementedError()
+        self.intertia_ = _kmedoids.inertia(X, cluster_ids_, labels_, self.metric)
+        assert self.intertia_ >= 0
         return self

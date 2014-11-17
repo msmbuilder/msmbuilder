@@ -18,9 +18,10 @@ cdef extern from "src/utils.h":
     int _triu_to_tril "triu_to_tril"(
         const double* upper, size_t length, double* lower)
     map[int, int] _contigify_ids "contigify_ids" (int* ids, size_t length)
-    double _intertia_euclidean "intertia_euclidean"(
+cdef extern from "src/inertia.h":
+    double _inertia "inertia"(
         const double* X, const int* labels, const int* cluster_ids,
-        int n_samples, int n_features)
+        int n_samples, int n_features, const char* metric)
 
 
 def kmedoids(int n_clusters, double[::1] condensed_distmatrix, int n_pass,
@@ -197,8 +198,17 @@ def contigify_ids(int[::1] clusterids):
     return np.array(clusterids, copy=False), mapping
 
 
-def intertia_euclidean(double[:, ::1] X, int[::1] cluster_ids, int[::1] labels):
+def inertia(double[:, ::1] X, int[::1] cluster_ids, int[::1] labels, char* metric):
+    check_metric(metric)
     assert len(X) == len(labels)
-    cdef double d = _intertia_euclidean(&X[0,0], &labels[0], &cluster_ids[0],
-                                        X.shape[0], X.shape[1])
+    cdef double d = _inertia(&X[0,0], &labels[0], &cluster_ids[0],
+                                        X.shape[0], X.shape[1], metric)
     return d
+
+
+def check_metric(char* metric):
+    metrics = ("euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",
+               "braycurtis", "hamming", "jaccard", "cityblock")
+    if metric not in metrics:
+        raise ValueError("metric must be one of %s. You supplied %s" % (
+                         ', '.join("'%s'" % s for s in metrics), metric))
