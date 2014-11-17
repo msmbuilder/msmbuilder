@@ -40,9 +40,9 @@ cdef extern from "f2pyptr.h":
     void *f2py_pointer(object) except NULL
 cdef extern from "sdot.h":
     float sdot_(const int N, const float* x, const float* y)
-cdef extern from "math.h":
-    double HUGE_VAL
-    float HUGE_VALF
+cdef extern from "float.h":
+    double DBL_MAX
+    float FLT_MAX
 
 cdef ddot_t *ddot = <ddot_t*>f2py_pointer(scipy.linalg.blas.ddot._cpointer)
 cdef idamax_t *idamax = <idamax_t*>f2py_pointer(scipy.linalg.blas.idamax._cpointer)
@@ -77,7 +77,7 @@ cpdef _kcenters_euclidean(real[:, ::1] X,
         cluster_center_squared_norms = zeros(n_clusters, dtype=np.double)
         x_squared_norms = zeros(n_samples, dtype=np.double)
         for j in range(n_samples):
-            distances[j] = HUGE_VAL
+            distances[j] = DBL_MAX
             x_squared_norms[j] = ddot(&n_features, <double*> &X[j,0], &one,
                                       <double*> &X[j,0], &one)
     else:
@@ -86,7 +86,7 @@ cpdef _kcenters_euclidean(real[:, ::1] X,
         cluster_center_squared_norms = zeros(n_clusters, dtype=np.float32)
         x_squared_norms = zeros(n_samples, dtype=np.float32)
         for j in range(n_samples):
-            distances[j] = HUGE_VALF
+            distances[j] = FLT_MAX
             x_squared_norms[j] = sdot_(n_features, <float*> &X[j,0], <float*> &X[j,0])
 
     for i in range(n_clusters):

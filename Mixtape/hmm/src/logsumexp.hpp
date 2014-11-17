@@ -13,6 +13,14 @@
 #include <math.h>
 #include "sse_mathfun.h"
 
+#if defined(_MSC_VER)
+#define _ALIGNED(x) __declspec(align(x))
+#else
+#if defined(__GNUC__)
+#define _ALIGNED(x) __attribute__ ((aligned(x)))
+#endif
+#endif
+
 template <typename REAL>
 static inline REAL realmax(REAL v1, REAL v2) {
     return (((v1) > (v2)) ? (v1) : (v2));
@@ -24,7 +32,7 @@ float logsumexp2(float v1, float v2) {
 }
 
 
-double logsumexp(const double* __restrict__ buf, int N) {
+double logsumexp(const double* __restrict buf, int N) {
     int i;
     double sum = 0;
     double max = buf[0];
@@ -40,13 +48,13 @@ double logsumexp(const double* __restrict__ buf, int N) {
 }
 
 
-float logsumexp(const float* __restrict__ buf, int N) {
+float logsumexp(const float* __restrict buf, int N) {
     int nu = (( N >> 2 ) << 2 );
     const float* StX = buf + nu;
     float sum = 0;
     float max = -FLT_MAX;
     const float* X;
-    float max4[4] __attribute__((aligned(16))) = {0};
+    _ALIGNED(16) float max4[4]  = {0};
     __m128 _v;
     __m128 _m;
 
@@ -105,7 +113,7 @@ float _mm_logsumexp(__m128* buf, int N) {
     int i;
     float sum = 0;
     float mymax = 0;
-    float max4[4] __attribute__((aligned(16))) = {0};
+    _ALIGNED(16) float max4[4]  = {0};
 
     __m128 _v;
     __m128 _m;

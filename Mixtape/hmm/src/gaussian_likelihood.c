@@ -12,16 +12,16 @@
 #include "gaussian_likelihood.h"
 #include "cblas.h"
 
-void gaussian_loglikelihood_diag(const float* __restrict__ sequence,
-                                 const float* __restrict__ sequence2,
-                                 const float* __restrict__ means,
-                                 const float* __restrict__ variances,
-                                 const float* __restrict__ means_over_variances,
-                                 const float* __restrict__ means2_over_variances,
-                                 const float* __restrict__ log_variances,
+void gaussian_loglikelihood_diag(const float* __restrict sequence,
+                                 const float* __restrict sequence2,
+                                 const float* __restrict means,
+                                 const float* __restrict variances,
+                                 const float* __restrict means_over_variances,
+                                 const float* __restrict means2_over_variances,
+                                 const float* __restrict log_variances,
                                  const int n_observations,
                                  const int n_states, const int n_features,
-                                 float* __restrict__ loglikelihoods)
+                                 float* __restrict loglikelihoods)
 {
     int t, i, j;
     float temp;
@@ -42,19 +42,20 @@ void gaussian_loglikelihood_diag(const float* __restrict__ sequence,
 }
 
 
-void gaussian_loglikelihood_full(const float* __restrict__ sequence,
-                                 const float* __restrict__ means,
-                                 const float* __restrict__ covariances,
+void gaussian_loglikelihood_full(const float* __restrict sequence,
+                                 const float* __restrict means,
+                                 const float* __restrict covariances,
                                  const int n_observations,
                                  const int n_states,
                                  const int n_features,
-                                 float* __restrict__ loglikelihoods)
+                                 float* __restrict loglikelihoods)
 {
     int i, j, k, info;
     float chol_sol, chol2, cv_log_det;
     float* cv_chol;
     float* sequence_minus_means = malloc(n_observations * n_features * sizeof(float));
-    float prefactor = n_features * log(2 * M_PI);
+    static const float log_M_2_PI = 1.8378770664093453f; // np.log(2*np.pi)
+    float prefactor = n_features * log_M_2_PI;
     if (sequence_minus_means == NULL) {
         fprintf(stderr, "Memory allocation failure in %s at %d\n",
                 __FILE__, __LINE__); 
@@ -104,19 +105,20 @@ void gaussian_loglikelihood_full(const float* __restrict__ sequence,
     free(sequence_minus_means);
 }
 
-void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
-                                     const float* __restrict__ As,
-                                     const float* __restrict__ bs,
-                                     const float* __restrict__ Qs,
+void gaussian_lds_loglikelihood_full(const float* __restrict sequence,
+                                     const float* __restrict As,
+                                     const float* __restrict bs,
+                                     const float* __restrict Qs,
                                      const int n_observations,
                                      const int n_states,
                                      const int n_features,
-                                     float* __restrict__ lds_loglikelihoods)
+                                     float* __restrict lds_loglikelihoods)
 {
     int i, j, k, info;
     float chol_sol, chol2;
     float* sequence_minus_pred = malloc(n_observations * n_features * sizeof(float));
-    float prefactor = n_features * log(2 * M_PI);
+    static const float log_M_2_PI = 1.8378770664093453f; // np.log(2*np.pi)
+    float prefactor = n_features * log_M_2_PI;
     float alpha = 1.0;
     float beta = 1.0;
     float Q_i_log_det;
