@@ -59,15 +59,15 @@ def test_score_1():
 def test_multiple_components():
     X = np.random.randn(100, 5)
     tica = tICA(n_components=1, gamma=0)
-    tica.fit(X)
+    tica.fit([X])
 
-    Y1 = tica.transform(X)
+    Y1 = tica.transform([X])[0]
     
     tica.n_components = 4
-    Y4 = tica.transform(X)
+    Y4 = tica.transform([X])[0]
 
     tica.n_components = 3
-    Y3 = tica.transform(X)
+    Y3 = tica.transform([X])[0]
 
     assert Y1.shape == (100, 1)
     assert Y4.shape == (100, 4)
