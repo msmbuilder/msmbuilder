@@ -52,28 +52,7 @@ logger = logging.getLogger(__name__)
 ###############################################################################
 # Typechecking/Utility Functions
 #
-
-
-def _ensure_iterable(arg):
-    if not hasattr(arg, '__iter__'):
-        arg = list([int(arg)])
-        logger.debug("Passed object was not iterable,"
-                     " converted it to: %s" % str(arg))
-    assert hasattr(arg, '__iter__')
-    return arg
-
-def _check_sources_sinks(sources, sinks):
-    sources = _ensure_iterable(sources)
-    sinks = _ensure_iterable(sinks)
-
-    for s in sources:
-        if s in sinks:
-            raise ValueError("sources and sinks are not disjoint")
-
-    return sources, sinks
-
-
-def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
+def calculate_fluxes(sources, sinks, msm, committors=None):
     """
     Compute the transition path theory flux matrix.
 
@@ -83,22 +62,17 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
         The set of unfolded/reactant states.
     sinks : array_like, int
         The set of folded/product states.
-    tprob : mm_matrix
-        The transition matrix.
-
-    Returns
-    ------
-    fluxes : mm_matrix
-        The flux matrix
-
-    Optional Parameters
-    -------------------
-    populations : nd_array, float
-        The equilibrium populations, if not provided is re-calculated
-    committors : nd_array, float
+    msm : mixtape.MarkovStateModel
+        MSM that has been fit to data. 
+    committors : np.ndarray, optional
         The committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
+
+    Returns
+    ------
+    flux_matrix : np.ndarray
+        The flux matrix
 
     References
     ----------
@@ -109,56 +83,30 @@ def calculate_fluxes(sources, sinks, tprob, populations=None, committors=None):
            pathways in network models of coarse-grained protein dynamics. J. 
            Chem. Phys. 130, 205102 (2009).
     """
+    sources = np.array(sources).reshape((-1,))
+    sinks = np.array(sinks).reshape((-1,))
 
-    sources, sinks = _check_sources_sinks(sources, sinks)
-    msm_analysis.check_transition(tprob)
-
-    if scipy.sparse.issparse(tprob):
-        dense = False
-    else:
-        dense = True
-
-    # check if we got the populations
-    if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 5)
-        if np.count_nonzero(np.imag(eigens[1][:, 0])) != 0:
-            raise ValueError('First eigenvector has imaginary components')
-        populations = np.real(eigens[1][:, 0])
+    populations = msm.populations_
+    tprob = msm.transmat_
 
     # check if we got the committors
     if committors is None:
         committors = calculate_committors(sources, sinks, tprob)
 
-    # perform the flux computation
-    Indx, Indy = tprob.nonzero()
-
     n = tprob.shape[0]
 
-    if dense:
-        X = np.zeros((n, n))
-        Y = np.zeros((n, n))
-        X[(np.arange(n), np.arange(n))] = populations * (1.0 - committors)
-        Y[(np.arange(n), np.arange(n))] = committors
-    else:
-        X = scipy.sparse.lil_matrix((n, n))
-        Y = scipy.sparse.lil_matrix((n, n))
-        X.setdiag(populations * (1.0 - committors))
-        Y.setdiag(committors)
+    X = np.zeros((n, n))
+    Y = np.zeros((n, n))
+    X[(np.arange(n), np.arange(n))] = populations * (1.0 - committors)
+    Y[(np.arange(n), np.arange(n))] = committors
 
-    if dense:
-        fluxes = np.dot(np.dot(X, tprob), Y)
-        fluxes[(np.arange(n), np.arange(n))] = np.zeros(n)
-    else:
-        fluxes = (X.tocsr().dot(tprob.tocsr())).dot(Y.tocsr())
-        # This should be the same as below, but it's a bit messy...
-        #fluxes = np.dot(np.dot(X.tocsr(), tprob.tocsr()), Y.tocsr())
-        fluxes = fluxes.tolil()
-        fluxes.setdiag(np.zeros(n))
+    fluxes = np.dot(np.dot(X, tprob), Y)
+    fluxes[(np.arange(n), np.arange(n))] = np.zeros(n)
 
     return fluxes
 
 
-def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=None):
+def calculate_net_fluxes(sources, sinks, msm, committors=None):
     """
     Computes the transition path theory net flux matrix.
 
@@ -168,22 +116,17 @@ def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=Non
         The set of unfolded/reactant states.
     sinks : array_like, int
         The set of folded/product states.
-    tprob : mm_matrix
-        The transition matrix.
-
-    Returns
-    ------
-    net_fluxes : mm_matrix
-        The net flux matrix
-
-    Optional Parameters
-    -------------------
-    populations : nd_array, float
-        The equilibrium populations, if not provided is re-calculated
-    committors : nd_array, float
+    msm : mixtape.MarkovStateModel
+        MSM fit to data.
+    committors : np.ndarray, optional
         The committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
+
+    Returns
+    ------
+    net_flux : np.ndarray
+        The net flux matrix
 
     References
     ----------
@@ -195,30 +138,16 @@ def calculate_net_fluxes(sources, sinks, tprob, populations=None, committors=Non
            Chem. Phys. 130, 205102 (2009).
     """
 
-    sources, sinks = _check_sources_sinks(sources, sinks)
-    msm_analysis.check_transition(tprob)
+    flux_matrix = calculate_fluxes(sources, sinks, msm, committors=committors)
 
-    if scipy.sparse.issparse(tprob):
-        dense = False
-    else:
-        dense = True
+    net_flux = flux_matrix - flux_matrix.T
+    net_flux[np.where(net_flux < 0)] = 0.0
 
-    n = tprob.shape[0]
-
-    flux = calculate_fluxes(sources, sinks, tprob, populations, committors)
-    ind = flux.nonzero()
-
-    if dense:
-        net_flux = np.zeros((n, n))
-    else:
-        net_flux = scipy.sparse.lil_matrix((n, n))
-
-    for k in range(len(ind[0])):
-        i, j = ind[0][k], ind[1][k]
-        forward = flux[i, j]
-        reverse = flux[j, i]
-        net_flux[i, j] = max(0, forward - reverse)
+    # Old Code:
+    #for k in range(len(ind[0])):
+    #    i, j = ind[0][k], ind[1][k]
+    #    forward = flux[i, j]
+    #    reverse = flux[j, i]
+    #    net_flux[i, j] = max(0, forward - reverse)
 
     return net_flux
-
-
