@@ -114,19 +114,6 @@ extensions.append(
               extra_compile_args=compiler.compiler_args_openmp,
               include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
 
-extensions.append(
-    Extension('mixtape.cluster._regularspatialc',
-              sources=[pjoin(CLUSTERDIR, '_regularspatialc.pyx')],
-              include_dirs=['Mixtape/src/f2py',
-                            'Mixtape/src/blas',
-                            np.get_include()]))
-
-extensions.append(
-    Extension('mixtape.cluster._kcentersc',
-              sources=[pjoin(CLUSTERDIR, '_kcentersc.pyx')],
-              include_dirs=['Mixtape/src/f2py',
-                            'Mixtape/src/blas',
-                            np.get_include()]))
 
 extensions.append(
     Extension('mixtape.libdistance',
@@ -139,12 +126,6 @@ extensions.append(
               library_dirs=[mdtraj_capi['lib_dir']],
              ))
 
-extensions.append(
-    Extension('mixtape.cluster._commonc',
-              sources=[pjoin(CLUSTERDIR, '_commonc.pyx')],
-              include_dirs=['Mixtape/src/f2py',
-                            'Mixtape/src/blas',
-                            np.get_include()]))
 
 extensions.append(
     Extension('mixtape.hmm._ghmm',
