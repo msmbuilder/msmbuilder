@@ -44,7 +44,7 @@ double evaluateSpline(const double* x, const double* y, const double* deriv, lon
   lower = 0;
   upper = n-1;
   while (upper-lower > 1) {
-    int middle = (upper+lower)/2;
+    middle = (upper+lower)/2;
     if (x[middle] > t)
       upper = middle;
     else

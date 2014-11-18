@@ -128,13 +128,12 @@ extensions.append(
                             'Mixtape/src/blas',
                             np.get_include()]))
 
-
-
 extensions.append(
     Extension('mixtape.libdistance',
               language='c++',
               sources=['Mixtape/libdistance/libdistance.pyx'],
-              libraries=['m', 'theobald'],
+              # msvc needs to be told "libtheobald", gcc wants just "theobald"
+              libraries=['%stheobald' % ('lib' if compiler.msvc else '')],
               include_dirs=["Mixtape/libdistance/src",
                             mdtraj_capi['include_dir'], np.get_include()],
               library_dirs=[mdtraj_capi['lib_dir']],
