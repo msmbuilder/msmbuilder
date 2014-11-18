@@ -10,7 +10,8 @@
 #include "stdlib.h"
 #include "string.h"
 #include "gaussian_likelihood.h"
-#include "cblas.h"
+#include "scipy_lapack.h"
+
 
 void gaussian_loglikelihood_diag(const float* __restrict sequence,
                                  const float* __restrict sequence2,
@@ -56,6 +57,11 @@ void gaussian_loglikelihood_full(const float* __restrict sequence,
     float* sequence_minus_means = malloc(n_observations * n_features * sizeof(float));
     static const float log_M_2_PI = 1.8378770664093453f; // np.log(2*np.pi)
     float prefactor = n_features * log_M_2_PI;
+    lapack_t *lapack = get_lapack();
+    sgemm_t *sgemm = lapack->sgemm;
+    spotrf_t *spotrf = lapack->spotrf;
+    strtrs_t *strtrs = lapack->strtrs;
+
     if (sequence_minus_means == NULL) {
         fprintf(stderr, "Memory allocation failure in %s at %d\n",
                 __FILE__, __LINE__); 
@@ -75,7 +81,7 @@ void gaussian_loglikelihood_full(const float* __restrict sequence,
                 sequence_minus_means[j*n_features + k] = sequence[j*n_features + k] - means[i*n_features + k];
 
         // Cholesky decomposition of the covariance matrix
-        spotrf_("L", &n_features, cv_chol, &n_features, &info);
+        spotrf("L", &n_features, cv_chol, &n_features, &info);
         if (info != 0) { fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); exit(1); }
 
         cv_log_det = 0;
@@ -84,7 +90,7 @@ void gaussian_loglikelihood_full(const float* __restrict sequence,
         }
 
         // solve the triangular system
-        strtrs_("L", "N", "N", &n_features, &n_observations, cv_chol, &n_features,
+        strtrs("L", "N", "N", &n_features, &n_observations, cv_chol, &n_features,
                 sequence_minus_means, &n_features, &info);
         if (info != 0) { 
             fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__,
@@ -125,6 +131,10 @@ void gaussian_lds_loglikelihood_full(const float* __restrict sequence,
     float* Q_i;
     float* A_i;
     float* b_i;
+    lapack_t *lapack = get_lapack();
+    sgemm_t *sgemm = lapack->sgemm;
+    spotrf_t *spotrf = lapack->spotrf;
+    strtrs_t *strtrs = lapack->strtrs;
 
     for (i = 0; i < n_states; i++) {
         Q_i = malloc(n_features * n_features * sizeof(float));
@@ -141,7 +151,7 @@ void gaussian_lds_loglikelihood_full(const float* __restrict sequence,
             memcpy(&b_i[j*n_features], &bs[i*n_features], n_features*sizeof(float));
         }
         // Compute b_i := A_i * sequence[j] + b_i for all j
-        sgemm_("N", "N", &n_features, &n_observations, &n_features, &alpha, A_i, &n_features, sequence, &n_features, &beta, b_i, &n_features);
+        sgemm("N", "N", &n_features, &n_observations, &n_features, &alpha, A_i, &n_features, sequence, &n_features, &beta, b_i, &n_features);
         for (j = 0; j < n_observations; j++) {
             for (k = 0; k < n_features; k++) {
                 sequence_minus_pred[j*n_features+k] = sequence[j*n_features+k] - b_i[j*n_features + k];
@@ -149,7 +159,7 @@ void gaussian_lds_loglikelihood_full(const float* __restrict sequence,
         }
 
         // Cholesky decomposition of covariance matrix
-        spotrf_("L", &n_features, Q_i, &n_features, &info);
+        spotrf("L", &n_features, Q_i, &n_features, &info);
         if (info != 0) { 
             fprintf(stderr, "LAPACK Error in %s at %d in iteration %d\n", __FILE__, __LINE__, i); 
             exit(1); 
@@ -162,7 +172,7 @@ void gaussian_lds_loglikelihood_full(const float* __restrict sequence,
         }
 
         // Solve the triangular system
-        strtrs_("L", "N", "N", &n_features, &n_observations, Q_i, &n_features, sequence_minus_pred, &n_features, &info);
+        strtrs("L", "N", "N", &n_features, &n_observations, Q_i, &n_features, sequence_minus_pred, &n_features, &info);
         if (info != 0) { 
             fprintf(stderr, "LAPACK Error in %s at %d\n", __FILE__, __LINE__); 
             exit(1); 
