@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "cephes.h"
 #include "spleval.h"
-#include "aligned_alloc.h"
+#include "aligned_malloc.h"
 
 //#define DEBUG
 #ifdef DEBUG
@@ -31,8 +31,8 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
   double meanshifted, posterior_kj;
   double *num, *denom;
 
-  num = (double*) malloc_simd(n_components * n_features * sizeof(double));
-  denom = (double*) malloc_simd(n_components * n_features * sizeof(double));
+  num = (double*) _aligned_malloc(n_components * n_features * sizeof(double), 16);
+  denom = (double*) _aligned_malloc(n_components * n_features * sizeof(double), 16);
   if (NULL == num || NULL == denom) {
     fprintf(stderr, "fitinvkappa: Memory allocation failure");
     exit(EXIT_FAILURE);
@@ -56,8 +56,8 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
   for (i = 0; i < n_features*n_components; i++)
     out[i] = num[i] / denom[i];
 
-  free_simd(num);
-  free_simd(denom);
+  _aligned_free(num);
+  _aligned_free(denom);
   return 1;
 }
 
@@ -91,8 +91,8 @@ int compute_log_likelihood(const double* obs, const double* means,
   // clear the output
   memset(out, 0, n_samples*n_components*sizeof(double));
   // allocate two workspaces
-  kappa_cos_means = (double*) malloc_simd(n_components * n_features * sizeof(double));
-  kappa_sin_means = (double*) malloc_simd(n_components * n_features * sizeof(double));
+  kappa_cos_means = (double*) _aligned_malloc(n_components * n_features * sizeof(double), 16);
+  kappa_sin_means = (double*) _aligned_malloc(n_components * n_features * sizeof(double), 16);
   if (NULL == kappa_cos_means || NULL == kappa_sin_means) {
     fprintf(stderr, "compute_log_likelihood: Memory allocation failure");
     exit(EXIT_FAILURE);
@@ -135,8 +135,8 @@ int compute_log_likelihood(const double* obs, const double* means,
     }
   }
 
-  free_simd(kappa_cos_means);
-  free_simd(kappa_sin_means);
+  _aligned_free(kappa_cos_means);
+  _aligned_free(kappa_sin_means);
   return 1;
 }
 

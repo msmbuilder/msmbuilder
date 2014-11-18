@@ -58,7 +58,6 @@ void gaussian_loglikelihood_full(const float* __restrict sequence,
     static const float log_M_2_PI = 1.8378770664093453f; // np.log(2*np.pi)
     float prefactor = n_features * log_M_2_PI;
     lapack_t *lapack = get_lapack();
-    sgemm_t *sgemm = lapack->sgemm;
     spotrf_t *spotrf = lapack->spotrf;
     strtrs_t *strtrs = lapack->strtrs;
 
