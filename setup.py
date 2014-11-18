@@ -57,23 +57,6 @@ MSMDIR = 'Mixtape/msm/'
 HMMDIR = 'Mixtape/hmm/'
 CLUSTERDIR = 'Mixtape/cluster/'
 
-def get_lapack():
-    from collections import defaultdict
-
-    lapack_info = defaultdict(lambda: [])
-    lapack_info.update(system_info.get_info('lapack'))
-    if len(lapack_info) == 0:
-        try:
-            from scipy.linalg import _flapack
-
-            lapack_info['extra_link_args'] = [_flapack.__file__]
-            return lapack_info
-        except ImportError:
-            pass
-        print('LAPACK libraries could not be located.', file=sys.stderr)
-        sys.exit(1)
-    return lapack_info
-
 
 def write_spline_data():
     """Precompute spline coefficients and save them to data files that
@@ -106,7 +89,6 @@ def write_spline_data():
 
 compiler = CompilerDetection(False)
 extensions = []
-lapack_info = get_lapack()
 
 extensions.append(
     Extension('mixtape.msm._markovstatemodel',
@@ -149,10 +131,10 @@ extensions.append(
               sources=[pjoin(HMMDIR, 'wrappers/GaussianHMMCPUImpl.pyx')] +
                       glob.glob(pjoin(HMMDIR, 'src/*.c')) +
                       glob.glob(pjoin(HMMDIR, 'src/*.cpp')),
-              libraries=compiler.compiler_libraries_openmp + lapack_info['libraries'],
+              libraries=compiler.compiler_libraries_openmp,
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
-              extra_link_args=lapack_info['extra_link_args'],
-              include_dirs=[np.get_include(),  "Mixtape/src",
+              include_dirs=[np.get_include(),
+                            "Mixtape/src",
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
 
