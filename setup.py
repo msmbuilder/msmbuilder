@@ -8,13 +8,23 @@ DOCLINES = __doc__.split("\n")
 import os
 import sys
 import glob
+import traceback
 import numpy as np
-from numpy.distutils import system_info
 from os.path import join as pjoin
 from setuptools import setup, Extension, find_packages
-
 sys.path.insert(0, '.')
-from setupbase import write_version_py, build_ext, StaticLibrary, CompilerDetection
+from setupbase import write_version_py, CompilerDetection
+
+try:
+    import mdtraj
+    mdtraj_capi = mdtraj.capi()
+except (ImportError, AttributeError):
+    print('='*80)
+    print('MDTraj version 1.1.X or later is required')
+    print('='*80)
+    traceback.print_exc()
+    sys.exit(1)
+
 
 try:
     import Cython
@@ -117,6 +127,18 @@ extensions.append(
               include_dirs=['Mixtape/src/f2py',
                             'Mixtape/src/blas',
                             np.get_include()]))
+
+
+
+extensions.append(
+    Extension('mixtape.libdistance',
+              language='c++',
+              sources=['Mixtape/libdistance/libdistance.pyx'],
+              libraries=['m', 'theobald'],
+              include_dirs=["Mixtape/libdistance/src",
+                            mdtraj_capi['include_dir'], np.get_include()],
+              library_dirs=[mdtraj_capi['lib_dir']],
+             ))
 
 extensions.append(
     Extension('mixtape.cluster._commonc',
