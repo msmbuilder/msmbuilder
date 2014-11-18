@@ -19,7 +19,7 @@
 #include "backward.hpp"
 #include "posteriors.hpp"
 #include "transitioncounts.hpp"
-#include "cblas.h"
+#include "scipy_lapack.h"
 
 namespace Mixtape {
 
@@ -55,6 +55,8 @@ void do_ghmm_estep(const float* __restrict log_transmat,
     float *means_over_variances, *means2_over_variances, *log_variances;
     float *framelogprob, *posteriors, *seq_transcounts, *seq_obs, *seq_obs2, *seq_post;
     REAL *fwdlattice, *bwdlattice;
+    lapack_t *lapack = get_lapack();
+    sgemm_t *sgemm = lapack->sgemm;
 
     means_over_variances = (float*) malloc(n_states*n_features*sizeof(float));
     means2_over_variances = (float*) malloc(n_states*n_features*sizeof(float));
@@ -73,7 +75,7 @@ void do_ghmm_estep(const float* __restrict log_transmat,
         shared(log_transmat, log_transmat_T, log_startprob, means, \
                variances, sequences, sequence_lengths, transcounts, \
                obs, obs2, post, logprob, means_over_variances, \
-               means2_over_variances, log_variances, stderr) \
+               means2_over_variances, log_variances, stderr, sgemm) \
         private(sequence, sequence2, framelogprob, fwdlattice, \
                 bwdlattice, posteriors, seq_transcounts, seq_obs, \
                 seq_obs2, seq_post, tlocallogprob, j, k)
@@ -109,8 +111,8 @@ void do_ghmm_estep(const float* __restrict log_transmat,
         // Compute sufficient statistics for this sequence
         tlocallogprob = 0;
         transitioncounts(fwdlattice, bwdlattice, log_transmat, framelogprob, sequence_lengths[i], n_states, seq_transcounts, &tlocallogprob);
-        sgemm_("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
-        sgemm_("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
+        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence, &n_features, posteriors, &n_states, &beta, seq_obs, &n_features);
+        sgemm("N", "T", &n_features, &n_states, &sequence_lengths[i], &alpha, sequence2, &n_features, posteriors, &n_states, &beta, seq_obs2, &n_features);
         for (k = 0; k < n_states; k++)
             for (j = 0; j < sequence_lengths[i]; j++)
                 seq_post[k] += posteriors[j*n_states + k];

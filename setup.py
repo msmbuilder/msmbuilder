@@ -152,19 +152,21 @@ extensions.append(
               libraries=compiler.compiler_libraries_openmp + lapack_info['libraries'],
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
               extra_link_args=lapack_info['extra_link_args'],
-              include_dirs=[np.get_include(),
+              include_dirs=[np.get_include(),  "Mixtape/src",
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
 
 extensions.append(
     Extension('mixtape.hmm._vmhmm',
               sources=[pjoin(HMMDIR, 'vonmises/vmhmm.c'),
+                       #pjoin(HMMDIR, 'vonmises/test.c'),
                        pjoin(HMMDIR, 'vonmises/vmhmmwrap.pyx'),
                        pjoin(HMMDIR, 'vonmises/spleval.c'),
                        pjoin(HMMDIR, 'cephes/i0.c'),
                        pjoin(HMMDIR, 'cephes/chbevl.c')],
               include_dirs=[np.get_include(),
-                            pjoin(HMMDIR, 'cephes')]))
+                            pjoin(HMMDIR, 'cephes'),
+                            'Mixtape/src/f2py']))
 
 write_version_py(VERSION, ISRELEASED, filename='Mixtape/version.py')
 write_spline_data()

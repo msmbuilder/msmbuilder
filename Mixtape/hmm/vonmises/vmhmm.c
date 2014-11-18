@@ -177,6 +177,3 @@ void inv_mbessel_ratio(double* x, size_t n) {
 
   }
 }
-
-
-
