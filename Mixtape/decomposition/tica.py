@@ -174,6 +174,10 @@ class tICA(BaseEstimator, TransformerMixin):
             # if we've already solved for enough eigenvectors then
             # we don't need to solve it again
 
+        # just check to make sure we've actually seen some data
+        if self.n_observations == 0:
+            raise RuntimeError('must fit the model before using it')
+
         if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
             raise RuntimeError('offset correlation matrix is not symmetric')
         if not np.allclose(self.covariance_, self.covariance_.T):

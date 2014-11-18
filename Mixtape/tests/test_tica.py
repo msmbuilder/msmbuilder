@@ -59,6 +59,7 @@ def test_score_1():
 def test_multiple_components():
     X = np.random.randn(100, 5)
     tica = tICA(n_components=1, gamma=0)
+    tica.fit(X)
 
     Y1 = tica.transform(X)
     
