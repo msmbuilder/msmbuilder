@@ -175,7 +175,7 @@ class tICA(BaseEstimator, TransformerMixin):
             # we don't need to solve it again
 
         # just check to make sure we've actually seen some data
-        if self.n_observations == 0:
+        if self.n_observations_ == 0:
             raise RuntimeError('must fit the model before using it')
 
         if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
