@@ -5,11 +5,13 @@
 #include <stdio.h>
 #include "cephes.h"
 #include "spleval.h"
+#include "aligned_alloc.h"
 
 //#define DEBUG
 #ifdef DEBUG
 #define ASSERT_CLOSE(x, y)    if (abs((x)-(y)) > 1e-6) { printf("Assert Failed\nx: %f\ny %f\n", x, y); exit(1); }
 #endif
+
 
 
 int fitinvkappa(long n_samples, long n_features, long n_components,
@@ -25,13 +27,12 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
    *      inv_kappas[j, i] = numerator / denominator
    *
    */
-  int err;
   long i, j, k;
   double meanshifted, posterior_kj;
   double *num, *denom;
 
-  err = posix_memalign((void**) &num, 16, n_components * n_features * sizeof(double));
-  err = posix_memalign((void**) &denom, 16, n_components * n_features * sizeof(double));
+  num = (double*) malloc_simd(n_components * n_features * sizeof(double));
+  denom = (double*) malloc_simd(n_components * n_features * sizeof(double));
   if (NULL == num || NULL == denom) {
     fprintf(stderr, "fitinvkappa: Memory allocation failure");
     exit(EXIT_FAILURE);
@@ -55,8 +56,8 @@ int fitinvkappa(long n_samples, long n_features, long n_components,
   for (i = 0; i < n_features*n_components; i++)
     out[i] = num[i] / denom[i];
 
-  free(num);
-  free(denom);
+  free_simd(num);
+  free_simd(denom);
   return 1;
 }
 
@@ -82,17 +83,16 @@ int compute_log_likelihood(const double* obs, const double* means,
      >>> n_components = kappas.shape[0]
      >>> value = np.array([np.sum(vonmises.logpdf(obs, kappas[i], means[i]), axis=1) for i in range(n_components)]).T
   */
-  int err;
   unsigned int i, j, k;
   double *kappa_cos_means, *kappa_sin_means;
   double val, log_numerator, cos_obs_kj, sin_obs_kj;
-  const double LOG_2PI = log(2*M_PI);
+  const double LOG_2PI = 1.8378770664093453;
 
   // clear the output
   memset(out, 0, n_samples*n_components*sizeof(double));
   // allocate two workspaces
-  err = posix_memalign((void**) &kappa_cos_means, 16, n_components * n_features * sizeof(double));
-  err = posix_memalign((void**) &kappa_sin_means, 16, n_components * n_features * sizeof(double));
+  kappa_cos_means = (double*) malloc_simd(n_components * n_features * sizeof(double));
+  kappa_sin_means = (double*) malloc_simd(n_components * n_features * sizeof(double));
   if (NULL == kappa_cos_means || NULL == kappa_sin_means) {
     fprintf(stderr, "compute_log_likelihood: Memory allocation failure");
     exit(EXIT_FAILURE);
@@ -135,8 +135,8 @@ int compute_log_likelihood(const double* obs, const double* means,
     }
   }
 
-  free(kappa_cos_means);
-  free(kappa_sin_means);
+  free_simd(kappa_cos_means);
+  free_simd(kappa_sin_means);
   return 1;
 }
 

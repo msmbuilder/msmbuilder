@@ -11,15 +11,15 @@ namespace Mixtape {
 
 template <typename REAL>
 void forward(
-const float* __restrict__ log_transmat_T,
-const float* __restrict__ log_startprob,
-const float* __restrict__ frame_logprob,
+const float* __restrict log_transmat_T,
+const float* __restrict log_startprob,
+const float* __restrict frame_logprob,
 const int sequence_length,
 const int n_states,
-REAL* __restrict__ fwdlattice)
+REAL* __restrict fwdlattice)
 {
     int t, i, j;
-    REAL work_buffer[n_states];
+    REAL* work_buffer = (REAL*) malloc(n_states * sizeof(REAL));
 
     for (j = 0; j < n_states; j++)
         fwdlattice[0*n_states + j] = log_startprob[j] + frame_logprob[0*n_states + j];
@@ -32,6 +32,7 @@ REAL* __restrict__ fwdlattice)
             fwdlattice[t*n_states + j] = logsumexp(work_buffer, n_states) + frame_logprob[t*n_states + j];
         }
     }
+    free(work_buffer);
 }
 
 } // namespace

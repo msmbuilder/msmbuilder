@@ -4,33 +4,33 @@
 extern "C" {
 #endif
 
-void gaussian_loglikelihood_diag(const float* __restrict__ sequence,
-                                 const float* __restrict__ sequence2,
-                                 const float* __restrict__ means,
-                                 const float* __restrict__ variances,
-                                 const float* __restrict__ means_over_variances,
-                                 const float* __restrict__ means2_over_variances,
-                                 const float* __restrict__ log_variances,
+void gaussian_loglikelihood_diag(const float* __restrict sequence,
+                                 const float* __restrict sequence2,
+                                 const float* __restrict means,
+                                 const float* __restrict variances,
+                                 const float* __restrict means_over_variances,
+                                 const float* __restrict means2_over_variances,
+                                 const float* __restrict log_variances,
                                  const int n_observations,
                                  const int n_states, const int n_features,
-                                 float* __restrict__ loglikelihoods);
+                                 float* __restrict loglikelihoods);
 
-void gaussian_loglikelihood_full(const float* __restrict__ sequence,
-                                 const float* __restrict__ means,
-                                 const float* __restrict__ covariances,
+void gaussian_loglikelihood_full(const float* __restrict sequence,
+                                 const float* __restrict means,
+                                 const float* __restrict covariances,
                                  const int n_observations,
                                  const int n_states,
                                  const int n_features,
-                                 float* __restrict__ loglikelihoods);
+                                 float* __restrict loglikelihoods);
 
-void gaussian_lds_loglikelihood_full(const float* __restrict__ sequence,
-                                 const float* __restrict__ As,
-                                 const float* __restrict__ bs,
-                                 const float* __restrict__ Qs,
+void gaussian_lds_loglikelihood_full(const float* __restrict sequence,
+                                 const float* __restrict As,
+                                 const float* __restrict bs,
+                                 const float* __restrict Qs,
                                  const int n_observations,
                                  const int n_states,
                                  const int n_features,
-                                 float* __restrict__ lds_loglikelihoods);
+                                 float* __restrict lds_loglikelihoods);
 #ifdef __cplusplus
 }
 #endif

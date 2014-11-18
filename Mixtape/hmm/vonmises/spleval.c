@@ -33,14 +33,16 @@
 
 
 double evaluateSpline(const double* x, const double* y, const double* deriv, long n, double t) {
+  int lower, upper, middle;
+  double a, b, dx;
   if (t < x[0] || t > x[n-1]) {
     fprintf(stderr, "evaluateSpline: specified point is outside the range defined by the spline\n");
     exit(1);
   }
   
   // Perform a binary search to identify the interval containing the point to evaluate. */
-  int lower = 0;
-  int upper = n-1;
+  lower = 0;
+  upper = n-1;
   while (upper-lower > 1) {
     int middle = (upper+lower)/2;
     if (x[middle] > t)
@@ -50,8 +52,8 @@ double evaluateSpline(const double* x, const double* y, const double* deriv, lon
   }
 
   // Evaluate the spline. */
-  double dx = x[upper]-x[lower];
-  double a = (x[upper]-t)/dx;
-  double b = 1.0-a;
+  dx = x[upper]-x[lower];
+  a = (x[upper]-t)/dx;
+  b = 1.0-a;
   return a*y[lower]+b*y[upper]+((a*a*a-a)*deriv[lower] + (b*b*b-b)*deriv[upper])*dx*dx/6.0;
 } 

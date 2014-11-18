@@ -30,20 +30,20 @@ namespace Mixtape {
  * which are subject to accumulated floating point error during long trajectories.
  */
 template<typename REAL>
-void do_ghmm_estep(const float* __restrict__ log_transmat,
-              const float* __restrict__ log_transmat_T,
-              const float* __restrict__ log_startprob,
-              const float* __restrict__ means,
-              const float* __restrict__ variances,
-              const float** __restrict__ sequences,
+void do_ghmm_estep(const float* __restrict log_transmat,
+              const float* __restrict log_transmat_T,
+              const float* __restrict log_startprob,
+              const float* __restrict means,
+              const float* __restrict variances,
+              const float** __restrict sequences,
               const int n_sequences,
-              const int* __restrict__ sequence_lengths,
+              const int* __restrict sequence_lengths,
               const int n_features,
               const int n_states,
-              float* __restrict__ transcounts,
-              float* __restrict__ obs,
-              float* __restrict__ obs2,
-              float* __restrict__ post,
+              float* __restrict transcounts,
+              float* __restrict obs,
+              float* __restrict obs2,
+              float* __restrict post,
               float* logprob)
 {
     int i, j, k;
