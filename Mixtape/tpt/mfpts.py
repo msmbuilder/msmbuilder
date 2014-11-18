@@ -17,28 +17,13 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 """
-Functions for performing Transition Path Theory calculations. 
+Functions for performing mean first passage time calculations for an MSM.
 
 Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
 Christian Schwantes, and TJ Lane.
-
-These are the canonical references for TPT. Note that TPT is really a
-specialization of ideas very framiliar to the mathematical study of Markov
-chains, and there are many books, manuscripts in the mathematical literature
-that cover the same concepts.
-
-References
-----------
-.. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
-       for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
-       (2009).
-.. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
-       pathways in network models of coarse-grained protein dynamics. J. 
-       Chem. Phys. 130, 205102 (2009).
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-import scipy.sparse
 
 import itertools
 import copy
@@ -49,35 +34,7 @@ logger = logging.getLogger(__name__)
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
 
-###############################################################################
-# Typechecking/Utility Functions
-#
-
-
-def _ensure_iterable(arg):
-    if not hasattr(arg, '__iter__'):
-        arg = list([int(arg)])
-        logger.debug("Passed object was not iterable,"
-                     " converted it to: %s" % str(arg))
-    assert hasattr(arg, '__iter__')
-    return arg
-
-def _check_sources_sinks(sources, sinks):
-    sources = _ensure_iterable(sources)
-    sinks = _ensure_iterable(sinks)
-
-    for s in sources:
-        if s in sinks:
-            raise ValueError("sources and sinks are not disjoint")
-
-    return sources, sinks
-
-
-###############################################################################
-# Path Finding Functions
-#
-
-def calculate_mfpt(sinks, tprob, lag_time=1.):
+def calculate_mfpts(sinks, tprob, lag_time=1.):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
@@ -85,16 +42,18 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
     Parameters
     ----------
     sinks : array, int
-        indices of the sink states
-    tprob : matrix
-        transition probability matrix
-    LagTime : float
-        the lag time used to create T (dictates units of the answer)
+        Indices of the sink states
+    msm : mixtape.MarkovStateModel
+        MSM fit to the data.
+    lag_time : float, optional
+        Lag time for the model. The MFPT will be reported in whatever
+        units are given here. Default is (1) which is in units of the
+        lag time of the MSM.
 
     Returns
     -------
-    MFPT : array, float
-        MFPT in time units of LagTime, for each state (in order of state index)
+    mfpts : np.ndarray, float
+        MFPT in time units of lag_time, for each state (in order of state index)
 
     See Also
     --------
@@ -111,60 +70,51 @@ def calculate_mfpt(sinks, tprob, lag_time=1.):
            Chem. Phys. 130, 205102 (2009).
     """
 
-    sinks = _ensure_iterable(sinks)
-    msm_analysis.check_transition(tprob)
+    sinks = np.array(sinks, dtype=int).reshape((-1,))
 
-    n = tprob.shape[0]
-
-    if scipy.sparse.isspmatrix(tprob):
-        tprob = tprob.tolil()
+    tprob = copy.copy(msm.transmat_)
+    n_states = tprob.shape[0]
 
     for state in sinks:
         tprob[state, :] = 0.0
         tprob[state, state] = 2.0
 
-    if scipy.sparse.isspmatrix(tprob):
-        tprob = tprob - scipy.sparse.eye(n, n)
-        tprob = tprob.tocsr()
-    else:
-        tprob = tprob - np.eye(n)
+    tprob = tprob - np.eye(n_states)
 
-    RHS = -1 * np.ones(n)
+    rhs = -1 * np.ones(n_states)
     for state in sinks:
-        RHS[state] = 0.0
+        rhs[state] = 0.0
 
-    if scipy.sparse.isspmatrix(tprob):
-        MFPT = lag_time * scipy.sparse.linalg.spsolve(tprob, RHS)
-    else:
-        MFPT = lag_time * np.linalg.solve(tprob, RHS)
+    mfpts = lag_time * np.linalg.solve(tprob, rhs)
 
-    return MFPT
+    return mfpts
 
 
-def calculate_all_to_all_mfpt(tprob, populations=None):
+def calculate_all_mfpts(msm, lag_time=1.0):
     """
     Calculate the all-states by all-state matrix of mean first passage
     times.
 
     This uses the fundamental matrix formalism, and should be much faster
-    than GetMFPT for calculating many MFPTs.
+    than "calculate_mfpts" for calculating many MFPTs.
 
     Parameters
     ----------
-    tprob : matrix
-        transition probability matrix
-    populations : array_like, float
-        optional argument, the populations of each state. If  not supplied,
-        it will be computed from scratch
+    msm : mixtape.MarkovStateModel
+        MSM fit to the data
+    lag_time : float, optional
+        Lag time of the model. The units of the MFPTs will be in
+        whatever units specified here. By default, lag_time is equal
+        to one, which corresponds to units of MSM lag times.
 
     Returns
     -------
-    MFPT : array, float
-        MFPT in time units of LagTime, square array for MFPT from i -> j
+    mfpts : array, float
+        MFPTs in time units of lag_time, square array for MFPT from i -> j
 
     See Also
     --------
-    GetMFPT : function
+    calculate_mfpts : function
         for calculating a subset of the MFPTs, with functionality for including
         a set of sinks
 
@@ -178,31 +128,21 @@ def calculate_all_to_all_mfpt(tprob, populations=None):
            Chem. Phys. 130, 205102 (2009).
     """
 
-    msm_analysis.check_transition(tprob)
+    populations = msm.populations_
+    tprob = msm.tprob_
+    n_states = msm.n_states_
 
-    if scipy.sparse.issparse(tprob):
-        tprob = tprob.toarray()
-        logger.warning('calculate_all_to_all_mfpt does not support sparse linear algebra')
+    #eye = np.transpose(np.matrix(np.ones(num_states)))
+    # ^^^^!!!!!!!^^^^^ who wrote this and thought it was acceptable?!
+    # after plugging it into ipython, this just creates a column vector
+    eye = np.ones(num_states).reshape((-1, 1))
 
-    if populations is None:
-        eigens = msm_analysis.get_eigenvectors(tprob, 1)
-        if np.count_nonzero(np.imag(eigens[1][:, 0])) != 0:
-            raise ValueError('First eigenvector has imaginary parts')
-        populations = np.real(eigens[1][:, 0])
-
-    # ensure that tprob is a transition matrix
-    msm_analysis.check_transition(tprob)
-    num_states = len(populations)
-    if tprob.shape[0] != num_states:
-        raise ValueError("Shape of tprob and populations vector don't match")
-
-    eye = np.transpose(np.matrix(np.ones(num_states)))
     limiting_matrix = eye * populations
     #z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
     z = scipy.linalg.inv(np.eye(num_states) - (tprob - limiting_matrix))
 
     # mfpt[i,j] = z[j,j] - z[i,j] / pi[j]
-    mfpt = -z
+    mfpt = - z
     for j in range(num_states):
         mfpt[:, j] += z[j, j]
         mfpt[:, j] /= populations[j]
