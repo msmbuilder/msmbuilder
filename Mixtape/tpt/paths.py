@@ -1,20 +1,4 @@
-# This file is part of MSMBuilder.
-#
-# Copyright 2011 Stanford University
-#
-# MSMBuilder is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# insert license statement here
 
 """
 Functions for performing Transition Path Theory calculations. 
@@ -38,22 +22,18 @@ References
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-import scipy.sparse
 
 import itertools
 import copy
 
 import logging
 logger = logging.getLogger(__name__)
-
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
 
 ###############################################################################
 # Typechecking/Utility Functions
 #
-
-
 def _ensure_iterable(arg):
     if not hasattr(arg, '__iter__'):
         arg = list([int(arg)])
@@ -75,43 +55,6 @@ def _check_sources_sinks(sources, sinks):
 
 ###############################################################################
 # Path Finding Functions
-
-def get_top_path_scipy(sources, sinks, net_flux):
-    """
-    Use the Dijkstra algorithm for finding the shortest path connecting
-    sources and sinks
-
-    Parameters
-    ----------
-    sources : array_like
-        nodes to define the source states
-    sinks : array_like
-        nodes to define the sink states
-    net_flux : scipy.sparse matrix
-        net flux of the MSM
-
-    Returns
-    -------
-    top_path : np.ndarray
-        array corresponding to the top path between sources and sinks
-    
-    """
-
-    _check_sources_sinks(sources, sinks)
-
-    if not scipy.sparse.issparse(net_flux):
-        logger.warn("only sparse matrices are currently supported.")
-        net_flux = scipy.sparse.lil_matrix(net_flux)
-
-    net_flux = net_flux.tolil()
-    n_states = net_flux.shape[0]
-
-    sources = np.array(sources, dtype=np.int).flatten()
-    sinks = np.array(sinks, dtype=np.int).flatten()
-
-    Q = list(sources) # nodes to check (the "queue")
-                      # going to use list.pop method so I can't keep it as an array
-
 def get_top_path(sources, sinks, net_flux):
     """
     Use the Dijkstra algorithm for finding the shortest path connecting
@@ -123,27 +66,23 @@ def get_top_path(sources, sinks, net_flux):
         nodes to define the source states
     sinks : array_like
         nodes to define the sink states
-    net_flux : scipy.sparse matrix
+    net_flux : np.ndarray
         net flux of the MSM
 
     Returns
     -------
     top_path : np.ndarray
         array corresponding to the top path between sources and sinks
-    
+    flux : float
+        flux traveling through this path -- this is equal to the 
+        minimum flux over edges in the path
     """
-
-    _check_sources_sinks(sources, sinks)
-
-    if not scipy.sparse.issparse(net_flux):
-        logger.warn("only sparse matrices are currently supported.")
-        net_flux = scipy.sparse.lil_matrix(net_flux)
-
-    net_flux = net_flux.tolil()
-    n_states = net_flux.shape[0]
-
+    #_check_sources_sinks(sources, sinks)
+    # I think we can reshape like this to make everything an iterable
     sources = np.array(sources, dtype=np.int).flatten()
     sinks = np.array(sinks, dtype=np.int).flatten()
+
+    n_states = net_flux.shape[0]
 
     Q = list(sources) # nodes to check (the "queue")
                       # going to use list.pop method so I can't keep it as an array
@@ -171,14 +110,14 @@ def get_top_path(sources, sinks, net_flux):
         #    continue # I think if sinks is more than one state we have to check everything
 
         # now update the distances for each neighbor of the test_node:
-        neighbors = np.where(net_flux[test_node, :].toarray() > 0)[1]
+        neighbors = np.where(net_flux[test_node, :] > 0)[1]
         if len(neighbors) == 0:
             continue
-        new_fluxes = net_flux[test_node, neighbors].toarray().flatten()
-            # flux from test_node to each neighbor
+        new_fluxes = net_flux[test_node, neighbors].flatten()
+        # flux from test_node to each neighbor
 
         new_fluxes[np.where(new_fluxes > min_fluxes[test_node])] = min_fluxes[test_node]
-            # previous step to get to test_node was lower flux, so that is still the path flux
+        # previous step to get to test_node was lower flux, so that is still the path flux
 
         ind = np.where((1 - visited[neighbors]) & (new_fluxes > min_fluxes[neighbors]))
         min_fluxes[neighbors[ind]] = new_fluxes[ind]
@@ -199,12 +138,47 @@ def get_top_path(sources, sinks, net_flux):
     return np.array(top_path[::-1]), min_fluxes[top_path[0]]
 
 
-def get_paths(sources, sinks, net_flux, num_paths=np.inf, flux_cutoff=(1-1E-10)):
+
+def _remove_bottleneck(net_flux, path):
+    """
+    Internal function for modifying the net flux matrix by removing
+    a particular edge, corresponding to the bottleneck of a particular
+    path.
+
+    """
+    net_flux = copy.copy(net_flux)
+    
+    bottleneck_ind = net_flux[path[:-1], path[1:]].argmin()
+    
+    net_flux[path[bottleneck_ind], path[bottleneck_ind + 1]] = 0.0
+
+    return net_flux
+
+
+def _subtract_path_flux(net_flux, path):
+    """
+    Internal function for modifying the net flux matrix by subtracting
+    a path's flux from every edge in the path.
+    """
+
+    net_flux = copy.copy(net_flux)
+
+    net_flux[path[:-1], path[1:]] -= net_flux[path[:-1], path[1:]].min()
+
+    # The above *should* make the bottleneck have zero flux, but
+    # numerically that may not be the case, so just set it to zero
+    # to be sure.
+    bottleneck_ind = net_flux[path[:-1], path[1:]].argmin()
+    net_flux[path[bottleneck_ind], path[bottleneck_ind + 1]] = 0.0
+
+    return net_flux
+
+
+def get_paths(sources, sinks, net_flux, remove_path='subtract',
+              num_paths=np.inf, flux_cutoff=(1-1E-10)):
     """
     Get the top N paths by iteratively performing Dijkstra's
-    algorithm, but at each step modifying the net flux matrix
-    by subtracting the previously found path's flux from each
-    edge in that path.
+    algorithm.
     
     Parameters
     ----------
@@ -212,12 +186,16 @@ def get_paths(sources, sinks, net_flux, num_paths=np.inf, flux_cutoff=(1-1E-10))
         nodes to define the source states
     sinks : array_like
         nodes to define the sink states
-    net_flux : scipy.sparse matrix
+    net_flux : np.ndarray
         net flux of the MSM
+    remove_path : str or callable, optional 
+        Function for removing a path from the net flux matrix.
+        (if str, one of {'subtract', 'bottleneck'})
+        See note below for more details.
     num_paths : int, optional
-        number of paths to find
+        Number of paths to find
     flux_cutoff : float, optional
-        quit finding paths once the explained flux is greater
+        Quit finding paths once the explained flux is greater
         this cutoff (as a percentage of the total)
     
     Returns
@@ -226,15 +204,47 @@ def get_paths(sources, sinks, net_flux, num_paths=np.inf, flux_cutoff=(1-1E-10))
         list of paths
     fluxes : np.ndarray
         flux of each path returned
-    """
-    
-    _check_sources_sinks(sources, sinks)
-    
-    if not scipy.sparse.issparse(net_flux):
-        logger.warn("only sparse matrices are currently supported")
-        net_flux = scipy.sparse.lil_matrix(net_flux)
 
-    net_flux = copy.deepcopy(net_flux.tolil())
+    Notes
+    -----
+    The Dijkstra algorithm only allows for computing the 
+    *single* top flux pathway through the net flux matrix. If 
+    we want many paths, there are many ways of finding the 
+    *second* highest flux pathway.
+
+    The algorithm proceeds as follows:
+    
+    1) Using the Djikstra algorithm, find the highest flux
+        pathway from the sources to the sink states
+    2) Remove that pathway from the net flux matrix by 
+        some criterion
+    3) Repeat (1) with the modified net flux matrix
+
+    Currently, there are two schemes for step (2):
+
+    - 'subtract' : Remove the path by subtracting the flux
+        of the path from every edge in the path. This was 
+        suggested by Metzner, Schutte, and Vanden-Eijnden. 
+        Transition Path Theory for Markov Jump Processes.
+        Multiscale Model. Simul. 7, 1192-1219 (2009).
+    - 'bottleneck' : Remove the path by only removing
+        the edge that corresponds to the bottleneck of the
+        path.
+
+    If a new scheme is desired, the user may pass a function
+    that takes the net_flux and the path to remove and returns
+    the new net flux matrix.
+    """
+
+    if not callable(remove_path):
+        if remove_path == 'subtract':
+            remove_path = _subtract_path_flux
+        elif remove_path == 'bottleneck':
+            remove_path = _remove_bottleneck
+        else:
+            raise ValueError("remove_path_func (%s) must be a callable or one of ['subtract', 'bottleneck']" % str(remove_path_func))
+    
+    net_flux = copy.copy(net_flux)
     
     paths = []
     fluxes = []
@@ -255,453 +265,26 @@ def get_paths(sources, sinks, net_flux, num_paths=np.inf, flux_cutoff=(1-1E-10))
         fluxes.append(flux)
         
         expl_flux += flux / total_flux
-        
         counter += 1
+
         logger.info("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
         
         if counter >= num_paths or expl_flux >= flux_cutoff:
             break
 
         # modify the net_flux matrix
-        for k in xrange(len(path) - 1):
-            net_flux[path[k], path[k+1]] -= flux
-        # since flux is the bottleneck, this will never be negative
-        # though... this might lead to CLOS which is bad...
-        # I'll fix this (^^^^) later.. for now let's get it working
+        net_flux = remove_path(net_flux, path)
 
-    
-    max_len = np.max([len(p) for p in paths])
-    temp = np.ones((len(paths), max_len)) * -1
-    for i in range(len(paths)):
-        temp[i][:len(paths[i])] = paths[i]
+    # Old code for reshaping into a 2D array rather than a list 
+    # of arrays. I think its a bit unnecessary
+    #
+    #max_len = np.max([len(p) for p in paths])
+    #temp = np.ones((len(paths), max_len)) * -1
+    #for i in range(len(paths)):
+    #    temp[i][:len(paths[i])] = paths[i]
     
     fluxes = np.array(fluxes)
     
-    return temp, fluxes
+    return paths, fluxes
 
 
-def _get_enumerated_paths(sources, sinks, net_flux, num_paths=1):
-    """
-    get all possible paths, sorted from highest to lowest flux
-
-    Parameters
-    ----------
-    sources : array_like
-        nodes to define the source states
-    sinks : array_like
-        nodes to define the sink states
-    net_flux : scipy.sparse matrix
-        net flux of the MSM
-
-    Returns
-    -------
-    paths : np.ndarray
-        list of paths
-    fluxes : np.ndarray
-        flux of each path returned
-    """
-
-    paths = []
-    edges = []
-    fluxes = []
-
-    temp_net_flux = copy.deepcopy(net_flux).tolil()
-
-    path, flux = get_top_path(sources, sinks, temp_net_flux)
-    paths.append(path)
-    edges.append([[path[i], path[i + 1]] for i in xrange(len(path) - 1)])
-    fluxes.append(flux)
-
-    for i in xrange(1, num_paths):
-        #print "found %s - %.4e" % (str(paths[-1]), fluxes[-1])
-        test_path = None
-        test_flux = - np.inf
-
-        edge_list = itertools.product(*edges)
-        # this is a list of sets of edges to remove from net flux
-
-        for edges_to_remove in edge_list:
-            temp_net_flux = copy.deepcopy(net_flux).tolil()
-            for edge in edges_to_remove:
-                temp_net_flux[edge[0], edge[1]] = 0.0
-
-            path, flux = get_top_path(sources, sinks, temp_net_flux)
-            if flux > test_flux:
-                test_path = path
-                test_flux = flux
-
-        paths.append(test_path)
-        edges.append([[test_path[i], test_path[i + 1]] for i in xrange(len(test_path) - 1)])
-        fluxes.append(test_flux)
-            
-    max_len = np.max([len(p) for p in paths])
-    temp = np.ones((len(paths), max_len)) * -1
-    for i in range(len(paths)):
-        temp[i][:len(paths[i])] = paths[i]
-
-    fluxes = np.array(fluxes)
-
-    return temp, fluxes
-
-
-def _find_top_paths_cut(sources, sinks, tprob, num_paths=10, node_wipe=False, net_flux=None):
-    r"""
-    Calls the Dijkstra algorithm to find the top 'NumPaths'.
-
-    Does this recursively by first finding the top flux path, then cutting that
-    path and relaxing to find the second top path. Continues until NumPaths
-    have been found.
-
-    Parameters
-    ----------
-    sources : array_like, int
-        The indices of the source states
-    sinks : array_like, int
-        Indices of sink states
-    num_paths : int
-        The number of paths to find
-
-    Returns
-    -------
-    Paths : list of lists
-        The nodes transversed in each path
-    Bottlenecks : list of tuples
-        The nodes between which exists the path bottleneck
-    Fluxes : list of floats
-        The flux through each path
-
-    Optional Parameters
-    -------------------
-    node_wipe : bool
-        If true, removes the bottleneck-generating node from the graph, instead
-        of just the bottleneck (not recommended, a debugging functionality)
-    net_flux : sparse matrix
-        Matrix of the net flux from `sources` to `sinks`, see function `net_flux`.
-        If not provided, is calculated from scratch. If provided, `tprob` is
-        ignored.
-
-    To Do
-    -----
-    -- Add periodic flow check
-
-    References
-    ----------
-    .. [1] Dijkstra, E. W. (1959). "A note on two problems in connexion with 
-           graphs." Numerische Mathematik 1: 269-271. doi:10.1007/BF01386390.
-    """
-
-    # first, do some checking on the input, esp. `sources` and `sinks`
-    # we want to make sure all objects are iterable and the sets are disjoint
-    sources, sinks = _check_sources_sinks(sources, sinks)
-    msm_analysis.check_transition(tprob)
-
-    # check to see if we get net_flux for free, otherwise calculate it
-    if not net_flux:
-        net_flux = calculate_net_fluxes(sources, sinks, tprob)
-
-    # initialize objects
-    paths = []
-    fluxes = []
-    bottlenecks = []
-
-    if scipy.sparse.issparse(net_flux):
-        net_flux = net_flux.tolil()
-
-    # run the initial Dijkstra pass
-    pi, b = _Dijkstra(sources, sinks, net_flux)
-
-    logger.info("Path Num | Path | Bottleneck | Flux")
-
-    i = 1
-    done = False
-    while not done:
-
-        # First find the highest flux pathway
-        (path, (b1, b2), flux) = _backtrack(sinks, b, pi, net_flux)
-
-        # Add each result to a Paths, Bottlenecks, Fluxes list
-        if flux == 0:
-            logger.info("Only %d possible pathways found. Stopping backtrack.", i)
-            break
-        paths.append(path)
-        bottlenecks.append((b1, b2))
-        fluxes.append(flux)
-        logger.info("%s | %s | %s | %s ", i, path, (b1, b2), flux)
-
-        # Cut the bottleneck, start relaxing from B side of the cut
-        if node_wipe:
-            net_flux[:, b2] = 0
-            logger.info("Wiped node: %s", b2)
-        else:
-            net_flux[b1, b2] = 0
-
-        G = scipy.sparse.find(net_flux)
-        Q = [b2]
-        b, pi, net_flux = _back_relax(b2, b, pi, net_flux)
-
-        # Then relax the graph and repeat
-        # But only if we still need to
-        if i != num_paths - 1:
-            while len(Q) > 0:
-                w = Q.pop()
-                for v in G[1][np.where(G[0] == w)]:
-                    if pi[v] == w:
-                        b, pi, net_flux = _back_relax(v, b, pi, net_flux)
-                        Q.append(v)
-                Q = sorted(Q, key=lambda v: b[v])
-
-        i += 1
-        if i == num_paths + 1:
-            done = True
-        if flux == 0:
-            logger.info("Only %d possible pathways found. Stopping backtrack.", i)
-            done = True
-
-    return paths, bottlenecks, fluxes
-
-
-def _Dijkstra(sources, sinks, net_flux):
-    r""" A modified Dijkstra algorithm that dynamically computes the cost
-    of all paths from A to B, weighted by NFlux.
-
-    Parameters
-    ----------
-    sources : array_like, int
-        The indices of the source states (i.e. for state A in rxn A -> B)
-    sinks : array_like, int
-        Indices of sink states (state B)
-    NFlux : sparse matrix
-        Matrix of the net flux from A to B, see function GetFlux
-
-    Returns
-    -------
-    pi : array_like
-        The paths from A->B, pi[i] = node preceeding i
-    b : array_like
-        The flux passing through each node
-
-    See Also
-    --------
-    DijkstraTopPaths : child function
-        `DijkstraTopPaths` is probably the function you want to call to find
-         paths through an MSM network. This is a utility function called by
-         `DijkstraTopPaths`, but may be useful in some specific cases
-
-     References
-     ----------
-     .. [1] Dijkstra, E. W. (1959). "A note on two problems in connexion with 
-            graphs." Numerische Mathematik 1: 269-271. doi:10.1007/BF01386390.
-    """
-
-    sources, sinks = _check_sources_sinks(sources, sinks)
-
-    # initialize data structures
-    if scipy.sparse.issparse(net_flux):
-        net_flux = net_flux.tolil()
-    else:
-        net_flux = scipy.sparse.lil_matrix(net_flux)
-
-    G = scipy.sparse.find(net_flux)
-    N = net_flux.shape[0]
-    b = np.zeros(N)
-    b[sources] = 1000
-    pi = np.zeros(N, dtype=int)
-    pi[sources] = -1
-    U = []
-
-    Q = sorted(list(range(N)), key=lambda v: b[v])
-    for v in sinks:
-        Q.remove(v)
-
-    # run the Dijkstra algorithm
-    while len(Q) > 0:
-        w = Q.pop()
-        U.append(w)
-
-        # relax
-        for v in G[1][np.where(G[0] == w)]:
-            if b[v] < min(b[w], net_flux[w, v]):
-                b[v] = min(b[w], net_flux[w, v])
-                pi[v] = w
-
-        Q = sorted(Q, key=lambda v: b[v])
-
-    logger.info("Searched %s nodes", len(U) + len(sinks))
-
-    return pi, b
-
-
-def _back_relax(s, b, pi, NFlux):
-    r"""
-    Updates a Djikstra calculation once a bottleneck is cut, quickly
-    recalculating only cost of nodes that change due to the cut.
-
-    Cuts & relaxes the B-side (sink side) of a cut edge (b2) to source from the
-    adjacent node with the most flux flowing to it. If there are no
-    adjacent source nodes, cuts the node out of the graph and relaxes the
-    nodes that were getting fed by b2 (the cut node).
-
-    Parameters
-    ----------
-    s : int
-        the node b2
-    b : array_like
-        the cost function
-    pi : array_like
-        the backtrack array, a list such that pi[i] = source node of node i
-    NFlux : sparse matrix
-        Net flux matrix
-
-    Returns
-    -------
-    b : array_like
-        updated cost function
-    pi : array_like
-        updated backtrack array
-    NFlux : sparse matrix
-        net flux matrix
-
-    See Also
-    --------
-    DijkstraTopPaths : child function
-        `DijkstraTopPaths` is probably the function you want to call to find
-         paths through an MSM network. This is a utility function called by
-         `DijkstraTopPaths`, but may be useful in some specific cases
-    """
-
-    G = scipy.sparse.find(NFlux)
-    if len(G[0][np.where(G[1] == s)]) > 0:
-
-        # For all nodes connected upstream to the node `s` in question,
-        # Re-source that node from the best option (lowest cost) one level lower
-        # Notation: j is node one level below, s is the one being considered
-
-        b[s] = 0                                 # set the cost to zero
-        for j in G[0][np.where(G[1] == s)]:    # for each upstream node
-            if b[s] < min(b[j], NFlux[j, s]):   # if that node has a lower cost
-                b[s] = min(b[j], NFlux[j, s])   # then set the cost to that node
-                pi[s] = j                        # and the source comes from there
-
-    # if there are no nodes connected to this one, then we need to go one
-    # level up and work there first
-    else:
-        for sprime in G[1][np.where(G[0] == s)]:
-            NFlux[s, sprime] = 0
-            b, pi, NFlux = _back_relax(sprime, b, pi, NFlux)
-
-    return b, pi, NFlux
-
-
-def _backtrack(B, b, pi, NFlux):
-    """
-    Works backwards to pull out a path from pi, where pi is a list such that
-    pi[i] = source node of node i. Begins at the largest staring incoming flux
-    point in B.
-
-    Parameters
-    ----------
-    B : array_like, int
-        Indices of sink states (state B)
-    b : array_like
-        the cost function
-    pi : array_like
-        the backtrack array, a list such that pi[i] = source node of node i
-    NFlux : sparse matrix
-        net flux matrix
-
-    Returns
-    -------
-    bestpath : list
-        the list of nodes forming the highest flux path
-    bottleneck : tuple
-        a tupe of nodes, between which is the bottleneck
-    bestflux : float
-        the flux through `bestpath`
-
-    See Also
-    --------
-    DijkstraTopPaths : child function
-        `DijkstraTopPaths` is probably the function you want to call to find
-        paths through an MSM network. This is a utility function called by
-        `DijkstraTopPaths`, but may be useful in some specific cases
-    """
-
-    # Select starting location
-    bestflux = 0
-    for Bnode in B:
-        path = [Bnode]
-        NotDone = True
-        while NotDone:
-            if pi[path[-1]] == -1:
-                break
-            else:
-                path.append(pi[path[-1]])
-        path.reverse()
-
-        bottleneck, flux = find_path_bottleneck(path, NFlux)
-
-        logger.debug('In Backtrack: Flux %s, bestflux %s', flux, bestflux)
-
-        if flux > bestflux:
-            bestpath = path
-            bestbottleneck = bottleneck
-            bestflux = flux
-
-    if flux == 0:
-        bestpath = []
-        bottleneck = (np.nan, np.nan)
-        bestflux = 0
-
-    return (bestpath, bestbottleneck, bestflux)
-
-
-def find_path_bottleneck(path, net_flux):
-    """
-    Simply finds the bottleneck along a path.
-
-    This is the point at which the cost function first goes up along the path,
-    backtracking from B to A.
-
-    Parameters
-    ----------
-    path : list
-        a list of nodes along the path of interest
-    net_flux : matrix
-        the net flux matrix
-
-    Returns
-    -------
-    bottleneck : tuple
-        a tuple of the nodes on either end of the bottleneck
-    flux : float
-        the flux at the bottleneck
-
-    See Also
-    --------
-    find_top_paths : child function
-        `find_top_paths` is probably the function you want to call to find
-         paths through an MSM network. This is a utility function called by
-         `find_top_paths`, but may be useful in some specific cases.
-
-     References
-     ----------
-     .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-            for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
-            (2009).
-     .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
-            pathways in network models of coarse-grained protein dynamics. J. 
-            Chem. Phys. 130, 205102 (2009).
-    """
-
-    if scipy.sparse.issparse(net_flux):
-        net_flux = net_flux.tolil()
-
-    flux = 100000.  # initialize as large value
-
-    for i in range(len(path) - 1):
-        if net_flux[path[i], path[i + 1]] < flux:
-            flux = net_flux[path[i], path[i + 1]]
-            b1 = path[i]
-            b2 = path[i + 1]
-
-    return (b1, b2), flux
