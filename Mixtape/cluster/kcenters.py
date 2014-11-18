@@ -22,15 +22,11 @@
 
 from __future__ import absolute_import, print_function, division
 import numpy as np
-from six import string_types, PY2
-from scipy.spatial.distance import cdist
 from sklearn.utils import check_random_state
 from sklearn.base import ClusterMixin, TransformerMixin
 
-from ._commonc import _predict_labels, _predict_labels_euclidean
-from ._kcentersc import _kcenters_euclidean
-from . import MultiSequenceClusterMixin
-from .regularspatial import _arrayify
+from .. import libdistance
+from . import MultiSequenceClusterMixin, _arrayify
 
 __all__ = ['KCenters']
 
@@ -46,41 +42,15 @@ class _KCenters(ClusterMixin, TransformerMixin):
     n_clusters : int, optional, default: 8
         The number of clusters to form as well as the number of
         centroids to generate.
-    metric : string or function
-        The distance metric to use. The distance function can
-        be a callable (e.g. function). If it's callable, the
-        function should have the signature shown below in
-        the Notes. Alternatively, `metric` can be a string. In
-        that case, it should be one of the metric strings
-        accepted by scipy.spatial.distance.
+    metric : {"euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",
+              "braycurtis", "hamming", "jaccard", "cityblock", "rmsd"}
+        The distance metric to use. metric = "rmsd" requires that sequences
+        passed to ``fit()`` be ```md.Trajectory```; other distance metrics
+        require ``np.ndarray``s.
     random_state : integer or numpy.RandomState, optional
         The generator used to initialize the centers. If an integer is
         given, it fixes the seed. Defaults to the global numpy random
         number generator.
-
-    Notes
-    -----
-    K-Centers one of the most inexpensive possible clustering algorithms. It's
-    sometimes also called "max-min" clustering. The algorithm stats with a
-    single data point as a cluster center, and then at each iteration it chooses
-    as the next cluster center the data point which is farthest from its
-    assigned cluster center.
-
-    [Custom metrics] KCenters can accept an arbitrary metric
-    function. In the interest of performance, the expected call
-    signature of a custom metric is
-
-    >>> def mymetric(X, Y, yi):
-        # return the distance from Y[yi] to each point in X.
-
-    [Algorithm] KCenters is a simple clustering algorithm. To
-    initialize, we select a random data point to be the first
-    cluster center. In each iteration, we maintain knowledge of
-    the distance from each data point to its assigned cluster center
-    (the nearest cluster center). In the iteration, we increase the
-    number of cluster centers by one by choosing the data point which
-    is farthest from its assigned cluster center to be the new
-    cluster cluster.
 
     Attributes
     ----------
@@ -92,47 +62,29 @@ class _KCenters(ClusterMixin, TransformerMixin):
         Distance from each sample to the cluster center it is
         assigned to.
     """
-    def __init__(self, n_clusters=8, metric='euclidean', random_state=None, opt=True):
+    def __init__(self, n_clusters=8, metric='euclidean', random_state=None):
         self.n_clusters = n_clusters
         self.metric = metric
         self.random_state = random_state
-        self.opt = opt
 
     def fit(self, X, y=None):
         n_samples = len(X)
         new_center_index = check_random_state(self.random_state).randint(0, n_samples)
 
-        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            X = np.asarray(X, order='c')
-            self.cluster_centers_, self.distances_, self.labels_ = \
-                _kcenters_euclidean(X, self.n_clusters, new_center_index)
-            return self
-
         self.labels_ = np.zeros(n_samples, dtype=int)
         self.distances_ = np.empty(n_samples, dtype=float)
         self.distances_.fill(np.inf)
-
-        metric_function = self._metric_function
-
-        if isinstance(self.metric, string_types):
-            self.cluster_centers_ = np.zeros((self.n_clusters, X.shape[1]))
-        else:
-            # this should be a list, not a numpy array, so that
-            # fit() works if X is a non-numpyarray collection type
-            # like an molecular dynamics trajectory with a non-string metric
-            self.cluster_centers_ = [None for i in range(self.n_clusters)]
+        self.cluster_centers_ = [None for i in range(self.n_clusters)]
 
         for i in range(self.n_clusters):
-            d = metric_function(X, X, new_center_index)
+            d = libdistance.dist(X, X[new_center_index], metric=self.metric)
             mask = (d < self.distances_)
             self.distances_[mask] = d[mask]
             self.labels_[mask] = i
             self.cluster_centers_[i] = X[new_center_index]
             new_center_index = np.argmax(self.distances_)
 
-        if not isinstance(self.metric, string_types):
-            self.cluster_centers_ = _arrayify(self.cluster_centers_)
-
+        self.cluster_centers_ = _arrayify(self.cluster_centers_)
         return self
 
     def predict(self, X):
@@ -152,24 +104,11 @@ class _KCenters(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
-        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            return _predict_labels_euclidean(X, self.cluster_centers_)
-
-        metric_function = self._metric_function
-        return _predict_labels(X, self.cluster_centers_, metric_function)
+        labels, inertia = libdistance.assign_nearest(X, self.cluster_centers_)
+        return labels
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y).labels_
-
-    @property
-    def _metric_function(self):
-        if isinstance(self.metric, string_types):
-            # distance from r[i] to each frame in t (output is a vector of length len(t)
-            # using scipy.spatial.distance.cdist
-            return lambda t, r, i : cdist(t, r[i, np.newaxis], metric=self.metric)[:,0]
-        elif callable(self.metric):
-            return self.metric
-        raise NotImplementedError
 
 
 class KCenters(MultiSequenceClusterMixin, _KCenters):
@@ -197,9 +136,10 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         Parameters
         ----------
         sequences : list of array-like, each of shape [sequence_length, n_features]
-            A list of multivariate timeseries. Each sequence may have
-            a different length, but they all must have the same number
-            of features.
+            A list of multivariate timeseries, or ``md.Trajectory``. Each
+            sequence may have a different length, but they all must have the
+            same number of features, or the same number of atoms if they are
+            ``md.Trajectory``s.
 
         Returns
         -------

@@ -22,13 +22,10 @@
 
 from __future__ import absolute_import, print_function, division
 import numpy as np
-from six import string_types, PY2
-from scipy.spatial.distance import cdist
 from sklearn.base import ClusterMixin, TransformerMixin
 
-from ._commonc import _predict_labels, _predict_labels_euclidean
-from . import _regularspatialc
-from . import MultiSequenceClusterMixin
+from .. import libdistance
+from . import MultiSequenceClusterMixin, _arrayify
 
 __all__ = ['RegularSpatial']
 
@@ -36,18 +33,6 @@ __all__ = ['RegularSpatial']
 # Code
 #-----------------------------------------------------------------------------
 
-def _arrayify(list_like):
-    """Transform a list into a MDTraj Trajectory or a Numpy array.
-    
-    Notes
-    -----
-    See Issue #249.  This is a hack to make md.trajectory work using
-    metric=md.rmsd    
-    """
-    if isinstance(list_like[0], np.ndarray):
-        return np.array(list_like)
-    else:
-        return list_like[0].join(list_like[1:])
 
 class _RegularSpatial(ClusterMixin, TransformerMixin):
     """Regular spatial clustering.
@@ -57,15 +42,11 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
     d_min : float
         Minimum distance between cluster centers. This parameter controls
         the number of clusters which are found.
-    metric : string or function
-        The distance metric to use. The distance function can
-        be a callable (e.g. function). If it's callable, the
-        function should have the signature shown below in
-        the Notes. Alternatively, `metric` can be a string. In
-        that case, it should be one of the metric strings
-        accepted by scipy.spatial.distance.
-    opt : bool, default=True
-        Use an optimized code path for fit() applicable when metric=='euclidean'
+    metric : {"euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",
+              "braycurtis", "hamming", "jaccard", "cityblock", "rmsd"}
+        The distance metric to use. metric = "rmsd" requires that sequences
+        passed to ``fit()`` be ```md.Trajectory```; other distance metrics
+        require ``np.ndarray``s.
 
     Notes
     -----
@@ -77,13 +58,6 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
       - Iterating over all conformations in the input dataset (in order),
           * If the data point is farther than d_min from all existing
             cluster center, add it to the list of cluster centers
-
-    [Custom metrics] RegularSpatial can accept an arbitrary metric
-    function. In the interest of performance, the expected call
-    signature of a custom metric is
-
-    >>> def mymetric(X, Y, yi):
-        # return the distance from Y[yi] to each point in X.
 
     References
     ----------
@@ -103,25 +77,15 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         self.opt = opt
 
     def fit(self, X, y=None):
-        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            X = np.asarray(X, dtype=np.float64, order='c')
-            self.cluster_centers_ = _regularspatialc._rspatial_euclidean(X, float(self.d_min))
-            self.n_clusters_ = len(self.cluster_centers_)
-            return self
-
-        # regular code
-        metric_function = self._metric_function
-        if len(X) == 0:
-            raise ValueError('len(X) must be greater than 0')
-
-        self.cluster_centers_ = [X[0]]
+        cluster_ids = [0]
         for i in range(1, len(X)):
-            d = metric_function(_arrayify(self.cluster_centers_), X, i)
+            # distance from X[i] to each X with indices in cluster_ids
+            d = libdistance.dist(X, X[i], np.array(cluster_ids))
             if np.all(d > self.d_min):
-                self.cluster_centers_.append(X[i])
-        
-        self.cluster_centers_ = _arrayify(self.cluster_centers_)
-        self.n_clusters_ = len(self.cluster_centers_)
+                cluster_ids.append(i)
+
+        self.cluster_centers_ = X[np.array(cluster_ids)]
+        self.n_clusters_ = len(cluster_ids)
         return self
 
     def predict(self, X):
@@ -141,24 +105,11 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
-        if self.opt and self.metric == 'euclidean' and isinstance(X, np.ndarray):
-            return _predict_labels_euclidean(X, self.cluster_centers_)
-
-        metric_function = self._metric_function
-        return _predict_labels(X, self.cluster_centers_, metric_function)
+        labels, inertia = libdistance.assign_nearest(X, self.cluster_centers_)
+        return labels
 
     def fit_predict(self, X, y=None):
         return self.fit(X, y=y).predict(X)
-
-    @property
-    def _metric_function(self):
-        if isinstance(self.metric, string_types):
-            # distance from r[i] to each frame in t (output is a vector of length len(t)
-            # using scipy.spatial.distance.cdist
-            return lambda t, r, i : cdist(t, r[i, np.newaxis], metric=self.metric)[:,0]
-        elif callable(self.metric):
-            return self.metric
-        raise NotImplementedError
 
 
 class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
@@ -170,9 +121,10 @@ class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
         Parameters
         ----------
         sequences : list of array-like, each of shape [sequence_length, n_features]
-            A list of multivariate timeseries. Each sequence may have
-            a different length, but they all must have the same number
-            of features.
+            A list of multivariate timeseries, or ``md.Trajectory``. Each
+            sequence may have a different length, but they all must have the
+            same number of features, or the same number of atoms if they are
+            ``md.Trajectory``s.
 
         Returns
         -------
