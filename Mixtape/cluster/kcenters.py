@@ -104,7 +104,8 @@ class _KCenters(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
-        labels, inertia = libdistance.assign_nearest(X, self.cluster_centers_)
+        labels, inertia = libdistance.assign_nearest(
+            X, self.cluster_centers_, metric=self.metric)
         return labels
 
     def fit_predict(self, X, y=None):

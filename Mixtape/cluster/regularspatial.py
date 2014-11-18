@@ -80,7 +80,8 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         cluster_ids = [0]
         for i in range(1, len(X)):
             # distance from X[i] to each X with indices in cluster_ids
-            d = libdistance.dist(X, X[i], np.array(cluster_ids))
+            d = libdistance.dist(
+                X, X[i], metric=self.metric, X_indices=np.array(cluster_ids))
             if np.all(d > self.d_min):
                 cluster_ids.append(i)
 
@@ -105,7 +106,8 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
-        labels, inertia = libdistance.assign_nearest(X, self.cluster_centers_)
+        labels, inertia = libdistance.assign_nearest(
+            X, self.cluster_centers_, metric=self.metric)
         return labels
 
     def fit_predict(self, X, y=None):

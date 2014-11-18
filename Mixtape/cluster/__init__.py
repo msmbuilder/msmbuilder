@@ -21,10 +21,11 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import absolute_import, print_function, division
-from six import PY2
 import numpy as np
 from sklearn import cluster
 from sklearn import mixture
+
+import mdtraj as md
 from ..base import BaseEstimator
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
@@ -64,8 +65,7 @@ class MultiSequenceClusterMixin(BaseEstimator):
         -------
         self
         """
-        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
-        s.fit(self._concat(sequences))
+        super(MultiSequenceClusterMixin, self).fit(self._concat(sequences))
 
         if hasattr(self, 'labels_'):
             self.labels_ = self._split(self.labels_)
@@ -109,10 +109,9 @@ class MultiSequenceClusterMixin(BaseEstimator):
         Y : list of arrays, each of shape [sequence_length,]
             Index of the closest center each sample belongs to.
         """
-        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
         predictions = []
         for sequence in sequences:
-            predictions.append(s.predict(sequence))
+            predictions.append(super(MultiSequenceClusterMixin, self).predict(sequence))
         return predictions
 
     def fit_predict(self, sequences, y=None):
@@ -130,9 +129,8 @@ class MultiSequenceClusterMixin(BaseEstimator):
         Y : list of ndarray, each of shape [sequence_length, ]
             Cluster labels
         """
-        s = super(MultiSequenceClusterMixin, self) if PY2 else super()
-        if hasattr(s, 'fit_predict'):
-            labels = s.fit_predict(sequences)
+        if hasattr(super(MultiSequenceClusterMixin, self), 'fit_predict'):
+            labels = super(MultiSequenceClusterMixin, self).fit_predict(sequences)
         else:
             self.fit(sequences)
             labels = self.predict(sequences)
@@ -181,6 +179,7 @@ def _arrayify(list_like):
         return list_like[0].join(list_like[1:])
     else:
         raise TypeError('Unrecoginzed type: %s' % type(list_like[0]))
+
 
 #-----------------------------------------------------------------------------
 # New "multisequence" versions of all of the clustering algorithims in sklearn
