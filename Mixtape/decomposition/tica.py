@@ -167,7 +167,16 @@ class tICA(BaseEstimator, TransformerMixin):
 
     def _solve(self):
         if not self._is_dirty:
-            return
+            # So, we're not dirty, but someone might have changed
+            # n_components
+            if len(self._eigenvalues_) >= self.n_components:
+                return
+            # if we've already solved for enough eigenvectors then
+            # we don't need to solve it again
+
+        # just check to make sure we've actually seen some data
+        if self.n_observations_ == 0:
+            raise RuntimeError('must fit the model before using it')
 
         if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
             raise RuntimeError('offset correlation matrix is not symmetric')
@@ -192,17 +201,17 @@ class tICA(BaseEstimator, TransformerMixin):
     @property
     def eigenvectors_(self):
         self._solve()
-        return self._eigenvectors_
+        return self._eigenvectors_[:, :self.n_components]
 
     @property
     def eigenvalues_(self):
         self._solve()
-        return self._eigenvalues_
+        return self._eigenvalues_[:self.n_components]
 
     @property
     def timescales_(self):
         self._solve()
-        return -1. * self.lag_time / np.log(self._eigenvalues_)
+        return -1. * self.lag_time / np.log(self._eigenvalues_[:self.n_components])
 
     @property
     def components_(self):
