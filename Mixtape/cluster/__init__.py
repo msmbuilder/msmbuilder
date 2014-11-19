@@ -213,3 +213,4 @@ from .kcenters import KCenters
 from .ndgrid import NDGrid
 from .agglomerative import LandmarkAgglomerative
 from .regularspatial import RegularSpatial
+from .kmedoids import KMedoids, MinibatchKMedoids

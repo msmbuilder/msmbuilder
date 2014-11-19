@@ -1,7 +1,7 @@
 import numpy as np
 import mdtraj as md
 import scipy.spatial.distance
-from mixtape.libdistance import assign_nearest, pdist, dist
+from mixtape.libdistance import assign_nearest, pdist, dist, sumdist
 from mixtape.datasets import AlanineDipeptide
 
 random = np.random.RandomState(0)
@@ -10,7 +10,9 @@ Y_double = random.randn(3, 2)
 X_float = random.randn(10, 2).astype(np.float32)
 Y_float = np.random.randn(3, 2).astype(np.float32)
 X_rmsd = AlanineDipeptide().get().trajectories[0][0:10]
-Y_rmsd = AlanineDipeptide().get().trajectories[0][10:13]
+Y_rmsd = AlanineDipeptide().get().trajectories[0][30:33]
+X_rmsd.center_coordinates()
+Y_rmsd.center_coordinates()
 
 X_indices = random.random_integers(low=0, high=9, size=5)
 
@@ -35,7 +37,7 @@ def test_assign_nearest_double_float_1():
             yield lambda: np.testing.assert_almost_equal(
                 inertia,
                 cdist[np.arange(10), assignments].sum(),
-                decimal=5)
+                decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_assign_nearest_float_double_2():
@@ -55,7 +57,7 @@ def test_assign_nearest_float_double_2():
             yield lambda: np.testing.assert_almost_equal(
                 inertia,
                 cdist[np.arange(5), assignments].sum(),
-                decimal=5)
+                decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_assign_nearest_rmsd_1():
@@ -64,7 +66,7 @@ def test_assign_nearest_rmsd_1():
     assert isinstance(assignments, np.ndarray)
     assert isinstance(inertia, float)
 
-    cdist = np.array([md.rmsd(X_rmsd, Y_rmsd[i]) for i in range(len(Y_rmsd))]).T
+    cdist = np.array([md.rmsd(X_rmsd, Y_rmsd[i], precentered=True) for i in range(len(Y_rmsd))]).T
     assert cdist.shape == (10, 3)
 
     np.testing.assert_array_equal(
@@ -74,7 +76,7 @@ def test_assign_nearest_rmsd_1():
     np.testing.assert_almost_equal(
         inertia,
         cdist[np.arange(10), assignments].sum(),
-        decimal=5)
+        decimal=6)
 
 
 def test_assign_nearest_rmsd_2():
@@ -83,18 +85,17 @@ def test_assign_nearest_rmsd_2():
     assert isinstance(assignments, np.ndarray)
     assert isinstance(inertia, float)
 
-    cdist = np.array([md.rmsd(X_rmsd, Y_rmsd[i]) for i in range(len(Y_rmsd))]).T
-    cdist = cdist[X_indices]
+    cdist = np.array([md.rmsd(X_rmsd, Y_rmsd[i], precentered=True) for i in range(len(Y_rmsd))]).T
+    cdist = cdist[X_indices].astype(np.double)
     assert cdist.shape == (5, 3)
 
     np.testing.assert_array_equal(
         assignments,
         cdist.argmin(axis=1))
 
-    np.testing.assert_almost_equal(
+    np.testing.assert_equal(
         inertia,
-        cdist[np.arange(5), assignments].sum(),
-        decimal=5)
+        cdist[np.arange(5), assignments].sum())
 
 
 def test_pdist_double_float_1():
@@ -106,7 +107,7 @@ def test_pdist_double_float_1():
             yield lambda : np.testing.assert_almost_equal(
                 pdist_1,
                 pdist_2,
-                decimal=5)
+                decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_pdist_double_float_2():
@@ -118,19 +119,19 @@ def test_pdist_double_float_2():
             yield lambda : np.testing.assert_almost_equal(
                 pdist_1,
                 pdist_2,
-                decimal=5)
+                decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_pdist_rmsd_1():
     got = pdist(X_rmsd, "rmsd")
-    all2all = np.array([md.rmsd(X_rmsd, X_rmsd[i]) for i in range(len(X_rmsd))])
+    all2all = np.array([md.rmsd(X_rmsd, X_rmsd[i], precentered=True) for i in range(len(X_rmsd))])
     ref = all2all[np.triu_indices(10, k=1)]
     np.testing.assert_almost_equal(got, ref, decimal=5)
 
 
 def test_pdist_rmsd_2():
     got = pdist(X_rmsd, "rmsd", X_indices)
-    all2all = np.array([md.rmsd(X_rmsd, X_rmsd[i])
+    all2all = np.array([md.rmsd(X_rmsd, X_rmsd[i], precentered=True)
                         for i in range(len(X_rmsd))]).astype(np.double)
     submatrix = all2all[np.ix_(X_indices, X_indices)]
 
@@ -147,7 +148,7 @@ def test_dist_double_float_1():
             yield lambda : np.testing.assert_almost_equal(
                 dist_1,
                 dist_2,
-                decimal=5)
+                decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_dist_double_float_2():
@@ -159,16 +160,35 @@ def test_dist_double_float_2():
             yield lambda : np.testing.assert_almost_equal(
                 dist_1,
                 dist_2,
-                decimal=5)
+                decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_dist_rmsd_1():
     d = dist(X_rmsd, Y_rmsd[0], "rmsd")
-    ref = md.rmsd(X_rmsd, Y_rmsd[0]).astype(np.double)
+    ref = md.rmsd(X_rmsd, Y_rmsd[0], precentered=True).astype(np.double)
     np.testing.assert_array_almost_equal(d, ref)
 
 
 def test_dist_rmsd_2():
     d = dist(X_rmsd, Y_rmsd[0], "rmsd", X_indices)
-    ref = md.rmsd(X_rmsd, Y_rmsd[0]).astype(np.double)[X_indices]
+    ref = md.rmsd(X_rmsd, Y_rmsd[0], precentered=True).astype(np.double)[X_indices]
     np.testing.assert_array_almost_equal(d, ref)
+
+
+def test_sumdist_double_float():
+    pairs = random.random_integers(low=0, high=9, size=(5, 2))
+    for metric in VECTOR_METRICS:
+        for X in (X_double, X_float):
+            alldist = scipy.spatial.distance.squareform(pdist(X, metric))
+            np.testing.assert_almost_equal(
+                sum(alldist[p[0], p[1]] for p in pairs),
+                sumdist(X, metric, pairs))
+
+
+def test_sumdist_rmsd():
+    pairs = random.random_integers(low=0, high=9, size=(5, 2))
+    alldist = scipy.spatial.distance.squareform(pdist(X_rmsd, "rmsd"))
+    np.testing.assert_almost_equal(
+        sum(alldist[p[0], p[1]] for p in pairs),
+        sumdist(X_rmsd, "rmsd", pairs),
+        decimal=6)
