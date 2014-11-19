@@ -76,13 +76,17 @@ class MultiSequenceClusterMixin(BaseEstimator):
         self.__lengths = [len(s) for s in sequences]
         if len(sequences) > 0 and isinstance(sequences[0], np.ndarray):
             concat = np.concatenate(sequences)
-        else:
+        elif isinstance(sequences[0], md.Trajectory):
             # if the input sequences are not numpy arrays, we need to guess
             # how to concatenate them. this operation below works for mdtraj
             # trajectories (which is the use case that I want to be sure to
             # support), but in general the python container protocol doesn't
             # give us a generic way to make sure we merged sequences
             concat = sequences[0].join(sequences[1:])
+            concat.center_coordinates()
+        else:
+            raise TypeError('sequences must be a list of numpy arrays '
+                            'or ``md.Trajectory``s')
 
         assert sum(self.__lengths) == len(concat)
         return concat
@@ -111,6 +115,8 @@ class MultiSequenceClusterMixin(BaseEstimator):
         """
         predictions = []
         for sequence in sequences:
+            if isinstance(sequence, md.Trajectory):
+                sequence.center_coordinates()
             predictions.append(super(MultiSequenceClusterMixin, self).predict(sequence))
         return predictions
 
@@ -213,4 +219,5 @@ from .kcenters import KCenters
 from .ndgrid import NDGrid
 from .agglomerative import LandmarkAgglomerative
 from .regularspatial import RegularSpatial
-from .kmedoids import KMedoids, MinibatchKMedoids
+from .kmedoids import KMedoids
+from .minibatchkmedoids import MinibatchKMedoids

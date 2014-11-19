@@ -4,7 +4,8 @@ import numpy as np
 from numpy.testing import assert_raises
 from scipy.spatial.distance import pdist, squareform, euclidean
 from mixtape.cluster._kmedoids import kmedoids, contigify_ids
-from mixtape.cluster.kmedoids import _KMedoids, _MinibatchKMedoids
+from mixtape.cluster.kmedoids import _KMedoids
+from mixtape.cluster.minibatchkmedoids import _MinibatchKMedoids
 from mixtape import libdistance
 
 
@@ -15,11 +16,11 @@ def test_inertia():
     for km in (_KMedoids(n_clusters=3, n_passes=5),
                _MinibatchKMedoids(n_clusters=3)):
         km.fit(X)
-        intertia = 0
+        inertia = 0
         for i in range(len(X)):
-            intertia += euclidean(X[km.cluster_ids_[km.labels_[i]]], X[i])
+            inertia += euclidean(X[km.cluster_ids_[km.labels_[i]]], X[i])
 
-        np.testing.assert_almost_equal(intertia, km.intertia_)
+        np.testing.assert_almost_equal(inertia, km.inertia_)
 
 
 def test_obvious_clustering():
