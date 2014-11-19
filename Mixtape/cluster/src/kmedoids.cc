@@ -33,7 +33,7 @@
 #include <cfloat>
 #include <cstring>
 #include <numpy/arrayobject.h>
-
+#include <numpy/npy_3kcompat.h>
 
 /* ************************************************************************ */
 
@@ -44,7 +44,12 @@ static void getclustermedoids(npy_intp nclusters, npy_intp nelements,
                               double* distance, npy_intp clusterid[],
                               npy_intp centroids[], double errors[]);
 
-static void initialize_numpy(void) {
+#if PY_MAJOR_VERSION >= 3
+static int
+#else
+static void
+#endif
+initialize_numpy(void) {
     static int is_initialized = 0;
     if (is_initialized == 0) {
         import_array();
