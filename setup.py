@@ -130,7 +130,8 @@ extensions.append(
     Extension('mixtape.cluster._kmedoids',
               language='c++',
               sources=[pjoin(CLUSTERDIR, '_kmedoids.pyx'),
-                       pjoin(CLUSTERDIR, 'src', 'kmedoids.cc')]))
+                       pjoin(CLUSTERDIR, 'src', 'kmedoids.cc')],
+              include_dirs=[np.get_include()]))
 
 extensions.append(
     Extension('mixtape.hmm._ghmm',

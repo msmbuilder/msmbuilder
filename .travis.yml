@@ -9,7 +9,7 @@ install:
   - export PYTHONUNBUFFERED=true
 
 script:
-  - python setup.py -q install
+  - python setup.py install
   - nosetests Mixtape/tests -v
 
 env:
