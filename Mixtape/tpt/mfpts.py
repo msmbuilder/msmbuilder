@@ -24,9 +24,9 @@ Christian Schwantes, and TJ Lane.
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-
-import itertools
 import copy
+
+from mixtape.tpt import calculate_committors
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
 
-def calculate_mfpts(sinks, tprob, lag_time=1.):
+def calculate_mfpts(sinks, msm, lag_time=1.):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
@@ -73,7 +73,7 @@ def calculate_mfpts(sinks, tprob, lag_time=1.):
     sinks = np.array(sinks, dtype=int).reshape((-1,))
 
     tprob = copy.copy(msm.transmat_)
-    n_states = tprob.shape[0]
+    n_states = msm.n_states_
 
     for state in sinks:
         tprob[state, :] = 0.0

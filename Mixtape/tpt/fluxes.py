@@ -88,20 +88,24 @@ def calculate_fluxes(sources, sinks, msm, committors=None):
 
     populations = msm.populations_
     tprob = msm.transmat_
+    n_states = msm.n_states_
 
     # check if we got the committors
     if committors is None:
         committors = calculate_committors(sources, sinks, tprob)
+    else:
+        committors = np.array(committors)
+        if committors.shape != (n_states,):
+            raise ValueError("Shape of committors %s should be %s" % (str(committors.shape), str((n_states,)))
 
-    n = tprob.shape[0]
+    X = np.zeros((n_states, n_states))
+    X[(np.arange(n_states), np.arange(n_states))] = populations * (1.0 - committors)
 
-    X = np.zeros((n, n))
-    Y = np.zeros((n, n))
-    X[(np.arange(n), np.arange(n))] = populations * (1.0 - committors)
-    Y[(np.arange(n), np.arange(n))] = committors
+    Y = np.zeros((n_states, n_states))
+    Y[(np.arange(n_states), np.arange(n_states))] = committors
 
     fluxes = np.dot(np.dot(X, tprob), Y)
-    fluxes[(np.arange(n), np.arange(n))] = np.zeros(n)
+    fluxes[(np.arange(n_states), np.arange(n_states))] = np.zeros(n)
 
     return fluxes
 

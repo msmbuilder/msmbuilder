@@ -80,36 +80,34 @@ def calculate_committors(sources, sinks, msm):
     sources = np.array(sources, dtype=int).reshape((-1, 1))
     sinks = np.array(sinks, dtype=int).reshape((-1, 1))
 
+    n_states = msm.n_states_
     tprob = msm.transmat_
-    # construct the committor problem
-    n_states = tprob.shape[0]
 
-    T = np.eye(n_states) - tprob
+    # construct the committor problem
+    lhs = np.eye(n_states) - tprob
 
     for a in sources:
-        T[a, :] = 0.0  # np.zeros(n)
-        T[:, a] = 0.0
-        T[a, a] = 1.0
+        lhs[a, :] = 0.0  # np.zeros(n)
+        lhs[:, a] = 0.0
+        lhs[a, a] = 1.0
 
     for b in sinks:
-        T[b, :] = 0.0  # np.zeros(n)
-        T[:, b] = 0.0
-        T[b, b] = 1.0
+        lhs[b, :] = 0.0  # np.zeros(n)
+        lhs[:, b] = 0.0
+        lhs[b, b] = 1.0
 
-    IdB = np.zeros(n_states)
-    IdB[sinks] = 1.0
+    ident_sinks = np.zeros(n_states)
+    ident_sinks[sinks] = 1.0
 
-    RHS = np.dot(tprob, IdB)
-    RHS[sources] = 0.0
-    RHS[sinks] = 1.0
+    rhs = np.dot(tprob, ident_sinks)
+    rhs[sources] = 0.0
+    rhs[sinks] = 1.0
 
-    committors = np.linalg.solve(T, RHS)
+    committors = np.linalg.solve(lhs, rhs)
 
-    # we can probably (?) remove these assersion lines
+    # we can probably (?) remove these assertion lines
     epsilon = 0.001
     assert np.all(committors <= (1.0 + epsilon))
     assert np.all(committors >= (0.0 - epsilon))
 
     return committors
-
-

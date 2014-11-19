@@ -22,39 +22,15 @@ References
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-
-import itertools
 import copy
+
+from mixtape.tpt import calculate_committors
 
 import logging
 logger = logging.getLogger(__name__)
 # turn on debugging printout
 # logger.setLogLevel(logging.DEBUG)
 
-###############################################################################
-# Typechecking/Utility Functions
-#
-def _ensure_iterable(arg):
-    if not hasattr(arg, '__iter__'):
-        arg = list([int(arg)])
-        logger.debug("Passed object was not iterable,"
-                     " converted it to: %s" % str(arg))
-    assert hasattr(arg, '__iter__')
-    return arg
-
-def _check_sources_sinks(sources, sinks):
-    sources = _ensure_iterable(sources)
-    sinks = _ensure_iterable(sinks)
-
-    for s in sources:
-        if s in sinks:
-            raise ValueError("sources and sinks are not disjoint")
-
-    return sources, sinks
-
-
-###############################################################################
-# Path Finding Functions
 def get_top_path(sources, sinks, net_flux):
     """
     Use the Dijkstra algorithm for finding the shortest path connecting
@@ -77,27 +53,35 @@ def get_top_path(sources, sinks, net_flux):
         flux traveling through this path -- this is equal to the 
         minimum flux over edges in the path
     """
-    #_check_sources_sinks(sources, sinks)
-    # I think we can reshape like this to make everything an iterable
-    sources = np.array(sources, dtype=np.int).flatten()
-    sinks = np.array(sinks, dtype=np.int).flatten()
+    sources = np.array(sources, dtype=np.int).reshape((-1,))
+    sinks = np.array(sinks, dtype=np.int).reshape((-1,))
 
     n_states = net_flux.shape[0]
 
-    Q = list(sources) # nodes to check (the "queue")
-                      # going to use list.pop method so I can't keep it as an array
-    visited = np.zeros(n_states).astype(np.bool) # have we already checked this node?
-    previous_node = np.ones(n_states).astype(np.int) * -1 # what node was found before finding this one
-    min_fluxes = np.ones(n_states) * -1 * np.inf # what is the flux of the highest flux path
-                                            # from this node to the source set.
+    queue = list(sources) 
+    # nodes to check (the "queue")
+    # going to use list.pop method so I can't keep it as an array
 
-    min_fluxes[sources] = np.inf # source states are connected to the source
-                                 # so this distance is zero which means the flux is infinite
+    visited = np.zeros(n_states).astype(np.bool) 
+    # have we already checked this node?
+
+    previous_node = np.ones(n_states).astype(np.int) * -1 
+    # what node was found before finding this one
+
+    min_fluxes = np.ones(n_states) * -1 * np.inf 
+    # what is the flux of the highest flux path
+    # from this node to the source set.
+
+    min_fluxes[sources] = np.inf 
+    # source states are connected to the source
+    # so this distance is zero which means the flux is infinite
     
-    while len(Q) > 0: # iterate until there's nothing to check anymore
+    while len(queue) > 0: # iterate until there's nothing to check anymore
 
-        test_node = Q.pop(min_fluxes[Q].argmax()) # find the node in the queue that has the 
-                                                  # highest flux path to it from the source set
+        test_node = queue.pop(min_fluxes[queue].argmax()) 
+        # find the node in the queue that has the 
+        # highest flux path to it from the source set
+
         visited[test_node] = True
 
         if np.all(visited[sinks]):
@@ -113,6 +97,7 @@ def get_top_path(sources, sinks, net_flux):
         neighbors = np.where(net_flux[test_node, :] > 0)[1]
         if len(neighbors) == 0:
             continue
+
         new_fluxes = net_flux[test_node, neighbors].flatten()
         # flux from test_node to each neighbor
 
@@ -122,10 +107,11 @@ def get_top_path(sources, sinks, net_flux):
         ind = np.where((1 - visited[neighbors]) & (new_fluxes > min_fluxes[neighbors]))
         min_fluxes[neighbors[ind]] = new_fluxes[ind]
 
-        previous_node[neighbors[ind]] = test_node # each of these neighbors came from this test_node
+        previous_node[neighbors[ind]] = test_node 
+        # each of these neighbors came from this test_node
         # we don't want to update the nodes that have already been visited
 
-        Q.extend(neighbors[ind])
+        queue.extend(neighbors[ind])
 
     top_path = []
     # populate the path in reverse
@@ -136,7 +122,6 @@ def get_top_path(sources, sinks, net_flux):
         top_path.append(previous_node[top_path[-1]])
 
     return np.array(top_path[::-1]), min_fluxes[top_path[0]]
-
 
 
 def _remove_bottleneck(net_flux, path):
