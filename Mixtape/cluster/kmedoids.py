@@ -21,27 +21,27 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import absolute_import, print_function, division
+
+from operator import itemgetter
 import numpy as np
-from sklearn.utils import check_random_state
 from sklearn.base import ClusterMixin, TransformerMixin
 
+from . import MultiSequenceClusterMixin
+from . import _kmedoids
 from .. import libdistance
-from . import MultiSequenceClusterMixin, _arrayify
 
-__all__ = ['KCenters']
 
-#-----------------------------------------------------------------------------
-# Code
-#-----------------------------------------------------------------------------
-
-class _KCenters(ClusterMixin, TransformerMixin):
-    """K-Centers clustering
+class _KMedoids(ClusterMixin, TransformerMixin):
+    """K-Medoids clustering
 
     Parameters
     ----------
     n_clusters : int, optional, default: 8
-        The number of clusters to form as well as the number of
-        centroids to generate.
+        The number of clusters to be found.
+    n_passes : int, default=1
+        The number of times clustering is performed. Clustering is performed
+        n_passes times, each time starting from a different (random) initial
+        assignment.
     metric : {"euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",
               "braycurtis", "hamming", "jaccard", "cityblock", "rmsd"}
         The distance metric to use. metric = "rmsd" requires that sequences
@@ -56,41 +56,37 @@ class _KCenters(ClusterMixin, TransformerMixin):
     ----------
     cluster_ids_ : array, [n_clusters]
         Index of the data point that each cluster label corresponds to.
-    cluster_centers_ : array, [n_clusters, n_features] or md.Trajectory
-        Coordinates of cluster centers
     labels_ : array, [n_samples,]
         The label of each point is an integer in [0, n_clusters).
-    distances_ : array, [n_samples,]
-        Distance from each sample to the cluster center it is
-        assigned to.
     inertia_ : float
         Sum of distances of samples to their closest cluster center.
     """
-    def __init__(self, n_clusters=8, metric='euclidean', random_state=None):
+
+    def __init__(self, n_clusters=8, n_passes=1, metric='euclidean',
+                 random_state=None):
         self.n_clusters = n_clusters
+        self.n_passes = n_passes
         self.metric = metric
         self.random_state = random_state
 
     def fit(self, X, y=None):
-        n_samples = len(X)
-        new_center_index = check_random_state(self.random_state).randint(0, n_samples)
+        if self.n_passes < 1:
+            raise ValueError('n_passes must be greater than 0. got %s' %
+                             self.n_passes)
+        if self.n_clusters < 1:
+            raise ValueError('n_passes must be greater than 0. got %s' %
+                             self.n_clusters)
 
-        self.labels_ = np.zeros(n_samples, dtype=int)
-        self.distances_ = np.empty(n_samples, dtype=float)
-        self.distances_.fill(np.inf)
-        cluster_ids_ = []
+        dmat = libdistance.pdist(X, metric=self.metric)
+        ids, self.inertia_, _ = _kmedoids.kmedoids(
+            self.n_clusters, dmat, self.n_passes,
+            random_state=self.random_state)
 
-        for i in range(self.n_clusters):
-            d = libdistance.dist(X, X[new_center_index], metric=self.metric)
-            mask = (d < self.distances_)
-            self.distances_[mask] = d[mask]
-            self.labels_[mask] = i
-            cluster_ids_.append(new_center_index)
-            new_center_index = np.argmax(self.distances_)
+        self.labels_, mapping = _kmedoids.contigify_ids(ids)
+        smapping = sorted(mapping.items(), key=itemgetter(1))
+        self.cluster_ids_ = np.array(smapping)[:, 0]
+        self.cluster_centers_ = X[self.cluster_ids_]
 
-        self.cluster_ids_ = cluster_ids_
-        self.cluster_centers_ = X[cluster_ids_]
-        self.inertia_ = np.sum(self.distances_)
         return self
 
     def predict(self, X):
@@ -118,8 +114,8 @@ class _KCenters(ClusterMixin, TransformerMixin):
         return self.fit(X, y).labels_
 
 
-class KCenters(MultiSequenceClusterMixin, _KCenters):
-    __doc__ = _KCenters.__doc__[: _KCenters.__doc__.find('Attributes')] + \
+class KMedoids(MultiSequenceClusterMixin, _KMedoids):
+    __doc__ = _KMedoids.__doc__[: _KMedoids.__doc__.find('Attributes')] + \
     '''
     Attributes
     ----------
@@ -130,11 +126,6 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         `labels_[i]` is an array of the labels of each point in
         sequence `i`. The label of each point is an integer in
         [0, n_clusters).
-
-    `distances_` : list of arrays, each of shape [sequence_length, ]
-        `distances_[i]` is an array of  the labels of each point in
-        sequence `i`. Distance from each sample to the cluster center
-        it is assigned to.
     '''
 
     def fit(self, sequences, y=None):
@@ -153,5 +144,4 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
-        self.distances_ = self._split(self.distances_)
         return self
