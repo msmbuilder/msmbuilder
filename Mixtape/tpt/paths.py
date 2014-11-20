@@ -1,5 +1,3 @@
-# insert license statement here
-
 """
 Functions for performing Transition Path Theory calculations. 
 
