@@ -1,10 +1,18 @@
+from __future__ import print_function
+import sys
 import numpy as np
 import mdtraj as md
 import scipy.spatial.distance
 from mixtape.libdistance import assign_nearest, pdist, dist, sumdist
 from mixtape.datasets import AlanineDipeptide
 
-random = np.random.RandomState(0)
+
+seed = np.random.randint(2**32-1)
+#seed = 1227789621
+seed = 2144326277
+print('seed', seed, file=sys.stderr)
+random = np.random.RandomState(seed)
+
 X_double = random.randn(10, 2)
 Y_double = random.randn(3, 2)
 X_float = random.randn(10, 2).astype(np.float32)
@@ -24,15 +32,20 @@ def test_assign_nearest_double_float_1():
     # test without X_indices
     for metric in VECTOR_METRICS:
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
+            if metric == 'canberra' and X.dtype == np.float32:
+                # this is tested separately
+                continue
+
             assignments, inertia = assign_nearest(X, Y, metric)
             assert isinstance(assignments, np.ndarray)
             assert isinstance(inertia, float)
 
             cdist = scipy.spatial.distance.cdist(X, Y, metric=metric)
             assert cdist.shape == (10, 3)
-            yield lambda: np.testing.assert_array_equal(
+            f = lambda: np.testing.assert_array_equal(
                 assignments,
                 cdist.argmin(axis=1))
+            f.description = 'assign_nearest: %s %s' % (metric, X.dtype)
 
             yield lambda: np.testing.assert_almost_equal(
                 inertia,
@@ -93,9 +106,10 @@ def test_assign_nearest_rmsd_2():
         assignments,
         cdist.argmin(axis=1))
 
-    np.testing.assert_equal(
+    np.testing.assert_almost_equal(
         inertia,
-        cdist[np.arange(5), assignments].sum())
+        cdist[np.arange(5), assignments].sum(),
+        decimal=5)
 
 
 def test_pdist_double_float_1():
@@ -192,3 +206,27 @@ def test_sumdist_rmsd():
         sum(alldist[p[0], p[1]] for p in pairs),
         sumdist(X_rmsd, "rmsd", pairs),
         decimal=6)
+
+
+def test_canberra_32():
+    # with canberra in float32, there is a rounding issue where many of
+    # the distances come out exactly the same, but due to finite floating
+    # point resolution, a different one gets picked than by argmin()
+    # on the cdist
+    for i in range(10):
+        X = random.randn(10,2).astype(np.float32)
+        Y = X[[0,1,2], :]
+
+        assignments, inertia = assign_nearest(X, Y, 'canberra')
+        cdist = scipy.spatial.distance.cdist(X, Y, metric='canberra')
+        ref = cdist.argmin(axis=1)
+        if not np.all(ref == assignments):
+            different = np.where(assignments != ref)[0]
+            row = cdist[different, :]
+
+            # if there are differences between assignments and the 'reference',
+            # make sure that there is actually some difference between the
+            # entries in that row of the distance matrix before throwing
+            # an error
+            if not np.all(row==row[0]):
+                assert False

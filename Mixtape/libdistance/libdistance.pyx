@@ -305,10 +305,8 @@ cdef _assign_nearest_rmsd(X, Y, npy_intp[::1] X_indices=None):
                 if rmsd < min_d:
                     min_d = rmsd;
                     assignments[i] = j;
-            print(min_d)
             inertia += min_d;
 
-        print('sum:', inertia)
     return np.array(assignments, copy=False), inertia
 
 
