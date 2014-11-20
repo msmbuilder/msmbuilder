@@ -12,20 +12,22 @@ seed = np.random.randint(2**32-1)
 seed = 2144326277
 print('seed', seed, file=sys.stderr)
 random = np.random.RandomState(seed)
-
-X_double = random.randn(10, 2)
-Y_double = random.randn(3, 2)
-X_float = random.randn(10, 2).astype(np.float32)
-Y_float = np.random.randn(3, 2).astype(np.float32)
-X_rmsd = AlanineDipeptide().get().trajectories[0][0:10]
-Y_rmsd = AlanineDipeptide().get().trajectories[0][30:33]
-X_rmsd.center_coordinates()
-Y_rmsd.center_coordinates()
-
-X_indices = random.random_integers(low=0, high=9, size=5)
-
 VECTOR_METRICS = ("euclidean", "sqeuclidean", "cityblock", "chebyshev",
                   "canberra", "braycurtis", "hamming", "jaccard", "cityblock")
+
+
+def setup():
+    global X_double, Y_double, X_float, Y_float, X_rmsd, Y_rmsd, X_indices
+    X_double = random.randn(10, 2)
+    Y_double = random.randn(3, 2)
+    X_float = random.randn(10, 2).astype(np.float32)
+    Y_float = np.random.randn(3, 2).astype(np.float32)
+    X_rmsd = AlanineDipeptide().get().trajectories[0][0:10]
+    Y_rmsd = AlanineDipeptide().get().trajectories[0][30:33]
+    X_rmsd.center_coordinates()
+    Y_rmsd.center_coordinates()
+    X_indices = random.random_integers(low=0, high=9, size=5)
+
 
 
 def test_assign_nearest_double_float_1():
