@@ -1,8 +1,24 @@
-"""
-Functions for performing Transition Path Theory calculations. 
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+#            (schwancr@stanford.edu)
+# Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
 
-Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
-Christian Schwantes, and TJ Lane.
+# Mixtape is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
+"""
+Functions for enumerating paths through an MSM for a given set of
+sink and source states.
 
 These are the canonical references for TPT. Note that TPT is really a
 specialization of ideas very framiliar to the mathematical study of Markov
@@ -22,14 +38,9 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import copy
 
-from mixtape.tpt import calculate_committors
+__all__ = ['paths', 'top_path']
 
-import logging
-logger = logging.getLogger(__name__)
-# turn on debugging printout
-# logger.setLogLevel(logging.DEBUG)
-
-def get_top_path(sources, sinks, net_flux):
+def top_path(sources, sinks, net_flux):
     """
     Use the Dijkstra algorithm for finding the shortest path connecting
     sources and sinks
@@ -157,7 +168,7 @@ def _subtract_path_flux(net_flux, path):
     return net_flux
 
 
-def get_paths(sources, sinks, net_flux, remove_path='subtract',
+def paths(sources, sinks, net_flux, remove_path='subtract',
               num_paths=np.inf, flux_cutoff=(1-1E-10)):
     """
     Get the top N paths by iteratively performing Dijkstra's

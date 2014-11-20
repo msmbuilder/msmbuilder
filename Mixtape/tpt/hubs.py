@@ -1,41 +1,41 @@
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+#            (schwancr@stanford.edu)
+# Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
+# Mixtape is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for performing Transition Path Theory calculations. 
-
-Written and maintained by TJ Lane <tjlane@stanford.edu>
-Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
-Christian Schwantes.
-
-These are the cannonical references for TPT. Note that TPT is really a
-specialization of ideas very framiliar to the mathematical study of Markov
-chains, and there are many books, manuscripts in the mathematical literature
-that cover the same concepts.
+Functions for analyzing the "hub-ness" of an MSM.
 
 References
 ----------
-.. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
-       for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
-       (2009).
-.. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
-       pathways in network models of coarse-grained protein dynamics. J. 
-       Chem. Phys. 130, 205102 (2009).
+.. [1] Dickson, Alex, and Charles L. Brooks III. "Quantifying 
+       hub-like behavior in protein folding networks." 
+       JCTC, 8, 3044-3052 (2012).
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
 
+from . import committors
+
 import itertools
 import copy
 
-import logging
-logger = logging.getLogger(__name__)
+__all__ = ['fraction_visited', 'hub_scores']
 
-# turn on debugging printout
-# logger.setLogLevel(logging.DEBUG)
-
-######################################################################
-# Functions for computing hub scores, conditional committors, and
-# related quantities
-#
-def calculate_fraction_visits(source, sink, waypoint, msm):
+def fraction_visited(source, sink, waypoint, msm):
     """
     Calculate the fraction of times a walker on `tprob` going from `sources`
     to `sinks` will travel through the set of states `waypoints` en route.
@@ -78,8 +78,7 @@ def calculate_fraction_visits(source, sink, waypoint, msm):
 
     References
     ----------
-    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
-          Article ASAP DOI: 10.1021/ct300537s
+    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
     tprob = msm.transmat_
@@ -99,9 +98,9 @@ def calculate_fraction_visits(source, sink, waypoint, msm):
     return fraction_visited
 
 
-def calculate_hub_score(msm, waypoint):
+def hub_scores(msm, waypoints=None):
     """
-    Calculate the hub score for a single `waypoint`.
+    Calculate the hub score for one or more waypoints
 
     The "hub score" is a measure of how well traveled a certain state or
     set of states is in a network. Specifically, it is the fraction of
@@ -113,76 +112,39 @@ def calculate_hub_score(msm, waypoint):
     ----------
     msm : mixtape.MarkovStateModel
         MSM to analyze
-    waypoint : int
-        The index of the intermediate state
+    waypoints : array_like, int, optional
+        The index of the intermediate state (or more than one).
+        If None, then all waypoints will be used
 
     Returns
     -------
     hub_score : float
         The hub score for the waypoint
 
-    See Also
-    --------
-    hubs.calculate_all_hub_scores : function
-        A more efficient way to compute the hub score for every state in a
-        network.
-
     References
     ----------
-    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
-        Article ASAP DOI: 10.1021/ct300537s
+    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
     tprob = msm.transmat_
     n_states = msm.n_states_
-    if not isinstance(waypoint, int):
-        raise ValueError("waypoint (%s) must be an int" % str(waypoint))
+    if isinstance(waypoints, int):
+        waypoints = [waypoints]
+    elif waypoints is None:
+        waypoints = xrange(n_states)
+    elif not (isinstance(waypoints, list) or isinstance(waypoints, np.ndarray)):
+        raise ValueError("waypoint (%s) must be an int a list or None" % str(waypoint))
 
-    other_states = (i for i in xrange(n_states) if i != waypoint)
+    hub_scores = []
+    for waypoint in waypoints:
+        other_states = (i for i in xrange(n_states) if i != waypoint)
 
-    # calculate the hub score
-    hub_score = 0.0
-    for (source, sink) in itertools.permutations(other_states, 2):
-        hub_score += calculate_fraction_visits(source, sink, waypoint, msm)
+        # calculate the hub score for this waypoint
+        hub_score = 0.0
+        for (source, sink) in itertools.permutations(other_states, 2):
+            hub_score += calculate_fraction_visits(source, sink, waypoint, msm)
 
-    hub_score /= float((N - 1) * (N - 2))
+        hub_score /= float((N - 1) * (N - 2))
+        hub_scores.append(hub_score)
 
-    return hub_score
-
-
-def calculate_all_hub_scores(msm):
-    """
-    Calculate the hub scores for all states in a network defined by `msm`.
-
-    The "hub score" is a measure of how well traveled a certain state or
-    set of states is in a network. Specifically, it is the fraction of
-    times that a walker visits a state en route from some state A to another
-    state B, averaged over all combinations of A and B.
-
-    Parameters
-    ----------
-    msm : mixtape.MarkovStateModel
-        MSM to analyze.
-
-    Returns
-    -------
-    hub_scores : np.ndarray
-        The hub score for each state in `msm`
-
-    See Also
-    --------
-    hubs.calculate_hub_score : function
-        A function that computes just one hub score, can compute the hub score
-        for a set of states.
-
-    References
-    ----------
-    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
-        Article ASAP DOI: 10.1021/ct300537s
-    """
-
-    n_states = msm.n_states_
-
-    hub_scores = np.array([calculate_hub_score(msm, state) for state in xrange(n_states)])
-
-    return hub_scores
+    return np.array(hub_scores)

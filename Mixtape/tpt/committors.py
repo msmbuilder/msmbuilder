@@ -1,11 +1,29 @@
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+#            (schwancr@stanford.edu)
+# Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
+# Mixtape is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for performing Transition Path Theory calculations. 
+Functions for computing forward committors for an MSM. The forward 
+committor is defined for a set of sources and sink states, and for
+each state, the forward committor is the probability that a walker
+starting at that state will visit the sink state before the source
+state.
 
-Written and maintained by TJ Lane <tjlane@stanford.edu>
-Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
-Christian Schwantes.
-
-These are the cannonical references for TPT. Note that TPT is really a
+These are the canonical references for TPT. Note that TPT is really a
 specialization of ideas very framiliar to the mathematical study of Markov
 chains, and there are many books, manuscripts in the mathematical literature
 that cover the same concepts.
@@ -25,13 +43,9 @@ import numpy as np
 import itertools
 import copy
 
-import logging
-logger = logging.getLogger(__name__)
+__all__ = ['committors', 'conditional_committors']
 
-# turn on debugging printout
-# logger.setLogLevel(logging.DEBUG)
-
-def calculate_committors(sources, sinks, msm):
+def committors(sources, sinks, msm):
     """
     Get the forward committors of the reaction sources -> sinks.
 
@@ -95,9 +109,9 @@ def calculate_committors(sources, sinks, msm):
     return committors
 
 
-def calculate_conditional_committors(source, sink, waypoint, msm):
-"""
-    Calculate the fraction of times a walker on `tprob` going from `sources`
+def conditional_committors(source, sink, waypoint, msm):
+    """
+    C.alculate the fraction of times a walker on `tprob` going from `sources`
     to `sinks` will travel through the set of states `waypoints` en route.
 
     Computes the conditional committors q^{ABC^+} and uses them to find the

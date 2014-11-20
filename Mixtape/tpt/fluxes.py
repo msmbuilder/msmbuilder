@@ -1,8 +1,24 @@
-"""
-Functions for performing Transition Path Theory calculations. 
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+#            (schwancr@stanford.edu)
+# Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
 
-Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
-Christian Schwantes, and TJ Lane.
+# Mixtape is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
+"""
+Functions for calculating the fluxes through an MSM for a given set
+of source and sink states.
 
 These are the canonical references for TPT. Note that TPT is really a
 specialization of ideas very framiliar to the mathematical study of Markov
@@ -22,19 +38,14 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.sparse
 
+from . import committors
+
 import itertools
 import copy
 
-import logging
-logger = logging.getLogger(__name__)
+__all__ = ['fluxes', 'net_fluxes']
 
-# turn on debugging printout
-# logger.setLogLevel(logging.DEBUG)
-
-###############################################################################
-# Typechecking/Utility Functions
-#
-def calculate_fluxes(sources, sinks, msm, committors=None):
+def fluxes(sources, sinks, msm, committors=None):
     """
     Compute the transition path theory flux matrix.
 
@@ -74,11 +85,11 @@ def calculate_fluxes(sources, sinks, msm, committors=None):
 
     # check if we got the committors
     if committors is None:
-        committors = calculate_committors(sources, sinks, tprob)
+        committors = committors.calculate_committors(sources, sinks, tprob)
     else:
         committors = np.array(committors)
         if committors.shape != (n_states,):
-            raise ValueError("Shape of committors %s should be %s" % (str(committors.shape), str((n_states,)))
+            raise ValueError("Shape of committors %s should be %s" % (str(committors.shape), str((n_states,))))
 
     X = np.zeros((n_states, n_states))
     X[(np.arange(n_states), np.arange(n_states))] = populations * (1.0 - committors)
@@ -92,7 +103,7 @@ def calculate_fluxes(sources, sinks, msm, committors=None):
     return fluxes
 
 
-def calculate_net_fluxes(sources, sinks, msm, committors=None):
+def net_fluxes(sources, sinks, msm, committors=None):
     """
     Computes the transition path theory net flux matrix.
 
