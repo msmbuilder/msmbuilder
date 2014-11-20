@@ -19,7 +19,10 @@ References
 
 from __future__ import absolute_import
 
-from . import fluxes, hubs, paths, committors
-from .mfpts import mfpts
+from .fluxes import fluxes, net_fluxes
+from .hubs import fraction_visited, hub_scores
+from .paths import paths, top_path
+from .committors import committors, conditional_committors
 
-__all__ = ['fluxes', 'hubs', 'paths', 'committors', 'mfpts']
+__all__ = ['fluxes', 'net_fluxes', 'fraction_visited', 'hub_scores',
+           'paths', 'top_paths', 'committors', 'conditional_committors']
