@@ -13,7 +13,7 @@ def test_1():
     try:
         X = np.random.randn(10,2)
         ds = dataset(path, 'w')
-        ds.append(X)
+        ds[0] = X
         assert set(os.listdir(path)) == set(('PROVENANCE.txt', '00000000.npy'))
         np.testing.assert_array_equal(ds[0], X)
 
@@ -22,7 +22,8 @@ def test_1():
 
         Y = np.zeros((10, 1))
         Z = np.ones((2, 2))
-        ds.extend([Y, Z])
+        ds[1] = Y
+        ds[2] = Z
         np.testing.assert_array_equal(ds[1], Y)
         np.testing.assert_array_equal(ds[2], Z)
         assert len(ds) == 3
@@ -44,7 +45,7 @@ def test_2():
         X = np.random.randn(10,2)
         Y = np.random.randn(10,2)
         ds1 = dataset(path1, 'w')
-        ds1.append(X)
+        ds1[0] = X
 
         ds2 = ds1.save_transformed(path2, [Y])
 

@@ -97,8 +97,7 @@ Date:\t\t{date}
         return np.save(join(self.path, self.ITEM_FORMAT % i), x)
 
     def __len__(self):
-        # this is probably slow
-        return sum(1 for e in os.listdir(self.path) if self.ITEM_RE.match(e))
+        return sum(1 for xx in self.keys())
 
     def __getitem__(self, i):
         return self.get(i)
@@ -106,15 +105,8 @@ Date:\t\t{date}
     def __setitem__(self, i, x):
         return self.set(i, x)
 
-    def append(self, x):
-        i = len(self)
-        self.set(i, x)
-
-    def extend(self, sequences):
-        i = len(self)
-        for x in sequences:
-            self.set(i, x)
-            i += 1
+    def keys(self):
+        return (xx for xx in os.listdir(self.path) if self.ITEM_RE.match(xx))
 
 
 def dataset(path, mode='r', fmt='dir-npy'):
