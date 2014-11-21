@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 import numpy as np
 from mixtape.hmm import GaussianFusionHMM
-from mixtape.datasets import AlanineDipeptide
+from mixtape.example_datasets import AlanineDipeptide
 from mixtape.featurizer import SuperposeFeaturizer
 
 

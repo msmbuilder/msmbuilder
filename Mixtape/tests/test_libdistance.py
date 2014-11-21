@@ -4,7 +4,7 @@ import numpy as np
 import mdtraj as md
 import scipy.spatial.distance
 from mixtape.libdistance import assign_nearest, pdist, dist, sumdist
-from mixtape.datasets import AlanineDipeptide
+from mixtape.example_datasets import AlanineDipeptide
 
 
 seed = np.random.randint(2**32-1)
