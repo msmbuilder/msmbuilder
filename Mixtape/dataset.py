@@ -59,6 +59,7 @@ class _BaseDataset(Sequence):
                                       comments=comments)
         return out_dataset
 
+
     def apply(self, fn):
         for key in self.keys():
             yield fn(self.get(key))
@@ -76,6 +77,9 @@ class _BaseDataset(Sequence):
 
     @property
     def provenance(self):
+        raise NotImplementedError('implemented in subclass')
+
+    def _write_provenance(self, previous, comments):
         raise NotImplementedError('implemented in subclass')
 
     def __len__(self):
