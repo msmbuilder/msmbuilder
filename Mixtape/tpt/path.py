@@ -36,6 +36,7 @@ References
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
+from mdtraj.utils.six.moves import xrange
 import copy
 
 __all__ = ['paths', 'top_path']

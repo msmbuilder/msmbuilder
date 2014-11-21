@@ -30,6 +30,7 @@ import numpy as np
 
 from . import committors, conditional_committors
 
+from mdtraj.utils.six.moves import xrange
 import itertools
 import copy
 

@@ -36,7 +36,8 @@ References
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-import scipy.sparse
+
+from mdtraj.utils.six.moves import xrange
 
 from . import committors
 

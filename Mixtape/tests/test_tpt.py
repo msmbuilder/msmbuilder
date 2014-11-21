@@ -11,6 +11,7 @@ import numpy as np
 import numpy.testing as npt
 
 from mdtraj import io
+from mdtraj.utils.six.moves import xrange
 
 def test_paths():
 
