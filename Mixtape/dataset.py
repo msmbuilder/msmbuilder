@@ -230,9 +230,9 @@ class MDTrajDataset(_BaseDataset):
 
 def dataset(path, mode='r', fmt='dir-npy', verbose=False, **kwargs):
     if fmt == 'dir-npy':
-        return NumpyDirDataset(path, mode, verbose, **kwargs)
+        return NumpyDirDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'mdtraj':
-        return MDTrajDataset(path, mode, verbose, **kwargs)
+        return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
     else:
         raise NotImplementedError()
 
