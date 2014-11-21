@@ -13,7 +13,7 @@ import numpy as np
 from os.path import join as pjoin
 from setuptools import setup, Extension, find_packages
 sys.path.insert(0, '.')
-from setupbase import write_version_py, CompilerDetection
+from basesetup import write_version_py, CompilerDetection
 
 try:
     import mdtraj
