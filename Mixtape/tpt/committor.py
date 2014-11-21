@@ -1,4 +1,4 @@
-# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes
 #            (schwancr@stanford.edu)
 # Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
 # Copyright (c) 2014, Stanford University
@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for computing forward committors for an MSM. The forward 
+Functions for computing forward committors for an MSM. The forward
 committor is defined for a set of sources and sink states, and for
 each state, the forward committor is the probability that a walker
 starting at that state will visit the sink state before the source
@@ -33,8 +33,8 @@ References
 .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
        for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
        (2009).
-.. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
-       pathways in network models of coarse-grained protein dynamics. J. 
+.. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding
+       pathways in network models of coarse-grained protein dynamics. J.
        Chem. Phys. 130, 205102 (2009).
 """
 from __future__ import print_function, division, absolute_import
@@ -67,11 +67,13 @@ def committors(sources, sinks, msm):
 
     References
     ----------
-    .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219 
+    .. [1] E, Weinan and Vanden-Eijnden, Eric Towards a Theory of Transition Paths
+           J. Stat. Phys. 123 503-523 (2006)
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
-    .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
-           pathways in network models of coarse-grained protein dynamics. J. 
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding
+           pathways in network models of coarse-grained protein dynamics. J.
            Chem. Phys. 130, 205102 (2009).
     """
 
@@ -108,14 +110,12 @@ def committors(sources, sinks, msm):
 
 def conditional_committors(source, sink, waypoint, msm):
     """
-    Computes the conditional committors q^{ABC^+} which are is the probability
-    of starting in one state and visiting state B before A while also visiting 
-    state C at some point.
+    Computes the conditional committors :math:`q^{ABC^+}` which are is the
+    probability of starting in one state and visiting state B before A while
+    also visiting state C at some point.
 
-    Note that in the notation of Dickson et. al. this computes h_c(A,B), with
-        sources   = A
-        sinks     = B
-        waypoint  = C
+    Note that in the notation of Dickson et. al. this computes :math:`h_c(A,B)`,
+    with ``sources = A``, ``sinks = B``, ``waypoint = C``
 
     Parameters
     ----------
@@ -136,25 +136,20 @@ def conditional_committors(source, sink, waypoint, msm):
 
     See Also
     --------
-    hubs.calculate_fraction_visits : function
+    mixtape.tpt.fraction_visited : function
         Calculate the fraction of visits to a waypoint from a given
         source to a sink.
-    hubs.calculate_hub_score : function
+    mixtape.tpt.hub_scores : function
         Compute the 'hub score', the weighted fraction of visits for an
         entire network.
-    hubs.calculate_all_hub_scores : function
-        Wrapper to compute all the hub scores in a network.
 
     Notes
     -----
-    Employs dense linear algebra,
-      memory use scales as N^2
-      cycle use scales as N^3
+    Employs dense linear algebra, memory use scales as N^2, and cycle use scales as N^3
 
     References
     ----------
-    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput.,
-          Article ASAP DOI: 10.1021/ct300537s
+    .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
     tprob = msm.transmat_
@@ -164,7 +159,7 @@ def conditional_committors(source, sink, waypoint, msm):
     for data in [source, sink, waypoint]:
         if not isinstance(data, int):
             raise ValueError("source, sink, and waypoint must be integers.")
-            
+
     if (source == waypoint) or (sink == waypoint) or (sink == source):
         raise ValueError('source, sink, waypoint must all be disjoint!')
 
@@ -193,6 +188,6 @@ def conditional_committors(source, sink, waypoint, msm):
     cond_committors = b * forward_committors[waypoint]
 
     # get the original order
-    cond_committors = cond_committors[np.argsort(perm)] 
+    cond_committors = cond_committors[np.argsort(perm)]
 
     return cond_committors
