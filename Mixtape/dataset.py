@@ -249,5 +249,5 @@ def _keynat(string):
             else:
                 r.append(int(c))
         else:
-            r.append(c)
+            r.append(9 + ord(c))
     return r
