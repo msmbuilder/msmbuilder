@@ -1,12 +1,11 @@
 from __future__ import print_function, absolute_import
 import os
 import sys
-import glob
+
+import numpy as np
 
 from ..cmdline import NumpydocClassCommand, argument
-from ..utils import verbosedump
-import numpy as np
-import mdtraj as md
+from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
                           ContactFeaturizer)
@@ -15,7 +14,7 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
 class FeaturizerCommand(NumpydocClassCommand):
     trjs = argument(
         '--trjs', help='Glob pattern for trajectories',
-        default='', nargs='+')
+        default='')
     top = argument(
         '--top', help='Path to topology file', default='')
     chunk = argument(
@@ -32,26 +31,22 @@ class FeaturizerCommand(NumpydocClassCommand):
     def start(self):
         print(self.instance)
         if os.path.exists(self.top):
-            top = md.load(self.top)
+            top = self.top
         else:
             top = None
 
-        dataset = []
-        for item in self.trjs:
-            for trjfn in glob.glob(item):
-                trajectory = []
-                iterloader = md.iterload(trjfn, stride=self.stride,
-                                         chunk=self.chunk, top=top)
-                for i, chunk in enumerate(iterloader):
-                    fstr = '\r{} chunk {}'
-                    fval = (os.path.basename(trjfn), i)
-                    print(fstr.format(*fval), end='')
-                    sys.stdout.flush()
-                    trajectory.append(self.instance.partial_transform(chunk))
-                print()
-                dataset.append(np.concatenate(trajectory))
+        input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=True)
+        out_dataset = input_dataset.write_derived(self.out, [], fmt='dir-npy')
 
-        verbosedump(dataset, self.out)
+        for key in input_dataset.keys():
+            trajectory = []
+            for i, chunk in enumerate(input_dataset.iterload(key, chunk=self.chunk)):
+                print('\r{chunk %d}' % i, end='')
+                sys.stdout.flush()
+                trajectory.append(self.instance.partial_transform(chunk))
+            print()
+            out_dataset[i] = np.concatenate(trajectory)
+
         print('All done')
 
 

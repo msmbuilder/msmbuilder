@@ -4,7 +4,7 @@ import sys
 import os
 import re
 import glob
-from os.path import join, exists
+from os.path import join, exists, expanduser
 import socket
 import getpass
 import itertools
@@ -28,16 +28,16 @@ class _BaseDataset(Sequence):
   Path:\t\t{{path}}
   Username:\t{{user}}
   Hostname:\t{{hostname}}
-  Date:\t\t{{date}}
-  {% if comments %}Comments:\t\t{{comments}}{% endif %}
+  Date:\t\t{{date}}{% if comments %}\nComments:\t\t{{comments}}{% endif %}
 
-{% if previous %}
-== Derived from ==
-  {{previous}}{% endif %}''')
+{% if previous %}== Derived from ==
+{{previous}}
+{% endif %}''')
 
-    def __init__(self, path, mode='r'):
+    def __init__(self, path, mode='r', verbose=False):
         self.path = path
         self.mode = mode
+        self.verbose = verbose
 
         if mode not in ('r', 'w'):
             raise ValueError('mode must be one of "r", "w"')
@@ -47,13 +47,21 @@ class _BaseDataset(Sequence):
             os.makedirs(path)
             self._write_provenance()
 
-    def write_derived(self, out_path, sequences, comments=''):
-        out_dataset = self.__class__(out_path, 'w')
+    def write_derived(self, out_path, sequences, comments='', fmt=None):
+        if fmt is None:
+            out_dataset = self.__class__(out_path, mode='w', verbose=self.verbose)
+        else:
+            out_dataset =  dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
+
         for i, x in enumerate(sequences):
             out_dataset[i] = x
         out_dataset._write_provenance(previous=self.provenance,
                                       comments=comments)
         return out_dataset
+
+    def apply(self, fn):
+        for key in self.keys():
+            yield fn(self.get(key))
 
     def _build_provenance(self, previous=None, comments=''):
         return self._PROVENANCE_TEMPLATE.render(
@@ -119,18 +127,25 @@ class NumpyDirDataset(_BaseDataset):
             return items
 
         mmap_mode = 'r' if mmap else None
+
+        filename = join(self.path, self._ITEM_FORMAT % i)
+        if self.verbose:
+            print('[NumpydirDataset] loading %s' % filename)
         try:
-            return np.load(join(self.path, self._ITEM_FORMAT % i), mmap_mode)
+            return np.load(filename, mmap_mode)
         except IOError as e:
             raise IndexError(e)
 
     def set(self, i, x):
         if 'w' not in self.mode:
             raise IOError('Dataset not opened for writing')
-        return np.save(join(self.path, self._ITEM_FORMAT % i), x)
+        filename = join(self.path, self._ITEM_FORMAT % i)
+        if self.verbose:
+            print('[NumpydirDataset] saving %s' % filename)
+        return np.save(filename, x)
 
     def keys(self):
-        for fn in os.listdir(self.path):
+        for fn in sorted(os.listdir(self.path), key=_keynat):
             match = self._ITEM_RE.match(fn)
             if match:
                 yield int(match.group(1))
@@ -152,7 +167,7 @@ class NumpyDirDataset(_BaseDataset):
 class MDTrajDataset(_BaseDataset):
     _PROVENANCE_TEMPLATE = Template(
         '''MDTraj dataset:
-  path:\t{{path}}
+  path:\t\t{{path}}
   topology:\t{{topology}}
   stride:\t{{stride}}
   atom_indices\t{{atom_indices}}
@@ -167,7 +182,12 @@ class MDTrajDataset(_BaseDataset):
         self.stride = stride
         self.atom_indices = atom_indices
         self.verbose = verbose
-        self.glob_matches = glob.glob(path)
+
+        if isinstance(path, list):
+            self.glob_matches = [expanduser(fn) for fn in path]
+        else:
+            self.glob_matches = sorted(glob.glob(expanduser(path)), key=_keynat)
+
         if topology is None:
             self._topology = None
         else:
@@ -187,18 +207,47 @@ class MDTrajDataset(_BaseDataset):
     def filename(self, i):
         return self.glob_matches[i]
 
+    def iterload(self, i, chunk):
+        if self.verbose:
+            print('[MDTraj dataset] iterloading %s' % self.filename(i))
+
+        if self._topology is None:
+            return md.iterload(
+                self.filename(i), chunk=chunk, stride=self.stride,
+                atom_indices=self.atom_indices)
+        else:
+            return md.iterload(
+                self.filename(i), chunk=chunk, stride=self.stride,
+                atom_indices=self.atom_indices, top=self._topology)
+
     def keys(self):
-        return list(range(len(self.glob_matches)))
+        return iter(range(len(self.glob_matches)))
 
     @property
     def provenance(self):
         return self._PROVENANCE_TEMPLATE.render(self.__dict__)
 
 
-def dataset(path, mode='r', fmt='dir-npy', **kwargs):
+def dataset(path, mode='r', fmt='dir-npy', verbose=False, **kwargs):
     if fmt == 'dir-npy':
-        return NumpyDirDataset(path, mode, **kwargs)
+        return NumpyDirDataset(path, mode, verbose, **kwargs)
     elif fmt == 'mdtraj':
-        return MDTrajDataset(path, mode, **kwargs)
+        return MDTrajDataset(path, mode, verbose, **kwargs)
     else:
         raise NotImplementedError()
+
+
+def _keynat(string):
+    '''A natural sort helper function for sort() and sorted()
+    without using regular expression.
+    '''
+    r = []
+    for c in string:
+        if c.isdigit():
+            if r and isinstance(r[-1], int):
+                r[-1] = r[-1] * 10 + int(c)
+            else:
+                r.append(int(c))
+        else:
+            r.append(c)
+    return r

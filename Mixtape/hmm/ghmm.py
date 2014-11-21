@@ -130,17 +130,17 @@ class GaussianFusionHMM(object):
                  vars_weight=1, random_state=None, params='tmv',
                  init_params='tmv', precision='mixed',
                  timing=False, n_hotstart='all', init_algo="kmeans"):
-        self.n_states = n_states
-        self.n_init = n_init
-        self.n_features = n_features
-        self.n_em_iter = n_em_iter
-        self.n_lqa_iter = n_lqa_iter
-        self.fusion_prior = fusion_prior
-        self.thresh = thresh
+        self.n_states = int(n_states)
+        self.n_init = int(n_init)
+        self.n_features = int(n_features)
+        self.n_em_iter = int(n_em_iter)
+        self.n_lqa_iter = int(n_lqa_iter)
+        self.fusion_prior = float(fusion_prior)
+        self.thresh = float(thresh)
         self.reversible_type = reversible_type
         self.transmat_prior = transmat_prior
-        self.vars_prior = vars_prior
-        self.vars_weight = vars_weight
+        self.vars_prior = float(vars_prior)
+        self.vars_weight = float(vars_weight)
         self.random_state = random_state
         self.params = params
         self.init_params = init_params

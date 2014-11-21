@@ -21,7 +21,8 @@
 
 from __future__ import print_function, absolute_import
 
-from ..utils import verboseload, verbosedump
+from ..dataset import dataset
+from ..utils import verbosedump
 from ..hmm import GaussianFusionHMM
 from ..msm import MarkovStateModel
 from ..cmdline import NumpydocClassCommand, argument
@@ -38,15 +39,8 @@ class FitCommand(NumpydocClassCommand):
     def start(self):
         print(self.instance)
 
-        dataset = verboseload(self.inp)
-        if not isinstance(dataset, list):
-            err = '--inp must contain a list of arrays. "{}" has type {}'
-            err = err.format(self.inp, type(dataset))
-            self.error(err)
-
-        print('Fitting...')
-        self.instance.fit(dataset)
-
+        ds = dataset(self.inp, mode='r', fmt='dir-npy')
+        self.instance.fit(ds)
         verbosedump(self.instance, self.out)
 
         print('All done')

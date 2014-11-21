@@ -73,3 +73,9 @@ def test_mdtraj_1():
     print(ds.keys())
     print(ds.get(0))
     print(ds.provenance)
+
+    ds = dataset(get_fn('') + '*.pdb', fmt='mdtraj', atom_indices=[1,2],
+                 verbose=True)
+    print(ds.keys())
+    print(ds.get(0))
+    print(ds.provenance)
