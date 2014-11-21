@@ -27,6 +27,7 @@ from sklearn import mixture
 
 import mdtraj as md
 from ..base import BaseEstimator
+from ..utils import check_iter_of_sequences
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
@@ -51,6 +52,8 @@ class MultiSequenceClusterMixin(BaseEstimator):
     # concatenates the sequences, calls the superclass fit(), and
     # then splits the labels_ back into the sequenced form.
 
+    _allow_trajectory = False
+
     def fit(self, sequences, y=None):
         """Fit the  clustering on the data
 
@@ -65,6 +68,7 @@ class MultiSequenceClusterMixin(BaseEstimator):
         -------
         self
         """
+        check_iter_of_sequences(sequences, allow_trajectory=self._allow_trajectory)
         super(MultiSequenceClusterMixin, self).fit(self._concat(sequences))
 
         if hasattr(self, 'labels_'):
@@ -114,6 +118,7 @@ class MultiSequenceClusterMixin(BaseEstimator):
             Index of the closest center each sample belongs to.
         """
         predictions = []
+        check_iter_of_sequences(sequences, allow_trajectory=self._allow_trajectory)
         for sequence in sequences:
             if isinstance(sequence, md.Trajectory):
                 sequence.center_coordinates()
@@ -136,6 +141,7 @@ class MultiSequenceClusterMixin(BaseEstimator):
             Cluster labels
         """
         if hasattr(super(MultiSequenceClusterMixin, self), 'fit_predict'):
+            check_iter_of_sequences(sequences, allow_trajectory=self._allow_trajectory)
             labels = super(MultiSequenceClusterMixin, self).fit_predict(sequences)
         else:
             self.fit(sequences)

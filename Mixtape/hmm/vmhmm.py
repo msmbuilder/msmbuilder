@@ -35,6 +35,7 @@ from scipy.stats.distributions import vonmises
 from . import _vmhmm
 from ..base import BaseEstimator
 from ..msm._markovstatemodel import _transmat_mle_prinz
+from ..utils import check_iter_of_sequences
 
 #-----------------------------------------------------------------------------
 # Globals
@@ -304,6 +305,7 @@ class VonMisesHMM(BaseEstimator, _BaseHMM):
         or strengthening the appropriate subclass-specific regularization
         parameter.
         """
+        check_iter_of_sequences(obs)
         self._init(obs, self.init_params)
 
         logprob = []

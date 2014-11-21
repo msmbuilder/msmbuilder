@@ -156,6 +156,7 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
 
 
 class MinibatchKMedoids(MultiSequenceClusterMixin, _MinibatchKMedoids):
+    _allow_trajectory = True
     __doc__ = _MinibatchKMedoids.__doc__[: _MinibatchKMedoids.__doc__.find('Attributes')] + \
     '''
     Attributes

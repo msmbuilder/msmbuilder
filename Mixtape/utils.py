@@ -23,6 +23,7 @@
 from __future__ import print_function, division, absolute_import
 
 import json
+import mdtraj as md
 import numpy as np
 from sklearn.utils import check_random_state
 from sklearn.externals.joblib import load, dump
@@ -206,3 +207,35 @@ class Subsampler(BaseEstimator, TransformerMixin):
             return [X[k::self._lag_time] for k in range(self._lag_time) for X in X_all]
         else:
             return [X[::self._lag_time] for X in X_all]
+
+
+def check_iter_of_sequences(sequences, allow_trajectory=False, ndim=2, max_iter=None):
+    """Check that ``sequences`` is a iterable of trajectory-like sequences,
+    suitable as input to ``fit()`` for estimators following the Mixtape
+    API.
+
+    Parameters
+    ----------
+    sequences : object
+        The object to check
+    allow_trajectory : bool
+        Are ``md.Trajectory``s allowed?
+    ndim : int
+        The expected dimensionality of the sequences
+    max_iter : int, optional
+        Only check at maximum the first ``max_iter`` entries in ``sequences``.
+    """
+    value = True
+    for i, X in enumerate(sequences):
+        if not isinstance(X, np.ndarray):
+            if (not allow_trajectory) and isinstance(X, md.Trajectory):
+                value = False
+                break
+        if not isinstance(X, md.Trajectory) and X.ndim != ndim:
+            value = False
+            break
+        if max_iter is not None and i >= max_iter:
+            break
+
+    if not value:
+        raise ValueError('sequences must be a list of sequences')
