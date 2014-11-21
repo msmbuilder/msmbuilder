@@ -264,7 +264,7 @@ def test_13():
 
 
 def test_14():
-    from mixtape.datasets import load_doublewell
+    from mixtape.example_datasets import load_doublewell
     from mixtape.cluster import NDGrid
     from sklearn.pipeline import Pipeline
 

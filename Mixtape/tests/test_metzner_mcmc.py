@@ -1,6 +1,6 @@
 import numpy as np
 from mixtape.cluster import NDGrid
-from mixtape.datasets import load_doublewell
+from mixtape.example_datasets import load_doublewell
 from mixtape.msm import BayesianMarkovStateModel
 from mixtape.msm import MarkovStateModel
 from mixtape.msm._metzner_mcmc_fast import metzner_mcmc_fast

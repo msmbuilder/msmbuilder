@@ -2,7 +2,7 @@ import numpy as np
 from mdtraj.testing import eq, raises
 import mixtape.featurizer
 from mixtape.featurizer import subset_featurizer
-from mixtape.datasets import fetch_alanine_dipeptide
+from mixtape.example_datasets import fetch_alanine_dipeptide
 
 def test_SubsetAtomPairs0():
     dataset = fetch_alanine_dipeptide()
