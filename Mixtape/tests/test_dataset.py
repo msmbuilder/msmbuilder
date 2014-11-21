@@ -68,6 +68,26 @@ def test_2():
         shutil.rmtree(path2)
 
 
+def test_3():
+    path = tempfile.mkdtemp()
+    shutil.rmtree(path)
+    try:
+         ds = dataset(path, 'w')
+         ds[0] = np.random.randn(10,2)
+         ds[1] = np.random.randn(10,2)
+         ds[2] = np.random.randn(10,2)
+
+         np.testing.assert_array_equal(ds[:][0], ds[0])
+         np.testing.assert_array_equal(ds[:][1], ds[1])
+         np.testing.assert_array_equal(ds[:][2], ds[2])
+
+         np.testing.assert_array_equal(ds[1:][0], ds[1])
+         np.testing.assert_array_equal(ds[1:][1], ds[2])
+
+    finally:
+        if os.path.exists(path):
+            shutil.rmtree(path)
+
 def test_mdtraj_1():
     ds = dataset(get_fn('') + '*.pdb', fmt='mdtraj', verbose=True)
     print(ds.keys())

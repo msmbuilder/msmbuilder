@@ -137,7 +137,8 @@ class NumpyDirDataset(_BaseDataset):
     def get(self, i, mmap=False):
         if isinstance(i, slice):
             items = []
-            for ii in itertools.islice(*i.indices(len(self))):
+            start, stop, step = i.indices(len(self))
+            for ii in itertools.islice(itertools.count(), start, stop, step):
                 items.append(self.get(ii))
             return items
 

@@ -9,6 +9,11 @@ import numpy as np
 import mdtraj as md
 from mdtraj.testing import eq
 from mdtraj.testing import get_fn as get_mdtraj_fn
+
+from mixtape.dataset import dataset
+from mixtape.datasets import get_data_home
+from mixtape.datasets.alanine_dipeptide import fetch_alanine_dipeptide
+
 import sklearn.hmm
 DATADIR = HMM = None
 
@@ -45,6 +50,7 @@ def setup_module():
         t = md.Trajectory(xyz=d.reshape(len(d), 1, 3), topology=topology)
         t.save(os.path.join(DATADIR, 'Trajectory%d.h5' % i))
 
+    fetch_alanine_dipeptide()
 
 def teardown_module():
     shutil.rmtree(DATADIR)
@@ -64,6 +70,7 @@ class tempdir(object):
 def shell(str):
     # Capture stdout
     split = shlex.split(str)
+    print(str)
     with open(os.devnull, 'w') as noout:
         assert subprocess.call(split, stdout=noout) == 0
 
@@ -108,42 +115,36 @@ def test_atomindices():
         assert all(t.topology.atom(i).name in ['CA', 'CB', 'C', 'N' , 'O'] for i in atoms)
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
 
-"""
-def test_dihedralindices():
-    fn = get_mdtraj_fn('1bpi.pdb')
-    t = md.load(fn)
-    with tempdir():
-        shell('hmsm DihedralIndices -o phi.dat --phi -p %s' % fn)
-        shell('hmsm DihedralIndices -o psi.dat --psi -p %s' % fn)
-        eq(len(np.loadtxt('phi.dat', int)), len(np.loadtxt('psi.dat', int)))
-        shell('hmsm DihedralIndices -o chi1.dat --chi1 -p %s' % fn)
-        shell('hmsm DihedralIndices -o chi2.dat --chi2 -p %s' % fn)
-        assert len(np.loadtxt('chi2.dat')) < len(np.loadtxt('chi1.dat'))
-        shell('hmsm DihedralIndices -o chi3.dat --chi3 -p %s' % fn)
-        shell('hmsm DihedralIndices -o chi4.dat --chi4 -p %s' % fn)
-        shell('hmsm DihedralIndices -o omega.dat --omega -p %s' % fn)
-        shell('hmsm DihedralIndices -o all.dat --phi --psi --chi1 --chi2 --chi3 --chi4 --omega -p %s' % fn)
-"""
 
-"""
-def test_featurizer():
-    fn = get_mdtraj_fn('1bpi.pdb')
+def test_superpose_featurizer():
     with tempdir():
-        shell('msmb AtomIndices -o alpha.dat --alpha -a -p %s' % fn)
-        shell('hmsm featurizer --top %s -o alpha.pickl -a alpha.dat' % fn)
-        f = np.load('alpha.pickl')
-        eq(f.atom_indices, np.loadtxt('alpha.dat', int))
+        shell('msmb AtomIndices -o all.dat --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
+        shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
+              " --out distances --atom_indices all.dat"
+              " --reference_traj {data_home}/alanine_dipeptide/ala2.pdb"
+              " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
+                  data_home=get_data_home()))
+        ds = dataset('distances')
+        assert len(ds) == 10
+        assert ds[0].shape[1] == len(np.loadtxt('all.dat'))
+        print(ds.provenance)
 
+
+def test_atom_pairs_featurizer():
     with tempdir():
-        shell('msmb AtomIndices -o alphapairs.dat --alpha -d -p %s' % fn)
-        shell('hmsm featurizer --top %s -o alpha.pickl -d alphapairs.dat' % fn)
-        f = np.load('alpha.pickl')
-        eq(f.pair_indices, np.loadtxt('alphapairs.dat', int))
-"""
+        shell('msmb AtomIndices -o all.dat --all -d -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
+        shell("msmb AtomPairsFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
+              " --out pairs --pair_indices all.dat"
+              " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
+                  data_home=get_data_home()))
+        ds = dataset('pairs')
+        assert len(ds) == 10
+        assert ds[0].shape[1] == len(np.loadtxt('all.dat')**2)
+        print(ds.provenance)
+
 
 def test_help():
     shell('msmb -h')
-
 
 """
 def test_fitghmm():

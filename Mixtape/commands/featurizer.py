@@ -3,6 +3,7 @@ import os
 import sys
 
 import numpy as np
+import mdtraj as md
 
 from ..cmdline import NumpydocClassCommand, argument
 from ..dataset import dataset, MDTrajDataset
