@@ -21,6 +21,7 @@ Functions for performing mean first passage time calculations for an MSM.
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
+import scipy
 from mdtraj.utils.six.moves import xrange
 import copy
 
@@ -63,7 +64,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
            Chem. Phys. 130, 205102 (2009).
     """
     populations = msm.populations_
-    tprob = msm.tprob_
+    tprob = msm.transmat_
     n_states = msm.n_states_
 
     if sinks is None:
@@ -71,17 +72,23 @@ def mfpts(msm, sinks=None, lag_time=1.):
         #eye = np.transpose(np.matrix(np.ones(num_states)))
         # ^^^^!!!!!!!^^^^^ who wrote this and thought it was acceptable?!
         # after plugging it into ipython, this just creates a column vector
-        eye = np.ones(num_states).reshape((-1, 1))
 
-        limiting_matrix = eye * populations
+        #limiting_matrix = eye * populations
+        # since eye used to be a matrix, eye * populations was an 
+        # outer product with the populations in each of the columns
+
+        # I'm pretty sure it's supposed to be in the rows, though...
+        limiting_matrix = np.vstack([populations] * n_states)
         #z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
-        z = scipy.linalg.inv(np.eye(num_states) - (tprob - limiting_matrix))
+        z = scipy.linalg.inv(np.eye(n_states) - (tprob - limiting_matrix))
 
         # mfpt[i,j] = z[j,j] - z[i,j] / pi[j]
         mfpts = - z
-        for j in range(num_states):
+        for j in range(n_states):
             mfpts[:, j] += z[j, j]
-        mfpts[:, j] /= populations[j]
+            mfpts[:, j] /= populations[j]
+
+        mfpts *= lag_time
         
     else:
         sinks = np.array(sinks, dtype=int).reshape((-1,))

@@ -180,3 +180,45 @@ def test_harder_hubscore():
     #print(ref_hub_scores, hub_scores)
 
     npt.assert_array_almost_equal(ref_hub_scores, hub_scores)
+
+
+def test_mfpt_match():
+
+    assignments = np.random.randint(10, size=(10, 2000))
+    msm = MarkovStateModel(lag_time=1)
+    msm.fit(assignments)
+
+    # these two do different things
+    mfpts0 = np.vstack([tpt.mfpts(msm, i) for i in xrange(10)]).T
+    mfpts1 = tpt.mfpts(msm) 
+
+    #print(mfpts0)
+    #print(mfpts1)
+
+    npt.assert_array_almost_equal(mfpts0, mfpts1)
+
+
+def test_mfpt2():
+    tprob = np.array([[0.90, 0.10],
+                      [0.22, 0.78]])
+    
+    pi0 = 1
+    # pi1 T[1, 0] = pi0 T[0, 1]
+    pi1 = pi0 * tprob[0, 1] / tprob[1, 0]
+    pops = np.array([pi0, pi1]) / (pi0 + pi1)
+
+    msm = MarkovStateModel(lag_time=1)
+    msm.transmat_ = tprob
+    msm.n_states_ = 2
+    msm.populations_ = pops
+    
+    mfpts = np.vstack([tpt.mfpts(msm, i) for i in xrange(2)]).T
+
+    #print(1 / (1 - tprob[0, 0]), mfpts[0, 1])
+    #print(1 / (1 - tprob[1, 1]), mfpts[1, 0])
+
+    # since it's a 2x2 the mfpt from 0 -> 1 is the
+    # same as the escape time of 0
+    npt.assert_almost_equal(1 / (1 - tprob[0, 0]), mfpts[0, 1])
+    npt.assert_almost_equal(1 / (1 - tprob[1, 1]), mfpts[1, 0])
+
