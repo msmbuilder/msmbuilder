@@ -32,7 +32,7 @@ def _fit_helper(args):
 
     return model
 
-def fit_many(model, sequences, param_grid, n_jobs=1):
+def param_sweep(model, sequences, param_grid, n_jobs=1):
     """
     Helper to fit many models to the same data
 
