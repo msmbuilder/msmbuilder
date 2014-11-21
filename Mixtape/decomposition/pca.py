@@ -124,4 +124,5 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
 
 
 class PCA(MultiSequenceDecompositionMixin, decomposition.PCA):
-    pass
+    __doc__ = decomposition.PCA.__doc__
+

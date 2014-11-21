@@ -31,8 +31,9 @@ from ..utils import check_iter_of_sequences
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
-           'LandmarkAgglomerative', 'RegularSpatial',
-           'MultiSequenceClusterMixin']
+           'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
+           'MiniBatchKMedoids', 'MultiSequenceClusterMixin']
+
 
 #-----------------------------------------------------------------------------
 # Code
@@ -226,4 +227,4 @@ from .ndgrid import NDGrid
 from .agglomerative import LandmarkAgglomerative
 from .regularspatial import RegularSpatial
 from .kmedoids import KMedoids
-from .minibatchkmedoids import MinibatchKMedoids
+from .minibatchkmedoids import MiniBatchKMedoids

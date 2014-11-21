@@ -13,6 +13,7 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
 
 
 class FeaturizerCommand(NumpydocClassCommand):
+    _group = '1-Featurizer'
     trjs = argument(
         '--trjs', help='Glob pattern for trajectories',
         default='', nargs='+')
