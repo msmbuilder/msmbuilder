@@ -60,6 +60,9 @@ def test_assign_nearest_float_double_2():
 
     for metric in VECTOR_METRICS:
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
+            if metric == 'canberra' and X.dtype == np.float32:
+                # this is tested separately
+                continue
 
             assignments, inertia = assign_nearest(X, Y, metric, X_indices)
             assert isinstance(assignments, np.ndarray)
@@ -210,7 +213,7 @@ def test_sumdist_rmsd():
         decimal=6)
 
 
-def test_canberra_32():
+def test_canberra_32_1():
     # with canberra in float32, there is a rounding issue where many of
     # the distances come out exactly the same, but due to finite floating
     # point resolution, a different one gets picked than by argmin()
@@ -221,6 +224,27 @@ def test_canberra_32():
 
         assignments, inertia = assign_nearest(X, Y, 'canberra')
         cdist = scipy.spatial.distance.cdist(X, Y, metric='canberra')
+        ref = cdist.argmin(axis=1)
+        if not np.all(ref == assignments):
+            different = np.where(assignments != ref)[0]
+            row = cdist[different, :]
+
+            # if there are differences between assignments and the 'reference',
+            # make sure that there is actually some difference between the
+            # entries in that row of the distance matrix before throwing
+            # an error
+            if not np.all(row==row[0]):
+                assert False
+
+
+def test_canberra_32_2():
+    for i in range(10):
+        X = random.randn(10,2).astype(np.float32)
+        Y = X[[0,1,2], :]
+        X_indices = random.random_integers(low=0, high=9, size=5)
+
+        assignments, inertia = assign_nearest(X, Y, 'canberra', X_indices=X_indices)
+        cdist = scipy.spatial.distance.cdist(X[X_indices], Y, metric='canberra')
         ref = cdist.argmin(axis=1)
         if not np.all(ref == assignments):
             different = np.where(assignments != ref)[0]
