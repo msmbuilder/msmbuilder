@@ -8,8 +8,8 @@ class PCCA(MarkovStateModel):
     """Perron Cluster Cluster Analysis (PCCA) for coarse-graining (lumping)
         microstates into macrostates.  This reference implementation uses MSMBuilder
         for the PCCA code but uses the Mixtape MarkovStateModel class for
-        estimating the microstate transition matrix.  
-    
+        estimating the microstate transition matrix.
+
     Parameters
     ----------
     n_macrostates : int
@@ -17,14 +17,14 @@ class PCCA(MarkovStateModel):
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
         mixtape.msm.MarkovStateModel for possible options.
-    
+
     Notes
     -----
     PCCA is a subclass of MarkovStateModel.  However, the MSM properties
-    and attributes on PCCA refer to the MICROSTATE properties--e.g. 
+    and attributes on PCCA refer to the MICROSTATE properties--e.g.
     pcca.transmat_ is the microstate transition matrix.  To get the
     macrostate transition matrix, you must fit a new MarkovStateModel
-    object on the output (assignments) of PCCA().  
+    object on the output (assignments) of PCCA().
 
     """
 
@@ -42,7 +42,7 @@ class PCCA(MarkovStateModel):
             List of arrays of cluster assignments
         y : None
             Unused, present for sklearn compatibility only.
-        
+
         Returns
         -------
         self
@@ -97,7 +97,7 @@ class PCCA(MarkovStateModel):
             List of arrays of cluster assignments
         y : None
             Unused, present for sklearn compatibility only.
-        
+
         Returns
         -------
         self
@@ -109,14 +109,14 @@ class PCCA(MarkovStateModel):
     @classmethod
     def from_msm(cls, msm, n_macrostates):
         """Create and fit lumped model from pre-existing MSM.
-        
+
         Parameters
         ----------
         msm : Mixtape.msm.MarkovStateModel
             The input microstate msm to use.
         n_macrostates : int
             The number of macrostates
-        
+
         Returns
         -------
         lumper : cls
@@ -124,16 +124,13 @@ class PCCA(MarkovStateModel):
         """
         params = msm.get_params()
         lumper = cls(n_macrostates, **params)
-        
+
         lumper.transmat_ = msm.transmat_
         lumper.populations_ = msm.populations_
         lumper.mapping_ = msm.mapping_
         lumper.countsmat_ = msm.countsmat_
         lumper.n_states_ = msm.n_states_
-        
+
         lumper._do_lumping()
-        
+
         return lumper
-        
-
-

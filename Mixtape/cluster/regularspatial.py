@@ -25,7 +25,7 @@ import numpy as np
 from sklearn.base import ClusterMixin, TransformerMixin
 
 from .. import libdistance
-from . import MultiSequenceClusterMixin, _arrayify
+from . import MultiSequenceClusterMixin
 
 __all__ = ['RegularSpatial']
 
@@ -135,4 +135,3 @@ class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
         """
         MultiSequenceClusterMixin.fit(self, sequences)
         return self
-
