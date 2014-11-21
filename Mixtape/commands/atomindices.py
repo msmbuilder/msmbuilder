@@ -28,6 +28,7 @@ from ..cmdline import Command, argument, argument_group
 
 
 class AtomIndices(Command):
+    _group = '0-Support'
     _concrete = True
     description = "Create index file for atoms or distance pairs."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')

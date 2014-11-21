@@ -38,7 +38,7 @@ from sklearn.utils import check_random_state
 from .discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from . import _ghmm
 from ..msm._markovstatemodel import _transmat_mle_prinz
-
+from ..utils import check_iter_of_sequences
 
 EPS = np.finfo(np.float32).eps
 
@@ -149,7 +149,7 @@ class GaussianFusionHMM(object):
         self.init_algo = init_algo
         self._impl = None
 
-        if not reversible_type in ['mle', 'transpose']:
+        if reversible_type not in ['mle', 'transpose']:
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % reversible_type)
@@ -182,6 +182,7 @@ class GaussianFusionHMM(object):
         y : unused
             Needed for sklearn API consistency.
         """
+        check_iter_of_sequences(sequences)
         n_obs = sum(len(s) for s in sequences)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
         # counter for the total number of EM iters performed
@@ -490,7 +491,7 @@ class GaussianFusionHMM(object):
         hidden_sequences : list of np.ndarrays[dtype=int, shape=n_samples_i]
             Index of the most likely states for each observation.
         """
-
+        check_iter_of_sequences(sequences)
         self._impl._sequences = sequences
         logprob, state_sequences = self._impl.do_viterbi()
 
@@ -639,4 +640,3 @@ class GaussianFusionHMM(object):
             raise(ValueError("scheme must be one of ['even', 'maxent'])"))
 
         return np.array(selected_pairs_by_state)
-

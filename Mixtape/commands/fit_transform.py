@@ -24,10 +24,12 @@
 
 from __future__ import print_function, absolute_import
 
+
 from ..dataset import dataset
 from ..utils import verbosedump
-from ..decomposition import tICA
-from ..cluster import KMeans, KCenters
+from ..decomposition import tICA, PCA
+from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
+                       MiniBatchKMeans)
 from ..cmdline import NumpydocClassCommand, argument
 
 
@@ -66,11 +68,18 @@ class FitTransformCommand(NumpydocClassCommand):
 class tICACommand(FitTransformCommand):
     klass = tICA
     _concrete = True
+    _group = '3-Decomposition'
+
+class PCACommand(FitTransformCommand):
+    klass = PCA
+    _concrete = True
+    _group = '3-Decomposition'
 
 
 class KMeansCommand(FitTransformCommand):
     klass = KMeans
     _concrete = True
+    _group = '2-Clustering'
 
     def _random_state_type(self, state):
         if state is None:
@@ -78,7 +87,25 @@ class KMeansCommand(FitTransformCommand):
         return int(state)
 
 
+class MiniBatchKMeansCommand(KMeansCommand):
+    klass = MiniBatchKMeans
+    _concrete = True
+    _group = '2-Clustering'
+
+
 class KCentersCommand(KMeansCommand):
     klass = KCenters
     _concrete = True
+    _group = '2-Clustering'
 
+
+class KMedoidsCommand(KMeansCommand):
+    klass = KMedoids
+    _concrete = True
+    _group = '2-Clustering'
+
+
+class MiniBatchKMedoidsCommand(KMeansCommand):
+    klass = MiniBatchKMedoids
+    _concrete = True
+    _group = '2-Clustering'

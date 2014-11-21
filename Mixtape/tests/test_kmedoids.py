@@ -5,7 +5,7 @@ from numpy.testing import assert_raises
 from scipy.spatial.distance import pdist, squareform, euclidean
 from mixtape.cluster._kmedoids import kmedoids, contigify_ids
 from mixtape.cluster.kmedoids import _KMedoids
-from mixtape.cluster.minibatchkmedoids import _MinibatchKMedoids
+from mixtape.cluster.minibatchkmedoids import _MiniBatchKMedoids
 from mixtape import libdistance
 
 
@@ -14,7 +14,7 @@ def test_inertia():
     X = random.randn(10, 2)
 
     for km in (_KMedoids(n_clusters=3, n_passes=5),
-               _MinibatchKMedoids(n_clusters=3)):
+               _MiniBatchKMedoids(n_clusters=3)):
         km.fit(X)
         inertia = 0
         for i in range(len(X)):
@@ -28,7 +28,7 @@ def test_obvious_clustering():
     X = random.randn(40, 2)
     X[20:] += 5
 
-    k1 = _MinibatchKMedoids(n_clusters=2, max_iter=5, random_state=0, batch_size=20).fit(X)
+    k1 = _MiniBatchKMedoids(n_clusters=2, max_iter=5, random_state=0, batch_size=20).fit(X)
     k2 = _KMedoids(n_clusters=2, n_passes=10).fit(X)
 
     assert (np.all(k1.labels_ == k2.labels_) or
@@ -36,7 +36,7 @@ def test_obvious_clustering():
 
 
 def test_4():
-    assert_raises(ValueError, lambda: _MinibatchKMedoids(metric='sdf').fit(np.zeros((10,2))))
+    assert_raises(ValueError, lambda: _MiniBatchKMedoids(metric='sdf').fit(np.zeros((10,2))))
     assert_raises(ValueError, lambda: _KMedoids(metric='sdf').fit(np.zeros((10,2))))
 
 

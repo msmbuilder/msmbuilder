@@ -24,6 +24,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.linalg
 from ..base import BaseEstimator
+from ..utils import check_iter_of_sequences
 from sklearn.base import TransformerMixin
 from sklearn.utils import array2d
 
@@ -42,6 +43,8 @@ class tICA(BaseEstimator, TransformerMixin):
     time-lag correlation matrix and covariance matrix of the data and keeping
     only the vectors which decorrelate slowest to project the data into a lower
     dimensional space.
+
+    sdfssdf
 
     Parameters
     ----------
@@ -89,7 +92,7 @@ class tICA(BaseEstimator, TransformerMixin):
         `partial_fit()` updates the fit with new data, and is suitable for
          online learning.
     timescales : array-like, shape (n_features,)
-        The implied timescales of the tICA model, given by 
+        The implied timescales of the tICA model, given by
         -offset / log(eigenvalues)
 
     Notes
@@ -110,7 +113,7 @@ class tICA(BaseEstimator, TransformerMixin):
     .. [4] Molgedey, Lutz, and Heinz Georg Schuster. Phys. Rev. Lett. 72.23
        (1994): 3634.
     """
-    
+
     def __init__(self, n_components=None, lag_time=1, gamma=0.05, weighted_transform=False):
         self.n_components = n_components
         self.lag_time = lag_time
@@ -262,6 +265,7 @@ class tICA(BaseEstimator, TransformerMixin):
             Returns the instance itself.
         """
         self._initialized = False
+        check_iter_of_sequences(sequences, max_iter=3)  # we might be lazy-loading
         for X in sequences:
             self._fit(X)
         return self
@@ -300,6 +304,7 @@ class tICA(BaseEstimator, TransformerMixin):
         sequence_new : list of array-like, each of shape (n_samples_i, n_components)
 
         """
+        check_iter_of_sequences(sequences, max_iter=3)  # we might be lazy-loading
         sequences_new = []
 
         for X in sequences:
@@ -308,7 +313,7 @@ class tICA(BaseEstimator, TransformerMixin):
                 X = X - self.means_
             X_transformed = np.dot(X, self.components_.T)
 
-            if self.weighted_transform:        
+            if self.weighted_transform:
                 X_transformed *= self.timescales_
 
             sequences_new.append(X_transformed)
@@ -329,10 +334,10 @@ class tICA(BaseEstimator, TransformerMixin):
         -------
         sequence_new : array-like, shape (n_samples, n_components)
             TICA-projected features
-            
+
         Notes
         -----
-        This function acts on a single featurized trajectory. 
+        This function acts on a single featurized trajectory.
 
         """
         sequences = [features]

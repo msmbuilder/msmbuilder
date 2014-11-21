@@ -31,8 +31,8 @@ from . import MultiSequenceClusterMixin
 from . import _kmedoids
 from .. import libdistance
 
-class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
-    """
+class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
+    """Mini-Batch K-Medoids clustering.
 
     Parameters
     ----------
@@ -155,8 +155,9 @@ class _MinibatchKMedoids(ClusterMixin, TransformerMixin):
         return self.fit(X, y).labels_
 
 
-class MinibatchKMedoids(MultiSequenceClusterMixin, _MinibatchKMedoids):
-    __doc__ = _MinibatchKMedoids.__doc__[: _MinibatchKMedoids.__doc__.find('Attributes')] + \
+class MiniBatchKMedoids(MultiSequenceClusterMixin, _MiniBatchKMedoids):
+    _allow_trajectory = True
+    __doc__ = _MiniBatchKMedoids.__doc__[: _MiniBatchKMedoids.__doc__.find('Attributes')] + \
     '''
     Attributes
     ----------

@@ -25,7 +25,7 @@ import numpy as np
 from sklearn.base import ClusterMixin, TransformerMixin
 
 from .. import libdistance
-from . import MultiSequenceClusterMixin, _arrayify
+from . import MultiSequenceClusterMixin
 
 __all__ = ['RegularSpatial']
 
@@ -116,6 +116,7 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
 
 class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
     __doc__ = _RegularSpatial.__doc__
+    _allow_trajectory = True
 
     def fit(self, sequences, y=None):
         """Fit the kcenters clustering on the data
@@ -134,4 +135,3 @@ class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
         """
         MultiSequenceClusterMixin.fit(self, sequences)
         return self
-

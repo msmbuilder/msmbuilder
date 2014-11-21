@@ -107,19 +107,19 @@ class _NDGrid(ClusterMixin, TransformerMixin):
             max = np.asarray(self.max)
             if not max.shape == (self.n_features,):
                 raise ValueError('max shape error')
-        
+
         self.grid = np.array([np.linspace(min[i]-EPS, max[i]+EPS, self.n_bins_per_feature + 1) for i in range(self.n_features)])
 
         return self
 
     def predict(self, X):
         """Get the index of the grid cell containing each sample in X
-        
+
         Parameters
         ----------
         X : array-like, shape = [n_samples, n_features]
             New data
-        
+
         Returns
         -------
         y : array, shape = [n_samples,]
@@ -139,6 +139,6 @@ class _NDGrid(ClusterMixin, TransformerMixin):
     def fit_predict(self, X, y=None):
         return self.fit(X).predict(X)
 
-    
+
 class NDGrid(MultiSequenceClusterMixin, _NDGrid):
     __doc__ = _NDGrid.__doc__

@@ -5,6 +5,7 @@ from . import Featurizer, TrajFeatureUnion
 
 ATOM_NAMES = ["N", "CA", "CB", "C", "O", "H"]
 
+
 def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=None, reject_bonded=True):
     """Get a list of acceptable atom pairs.
 
@@ -17,8 +18,8 @@ def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=No
     exclude_atoms : np.ndarray, dtype=string, optional
         Exclude these atom names
     reject_bonded : bool, default=True
-        If True, exclude bonded atompairs.  
-        
+        If True, exclude bonded atompairs.
+
     Returns
     -------
     atom_indices : np.ndarray, dtype=int
@@ -32,10 +33,10 @@ def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=No
     can be slow (~minutes) for large proteins.
     """
     top, bonds = reference_traj.top.to_dataframe()
-    
+
     if keep_atoms is not None:
         atom_indices = top[top.name.isin(keep_atoms) == True].index.values
-    
+
     if exclude_atoms is not None:
         atom_indices = top[top.name.isin(exclude_atoms) == False].index.values
 
@@ -54,7 +55,7 @@ def get_atompair_indices(reference_traj, keep_atoms=ATOM_NAMES, exclude_atoms=No
 
         pair_indices = np.array([(a, b) for k, (a, b) in enumerate(pair_indices) if not_bonds[k]])
 
-    
+
     return atom_indices, pair_indices
 
 
@@ -74,22 +75,22 @@ def _lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
     -------
     subset : np.ndarray, dtype=int, shape=(n)
         A numpy array with the integer indices that map subset_pair_indices
-        onto all_pair_indices.  That is, subset[k] indices the value of 
-        all_pair_indices that matches subset_pair_indices[k] 
-        
-    
+        onto all_pair_indices.  That is, subset[k] indices the value of
+        all_pair_indices that matches subset_pair_indices[k]
+
+
     Notes
     -----
     This function is mostly useful when you have two lists of atom_pair
     indices and you want to find "indices" mapping the smaller to the larger
     list.  This could occur when you are looking at different atom_pair
     featurizers.
-    
+
     """
 
 
     n = all_pair_indices.max()
-    
+
     all_keys = all_pair_indices[:, 0] + n * all_pair_indices[:, 1]
     optimal_keys = subset_pair_indices[:, 0] + n * subset_pair_indices[:, 1]
     subset = np.where(np.in1d(all_keys, optimal_keys))[0]
@@ -98,11 +99,11 @@ def _lookup_pairs_subset(all_pair_indices, subset_pair_indices, n_choose=None):
 
     return subset
 
-    
+
 
 class BaseSubsetFeaturizer(Featurizer):
     """Base class for featurizers that have a subset of active features.
-    n_features refers to the number of active features.  n_max refers to the 
+    n_features refers to the number of active features.  n_max refers to the
     number of possible features.
 
     Parameters
@@ -110,11 +111,11 @@ class BaseSubsetFeaturizer(Featurizer):
     reference_traj : mdtraj.Trajectory
         Reference Trajectory for checking consistency
     subset : np.ndarray, default=None, dtype=int
-        The values in subset specify which of all possible features 
-    
+        The values in subset specify which of all possible features
+
     Notes
     -----
-    
+
     As an example, suppose we have an instance that has `n_max` = 5.  This
     means that the possible features are subsets of [0, 1, 2, 3, 4].  One possible
     subset is then [0, 1, 3].  The allowed values of subset (e.g. `n_max`)
@@ -141,7 +142,7 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
     ----------
     possible_pair_indices : np.ndarray, dtype=int, shape=(n_max, 2)
         These are the possible atom indices to use for calculating interatomic
-        distances.  
+        distances.
     reference_traj : mdtraj.Trajectory
         Reference Trajectory for checking consistency
     subset : np.ndarray, default=None, dtype=int
@@ -152,14 +153,14 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
         if True, use periodic boundary condition wrapping
     exponent : float, optional, default=1.0
         Use the distances to this power as the output feature.
-    
+
     See Also
     --------
-    
+
     See `get_atompair_indices` for how one might generate acceptable atom pair
     indices.
-    
-    """    
+
+    """
     def __init__(self, possible_pair_indices, reference_traj, subset=None, periodic=False, exponent=1.0):
         super(SubsetAtomPairs, self).__init__(reference_traj, subset=subset)
         self.possible_pair_indices = possible_pair_indices
@@ -169,7 +170,7 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
             self.subset = np.zeros(0, 'int')
         else:
             self.subset = subset
-            
+
 
     @property
     def n_max(self):
@@ -189,16 +190,16 @@ class SubsetAtomPairs(BaseSubsetFeaturizer):
 
 class SubsetTrigFeaturizer(BaseSubsetFeaturizer):
     """Base class for featurizer based on dihedral sine or cosine.
-    
+
     Notes
     -----
-    
+
     Subsets must be a subset of 0, ..., n_max - 1, where n_max is determined
     by the number of respective phi / psi dihedrals in your protein, as
     calcualted by mdtraj.compute_phi and mdtraj.compute_psi
-    
-    """    
-    
+
+    """
+
     def partial_transform(self, traj):
         if self.n_features > 0:
             dih = md.geometry.dihedral.compute_dihedrals(traj, self.which_atom_ind[self.subset])
@@ -230,7 +231,7 @@ class PsiMixin(object):
     def which_atom_ind(self):
         atom_indices, dih = md.geometry.dihedral.compute_psi(self.reference_traj)
         return atom_indices
-    
+
 
 class SubsetCosPhiFeaturizer(SubsetTrigFeaturizer, CosMixin, PhiMixin):
     pass
@@ -238,11 +239,11 @@ class SubsetCosPhiFeaturizer(SubsetTrigFeaturizer, CosMixin, PhiMixin):
 
 class SubsetCosPsiFeaturizer(SubsetTrigFeaturizer, CosMixin, PhiMixin):
     pass
-    
+
 
 class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
-    
+
 
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
@@ -250,7 +251,7 @@ class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 
 class SubsetFeatureUnion(TrajFeatureUnion):
     """Mixtape version of sklearn.pipeline.FeatureUnion with feature subset selection.
-    
+
     Notes
     -----
     Works on lists of trajectories.
