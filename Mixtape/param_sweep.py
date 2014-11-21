@@ -17,7 +17,6 @@
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function, division, absolute_import
-from mdtraj.utils.six.moves import xrange
 
 from sklearn import clone
 from sklearn.grid_search import ParameterGrid
@@ -66,8 +65,8 @@ def param_sweep(model, sequences, param_grid, n_jobs=1):
         raise ValueError("param_grid must be a dict or ParamaterGrid instance")
 
     # iterable with (model, sequence) as items
-    iter_args = ((clone(model).set_params(params), sequences) for params in param_grid)
+    iter_args = ((clone(model).set_params(**params), sequences) for params in param_grid)
 
-    models = Parallel(n_jobs=n_jobs)(delayed(_fit_helper)((args) for args in iter_args))
+    models = Parallel(n_jobs=n_jobs)(delayed(_fit_helper)(args) for args in iter_args)
 
     return models

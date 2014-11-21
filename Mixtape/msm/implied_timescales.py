@@ -2,7 +2,6 @@ from .. import param_sweep
 from . import MarkovStateModel
 import numpy as np
 
-
 def implied_timescales(sequences, lag_times, n_timescales=10,
     msm=None, n_jobs=1):
     """
@@ -39,7 +38,7 @@ def implied_timescales(sequences, lag_times, n_timescales=10,
 
     param_grid = {'lag_time' : lag_times}
 
-    models = fit_many(msm, sequences, param_grid, n_jobs=n_jobs)
+    models = param_sweep(msm, sequences, param_grid, n_jobs=n_jobs)
 
     timescales = np.array([model.timescales_[:n_timescales] for model in models])
 
