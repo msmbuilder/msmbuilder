@@ -85,8 +85,21 @@ def test_3():
          np.testing.assert_array_equal(ds[1:][1], ds[2])
 
     finally:
-        if os.path.exists(path):
-            shutil.rmtree(path)
+        shutil.rmtree(path)
+
+
+def test_4():
+    path = tempfile.mkdtemp()
+    shutil.rmtree(path)
+    try:
+         ds = dataset(path, 'w')
+         ds[0] = np.random.randn(10,2)
+         v = ds.get(0, mmap=True)
+         assert isinstance(v, np.memmap)
+         np.testing.assert_array_equal(ds[0], v)
+    finally:
+        shutil.rmtree(path)
+
 
 def test_mdtraj_1():
     ds = dataset(get_fn('') + '*.pdb', fmt='mdtraj', verbose=True)
