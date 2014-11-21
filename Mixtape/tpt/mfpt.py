@@ -44,6 +44,11 @@ def mfpts(msm, sinks=None, lag_time=1.):
         units are given here. Default is (1) which is in units of the
         lag time of the MSM.
 
+    Returns
+    -------
+    mfpts : np.ndarray, float
+        MFPT in time units of lag_time, for each state (in order of state index)
+
     References
     ----------
     .. [1] E, Weinan and Vanden-Eijnden, Eric Towards a Theory of Transition Paths

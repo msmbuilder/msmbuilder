@@ -3,7 +3,7 @@ Module for analyzing Markov State Models, with an emphasis
 on Transition Path Theory.
 
 These are the canonical references for TPT. Note that TPT is really a
-specialization of ideas very framiliar to the mathematical study of Markov
+specialization of ideas very familiar to the mathematical study of Markov
 chains, and there are many books, manuscripts in the mathematical literature
 that cover the same concepts.
 
