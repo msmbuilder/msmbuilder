@@ -42,9 +42,6 @@ import numpy as np
 
 from mdtraj.utils.six.moves import xrange
 
-import itertools
-import copy
-
 __all__ = ['committors', 'conditional_committors']
 
 def committors(sources, sinks, msm):

@@ -32,7 +32,6 @@ from . import committors, conditional_committors
 
 from mdtraj.utils.six.moves import xrange
 import itertools
-import copy
 
 __all__ = ['fraction_visited', 'hub_scores']
 
@@ -81,7 +80,6 @@ def fraction_visited(source, sink, waypoint, msm):
     """
 
     tprob = msm.transmat_
-    n_states = msm.n_states_
 
     # EFFICIENCY ALERT:
     # we could allow all of these functions to pass committors if they've
@@ -122,14 +120,13 @@ def hub_scores(msm, waypoints=None):
     .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
-    tprob = msm.transmat_
     n_states = msm.n_states_
     if isinstance(waypoints, int):
         waypoints = [waypoints]
     elif waypoints is None:
         waypoints = xrange(n_states)
     elif not (isinstance(waypoints, list) or isinstance(waypoints, np.ndarray)):
-        raise ValueError("waypoint (%s) must be an int a list or None" % str(waypoint))
+        raise ValueError("waypoints (%s) must be an int, a list, or None" % str(waypoints))
 
     hub_scores = []
     for waypoint in waypoints:

@@ -36,7 +36,6 @@ References
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-from mdtraj.utils.six.moves import xrange
 import copy
 
 __all__ = ['paths', 'top_path']
@@ -241,7 +240,7 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
         elif remove_path == 'bottleneck':
             remove_path = _remove_bottleneck
         else:
-            raise ValueError("remove_path_func (%s) must be a callable or one of ['subtract', 'bottleneck']" % str(remove_path_func))
+            raise ValueError("remove_path_func (%s) must be a callable or one of ['subtract', 'bottleneck']" % str(remove_path))
 
     net_flux = copy.copy(net_flux)
 

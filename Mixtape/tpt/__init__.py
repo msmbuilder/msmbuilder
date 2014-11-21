@@ -28,5 +28,5 @@ from .path import paths, top_path
 from .mfpt import mfpts
 
 __all__ = ['fluxes', 'net_fluxes', 'fraction_visited',
-           'hub_scores', 'paths', 'top_paths', 'committors',
+           'hub_scores', 'paths', 'top_path', 'committors',
            'conditional_committors', 'mfpts']
