@@ -44,3 +44,26 @@ def test_both():
 
         npt.assert_array_almost_equal(models[i].transmat_, models_ref[i].transmat_)
         npt.assert_array_almost_equal(timescales_ref[i], timescales[i])
+
+def test_multi_params():
+    msm = MarkovStateModel()
+    param_grid = {'lag_time' : [1, 2, 3], 'reversible_type' : ['mle', 'transpose']}
+
+    sequences = np.random.randint(20, size=(10, 1000))
+
+    models = param_sweep(msm, sequences, param_grid, n_jobs=2)
+
+    assert len(models) == 6
+
+    # I don't know what the order should be, so I'm just going
+    # to check that there are no duplicates
+    params = []
+    for m in models:
+        params.append('%s%d' % (m.reversible_type, m.lag_time))
+    
+    for l in param_grid['lag_time']:
+        for s in param_grid['reversible_type']:
+            assert ('%s%d' % (s, l)) in params
+
+    # this is redundant, but w/e
+    assert len(set(params)) == 6
