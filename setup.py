@@ -13,7 +13,7 @@ import numpy as np
 from os.path import join as pjoin
 from setuptools import setup, Extension, find_packages
 sys.path.insert(0, '.')
-from setupbase import write_version_py, CompilerDetection
+from basesetup import write_version_py, CompilerDetection
 
 try:
     import mdtraj
@@ -126,6 +126,12 @@ extensions.append(
               library_dirs=[mdtraj_capi['lib_dir']],
              ))
 
+extensions.append(
+    Extension('mixtape.cluster._kmedoids',
+              language='c++',
+              sources=[pjoin(CLUSTERDIR, '_kmedoids.pyx'),
+                       pjoin(CLUSTERDIR, 'src', 'kmedoids.cc')],
+              include_dirs=[np.get_include()]))
 
 extensions.append(
     Extension('mixtape.hmm._ghmm',

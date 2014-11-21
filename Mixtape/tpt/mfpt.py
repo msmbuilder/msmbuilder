@@ -1,4 +1,4 @@
-# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes
 #            (schwancr@stanford.edu)
 # Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
 # Copyright (c) 2014, Stanford University
@@ -49,18 +49,15 @@ def mfpts(msm, sinks=None, lag_time=1.):
     mfpts : np.ndarray, float
         MFPT in time units of lag_time, for each state (in order of state index)
 
-    See Also
-    --------
-    calculate_all_to_all_mfpt : function
-        A more efficient way to calculate all the MFPTs in a network
-
     References
     ----------
-    .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
-           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219 
+    .. [1] E, Weinan and Vanden-Eijnden, Eric Towards a Theory of Transition Paths
+           J. Stat. Phys. 123 503-523 (2006)
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
+           for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
-    .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
-           pathways in network models of coarse-grained protein dynamics. J. 
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding
+           pathways in network models of coarse-grained protein dynamics. J.
            Chem. Phys. 130, 205102 (2009).
     """
     populations = msm.populations_
@@ -74,7 +71,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
         # after plugging it into ipython, this just creates a column vector
 
         #limiting_matrix = eye * populations
-        # since eye used to be a matrix, eye * populations was an 
+        # since eye used to be a matrix, eye * populations was an
         # outer product with the populations in each of the columns
         # I'm pretty sure it's supposed to be in the rows, though...
         limiting_matrix = np.vstack([populations] * n_states)
@@ -88,7 +85,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
             mfpts[:, j] /= populations[j]
 
         mfpts *= lag_time
-        
+
     else:
         sinks = np.array(sinks, dtype=int).reshape((-1,))
 

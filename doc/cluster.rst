@@ -45,9 +45,11 @@ Algorithms
 
     KCenters
     KMeans
-    LandmarkAgglomerative
-    NDGrid
+    KMedoids
+    MinibatchKMedoids
     RegularSpatial
+    LandmarkAgglomerative
+
 
 Additional Algorithms
 ---------------------

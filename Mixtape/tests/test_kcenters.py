@@ -1,13 +1,13 @@
 from __future__ import division
 import operator
 from functools import reduce
+import scipy.spatial.distance
 
 import numpy as np
 import mdtraj as md
 from mdtraj.testing import eq
 from mixtape.cluster import KCenters
-import scipy.spatial.distance
-
+from mixtape import libdistance
 
 def test_kcenters_1():
     # make sure all the shapes are correct of the fit parameters
@@ -102,3 +102,4 @@ def test_kcenters_8():
     assert np.all(np.logical_not(np.isnan(m1.distances_[0])))
     eq(m1.predict([X32])[0], m2.predict([X64])[0])
     eq(m1.predict([X32])[0], m1.labels_[0])
+    eq(float(m1.inertia_), libdistance.assign_nearest(X32, m1.cluster_centers_, "euclidean")[1])

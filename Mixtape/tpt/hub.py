@@ -1,4 +1,4 @@
-# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes
 #            (schwancr@stanford.edu)
 # Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
 # Copyright (c) 2014, Stanford University
@@ -21,8 +21,8 @@ Functions for analyzing the "hub-ness" of an MSM.
 
 References
 ----------
-.. [1] Dickson, Alex, and Charles L. Brooks III. "Quantifying 
-       hub-like behavior in protein folding networks." 
+.. [1] Dickson, Alex, and Charles L. Brooks III. "Quantifying
+       hub-like behavior in protein folding networks."
        JCTC, 8, 3044-3052 (2012).
 """
 from __future__ import print_function, division, absolute_import
@@ -68,18 +68,16 @@ def fraction_visited(source, sink, waypoint, msm):
 
     See Also
     --------
-    committor.conditional_committors
+    mixtape.tpt.conditional_committors
         Calculate the probability of visiting a waypoint while on a path
         between a source and sink.
-    hub.calculate_hub_score : function
+    mixtape.tpt.hub_scores : function
         Compute the 'hub score', the weighted fraction of visits for an
         entire network.
-    hub.calculate_all_hub_scores : function
-        Wrapper to compute all the hub scores in a network.
 
     References
     ----------
-    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
+    .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
     tprob = msm.transmat_
@@ -121,7 +119,7 @@ def hub_scores(msm, waypoints=None):
 
     References
     ----------
-    ..[1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
+    .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
     tprob = msm.transmat_

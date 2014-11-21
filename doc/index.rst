@@ -19,6 +19,7 @@ Algorithms available include:
 -  :ref:`msm`
 -  :ref:`tica`
 -  :ref:`hmm`
+-  :ref:`tpt`
 
 
 Mixtape is developed by primarily by researchers at Stanford University and
@@ -44,6 +45,7 @@ licensed under the GNU LGPL (v2.1 or later).
     featurization
     cluster
     msm
+    tpt
     tica
     hmm
     commandline
