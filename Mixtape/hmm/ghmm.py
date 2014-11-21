@@ -149,7 +149,7 @@ class GaussianFusionHMM(object):
         self.init_algo = init_algo
         self._impl = None
 
-        if not reversible_type in ['mle', 'transpose']:
+        if reversible_type not in ['mle', 'transpose']:
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % reversible_type)
@@ -640,4 +640,3 @@ class GaussianFusionHMM(object):
             raise(ValueError("scheme must be one of ['even', 'maxent'])"))
 
         return np.array(selected_pairs_by_state)
-

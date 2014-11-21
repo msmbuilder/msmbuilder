@@ -26,7 +26,7 @@ from sklearn.utils import check_random_state
 from sklearn.base import ClusterMixin, TransformerMixin
 
 from .. import libdistance
-from . import MultiSequenceClusterMixin, _arrayify
+from . import MultiSequenceClusterMixin
 
 __all__ = ['KCenters']
 

@@ -269,7 +269,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, verbose=True):
             pprint('Path [1]: tau=0, diagonal B')
             old_x.fill(np.inf)
             for i in range(maxiter):
-                if np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) < tol:
+                if np.linalg.norm(x[old_x > tol] - old_x[old_x > tol]) < tol:
                     break
                 pprint('x', x)
                 old_x = x
@@ -289,7 +289,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, verbose=True):
             pprint('Path [2]: tau=0, general B')
             old_x.fill(np.inf)
             for i in range(maxiter):
-                if np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) < tol:
+                if np.linalg.norm(x[old_x > tol] - old_x[old_x > tol]) < tol:
                     break
                 pprint('x: ', x)
                 old_x = x
@@ -324,7 +324,7 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, verbose=True):
         old_x.fill(np.inf)
         scaledA = (A / tau + np.eye(length))
         for i in range(maxiter):
-            if np.linalg.norm(x[old_x>tol] - old_x[old_x>tol]) < tol:
+            if np.linalg.norm(x[old_x > tol] - old_x[old_x > tol]) < tol:
                 break
             pprint('x', x)
             old_x = x
@@ -359,7 +359,8 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, verbose=True):
     mask = (np.abs(x) > sparsecutoff)
     grid = np.ix_(mask, mask)
     Ak, Bk = A[grid], B[grid]  # form the submatrices
-    gevals, gevecs = scipy.linalg.eigh(Ak, Bk, eigvals=(Ak.shape[0]-2, Ak.shape[0]-1))
+    gevals, gevecs = scipy.linalg.eigh(
+        Ak, Bk, eigvals=(Ak.shape[0]-2, Ak.shape[0]-1))
     u = gevals[-1]
     v = np.zeros(length)
     v[mask] = gevecs[:, -1]

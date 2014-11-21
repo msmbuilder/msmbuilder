@@ -29,7 +29,6 @@ from sklearn.utils import check_random_state
 from sklearn.externals.joblib import load, dump
 from sklearn.base import TransformerMixin
 from .base import BaseEstimator
-import sklearn.pipeline
 
 #-----------------------------------------------------------------------------
 # Code
@@ -130,29 +129,28 @@ def map_drawn_samples(selected_pairs_by_state, trajectories, top=None):
         Output will be a list of trajectories such that frames_by_state[state]
         is a trajectory drawn from `state` of length `n_samples`.  If trajectories
         are numpy arrays, the output will be numpy arrays instead of md.Trajectories
-    
+
     Examples
     --------
     >>> selected_pairs_by_state = hmm.draw_samples(sequences, 3)
     >>> samples = map_drawn_samples(selected_pairs_by_state, trajectories)
-    
+
     Notes
     -----
-    YOU are responsible for ensuring that selected_pairs_by_state and 
+    YOU are responsible for ensuring that selected_pairs_by_state and
     trajectories correspond to the same dataset!
-    
+
     See Also
     --------
     utils.map_drawn_samples : Extract conformations from MD trajectories by index.
-    ghmm.GaussianFusionHMM.draw_samples : Draw samples from GHMM    
-    ghmm.GaussianFusionHMM.draw_centroids : Draw centroids from GHMM    
+    ghmm.GaussianFusionHMM.draw_samples : Draw samples from GHMM
+    ghmm.GaussianFusionHMM.draw_centroids : Draw centroids from GHMM
     """
 
     frames_by_state = []
 
     for state, pairs in enumerate(selected_pairs_by_state):
         if isinstance(trajectories[0], str):
-            import mdtraj as md
             if top:
                 process = lambda x, frame: md.load_frame(x, frame, top=top)
             else:
@@ -166,7 +164,7 @@ def map_drawn_samples(selected_pairs_by_state, trajectories, top=None):
         except AttributeError:
             state_trj = np.array(frames)  # Just a bunch of np arrays
         frames_by_state.append(state_trj)
-    
+
     return frames_by_state
 
 
@@ -179,10 +177,10 @@ class Subsampler(BaseEstimator, TransformerMixin):
         The lag time to subsample by
     sliding_window : bool, default=True
         If True, each time series is transformed into `lag_time` interlaced
-        sliding-window (not statistically independent) sequences.  If 
+        sliding-window (not statistically independent) sequences.  If
         False, each time series is transformed into a single subsampled
         time series.
-    """    
+    """
     def __init__(self, lag_time, sliding_window=True):
         self._lag_time = lag_time
         self._sliding_window = sliding_window
