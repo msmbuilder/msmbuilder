@@ -64,16 +64,22 @@ def fluxes(sources, sinks, msm, for_committors=None):
         and `sinks` are ignored.
 
     Returns
-    ------
+    -------
     flux_matrix : np.ndarray
         The flux matrix
 
+    See Also
+    --------
+    net_fluxes
+
     References
     ----------
-    .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
+    .. [1] E, Weinan and Vanden-Eijnden, Eric Towards a Theory of Transition Paths
+           J. Stat. Phys. 123 503-523 (2006)
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
            for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
-    .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
            Chem. Phys. 130, 205102 (2009).
     """
@@ -122,16 +128,22 @@ def net_fluxes(sources, sinks, msm, for_committors=None):
         and `sinks` are ignored.
 
     Returns
-    ------
+    -------
     net_flux : np.ndarray
         The net flux matrix
 
+    See Also
+    --------
+    fluxes
+
     References
     ----------
-    .. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
+    .. [1] E, Weinan and Vanden-Eijnden, Eric Towards a Theory of Transition Paths
+           J. Stat. Phys. 123 503-523 (2006)
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory 
            for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
            (2009).
-    .. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding 
            pathways in network models of coarse-grained protein dynamics. J. 
            Chem. Phys. 130, 205102 (2009).
     """
