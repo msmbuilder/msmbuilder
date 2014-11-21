@@ -1,10 +1,24 @@
-# insert license statement here
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+#            (schwancr@stanford.edu)
+# Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
 
+# Mixtape is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for performing Transition Path Theory calculations. 
-
-Contributions from Kyle Beauchamp, Robert McGibbon, Vince Voelz,
-Christian Schwantes, and TJ Lane.
+Functions for enumerating paths through an MSM for a given set of
+sink and source states.
 
 These are the canonical references for TPT. Note that TPT is really a
 specialization of ideas very framiliar to the mathematical study of Markov
@@ -22,16 +36,12 @@ References
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
+from mdtraj.utils.six.moves import xrange
 import copy
 
-from mixtape.tpt import calculate_committors
+__all__ = ['paths', 'top_path']
 
-import logging
-logger = logging.getLogger(__name__)
-# turn on debugging printout
-# logger.setLogLevel(logging.DEBUG)
-
-def get_top_path(sources, sinks, net_flux):
+def top_path(sources, sinks, net_flux):
     """
     Use the Dijkstra algorithm for finding the shortest path connecting
     sources and sinks
@@ -94,7 +104,7 @@ def get_top_path(sources, sinks, net_flux):
         #    continue # I think if sinks is more than one state we have to check everything
 
         # now update the distances for each neighbor of the test_node:
-        neighbors = np.where(net_flux[test_node, :] > 0)[1]
+        neighbors = np.where(net_flux[test_node, :] > 0)[0]
         if len(neighbors) == 0:
             continue
 
@@ -159,7 +169,7 @@ def _subtract_path_flux(net_flux, path):
     return net_flux
 
 
-def get_paths(sources, sinks, net_flux, remove_path='subtract',
+def paths(sources, sinks, net_flux, remove_path='subtract',
               num_paths=np.inf, flux_cutoff=(1-1E-10)):
     """
     Get the top N paths by iteratively performing Dijkstra's
@@ -241,9 +251,9 @@ def get_paths(sources, sinks, net_flux, remove_path='subtract',
     counter = 0
     expl_flux = 0.0
     while not_done:
-        path, flux = get_top_path(sources, sinks, net_flux)
+        path, flux = top_path(sources, sinks, net_flux)
         if np.isinf(flux):
-            logger.info("no more paths exist")
+            #print("no more paths exist")
             break
         
         paths.append(path)
@@ -252,7 +262,7 @@ def get_paths(sources, sinks, net_flux, remove_path='subtract',
         expl_flux += flux / total_flux
         counter += 1
 
-        logger.info("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
+        #print("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
         
         if counter >= num_paths or expl_flux >= flux_cutoff:
             break
