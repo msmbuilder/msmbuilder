@@ -25,14 +25,22 @@ specialization of ideas very framiliar to the mathematical study of Markov
 chains, and there are many books, manuscripts in the mathematical literature
 that cover the same concepts.
 
+In addition, the original paper from Dijkstra describing the 
+path finding algorithm we emply is listed below.
+
 References
 ----------
-.. [1] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
-       for Markov jump processes. Multiscale Model. Simul. 7, 1192-1219
-       (2009).
-.. [2] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive flux and folding
-       pathways in network models of coarse-grained protein dynamics. J.
-       Chem. Phys. 130, 205102 (2009).
+.. [1] Weinan, E. and Vanden-Eijnden, E. Towards a theory of
+       transition paths. J. Stat. Phys. 123, 503-523 (2006).
+.. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E.
+       Transition path theory for Markov jump processes.
+       Multiscale Model. Simul. 7, 1192-1219 (2009).
+.. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive
+       flux and folding pathways in network models of
+       coarse-grained protein dynamics. J. Chem. Phys.
+       130, 205102 (2009).
+.. [4] Dijkstra, E. W. A Note on Two Problems in Connexion
+       with Graphs. Numerische Mathematik 1, 269–271 (1959).
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
@@ -42,29 +50,45 @@ __all__ = ['paths', 'top_path']
 
 def top_path(sources, sinks, net_flux):
     """
-    Use the Dijkstra algorithm for finding the shortest path connecting
-    sources and sinks
+    Use the Dijkstra algorithm for finding the shortest path 
+    connecting a set of source states from a set of sink states.
 
     Parameters
     ----------
-    sources : array_like
-        nodes to define the source states
-    sinks : array_like
-        nodes to define the sink states
-    net_flux : np.ndarray
-        net flux of the MSM
-
-    See Also
-    --------
-    paths
+    sources : array_like, int
+        One-dimensional list of nodes to define the source states. 
+    sinks : array_like, int
+        One-dimensional list of nodes to define the sink states. 
+    net_flux : np.ndarray, shape = [n_states, n_states]
+        Net flux of the MSM
 
     Returns
     -------
     top_path : np.ndarray
-        array corresponding to the top path between sources and sinks
+        Array corresponding to the top path between sources and
+        sinks. It is an array of states visited along the path.
     flux : float
-        flux traveling through this path -- this is equal to the
-        minimum flux over edges in the path
+        Flux traveling through this path -- this is equal to the
+        minimum flux over edges in the path.
+
+    See Also
+    --------
+    mixtape.tpt.paths : function for calculating many high
+        flux paths through a network.
+
+    References
+    ----------
+    .. [1] Weinan, E. and Vanden-Eijnden, E. Towards a theory of
+           transition paths. J. Stat. Phys. 123, 503-523 (2006).
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E.
+           Transition path theory for Markov jump processes.
+           Multiscale Model. Simul. 7, 1192-1219 (2009).
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive
+           flux and folding pathways in network models of
+           coarse-grained protein dynamics. J. Chem. Phys.
+           130, 205102 (2009).
+    .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion
+           with Graphs. Numerische Mathematik 1, 269–271 (1959).
     """
     sources = np.array(sources, dtype=np.int).reshape((-1,))
     sinks = np.array(sinks, dtype=np.int).reshape((-1,))
@@ -142,7 +166,6 @@ def _remove_bottleneck(net_flux, path):
     Internal function for modifying the net flux matrix by removing
     a particular edge, corresponding to the bottleneck of a particular
     path.
-
     """
     net_flux = copy.copy(net_flux)
 
@@ -180,12 +203,12 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
 
     Parameters
     ----------
-    sources : array_like
-        nodes to define the source states
-    sinks : array_like
-        nodes to define the sink states
+    sources : array_like, int
+        One-dimensional list of nodes to define the source states. 
+    sinks : array_like, int
+        One-dimensional list of nodes to define the sink states. 
     net_flux : np.ndarray
-        net flux of the MSM
+        Net flux of the MSM
     remove_path : str or callable, optional
         Function for removing a path from the net flux matrix.
         (if str, one of {'subtract', 'bottleneck'})
@@ -193,15 +216,16 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
     num_paths : int, optional
         Number of paths to find
     flux_cutoff : float, optional
-        Quit finding paths once the explained flux is greater
-        this cutoff (as a percentage of the total)
+        Quit looking for paths once the explained flux is greater
+        than this cutoff (as a percentage of the total).
 
     Returns
     -------
-    paths : np.ndarray
-        list of paths
-    fluxes : np.ndarray
-        flux of each path returned
+    paths : list
+        List of paths. Each item is an array of nodes visited
+        in the path.
+    fluxes : np.ndarray, shape = [n_paths,]
+        Flux of each path returned.
 
     Notes
     -----
@@ -232,6 +256,25 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
     If a new scheme is desired, the user may pass a function
     that takes the net_flux and the path to remove and returns
     the new net flux matrix.
+
+    See Also
+    --------
+    mixtape.tpt.top_path : function for computing the single
+        highest flux pathway through a network.
+
+    References
+    ----------
+    .. [1] Weinan, E. and Vanden-Eijnden, E. Towards a theory of
+           transition paths. J. Stat. Phys. 123, 503-523 (2006).
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E.
+           Transition path theory for Markov jump processes.
+           Multiscale Model. Simul. 7, 1192-1219 (2009).
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive
+           flux and folding pathways in network models of
+           coarse-grained protein dynamics. J. Chem. Phys.
+           130, 205102 (2009).
+    .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion
+           with Graphs. Numerische Mathematik 1, 269–271 (1959).
     """
 
     if not callable(remove_path):
