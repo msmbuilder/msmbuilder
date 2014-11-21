@@ -45,7 +45,7 @@ class FeaturizerCommand(NumpydocClassCommand):
                 sys.stdout.flush()
                 trajectory.append(self.instance.partial_transform(chunk))
             print()
-            out_dataset[i] = np.concatenate(trajectory)
+            out_dataset[key] = np.concatenate(trajectory)
 
         print('All done')
 

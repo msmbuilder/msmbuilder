@@ -14,25 +14,34 @@ from collections import Sequence
 import mdtraj as md
 from mdtraj.core.trajectory import _parse_topology
 import numpy as np
-from jinja2 import Template
 from . import version
 
 __all__ = ['dataset', 'NumpyDirDataset']
 
 
-class _BaseDataset(Sequence):
-    _PROVENANCE_TEMPLATE = Template(
-        '''Mixtape Dataset:
-  Mixtape:\t{{version}}
-  Command:\t{{cmdline}}
-  Path:\t\t{{path}}
-  Username:\t{{user}}
-  Hostname:\t{{hostname}}
-  Date:\t\t{{date}}{% if comments %}\nComments:\t\t{{comments}}{% endif %}
+def dataset(path, mode='r', fmt='dir-npy', verbose=False, **kwargs):
+    if fmt == 'dir-npy':
+        return NumpyDirDataset(path, mode=mode, verbose=verbose, **kwargs)
+    elif fmt == 'mdtraj':
+        return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
+    else:
+        raise NotImplementedError()
 
-{% if previous %}== Derived from ==
-{{previous}}
-{% endif %}''')
+
+class _BaseDataset(Sequence):
+    _PROVENANCE_TEMPLATE = '''Mixtape Dataset:
+  Mixtape:\t{version}
+  Command:\t{cmdline}
+  Path:\t\t{path}
+  Username:\t{user}
+  Hostname:\t{hostname}
+  Date:\t\t{date}
+  Comments:\t\t{comments}
+'''
+    _PREV_TEMPLATE = '''
+== Derived from ==
+{previous}
+'''
 
     def __init__(self, path, mode='r', verbose=False):
         self.path = path
@@ -65,21 +74,23 @@ class _BaseDataset(Sequence):
             yield fn(self.get(key))
 
     def _build_provenance(self, previous=None, comments=''):
-        return self._PROVENANCE_TEMPLATE.render(
+        val = self._PROVENANCE_TEMPLATE.format(
             version=version.full_version,
             cmdline=' '.join(sys.argv),
             user=getpass.getuser(),
             hostname=socket.gethostname(),
-            previous=previous,
             path=self.path,
             comments=comments,
             date=datetime.now().strftime("%B %d, %Y %l:%M %p"))
+        if previous:
+            val += self._PREV_TEMPLATE.format(previous=previous)
+        return val
 
     @property
     def provenance(self):
         raise NotImplementedError('implemented in subclass')
 
-    def _write_provenance(self, previous, comments):
+    def _write_provenance(self, previous, comments=''):
         raise NotImplementedError('implemented in subclass')
 
     def __len__(self):
@@ -164,18 +175,17 @@ class NumpyDirDataset(_BaseDataset):
 
     def _write_provenance(self, previous=None, comments=''):
         with open(join(self.path, self._PROVENANCE_FILE), 'w') as f:
-            f.write(self._build_provenance(previous=previous,
-                                           comments=comments))
+            p = self._build_provenance(previous=previous, comments=comments)
+            f.write(p)
 
 
 class MDTrajDataset(_BaseDataset):
-    _PROVENANCE_TEMPLATE = Template(
-        '''MDTraj dataset:
-  path:\t\t{{path}}
-  topology:\t{{topology}}
-  stride:\t{{stride}}
-  atom_indices\t{{atom_indices}}
-''')
+    _PROVENANCE_TEMPLATE = '''MDTraj dataset:
+  path:\t\t{path}
+  topology:\t{topology}
+  stride:\t{stride}
+  atom_indices\t{atom_indices}
+'''
 
     def __init__(self, path, mode='r', topology=None, stride=1,
                  atom_indices=None, verbose=False):
@@ -229,16 +239,10 @@ class MDTrajDataset(_BaseDataset):
 
     @property
     def provenance(self):
-        return self._PROVENANCE_TEMPLATE.render(self.__dict__)
+        return self._PROVENANCE_TEMPLATE.format(
+            path=self.path, topology=self.topology,
+            atom_indices=self.atom_indices, stride=self.stride)
 
-
-def dataset(path, mode='r', fmt='dir-npy', verbose=False, **kwargs):
-    if fmt == 'dir-npy':
-        return NumpyDirDataset(path, mode=mode, verbose=verbose, **kwargs)
-    elif fmt == 'mdtraj':
-        return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
-    else:
-        raise NotImplementedError()
 
 
 def _keynat(string):
