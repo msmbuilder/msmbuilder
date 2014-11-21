@@ -45,7 +45,7 @@ import copy
 
 __all__ = ['fluxes', 'net_fluxes']
 
-def fluxes(sources, sinks, msm, committors=None):
+def fluxes(sources, sinks, msm, for_committors=None):
     """
     Compute the transition path theory flux matrix.
 
@@ -57,8 +57,8 @@ def fluxes(sources, sinks, msm, committors=None):
         The set of folded/product states.
     msm : mixtape.MarkovStateModel
         MSM that has been fit to data. 
-    committors : np.ndarray, optional
-        The committors associated with `sources`, `sinks`, and `tprob`.
+    for_committors : np.ndarray, optional
+        The forward committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
 
@@ -84,26 +84,26 @@ def fluxes(sources, sinks, msm, committors=None):
     n_states = msm.n_states_
 
     # check if we got the committors
-    if committors is None:
-        committors = committors.calculate_committors(sources, sinks, tprob)
+    if for_committors is None:
+        for_committors = committors(sources, sinks, msm)
     else:
-        committors = np.array(committors)
-        if committors.shape != (n_states,):
-            raise ValueError("Shape of committors %s should be %s" % (str(committors.shape), str((n_states,))))
+        for_committors = np.array(for_committors)
+        if for_committors.shape != (n_states,):
+            raise ValueError("Shape of committors %s should be %s" % (str(for_committors.shape), str((n_states,))))
 
     X = np.zeros((n_states, n_states))
-    X[(np.arange(n_states), np.arange(n_states))] = populations * (1.0 - committors)
+    X[(np.arange(n_states), np.arange(n_states))] = populations * (1.0 - for_committors)
 
     Y = np.zeros((n_states, n_states))
-    Y[(np.arange(n_states), np.arange(n_states))] = committors
+    Y[(np.arange(n_states), np.arange(n_states))] = for_committors
 
     fluxes = np.dot(np.dot(X, tprob), Y)
-    fluxes[(np.arange(n_states), np.arange(n_states))] = np.zeros(n)
+    fluxes[(np.arange(n_states), np.arange(n_states))] = np.zeros(n_states)
 
     return fluxes
 
 
-def net_fluxes(sources, sinks, msm, committors=None):
+def net_fluxes(sources, sinks, msm, for_committors=None):
     """
     Computes the transition path theory net flux matrix.
 
@@ -115,8 +115,8 @@ def net_fluxes(sources, sinks, msm, committors=None):
         The set of folded/product states.
     msm : mixtape.MarkovStateModel
         MSM fit to data.
-    committors : np.ndarray, optional
-        The committors associated with `sources`, `sinks`, and `tprob`.
+    for_committors : np.ndarray, optional
+        The forward committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
         and `sinks` are ignored.
 
@@ -135,16 +135,9 @@ def net_fluxes(sources, sinks, msm, committors=None):
            Chem. Phys. 130, 205102 (2009).
     """
 
-    flux_matrix = calculate_fluxes(sources, sinks, msm, committors=committors)
+    flux_matrix = fluxes(sources, sinks, msm, for_committors=for_committors)
 
     net_flux = flux_matrix - flux_matrix.T
     net_flux[np.where(net_flux < 0)] = 0.0
-
-    # Old Code:
-    #for k in range(len(ind[0])):
-    #    i, j = ind[0][k], ind[1][k]
-    #    forward = flux[i, j]
-    #    reverse = flux[j, i]
-    #    net_flux[i, j] = max(0, forward - reverse)
 
     return net_flux

@@ -4,173 +4,178 @@ from __future__ import absolute_import
 import sys
 import os
 
+from mixtape import tpt
+from mixtape.msm import MarkovStateModel
+
 import numpy as np
 import numpy.testing as npt
-import scipy.sparse
-import scipy.io
 
 from mdtraj import io
-from msmbuilder import tpt
-from msmbuilder.scripts import FindPaths
-from msmbuilder.testing import get
 
-def tpt_get(filename):
-    """ a little hack to save headache -- returns the path to a file in 
-        the hub_ref subdir inside reference/ """
-    return get( os.path.join('transition_path_theory_reference', filename), just_filename=True )
-        
-  
-def hub_get(filename):
-    """ a little hack to save headache -- returns the path to a file in 
-        the hub_ref subdir inside reference/ """
-    return get( os.path.join('transition_path_theory_reference', 'hub_ref', filename), just_filename=True )
+def test_paths():
+
+    net_flux = np.array([[0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.3, 0.0, 0.2],
+                         [0.0, 0.0, 0.0, 0.0, 0.5, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 0.3],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+
+    sources = np.array([0])
+    sinks = np.array([4, 5])
+
+    ref_paths = [[0, 2, 4],
+                 [0, 1, 3,  5],
+                 [0, 1, 5]]
+
+    ref_fluxes = np.array([0.5, 0.3, 0.2])
     
+    res_bottle = tpt.paths(sources, sinks, net_flux, remove_path='bottleneck') 
+    res_subtract = tpt.paths(sources, sinks, net_flux, remove_path='subtract')
 
+    for paths, fluxes in [res_bottle, res_subtract]:
+        npt.assert_array_almost_equal(fluxes, ref_fluxes)
+        assert len(paths) == len(ref_paths)
 
-class TestTPT():
-    """ Test the transition_path_theory library """
+        for i in xrange(len(paths)):
+            npt.assert_array_equal(paths[i], ref_paths[i])
 
-    def setUp(self):
         
-        # load in the reference data
-        self.tprob = get("transition_path_theory_reference/tProb.mtx")
-        self.sources   = [0]   # chosen arbitarily by TJL
-        self.sinks     = [70]  # chosen arbitarily by TJL
-        self.waypoints = [60]  # chosen arbitarily by TJL
-        self.lag_time  = 1.0   # chosen arbitarily by TJL
-
-        self.multi_sources = get("transition_path_theory_reference/many_state/sources.dat").astype(int)
-        self.multi_sinks = get("transition_path_theory_reference/many_state/sinks.dat").astype(int)
-
-        self.num_paths = 10
-
-        # set up the reference data for hub scores
-        K = np.loadtxt( hub_get('ratemat_1.dat') )
-        #self.hub_T = scipy.linalg.expm( K ) # delta-t should not affect hub scores
-        self.hub_T = np.transpose( np.genfromtxt( hub_get('mat_1.dat') )[:,:-3] )
-        
-        for i in range(self.hub_T.shape[0]):
-            self.hub_T[i,:] /= np.sum(self.hub_T[i,:])
-        
-        self.hc = np.loadtxt( hub_get('fraction_visited.dat') )
-        self.Hc = np.loadtxt( hub_get('hub_scores.dat') )[:,2]
-        
-
-    def test_committors(self):
-        Q = tpt.calculate_committors(self.sources, self.sinks, self.tprob)
-        Q_ref = io.loadh(tpt_get("committors.h5"), 'Data')
-        npt.assert_array_almost_equal(Q, Q_ref)
-        
-        
-    def test_flux(self):
-        
-        flux = tpt.calculate_fluxes(self.sources, self.sinks, self.tprob)
-        flux_ref = io.loadh(tpt_get("flux.h5"), 'Data')
-        npt.assert_array_almost_equal(flux.toarray(), flux_ref)
-        
-        net_flux = tpt.calculate_net_fluxes(self.sources, self.sinks, self.tprob)
-        net_flux_ref = io.loadh(tpt_get("net_flux.h5"), 'Data')
-        npt.assert_array_almost_equal(net_flux.toarray(), net_flux_ref)
-        
+def test_committors():
     
-    # this test is for the original bottleneck cutting code    
-    def test_path_calculations(self):
-        path_output = tpt._find_top_paths_cut(self.sources, self.sinks, self.tprob)
+    msm = MarkovStateModel(lag_time=1)
+    assignments = np.random.randint(3, size=(10, 1000))
+    msm.fit(assignments)
+
+    tprob = msm.transmat_
+
+    committors = tpt.committors([0], [2], msm)
+
+    # The probability of hitting state 2 before going back to state 1
+    # is a sum over possible paths that don't go back to state 0.
+    # Since there are only three states the paths are all something
+    # of the form 1, 1, 1, 1, ..., 1, 1, 2
+    # Theoretically we need infinitely many 1->1 transitions, but 
+    # that approaches zero, so the approximation below is probably
+    # just fine.
+    ref = np.power(tprob[1, 1], np.arange(1000)).sum() * tprob[1, 2]
+    ref = np.array([0, ref, 1])
+
+    #print(committors, ref)
+
+    npt.assert_array_almost_equal(ref, committors)
+
+
+def test_cond_committors():
+    # depends on tpt.committors
     
-        paths_ref = io.loadh( tpt_get("dijkstra_paths.h5"), 'Data')
-        fluxes_ref = io.loadh( tpt_get("dijkstra_fluxes.h5"), 'Data')
-        bottlenecks_ref = io.loadh( tpt_get("dijkstra_bottlenecks.h5"), 'Data')
+    msm = MarkovStateModel(lag_time=1)
+    assignments = np.random.randint(4, size=(10, 1000))
+    msm.fit(assignments)
 
-        for i in range(len(paths_ref)):
-            npt.assert_array_almost_equal(path_output[0][i], paths_ref[i])
-        npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
-        npt.assert_array_almost_equal(path_output[2], fluxes_ref)
+    tprob = msm.transmat_
+
+    for_committors = tpt.committors(0, 3, msm)
+    cond_committors = tpt.conditional_committors(0, 3, 2, msm)
+
+    # The committor for state one can be decomposed into paths that
+    # do and do not visit state 2 along the way. The paths that do not
+    # visit state 1 must look like 1, 1, 1, ..., 1, 1, 3. So we can
+    # compute them with a similar approximation as the forward committor
+    # Since we want the other component of the forward committor, we
+    # subtract that probability from the forward committor
+    ref = for_committors[1] - np.power(tprob[1, 1], np.arange(5000)).sum() * tprob[1, 3]
+    #print (ref / for_committors[1])
+    ref = [0, ref, for_committors[2], 0]
+
+    #print(cond_committors, ref)
+
+    npt.assert_array_almost_equal(ref, cond_committors)
 
 
-    #def test_multi_state_path_calculations(self):
-    #    path_output = FindPaths.run(self.tprob, self.multi_sources, self.multi_sinks, self.num_paths)
+def test_fluxes():
+    # depends on tpt.committors
 
-    #    path_result_ref = io.loadh(tpt_get("many_state/Paths.h5"))
-
-    #    paths_ref = path_result_ref['Paths']
-    #    bottlenecks_ref = path_result_ref['Bottlenecks']
-    #    fluxes_ref = path_result_ref['fluxes']
-
-    #    npt.assert_array_almost_equal(path_output[0], paths_ref)
-    #    npt.assert_array_almost_equal(path_output[1], bottlenecks_ref)
-    #    npt.assert_array_almost_equal(path_output[2], fluxes_ref)
+    msm = MarkovStateModel(lag_time=1)
+    assignments = np.random.randint(3, size=(10, 1000))
+    msm.fit(assignments)
 
 
-    def test_mfpt(self):
-        
-        mfpt = tpt.calculate_mfpt(self.sinks, self.tprob, lag_time=self.lag_time)
-        mfpt_ref = io.loadh( tpt_get("mfpt.h5"), 'Data')
-        npt.assert_array_almost_equal(mfpt, mfpt_ref)
-        
-        ensemble_mfpt = tpt.calculate_ensemble_mfpt(self.sources, self.sinks, self.tprob, self.lag_time)
-        ensemble_mfpt_ref = io.loadh( tpt_get("ensemble_mfpt.h5"), 'Data')
-        npt.assert_array_almost_equal(ensemble_mfpt, ensemble_mfpt_ref)
-        
-        all_to_all_mfpt = tpt.calculate_all_to_all_mfpt(self.tprob)
-        all_to_all_mfpt_ref = io.loadh( tpt_get("all_to_all_mfpt.h5"), 'Data')
-        npt.assert_array_almost_equal(all_to_all_mfpt, all_to_all_mfpt_ref)
-        
-        
-    def test_TP_time(self):
-        tp_time = tpt.calculate_avg_TP_time(self.sources, self.sinks, self.tprob, self.lag_time)
-        tp_time_ref = io.loadh( tpt_get("tp_time.h5"), 'Data')
-        npt.assert_array_almost_equal(tp_time, tp_time_ref)
-        
-        
-    def test_fraction_visits(self):
-        
-        num_to_test = 11**2 # this can be changed to shorten the test a little
-        
-        for i in range(num_to_test):
-            waypoint = int(self.hc[i,0])
-            source   = int(self.hc[i,1])
-            sink     = int(self.hc[i,2])
-            hc = tpt.calculate_fraction_visits(self.hub_T, waypoint, source, sink)
-            assert np.abs(hc - self.hc[i,3]) < 0.0001
-        
-
-    def test_hub_scores(self):
-        
-        all_hub_scores = tpt.calculate_all_hub_scores(self.hub_T)
-        npt.assert_array_almost_equal( all_hub_scores, self.Hc )
-        
-        for waypoint in range(self.hub_T.shape[0]):
-            hub_score = tpt.calculate_hub_score(self.hub_T, waypoint)
-            assert np.abs(hub_score - all_hub_scores[waypoint]) < 0.0001
-        
-        
-
-class TestTPT2():
-    def setUp(self):
-        
-        self.net_flux = np.array([[0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
-                                  [0.0, 0.0, 0.0, 0.3, 0.0, 0.2],
-                                  [0.0, 0.0, 0.0, 0.0, 0.5, 0.0],
-                                  [0.0, 0.0, 0.0, 0.0, 0.0, 0.3],
-                                  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                                  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
-
-        self.sources = np.array([0])
-        self.sinks = np.array([4, 5])
-
-        self.ref_paths = np.array([[0, 2, 4, -1],
-                                   [0, 1, 3,  5],
-                                   [0, 1, 5, -1]])
-
-        self.ref_fluxes = np.array([0.5, 0.3, 0.2])
-
-    def testA(self):
-        
-        paths, fluxes = tpt.get_paths(self.sources, self.sinks, self.net_flux)
-
-        npt.assert_array_almost_equal(fluxes, self.ref_fluxes)
-
-        npt.assert_array_equal(paths, self.ref_paths)
-
-        
+    tprob = msm.transmat_
+    pop = msm.populations_
+    # forward committors
+    qplus = tpt.committors(0, 2, msm)
     
+    ref_fluxes = np.zeros((3, 3))
+    ref_net_fluxes = np.zeros((3, 3))
+    for i in xrange(3):
+        for j in xrange(3):
+            if i != j:
+                # Eq. 2.24 in Metzner et al. Transition Path Theory. 
+                # Multiscale Model. Simul. 2009, 7, 1192-1219.
+                ref_fluxes[i, j] = pop[i] * tprob[i, j] * (1 - qplus[i]) * qplus[j]
+
+    for i in xrange(3):
+        for j in xrange(3):
+            ref_net_fluxes[i, j] = np.max([0, ref_fluxes[i, j] - ref_fluxes[j, i]])
+
+    fluxes = tpt.fluxes(0, 2, msm)
+    net_fluxes = tpt.net_fluxes(0, 2, msm)
+
+    #print(fluxes)
+    #print(ref_fluxes)
+
+    npt.assert_array_almost_equal(ref_fluxes, fluxes)
+    npt.assert_array_almost_equal(ref_net_fluxes, net_fluxes)
+
+def test_hubscore():
+    #Make an actual hub!
+
+    tprob = np.array([[0.8, 0.0, 0.2, 0.0, 0.0],
+                      [0.0, 0.8, 0.2, 0.0, 0.0],
+                      [0.1, 0.1, 0.6, 0.1, 0.1],
+                      [0.0, 0.0, 0.2, 0.8, 0.0],
+                      [0.0, 0.0, 0.2, 0.0, 0.8]])
+
+    msm = MarkovStateModel(lag_time=1)
+    msm.transmat_ = tprob
+    msm.n_states_ = 5
+
+    score = tpt.hub_scores(msm, 2)[0]
+
+    assert score == 1.0
+
+
+def test_harder_hubscore():
+    # depends on tpt.committors and tpt.conditional_committors
+
+    assignments = np.random.randint(10, size=(10, 1000))
+    msm = MarkovStateModel(lag_time=1)
+    msm.fit(assignments)
+    
+    hub_scores = tpt.hub_scores(msm)
+
+    ref_hub_scores = np.zeros(10)
+    for A in xrange(10):
+        for B in xrange(10):
+            committors = tpt.committors(A, B, msm)
+            denom = msm.transmat_[A, :].dot(committors) #+ msm.transmat_[A, B]
+            for C in xrange(10):
+                if A == B or A == C or B == C:
+                    continue
+                cond_committors = tpt.conditional_committors(A, B, C, msm)
+
+                temp = 0.0
+                for i in xrange(10):
+                    if i in [A, B]:
+                        continue
+                    temp += cond_committors[i] * msm.transmat_[A, i]
+                temp /= denom
+
+                ref_hub_scores[C] += temp
+
+    ref_hub_scores /= (9 * 8)
+
+    print(ref_hub_scores, hub_scores)
+
+    npt.assert_array_almost_equal(ref_hub_scores, hub_scores)

@@ -60,7 +60,7 @@ def committors(sources, sinks, msm):
 
     Returns
     -------
-    committors : np.ndarray
+    forward_committors : np.ndarray
         The forward committors for the reaction sources -> sinks
 
     References
@@ -99,23 +99,16 @@ def committors(sources, sinks, msm):
     rhs[sources] = 0.0
     rhs[sinks] = 1.0
 
-    committors = np.linalg.solve(lhs, rhs)
+    forward_committors = np.linalg.solve(lhs, rhs)
 
-    # we can probably (?) remove these assertion lines
-    epsilon = 0.001
-    assert np.all(committors <= (1.0 + epsilon))
-    assert np.all(committors >= (0.0 - epsilon))
-
-    return committors
+    return forward_committors
 
 
 def conditional_committors(source, sink, waypoint, msm):
     """
-    C.alculate the fraction of times a walker on `tprob` going from `sources`
-    to `sinks` will travel through the set of states `waypoints` en route.
-
-    Computes the conditional committors q^{ABC^+} and uses them to find the
-    fraction of paths mentioned above. The conditional committors can be
+    Computes the conditional committors q^{ABC^+} which are is the probability
+    of starting in one state and visiting state B before A while also visiting 
+    state C at some point.
 
     Note that in the notation of Dickson et. al. this computes h_c(A,B), with
         sources   = A
@@ -173,25 +166,15 @@ def conditional_committors(source, sink, waypoint, msm):
     if (source == waypoint) or (sink == waypoint) or (sink == source):
         raise ValueError('source, sink, waypoint must all be disjoint!')
 
-    committors = calculate_committors([source], [sink], msm)
+    # hmmm this is awkward...
+    forward_committors = committors([source], [sink], msm)
 
     # permute the transition matrix into cannonical form - send waypoint the the
     # last row, and source + sink to the end after that
     Bsink_indices = [source, sink, waypoint]
-    perm = np.array([i for i in xrange(n_states) if not i in Bsink_indices])
+    perm = np.array([i for i in xrange(n_states) if not i in Bsink_indices], dtype=int)
     perm = np.concatenate([perm, Bsink_indices])
     permuted_tprob = tprob[perm, :][:, perm]
-
-    ## OLD CODE (to be deleted)
-    # I think the list comp. is easier to understand
-    #perm = np.arange(N)
-    #perm = np.delete(perm, Bsink_indices)
-    #perm = np.append(perm, Bsink_indices)
-
-    # this function is unnecessary. Also it actullay computes a permutation
-    # matrix and does a bunch of matrix multiplies. The slicing above does
-    # the same thing but in a more understandable way.
-    #T = MSMLib.permute_mat(tprob, perm)
 
     # extract P, R
     n = n_states - len(Bsink_indices)
@@ -205,13 +188,7 @@ def conditional_committors(source, sink, waypoint, msm):
 
     # add probs for the sinks, waypoint / b[i] is P( i --> {C & not A, B} )
     b = np.append(B[:, -1].flatten(), [0.0] * (len(Bsink_indices) - 1) + [1.0])
-    cond_committors = b * committors[waypoint]
-
-    epsilon = 1e-6  # some numerical give, hard-coded
-    assert cond_committors.shape == (N,)
-    assert np.all(cond_committors <= 1.0 + epsilon)
-    assert np.all(cond_committors >= 0.0 - epsilon)
-    assert np.all(cond_committors <= committors[perm] + epsilon)
+    cond_committors = b * forward_committors[waypoint]
 
     # get the original order
     cond_committors = cond_committors[np.argsort(perm)] 

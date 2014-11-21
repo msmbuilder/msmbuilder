@@ -103,7 +103,7 @@ def top_path(sources, sinks, net_flux):
         #    continue # I think if sinks is more than one state we have to check everything
 
         # now update the distances for each neighbor of the test_node:
-        neighbors = np.where(net_flux[test_node, :] > 0)[1]
+        neighbors = np.where(net_flux[test_node, :] > 0)[0]
         if len(neighbors) == 0:
             continue
 
@@ -250,9 +250,9 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
     counter = 0
     expl_flux = 0.0
     while not_done:
-        path, flux = get_top_path(sources, sinks, net_flux)
+        path, flux = top_path(sources, sinks, net_flux)
         if np.isinf(flux):
-            logger.info("no more paths exist")
+            #print("no more paths exist")
             break
         
         paths.append(path)
@@ -261,7 +261,7 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
         expl_flux += flux / total_flux
         counter += 1
 
-        logger.info("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
+        #print("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
         
         if counter >= num_paths or expl_flux >= flux_cutoff:
             break

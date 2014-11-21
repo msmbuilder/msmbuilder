@@ -19,10 +19,10 @@ References
 
 from __future__ import absolute_import
 
+from .committor import committors, conditional_committors
 from .flux import fluxes, net_fluxes
 from .hub import fraction_visited, hub_scores
 from .path import paths, top_path
-from .committor import committors, conditional_committors
 
 __all__ = ['fluxes', 'net_fluxes', 'fraction_visited', 'hub_scores',
            'paths', 'top_paths', 'committors', 'conditional_committors']

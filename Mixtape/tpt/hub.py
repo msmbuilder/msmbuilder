@@ -28,7 +28,7 @@ References
 from __future__ import print_function, division, absolute_import
 import numpy as np
 
-from . import committors
+from . import committors, conditional_committors
 
 import itertools
 import copy
@@ -41,7 +41,7 @@ def fraction_visited(source, sink, waypoint, msm):
     to `sinks` will travel through the set of states `waypoints` en route.
 
     Computes the conditional committors q^{ABC^+} and uses them to find the
-    fraction of paths mentioned above. The conditional committors can be
+    fraction of paths mentioned above.
 
     Note that in the notation of Dickson et. al. this computes h_c(A,B), with
         sources   = A
@@ -67,13 +67,13 @@ def fraction_visited(source, sink, waypoint, msm):
 
     See Also
     --------
-    committors.calculate_conditional_committors
+    committor.conditional_committors
         Calculate the probability of visiting a waypoint while on a path
         between a source and sink.
-    hubs.calculate_hub_score : function
+    hub.calculate_hub_score : function
         Compute the 'hub score', the weighted fraction of visits for an
         entire network.
-    hubs.calculate_all_hub_scores : function
+    hub.calculate_all_hub_scores : function
         Wrapper to compute all the hub scores in a network.
 
     References
@@ -87,13 +87,10 @@ def fraction_visited(source, sink, waypoint, msm):
     # EFFICIENCY ALERT:
     # we could allow all of these functions to pass committors if they've
     # already been calculated, but I think it's so fast that we don't need to
-    committors = tpt.committors.calculate_committors([source], [sink], msm)
-    cond_committors = tpt.committors.calculate_conditional_committors([source], [sink], msm)
+    for_committors = committors([source], [sink], msm)
+    cond_committors = conditional_committors(source, sink, waypoint, msm)
 
-    # OLD CODE: The transition matrix is permuted so that the last three are source, sink, waypoint
-    #fraction_paths = np.sum(permuted_tprob[-3, :] * cond_committors) / np.sum(permuted_tprob[-3, :] * committors[perm])
-
-    fraction_visited = np.float(tprob[source, :].dot(cond_committors)) / np.float(tprob[source, :].dot(committors))
+    fraction_visited = np.float(tprob[source, :].dot(cond_committors)) / np.float(tprob[source, :].dot(for_committors))
 
     return fraction_visited
 
@@ -142,9 +139,9 @@ def hub_scores(msm, waypoints=None):
         # calculate the hub score for this waypoint
         hub_score = 0.0
         for (source, sink) in itertools.permutations(other_states, 2):
-            hub_score += calculate_fraction_visits(source, sink, waypoint, msm)
+            hub_score += fraction_visited(source, sink, waypoint, msm)
 
-        hub_score /= float((N - 1) * (N - 2))
+        hub_score /= float((n_states - 1) * (n_states - 2))
         hub_scores.append(hub_score)
 
     return np.array(hub_scores)
