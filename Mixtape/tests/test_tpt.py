@@ -176,6 +176,6 @@ def test_harder_hubscore():
 
     ref_hub_scores /= (9 * 8)
 
-    print(ref_hub_scores, hub_scores)
+    #print(ref_hub_scores, hub_scores)
 
     npt.assert_array_almost_equal(ref_hub_scores, hub_scores)
