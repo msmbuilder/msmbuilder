@@ -62,11 +62,16 @@ def mfpts(msm, sinks=None, lag_time=1.):
     Returns
     -------
     mfpts : np.ndarray, float
-        MFPT in time units of lag_time, if sinks is None, then
-        mfpts[i, j] is the mean first passage time to state j
-        from state i. If sinks contains one or more states, then
-        mfpts[i] is the mean first passage time to one state in
-        sinks from state i.
+        MFPT in time units of lag_time, which depends on the input
+        value of sinks:
+
+        - If sinks is None, then mfpts's shape is (n_states, n_states).
+            Where mfpts[i, j] is the mean first passage time to state j
+            from state i.
+
+        - If sinks contains one or more states, then mfpts's shape
+            is (n_states,). Where mfpts[i] is the mean first passage
+            time from state i to any state in sinks.
 
     References
     ----------
@@ -74,7 +79,6 @@ def mfpts(msm, sinks=None, lag_time=1.):
            Probability. American Mathematical Soc., 1998.    
 
     As of November 2014, this chapter was available for free online:
-
         http://www.dartmouth.edu/~chance/teaching_aids/books_articles/probability_book/Chapter11.pdf
     """
     populations = msm.populations_
