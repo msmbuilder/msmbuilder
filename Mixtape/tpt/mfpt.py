@@ -110,6 +110,8 @@ def mfpts(msm, sinks=None, lag_time=1.):
         for state in sinks:
             absorb_tprob[state, :] = 0.0
             absorb_tprob[state, state] = 2.0
+            # note it has to be 2 because we subtract
+            # the identity below.
 
         lhs = np.eye(n_states) - absorb_tprob
 
