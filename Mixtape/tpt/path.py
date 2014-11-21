@@ -17,16 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for enumerating paths through an MSM for a given set of
-sink and source states.
+Functions for enumerating paths through an MSM for a given 
+set of sink and source states.
 
-These are the canonical references for TPT. Note that TPT is really a
-specialization of ideas very framiliar to the mathematical study of Markov
-chains, and there are many books, manuscripts in the mathematical literature
-that cover the same concepts.
+These are the canonical references for TPT. Note that TPT
+is really a specialization of ideas very familiar to the
+mathematical study of Markov chains, and there are many
+books, manuscripts in the mathematical literature that
+cover the same concepts.
 
 In addition, the original paper from Dijkstra describing the 
-path finding algorithm we emply is listed below.
+path finding algorithm we employ is listed below.
 
 References
 ----------

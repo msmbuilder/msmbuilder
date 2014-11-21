@@ -17,16 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for performing mean first passage time calculations for an MSM.
+Functions for performing mean first passage time
+calculations for an MSM.
 
-For a useful introduction to Markov Chains (both ergodic and absorbing)
-check out Chapter 11 in:
+For a useful introduction to Markov Chains (both ergodic 
+and absorbing) check out Chapter 11 in:
 
-.. [1] Grinstead, C. M. and Snell, J. L. Introduction to Probability. 
-       American Mathematical Soc., 1998.
+.. [1] Grinstead, C. M. and Snell, J. L. Introduction to
+       Probability. American Mathematical Soc., 1998.
 
-The absorbing Markov Chain information is interesting, but note that
-we are using ergodic Markov Chains.
+The absorbing Markov Chain information is interesting, but 
+note that we are using ergodic Markov Chains.
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np

@@ -23,10 +23,11 @@ each state, the forward committor is the probability that a walker
 starting at that state will visit the sink state before the source
 state.
 
-These are the canonical references for TPT. Note that TPT is really a
-specialization of ideas very framiliar to the mathematical study of Markov
-chains, and there are many books, manuscripts in the mathematical literature
-that cover the same concepts.
+These are the canonical references for TPT. Note that TPT
+is really a specialization of ideas very familiar to the
+mathematical study of Markov chains, and there are many
+books, manuscripts in the mathematical literature that
+cover the same concepts.
 
 References
 ----------

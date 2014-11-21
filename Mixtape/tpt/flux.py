@@ -17,13 +17,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 """
-Functions for calculating the fluxes through an MSM for a given set
-of source and sink states.
+Functions for calculating the fluxes through an MSM for a
+given set of source and sink states.
 
-These are the canonical references for TPT. Note that TPT is really a
-specialization of ideas very framiliar to the mathematical study of Markov
-chains, and there are many books, manuscripts in the mathematical literature
-that cover the same concepts.
+These are the canonical references for TPT. Note that TPT
+is really a specialization of ideas very familiar to the
+mathematical study of Markov chains, and there are many
+books, manuscripts in the mathematical literature that
+cover the same concepts.
 
 References
 ----------
