@@ -1,8 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
-import sys
-import os
 
 from mixtape import tpt
 from mixtape.msm import MarkovStateModel
@@ -10,7 +8,6 @@ from mixtape.msm import MarkovStateModel
 import numpy as np
 import numpy.testing as npt
 
-from mdtraj import io
 from mdtraj.utils.six.moves import xrange
 
 def test_paths():
