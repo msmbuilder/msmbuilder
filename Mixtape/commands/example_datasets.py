@@ -6,6 +6,7 @@ from ..example_datasets import (AlanineDipeptide, DoubleWell, QuadWell, FsPeptid
 
 
 class DatasetCommand(NumpydocClassCommand):
+    _group = 'Dataset'
     def start(self):
         self.instance.cache()
 
