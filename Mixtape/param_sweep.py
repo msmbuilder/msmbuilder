@@ -19,6 +19,7 @@
 from __future__ import print_function, division, absolute_import
 from mdtraj.utils.six.moves import xrange
 
+from sklearn import clone
 from sklearn.grid_search import ParameterGrid
 import numpy as np
 from joblib import Parallel, delayed
@@ -70,39 +71,3 @@ def param_sweep(model, sequences, param_grid, n_jobs=1):
     models = Parallel(n_jobs=n_jobs)(delayed(_fit_helper)((args) for args in iter_args))
 
     return models
-
-def implied_timescales(sequences, lag_times, n_timescales=10, 
-    msm=None, n_jobs=1):
-    """
-    Calculate the implied timescales for a given MSM.
-
-    Parameters
-    ----------
-    sequences : list of array-like
-        List of sequences, or a single sequence. Each 
-        sequence should be a 1D iterable of state
-        labels. Labels can be integers, strings, or
-        other orderable objects.
-    lag_times : array-like
-        Lag times to calculate implied timescales at.
-    n_timescales : int, optional
-        Number of timescales to calculate.
-    msm : mixtape.MarkovStateModel, optional
-        Instance of an MSM to specify parameters other
-        than the lag time. If None, then the default
-        parameters (as implemented by mixtape.MarkovStateModel)
-        will be used.
-    n_jobs : int, optional
-        Number of jobs to run in parallel
-    """
-
-    if msm is None:
-        msm = MarkovStateModel()
-
-    param_grid = {'lag_time' : lag_times}
-
-    models = fit_many(msm, sequences, param_grid, n_jobs=n_jobs)
-
-    timescales = [model.timescales_[:n_timescales] for model in models]
-
-    return timescales
