@@ -79,4 +79,4 @@ def test_5():
     # matrix is not so dissimilar from the MLE transition matrix.
     # This shouldn't necessarily be the case anyways -- the likelihood is
     # not "symmetric". And the cutoff chosen is just heuristic.
-    assert np.linalg.norm(b_msm.all_transmats_.mean(axis=0) - mle_msm.transmat_) < 1e-3
+    assert np.linalg.norm(b_msm.all_transmats_.mean(axis=0) - mle_msm.transmat_) < 1e-2
