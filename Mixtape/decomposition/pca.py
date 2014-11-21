@@ -19,9 +19,9 @@
 from __future__ import print_function, division, absolute_import
 from sklearn import decomposition
 import numpy as np
-from six import PY2
 
-from mixtape.base import BaseEstimator
+from ..base import BaseEstimator
+from ..utils import check_iter_of_sequences
 
 __all__ = ['PCA']
 
@@ -57,7 +57,8 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
         -------
         self
         """
-        s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
+        check_iter_of_sequences(sequences)
+        s = super(MultiSequenceDecompositionMixin, self)
         s.fit(self._concat(sequences))
 
         return self
@@ -94,7 +95,8 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
         -------
         sequence_new : list of array-like, each of shape (n_samples_i, n_components)
         """
-        s = super(MultiSequenceDecompositionMixin, self) if PY2 else super()
+        check_iter_of_sequences(sequences)
+        s = super(MultiSequenceDecompositionMixin, self)
         transforms = []
         for sequence in sequences:
             transforms.append(s.transform(sequence))

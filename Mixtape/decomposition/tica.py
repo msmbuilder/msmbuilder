@@ -24,6 +24,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.linalg
 from ..base import BaseEstimator
+from ..utils import check_iter_of_sequences
 from sklearn.base import TransformerMixin
 from sklearn.utils import array2d
 
@@ -262,6 +263,7 @@ class tICA(BaseEstimator, TransformerMixin):
             Returns the instance itself.
         """
         self._initialized = False
+        check_iter_of_sequences(sequences, max_iter=3)  # we might be lazy-loading
         for X in sequences:
             self._fit(X)
         return self
@@ -300,6 +302,7 @@ class tICA(BaseEstimator, TransformerMixin):
         sequence_new : list of array-like, each of shape (n_samples_i, n_components)
 
         """
+        check_iter_of_sequences(sequences, max_iter=3)  # we might be lazy-loading
         sequences_new = []
 
         for X in sequences:

@@ -66,6 +66,7 @@ class _KCenters(ClusterMixin, TransformerMixin):
     inertia_ : float
         Sum of distances of samples to their closest cluster center.
     """
+
     def __init__(self, n_clusters=8, metric='euclidean', random_state=None):
         self.n_clusters = n_clusters
         self.metric = metric
@@ -119,6 +120,7 @@ class _KCenters(ClusterMixin, TransformerMixin):
 
 
 class KCenters(MultiSequenceClusterMixin, _KCenters):
+    _allow_trajectory = True
     __doc__ = _KCenters.__doc__[: _KCenters.__doc__.find('Attributes')] + \
     '''
     Attributes

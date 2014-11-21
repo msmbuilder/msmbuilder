@@ -115,6 +115,7 @@ class _KMedoids(ClusterMixin, TransformerMixin):
 
 
 class KMedoids(MultiSequenceClusterMixin, _KMedoids):
+    _allow_trajectory = True
     __doc__ = _KMedoids.__doc__[: _KMedoids.__doc__.find('Attributes')] + \
     '''
     Attributes
