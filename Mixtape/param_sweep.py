@@ -21,7 +21,7 @@ from __future__ import print_function, division, absolute_import
 from sklearn import clone
 from sklearn.grid_search import ParameterGrid
 import numpy as np
-from joblib import Parallel, delayed
+from sklearn.externals.joblib import Parallel, delayed
 
 def _fit_helper(args):
     """
