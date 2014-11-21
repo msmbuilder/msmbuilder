@@ -12,8 +12,12 @@ import traceback
 import numpy as np
 from os.path import join as pjoin
 from setuptools import setup, Extension, find_packages
-sys.path.insert(0, '.')
-from basesetup import write_version_py, CompilerDetection
+try:
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, '.')
+    from basesetup import write_version_py, CompilerDetection
+finally:
+    sys.dont_write_bytecode = False
 
 try:
     import mdtraj
