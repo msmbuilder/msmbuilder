@@ -76,7 +76,6 @@ def mfpts(msm, sinks=None, lag_time=1.):
         #limiting_matrix = eye * populations
         # since eye used to be a matrix, eye * populations was an 
         # outer product with the populations in each of the columns
-
         # I'm pretty sure it's supposed to be in the rows, though...
         limiting_matrix = np.vstack([populations] * n_states)
         #z = scipy.linalg.inv(scipy.sparse.eye(num_states, num_states) - (tprob - limiting_matrix))
