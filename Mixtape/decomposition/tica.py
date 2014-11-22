@@ -430,7 +430,6 @@ class tICA(BaseEstimator, TransformerMixin):
 
     def summarize(self):
         """Some summary information."""
-
         return """time-structure based Independent Components Analysis (tICA)
 -----------------------------------------------------------
 n_components        : {n_components}

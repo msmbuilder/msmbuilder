@@ -270,6 +270,40 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
                 self._all_left_eigenvectors,
                 self._all_right_eigenvectors)
 
+
+    def summarize(self):
+
+        counts_nz = np.count_nonzero(self.countsmat_)
+        cnz = self.countsmat_[np.nonzero(self.countsmat_)]
+
+        return """---------------------------
+Bayesian Markov State Model
+---------------------------
+Lag time         : {lag_time}
+Reversible       : {reversible}
+Ergodic cutoff   : {ergodic_cutoff}
+Prior counts     : {prior_counts}
+
+n_samples        : {n_samples}
+n_steps          : {n_steps}
+n_chains         : {n_chains}
+n_timescales     : {n_timescales}
+sampler          : {sampler}
+
+
+Number of states : {n_states}
+
+Timescales:
+    mean : [{mean_ts}]  units 
+    stdev: [{std_ts}]  units""".format(lag_time=self.lag_time, reversible=self.reversible,
+                             ergodic_cutoff=self.ergodic_cutoff, prior_counts=self.prior_counts,
+                             n_samples=self.n_samples, n_steps=self.n_steps,
+                             n_chains=self.n_chains, n_timescales=self.n_timescales,
+                             sampler=self.sampler,
+                             n_states=self.n_states_,
+                             mean_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.mean(0)]), 
+                             std_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.std(0)]))
+
     @property
     def all_timescales_(self):
         """Implied relaxation timescales each sample in the ensemble
