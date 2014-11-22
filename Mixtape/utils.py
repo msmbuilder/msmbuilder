@@ -23,6 +23,7 @@
 from __future__ import print_function, division, absolute_import
 
 import json
+import contextlib
 import mdtraj as md
 import numpy as np
 from sklearn.utils import check_random_state
@@ -237,3 +238,11 @@ def check_iter_of_sequences(sequences, allow_trajectory=False, ndim=2, max_iter=
 
     if not value:
         raise ValueError('sequences must be a list of sequences')
+
+
+@contextlib.contextmanager
+def printoptions(*args, **kwargs):
+    original = np.get_printoptions()
+    np.set_printoptions(*args, **kwargs)
+    yield
+    np.set_printoptions(**original)
