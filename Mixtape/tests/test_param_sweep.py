@@ -5,7 +5,7 @@ import numpy as np
 import numpy.testing as npt
 
 from mixtape.msm import MarkovStateModel
-from mixtape import param_sweep
+from mixtape.utils import param_sweep
 from mixtape.msm import implied_timescales
 
 def test_both():
