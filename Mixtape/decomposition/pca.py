@@ -20,7 +20,8 @@ from __future__ import print_function, division, absolute_import
 from sklearn import decomposition
 import numpy as np
 
-from .base import BaseEstimator
+from .base import MultiSequenceDecompositionMixin
+
 from ..utils import check_iter_of_sequences
 
 __all__ = ['PCA']
