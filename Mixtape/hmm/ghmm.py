@@ -38,7 +38,8 @@ from sklearn.utils import check_random_state
 from .discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from . import _ghmm
 from ..msm._markovstatemodel import _transmat_mle_prinz
-from ..utils import check_iter_of_sequences
+from ..utils import check_iter_of_sequences, printoptions
+from ..base import BaseEstimator
 
 EPS = np.finfo(np.float32).eps
 
@@ -47,7 +48,7 @@ EPS = np.finfo(np.float32).eps
 #-----------------------------------------------------------------------------
 
 
-class GaussianFusionHMM(object):
+class GaussianFusionHMM(BaseEstimator):
 
     """
     Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
@@ -91,7 +92,7 @@ class GaussianFusionHMM(object):
         is generally not needed.
     vars_weight : float, optional
         Weight of the vars prior
-    random_states : int, optional
+    random_state : int, optional
         Random state, used during sampling.
     params : str
         A string with the parameters to optimizing during the fitting.
@@ -187,8 +188,7 @@ class GaussianFusionHMM(object):
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
         # counter for the total number of EM iters performed
         total_em_iters = 0
-        if self.timing:
-            start_time = time.time()
+        start_time = time.time()
 
         for _ in range(self.n_init):
             fit_logprob = []
@@ -227,10 +227,11 @@ class GaussianFusionHMM(object):
         self.transmat_ = best_fit['params']['transmat']
         self.populations_ = best_fit['params']['populations']
         self.fit_logprob_ = best_fit['params']['fit_logprob']
+        self.fit_time_ = time.time() - start_time
 
         if self.timing:
             # but only print the timing variables if people really want them
-            s_per_sample_per_em = (time.time() - start_time) / \
+            s_per_sample_per_em = (self.fit_time_) / \
                 (sum(len(s) for s in sequences) * total_em_iters)
             print('GaussianFusionHMM EM Fitting')
             print('----------------------------')
@@ -640,3 +641,20 @@ class GaussianFusionHMM(object):
             raise(ValueError("scheme must be one of ['even', 'maxent'])"))
 
         return np.array(selected_pairs_by_state)
+
+
+    def summarize(self):
+        with printoptions(precision=4, suppress=True):
+            return """Gaussian HMM
+------------
+n_states : {n_states}
+logprob: {logprob}
+fit_time: {fit_time:.3f}s
+
+populations: {populations}
+transmat:
+{transmat}
+timescales: {timescales}
+    """.format(n_states=self.n_states, logprob=self.fit_logprob_[-1],
+               populations=str(self.populations_), transmat=str(self.transmat_),
+               timescales=self.timescales_, fit_time=self.fit_time_)
