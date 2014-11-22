@@ -26,6 +26,7 @@ import numpy as np
 from sklearn.utils import array2d
 from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
+from ..base import BaseEstimator
 
 __all__ = ['NDGrid']
 EPS = 1e-10
@@ -140,5 +141,5 @@ class _NDGrid(ClusterMixin, TransformerMixin):
         return self.fit(X).predict(X)
 
 
-class NDGrid(MultiSequenceClusterMixin, _NDGrid):
+class NDGrid(MultiSequenceClusterMixin, _NDGrid, BaseEstimator):
     __doc__ = _NDGrid.__doc__

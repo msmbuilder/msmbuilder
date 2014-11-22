@@ -379,8 +379,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
         return u, lv, rv
 
-    def summary(self, out=sys.stdout):
-        """Print some diagnostic summary statistics about this Markov model
+    def summarize(self):
+        """Return some diagnostic summary statistics about this Markov model
         """
 
         doc = '''Markov state model
@@ -406,12 +406,11 @@ Total transition counts / lag_time:
     {cnz_sum_per_lag} units
 Timescales:
     [{ts}]  units
-
 '''
         counts_nz = np.count_nonzero(self.countsmat_)
         cnz = self.countsmat_[np.nonzero(self.countsmat_)]
 
-        out.write(doc.format(
+        return doc.format(
             lag_time=self.lag_time,
             reversible_type=self.reversible_type,
             ergodic_cutoff=self.ergodic_cutoff,
@@ -428,7 +427,7 @@ Timescales:
             cnz_sum=np.sum(cnz),
             cnz_sum_per_lag=np.sum(cnz)/self.lag_time,
             ts=', '.join(['{:.2f}'.format(t) for t in self.timescales_]),
-            ))
+            )
 
     def score(self, sequences, y=None):
         """Score the model on new data using the generalized matrix Rayleigh quotient

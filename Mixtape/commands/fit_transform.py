@@ -24,9 +24,12 @@
 
 from __future__ import print_function, absolute_import
 
-from ..utils import verboseload, verbosedump
+
+from ..dataset import dataset
+from ..utils import verbosedump
 from ..decomposition import tICA, PCA
-from ..cluster import KMeans, KCenters, KMedoids, MiniBatchKMedoids, MiniBatchKMeans
+from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
+                       MiniBatchKMeans)
 from ..cmdline import NumpydocClassCommand, argument
 
 
@@ -46,24 +49,17 @@ class FitTransformCommand(NumpydocClassCommand):
 
     def start(self):
         print(self.instance)
-        if self.out is '' and self.transform is '':
+        if self.out is '' and self.transformed is '':
             self.error('One of --out or --model should be specified')
 
-        dataset = verboseload(self.inp)
-        if not isinstance(dataset, list):
-            err = '--inp must contain a list of arrays. "{}" has type {}'
-            err = err.format(self.inp, type(dataset))
-            self.error(err)
-
-        fstr = 'Performing fit() on {} sequences of shape {}...'
-        shapes = [str(dataset[i].shape) for i in range(min(3, len(dataset)))]
-        fval = (len(dataset), ', '.join(shapes))
-        print(fstr.format(*fval))
-        self.instance.fit(dataset)
+        inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=True)
+        self.instance.fit(inpds)
 
         if self.transformed is not '':
-            transformed = self.instance.transform(dataset)
-            verbosedump(transformed, self.transformed)
+            out_sequences = self.instance.transform(inpds)
+            inpds.write_derived(self.transformed, out_sequences)
+
+        print(self.instance.summarize())
 
         if self.out is not '':
             verbosedump(self.instance, self.out)
@@ -75,6 +71,7 @@ class tICACommand(FitTransformCommand):
     klass = tICA
     _concrete = True
     _group = '3-Decomposition'
+
 
 class PCACommand(FitTransformCommand):
     klass = PCA

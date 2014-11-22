@@ -26,6 +26,7 @@ from sklearn.base import ClusterMixin, TransformerMixin
 
 from .. import libdistance
 from . import MultiSequenceClusterMixin
+from ..base import BaseEstimator
 
 __all__ = ['RegularSpatial']
 
@@ -114,7 +115,7 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         return self.fit(X, y=y).predict(X)
 
 
-class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial):
+class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial, BaseEstimator):
     __doc__ = _RegularSpatial.__doc__
     _allow_trajectory = True
 

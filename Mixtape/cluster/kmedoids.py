@@ -29,6 +29,7 @@ from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 from . import _kmedoids
 from .. import libdistance
+from ..base import BaseEstimator
 
 
 class _KMedoids(ClusterMixin, TransformerMixin):
@@ -114,7 +115,7 @@ class _KMedoids(ClusterMixin, TransformerMixin):
         return self.fit(X, y).labels_
 
 
-class KMedoids(MultiSequenceClusterMixin, _KMedoids):
+class KMedoids(MultiSequenceClusterMixin, _KMedoids, BaseEstimator):
     _allow_trajectory = True
     __doc__ = _KMedoids.__doc__[: _KMedoids.__doc__.find('Attributes')] + \
     '''

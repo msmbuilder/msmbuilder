@@ -30,6 +30,8 @@ from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 from . import _kmedoids
 from .. import libdistance
+from ..base import BaseEstimator
+
 
 class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
     """Mini-Batch K-Medoids clustering.
@@ -155,7 +157,7 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
         return self.fit(X, y).labels_
 
 
-class MiniBatchKMedoids(MultiSequenceClusterMixin, _MiniBatchKMedoids):
+class MiniBatchKMedoids(MultiSequenceClusterMixin, _MiniBatchKMedoids, BaseEstimator):
     _allow_trajectory = True
     __doc__ = _MiniBatchKMedoids.__doc__[: _MiniBatchKMedoids.__doc__.find('Attributes')] + \
     '''
