@@ -29,6 +29,7 @@ from sklearn.externals.joblib import Memory
 from sklearn.utils import check_random_state
 from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
+from ..base import BaseEstimator
 
 try:
     from fastcluster import linkage
@@ -237,5 +238,5 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         return self.predict(X)
 
 
-class LandmarkAgglomerative(MultiSequenceClusterMixin, _LandmarkAgglomerative):
+class LandmarkAgglomerative(MultiSequenceClusterMixin, _LandmarkAgglomerative, BaseEstimator):
     __doc__ = _LandmarkAgglomerative.__doc__
