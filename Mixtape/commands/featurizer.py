@@ -37,7 +37,7 @@ class FeaturizerCommand(NumpydocClassCommand):
         else:
             top = None
 
-        input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=True)
+        input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=False)
         out_dataset = input_dataset.write_derived(self.out, [], fmt='dir-npy')
 
         for key in input_dataset.keys():

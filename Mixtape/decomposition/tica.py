@@ -36,7 +36,6 @@ __all__ = ['tICA']
 
 
 class tICA(BaseEstimator, TransformerMixin):
-
     """Time-structure Independent Component Analysis (tICA)
 
     Linear dimensionality reduction using an eigendecomposition of the
@@ -81,17 +80,17 @@ class tICA(BaseEstimator, TransformerMixin):
         the corresponding eigenvector. See [2] for more information.
     means_ : array, shape (n_features,)
         The mean of the data along each feature
-    n_observations : int
+    n_observations_ : int
         Total number of data points fit by the model. Note that the model
         is "reset" by calling `fit()` with new sequences, whereas
         `partial_fit()` updates the fit with new data, and is suitable for
         online learning.
-    n_sequences : int
+    n_sequences_ : int
         Total number of sequences fit by the model. Note that the model
         is "reset" by calling `fit()` with new sequences, whereas
         `partial_fit()` updates the fit with new data, and is suitable for
          online learning.
-    timescales : array-like, shape (n_features,)
+    timescales_ : array-like, shape (n_features,)
         The implied timescales of the tICA model, given by
         -offset / log(eigenvalues)
 
@@ -144,7 +143,7 @@ class tICA(BaseEstimator, TransformerMixin):
         self._components_ = None
         # Cached results of the eigendecompsition
         self._eigenvectors_ = None
-        self._eigenvalues = None
+        self._eigenvalues_ = None
 
         # are our current tICs dirty? this indicates that we've updated
         # the model with more data since the last time we computed components_,
@@ -427,3 +426,22 @@ class tICA(BaseEstimator, TransformerMixin):
         except np.linalg.LinAlgError:
             trace = np.nan
         return trace
+
+
+    def summarize(self):
+        """Some summary information."""
+        return """time-structure based Independent Components Analysis (tICA)
+-----------------------------------------------------------
+n_components        : {n_components}
+gamma               : {gamma}
+lag_time            : {lag_time}
+weighted_transform  : {weighted_transform}
+
+Top 5 timescales :
+{timescales}
+
+Top 5 eigenvalues :
+{eigenvalues}
+""".format(n_components=self.n_components, lag_time=self.lag_time,
+           gamma=self.gamma, weighted_transform=self.weighted_transform,
+           timescales=self.timescales_[:5], eigenvalues=self.eigenvalues_[:5])

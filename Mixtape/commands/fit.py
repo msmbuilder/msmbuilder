@@ -43,6 +43,7 @@ class FitCommand(NumpydocClassCommand):
         self.instance.fit(ds)
         verbosedump(self.instance, self.out)
 
+        print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
         print('All done')
 

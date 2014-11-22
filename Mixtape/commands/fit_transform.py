@@ -52,13 +52,14 @@ class FitTransformCommand(NumpydocClassCommand):
         if self.out is '' and self.transformed is '':
             self.error('One of --out or --model should be specified')
 
-        inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=True)
+        inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
         self.instance.fit(inpds)
 
         if self.transformed is not '':
             out_sequences = self.instance.transform(inpds)
             inpds.write_derived(self.transformed, out_sequences)
 
+        print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
 
         if self.out is not '':
