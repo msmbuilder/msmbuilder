@@ -276,7 +276,7 @@ def test_14():
     ])
 
     p.fit(ds.trajectories)
-    p.named_steps['msm'].summary()
+    p.named_steps['msm'].summarize()
 
 
 def test_sample_1():
