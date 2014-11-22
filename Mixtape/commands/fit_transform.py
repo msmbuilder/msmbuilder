@@ -70,6 +70,7 @@ class tICACommand(FitTransformCommand):
     _concrete = True
     _group = '3-Decomposition'
 
+
 class PCACommand(FitTransformCommand):
     klass = PCA
     _concrete = True

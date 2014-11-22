@@ -293,7 +293,7 @@ class NumpydocClassCommand(Command):
         helptext = {d[0]: ' '.join(d[2]) for d in doc['Parameters']}
 
         # mapping from the name of the argument to the type
-        typemap = {d[0]: d[1].replace(',', ' ').split(' ')[0] for d in doc['Parameters']}
+        typemap = {d[0]: d[1].replace(',', ' ').split() for d in doc['Parameters']}
 
         # put all of these arguments into an argument group, to separate them
         # from other arguments on the subcommand
@@ -316,12 +316,17 @@ class NumpydocClassCommand(Command):
 
             # obviously this isn't an exaustive list, but try to make
             # reasonable argparse decisions based on the docstring.
-            if arg in typemap and typemap[arg] == 'list':
-                kwargs['nargs'] = '+'
-            if arg in typemap and typemap[arg] == 'bool':
-                kwargs['action'] = FlagAction
-            if arg in typemap and typemap[arg] in ['str', 'int']:
-                kwargs['type'] = eval(typemap[arg])
+            if arg in typemap:
+                if 'list' in typemap[arg]:
+                    kwargs['nargs'] = '+'
+                if 'bool' in typemap[arg]:
+                    kwargs['action'] = FlagAction
+
+                basic_types = {'str': str, 'float': float, 'int': int}
+                for basic_type in basic_types:
+                    if basic_type in typemap[arg]:
+                        kwargs['type'] = basic_types[basic_type]
+                        break
 
             group.add_argument('--{}'.format(arg), **kwargs)
 
