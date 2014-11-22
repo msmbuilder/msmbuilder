@@ -11,8 +11,8 @@ from mdtraj.testing import eq
 from mdtraj.testing import get_fn as get_mdtraj_fn
 
 from mixtape.dataset import dataset
-from mixtape.datasets import get_data_home
-from mixtape.datasets.alanine_dipeptide import fetch_alanine_dipeptide
+from mixtape.example_datasets import get_data_home
+from mixtape.example_datasets.alanine_dipeptide import fetch_alanine_dipeptide
 
 import sklearn.hmm
 DATADIR = HMM = None
