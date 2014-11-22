@@ -27,6 +27,7 @@ from sklearn.base import ClusterMixin, TransformerMixin
 
 from .. import libdistance
 from . import MultiSequenceClusterMixin
+from ..base import BaseEstimator
 
 __all__ = ['KCenters']
 
@@ -119,7 +120,7 @@ class _KCenters(ClusterMixin, TransformerMixin):
         return self.fit(X, y).labels_
 
 
-class KCenters(MultiSequenceClusterMixin, _KCenters):
+class KCenters(MultiSequenceClusterMixin, _KCenters, BaseEstimator):
     _allow_trajectory = True
     __doc__ = _KCenters.__doc__[: _KCenters.__doc__.find('Attributes')] + \
     '''
@@ -157,3 +158,17 @@ class KCenters(MultiSequenceClusterMixin, _KCenters):
         MultiSequenceClusterMixin.fit(self, sequences)
         self.distances_ = self._split(self.distances_)
         return self
+
+    def summarize(self):
+        return """
+KCenters clustering
+--------------------
+n_clusters : {n_clusters}
+metric     : {metric}
+
+Inertia       : {inertia}
+Mean distance : {mean_distance}
+Max  distance : {max_distance}
+""".format(n_clusters=self.n_clusters, metric=self.metric,
+           inertia=self.inertia_, mean_distance=np.mean(np.concatenate(self.distances_)),
+           max_distance=np.max(np.concatenate(self.distances_)))

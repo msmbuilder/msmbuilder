@@ -39,7 +39,7 @@ __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
 # Code
 #-----------------------------------------------------------------------------
 
-class MultiSequenceClusterMixin(BaseEstimator):
+class MultiSequenceClusterMixin(object):
 
     # The API for the scikit-learn Cluster object is, in fit(), that
     # they take a single 2D array of shape (n_data_points, n_features).
@@ -198,26 +198,26 @@ def _arrayify(list_like):
 # New "multisequence" versions of all of the clustering algorithims in sklearn
 #-----------------------------------------------------------------------------
 
-class KMeans(MultiSequenceClusterMixin, cluster.KMeans):
+class KMeans(MultiSequenceClusterMixin, cluster.KMeans, BaseEstimator):
     __doc__ = _replace_labels(cluster.KMeans.__doc__)
 
 
-class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans):
+class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans, BaseEstimator):
     __doc__ = _replace_labels(cluster.MiniBatchKMeans.__doc__)
 
-class AffinityPropagation(MultiSequenceClusterMixin, cluster.AffinityPropagation):
+class AffinityPropagation(MultiSequenceClusterMixin, cluster.AffinityPropagation, BaseEstimator):
     __doc__ = _replace_labels(cluster.AffinityPropagation.__doc__)
 
-class MeanShift(MultiSequenceClusterMixin, cluster.MeanShift):
+class MeanShift(MultiSequenceClusterMixin, cluster.MeanShift, BaseEstimator):
     __doc__ = _replace_labels(cluster.MeanShift.__doc__)
 
-class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering):
+class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering, BaseEstimator):
     __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
 
-class Ward(MultiSequenceClusterMixin, cluster.Ward):
+class Ward(MultiSequenceClusterMixin, cluster.Ward, BaseEstimator):
     __doc__ = _replace_labels(cluster.Ward.__doc__)
 
-class GMM(MultiSequenceClusterMixin, mixture.GMM):
+class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
     __doc__ = _replace_labels(mixture.GMM.__doc__)
 
 # This needs to come _after_ MultiSequenceClusterMixin is defined, to avoid

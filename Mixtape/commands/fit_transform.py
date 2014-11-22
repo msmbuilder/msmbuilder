@@ -59,6 +59,8 @@ class FitTransformCommand(NumpydocClassCommand):
             out_sequences = self.instance.transform(inpds)
             inpds.write_derived(self.transformed, out_sequences)
 
+        print(self.instance.summarize())
+
         if self.out is not '':
             verbosedump(self.instance, self.out)
 
