@@ -29,6 +29,12 @@ except (ImportError, AttributeError):
     traceback.print_exc()
     sys.exit(1)
 
+if '--debug' in sys.argv:
+    sys.argv.remove('--debug')
+    DEBUG = True
+else:
+    DEBUG = False
+
 
 try:
     import Cython
@@ -109,6 +115,12 @@ extensions.append(
               sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),
                        pjoin(MSMDIR, 'src/transmat_mle_prinz.c')],
               include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
+
+extensions.append(
+    Extension('mixtape.msm._ratematrix',
+              sources=[pjoin(MSMDIR, '_ratematrix.pyx')],
+              define_macros=([] if DEBUG else [('CYTHON_WITHOUT_ASSERTIONS', 1)]),
+              include_dirs=['Mixtape/src', np.get_include()]))
 
 extensions.append(
     Extension('mixtape.msm._metzner_mcmc_fast',
