@@ -64,11 +64,6 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         need not necessarily be integers in (0, ..., n_states_ - 1), for
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
-    countsmat_ : array_like, shape = (n_states_, n_states_)
-        Number of transition counts between states. countsmat_[i, j] is counted
-        during `fit()`. The indices `i` and `j` are the "internal" indices
-        described above. No correction for reversibility is made to this
-        matrix.
     """
     def __init__(self, lag_time=1, prior_counts=0, verbose=True):
         self.lag_time = lag_time
