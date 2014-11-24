@@ -20,6 +20,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+"""Direct BLAS DGEMM (matrix multiply) calls from cython.
+
+See the discussion on scipy-list about this pattern.
+http://comments.gmane.org/gmane.comp.python.scientific.devel/19041
+
+Furthermore, since I like to (1) deal with c-major arrays in memory,
+and (2) can't remember the DGEMM call signature, this module provides
+copy-free wrappers, following from Christoph Lassner's blog post:
+
+  http://www.christophlassner.de/using-blas-from-c-with-row-major-data.html
+"""
 
 import numpy as np
 from scipy.linalg import blas
@@ -33,7 +44,9 @@ ctypedef int dgemm_t(char *transa, char *transb, int *m, int *n, int *k, d *alph
 cdef dgemm_t *FORTRAN_DGEMM = <dgemm_t*>f2py_pointer(blas.dgemm._cpointer)
 
 
-cpdef cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+cdef inline cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+    """c = beta*c + alpha*dot(a, b)
+    """
     cdef int m, k, n
     m = a.shape[0]
     k = a.shape[1]
@@ -43,7 +56,9 @@ cpdef cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alp
     assert b.shape[1] == c.shape[1]
     FORTRAN_DGEMM("N", "N", &n, &m, &k, &alpha, &b[0,0], &n, &a[0,0], &k, &beta, &c[0,0], &n)
 
-cpdef cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+cdef inline cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+    """c = beta*c + alpha*dot(a, b.T)
+    """
     cdef int m, k, n
     m = a.shape[0]
     k = a.shape[1]
@@ -53,8 +68,10 @@ cpdef cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alp
     assert b.shape[0] == c.shape[1]
     FORTRAN_DGEMM("T", "N", &n, &m, &k, &alpha, &b[0,0], &k, &a[0,0], &k, &beta, &c[0,0], &n)
 
-    
-cpdef cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+
+cdef inline cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+    """c = beta*c + alpha*dot(a.T, b)
+    """
     cdef int m, k, n
     m = a.shape[1]
     k = a.shape[0]

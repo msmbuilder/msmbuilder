@@ -117,6 +117,11 @@ extensions.append(
               include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
 
 extensions.append(
+    Extension('mixtape.tests.test_cyblas',
+              sources=['Mixtape/tests/test_cyblas.pyx'],
+              include_dirs=['Mixtape/src', np.get_include()]))
+
+extensions.append(
     Extension('mixtape.msm._ratematrix',
               sources=[pjoin(MSMDIR, '_ratematrix.pyx')],
               define_macros=([] if DEBUG else [('CYTHON_WITHOUT_ASSERTIONS', 1)]),

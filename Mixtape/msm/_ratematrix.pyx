@@ -185,6 +185,16 @@ cpdef dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out
         # the perturbation is to the triu rate matrix
         # first, use the linear index, u, to get the (i,j)
         # indices of the symmetric rate matrix
+
+        # E.g with the 4x4 upper-triangular matrix, we need
+        # to get the (i,j) index of an element from its
+        # linear index:
+        #  [ 0  a0  a1  a2  a3 ]      0 -> (i=0,j=1)
+        #  [ 0   0  a4  a5  a6 ]      1 -> (i=0,j=2)
+        #  [ 0   0   0  a7  a8 ]      5 -> (i=1,j=3)
+        #  [ 0   0   0   0  a9 ]            etc
+        #  [ 0   0   0   0   0 ]
+        # http://stackoverflow.com/a/27088560/1079728
         i = n - 2 - <int>(sqrt(-8*u + 4*n*(n-1)-7)/2.0 - 0.5)
         j = u + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
 
