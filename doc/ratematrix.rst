@@ -78,3 +78,8 @@ Algorithms
     :template: class.rst
 
     ContinousTimeMSM
+
+References
+----------
+..[1] Kalbfleisch, J. D., and Jerald F. Lawless. "The analysis of panel data
+under a Markov assumption." J. Am. Stat. Assoc. 80.392 (1985): 863-871.
