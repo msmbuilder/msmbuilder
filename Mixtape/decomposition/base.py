@@ -64,7 +64,7 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
     def _concat(self, sequences):
         self.__lengths = [len(s) for s in sequences]
         if len(sequences) > 0 and isinstance(sequences[0], np.ndarray):
-            concat = np.concatenate(sequences)
+            concat = np.concatenate(sequences).copy()
         else:
             # if the input sequences are not numpy arrays, we need to guess
             # how to concatenate them. this operation below works for mdtraj
