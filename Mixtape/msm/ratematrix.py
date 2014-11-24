@@ -109,7 +109,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         theta0 = self.initial_guess(countsmat)
         result = scipy.optimize.minimize(
-            fun=objective, x0=theta0, method='BFGS', jac=True,
+            fun=objective, x0=theta0, method='L-BFGS-B', jac=True,
             options={'disp': self.verbose})
 
         return result
