@@ -43,23 +43,23 @@ def test_grad_logl():
         e[i] = h
         return e
 
-    def objective(exptheta):
+    def objective(exptheta, t):
         K = np.zeros((n, n))
         _ratematrix.buildK(exptheta, n, K)
-        T = scipy.linalg.expm(K)
+        T = scipy.linalg.expm(K * t)
         return np.multiply(C, np.log(T)).sum()
 
-    def deriv(exptheta, i):
-        o1 = objective(exptheta)
-        o2 = objective(np.exp(np.log(exptheta) + bump(i)))
+    def deriv(exptheta, i, t):
+        o1 = objective(exptheta, t)
+        o2 = objective(np.exp(np.log(exptheta) + bump(i)), t)
         return (o2 - o1) / h
 
-    def grad(exptheta):
-        g = np.array([deriv(exptheta, i) for i in range(len(exptheta))])
-        return objective(exptheta), g
+    def grad(exptheta, t):
+        g = np.array([deriv(exptheta, i, t) for i in range(len(exptheta))])
+        return objective(exptheta, t), g
 
-    analytic_f, analytic_grad = _ratematrix.loglikelihood(theta, C, n, 1)
-    numerical_f, numerical_grad = grad(exptheta)
+    analytic_f, analytic_grad = _ratematrix.loglikelihood(theta, C, n, t=1.1)
+    numerical_f, numerical_grad = grad(exptheta, t=1.1)
     np.testing.assert_array_almost_equal(analytic_grad, numerical_grad, decimal=5)
     np.testing.assert_almost_equal(analytic_f, numerical_f)
 

@@ -332,7 +332,7 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
                 if i != j:
                     Vu[i, j] = (expwt[i] - expwt[j]) / (w[i] - w[j]) * Gu[i, j]
                 else:
-                    Vu[i, i] = expwt[i] * Gu[i, j] * t
+                    Vu[i, i] = t * expwt[i] * Gu[i, j]
 
         cdgemm_NN(AR, Vu, temp)
         dPu = Vu

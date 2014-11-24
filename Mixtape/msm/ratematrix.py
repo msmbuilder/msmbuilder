@@ -90,7 +90,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         K = np.zeros((n_states, n_states))
         _ratematrix.buildK(np.exp(result.x), n_states, K)
 
-        self.ratemat_ = K / self.lag_time
+        self.ratemat_ = K
         self.transmat_ = scipy.linalg.expm(self.ratemat_)
         self.countsmat_ = countsmat
         self.n_states_ = n_states
@@ -113,7 +113,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         lag_time = float(self.lag_time)
         def objective(theta):
-            f, g = _ratematrix.loglikelihood(theta, countsmat, n)
+            f, g = _ratematrix.loglikelihood(theta, countsmat, n, lag_time)
             return -f, -g
 
         theta0 = self.initial_guess(countsmat)
