@@ -34,6 +34,11 @@ if '--debug' in sys.argv:
     DEBUG = True
 else:
     DEBUG = False
+if '--disable-openmp' in sys.argv:
+    sys.argv.remove('--disable-openmp')
+    DISABLE_OPENMP = True
+else:
+    DISABLE_OPENMP = False
 
 
 try:
@@ -107,7 +112,7 @@ def write_spline_data():
         np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_deriv.dat'), derivs,
                    newline=',\n')
 
-compiler = CompilerDetection(False)
+compiler = CompilerDetection(DISABLE_OPENMP)
 extensions = []
 
 extensions.append(
@@ -124,6 +129,8 @@ extensions.append(
 extensions.append(
     Extension('mixtape.msm._ratematrix',
               sources=[pjoin(MSMDIR, '_ratematrix.pyx')],
+              extra_compile_args=compiler.compiler_args_openmp,
+              libraries=compiler.compiler_libraries_openmp,
               define_macros=([] if DEBUG else [('CYTHON_WITHOUT_ASSERTIONS', 1)]),
               include_dirs=['Mixtape/src', np.get_include()]))
 

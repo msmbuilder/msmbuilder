@@ -1,4 +1,5 @@
 from __future__ import print_function
+import time
 import numpy as np
 import scipy.linalg
 from mixtape.msm import _ratematrix
@@ -96,3 +97,17 @@ def test_fit_2():
     np.testing.assert_array_almost_equal(t1, t2)
     # timescales should be similar to MSM (withing 50%)
     assert abs(t1[-1] - t3[-1]) / t1[-1] < 0.50
+
+
+def profile():
+    n = 50
+    C = np.random.randint(100, size=(n, n)).astype(np.double)
+    theta = np.random.randn(n*(n-1)/2 + n)
+
+    def run():
+        for i in range(5):
+            _ratematrix.loglikelihood(theta, C, n, t=1.1, n_threads=8)
+
+    start = time.time()
+    run()
+    print('ratematrix profile: %s' % (time.time() - start))

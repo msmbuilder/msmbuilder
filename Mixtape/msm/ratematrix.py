@@ -20,6 +20,7 @@ from __future__ import print_function
 import numpy as np
 import scipy.linalg
 import scipy.optimize
+from multiprocessing import cpu_count
 
 from ..base import BaseEstimator
 from ..utils import list_of_1d
@@ -45,6 +46,8 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         will be given nonzero probability.
     verbose : bool
         Verbosity level
+    n_threads : int, optional
+
 
     Attributes
     ----------
@@ -65,10 +68,11 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
     """
-    def __init__(self, lag_time=1, prior_counts=0, verbose=True):
-        self.lag_time = int(lag_time)
-        self.prior_counts = float(prior_counts)
-        self.verbose = bool(verbose)
+    def __init__(self, lag_time=1, prior_counts=0, verbose=True, n_threads=None):
+        self.lag_time = lag_time
+        self.prior_counts = prior_counts
+        self.verbose = verbose
+        self.n_threads = n_threads
 
         self.ratemat_ = None
         self.transmat_ = None
@@ -112,8 +116,12 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         n = countsmat.shape[0]
 
         lag_time = float(self.lag_time)
+        if self.n_threads is None or self.n_threads < 1:
+            n_threads = cpu_count()
+        else:
+            n_threads = int(self.n_threads)
         def objective(theta):
-            f, g = _ratematrix.loglikelihood(theta, countsmat, n, lag_time)
+            f, g = _ratematrix.loglikelihood(theta, countsmat, n, lag_time, n_threads)
             return -f, -g
 
         theta0 = self.initial_guess(countsmat)

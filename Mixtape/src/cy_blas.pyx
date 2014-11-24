@@ -1,3 +1,4 @@
+#cython: boundscheck=False, cdivision=True, wraparound=False
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
@@ -34,6 +35,7 @@ copy-free wrappers, following from Christoph Lassner's blog post:
 
 import numpy as np
 from scipy.linalg import blas
+#from libc.stdio import stderr
 
 cdef extern from "f2py/f2pyptr.h":
     void *f2py_pointer(object) except NULL
@@ -42,41 +44,50 @@ ctypedef double d
 ctypedef int dgemm_t(char *transa, char *transb, int *m, int *n, int *k, d *alpha, d *a,
                      int *lda, d *b, int *ldb, d *beta, d *c, int *ldc) nogil
 cdef dgemm_t *FORTRAN_DGEMM = <dgemm_t*>f2py_pointer(blas.dgemm._cpointer)
+cdef extern from "stdio.h":
+    ctypedef struct FILE
+    cdef FILE *stderr
+    int fprintf  (FILE *stream, const char *template, ...) nogil
 
 
-cdef inline cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+cdef inline int cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a, b)
     """
     cdef int m, k, n
     m = a.shape[0]
     k = a.shape[1]
     n = b.shape[1]
-    assert a.shape[1] == b.shape[0]
-    assert a.shape[0] == c.shape[0]
-    assert b.shape[1] == c.shape[1]
-    FORTRAN_DGEMM("N", "N", &n, &m, &k, &alpha, &b[0,0], &n, &a[0,0], &k, &beta, &c[0,0], &n)
+    if a.shape[1] != b.shape[0] or a.shape[0] != c.shape[0] or b.shape[1] != c.shape[1]:
+        # fprintf(stderr, "cdgemm_NN shapes are not aligned")
+        return -1
 
-cdef inline cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+    FORTRAN_DGEMM("N", "N", &n, &m, &k, &alpha, &b[0,0], &n, &a[0,0], &k, &beta, &c[0,0], &n)
+    return 0
+
+cdef inline int cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a, b.T)
     """
     cdef int m, k, n
     m = a.shape[0]
     k = a.shape[1]
     n = b.shape[0]
-    assert a.shape[1] == b.shape[1]
-    assert a.shape[0] == c.shape[0]
-    assert b.shape[0] == c.shape[1]
+    if a.shape[1] != b.shape[1] or a.shape[0] != c.shape[0] or b.shape[0] != c.shape[1]:
+        # fprintf(stderr, "cdgemm_NN shapes are not aligned")
+        return -1
+
     FORTRAN_DGEMM("T", "N", &n, &m, &k, &alpha, &b[0,0], &k, &a[0,0], &k, &beta, &c[0,0], &n)
+    return 0
 
-
-cdef inline cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0):
+cdef inline int cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a.T, b)
     """
     cdef int m, k, n
     m = a.shape[1]
     k = a.shape[0]
     n = b.shape[1]
-    assert a.shape[0] == b.shape[0]
-    assert a.shape[1] == c.shape[0]
-    assert b.shape[1] == c.shape[1]
+    if a.shape[0] != b.shape[0] or a.shape[1] != c.shape[0] or b.shape[1] != c.shape[1]:
+        # fprintf(stderr, "cdgemm_NN shapes are not aligned")
+        return -1
+
     FORTRAN_DGEMM("N", "T", &n, &m, &k, &alpha, &b[0,0], &n, &a[0,0], &m, &beta, &c[0,0], &n)
+    return 0

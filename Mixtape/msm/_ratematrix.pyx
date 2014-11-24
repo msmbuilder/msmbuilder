@@ -103,12 +103,15 @@ from scipy.linalg import blas, eig
 from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset
-from libc.stdlib cimport calloc, free
+# from libc.stdio import printf
+from libc.stdlib cimport calloc, malloc, free
+from cython.parallel cimport prange, parallel
+cimport openmp
 
 include "cy_blas.pyx"
 
 
-cpdef buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
+cpdef int buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
     """Build the reversible rate matrix K from the free parameters, `\theta`
 
     Parameters
@@ -150,36 +153,17 @@ cpdef buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
     assert np.allclose(scipy.linalg.expm(np.array(out)).sum(axis=1), 1)
     assert np.all(0 < scipy.linalg.expm(np.array(out)))
     assert np.all(1 > scipy.linalg.expm(np.array(out)))
+    return 0
 
 
-cpdef dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out):
-    """Derivative of the rate matrix, `K`, with respect to the free parameters,
-    `\theta`, dK_ij / dtheta_u
-
-    Parameters
-    ----------
-    exptheta : [input], array of length = (n*(n-1)/2) + n
-        The element-wise exponential of the free parameters, `\theta`.
-    n : [input]
-        The dimension
-    u : [input]
-        The index of the element in theta to compute the derivative of K with
-        respect to
-    out : [output], array of shape (n, n)
-        The output is written here, `out[i, j] = d(K_ij) / d(theta_u)`
+cpdef int dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out) nogil:
+    """Private implementation of the dK_dtheta (see docstring below)
     """
-    # workspace of size (n)
-
     cdef npy_intp n_S_triu = (n*(n-1)/2)
-    assert out.shape[0] == n
-    assert out.shape[1] == n
-    assert u >= 0 and u < n_S_triu + n
-    assert exptheta.shape[0] == n_S_triu + n
-
     cdef npy_intp i, j
-    cdef double dK_ij
+    cdef double dK_ij, s_ij
     cdef double[::1] pi = exptheta[n_S_triu:]
-    cdef double[::1] dK_ii
+    cdef double* dK_ii
 
     if u < n_S_triu:
         # the perturbation is to the triu rate matrix
@@ -213,7 +197,7 @@ cpdef dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out
         # `i` is now the index, in `pi`, of the perturbed element
         # of the equilibrium distribution
         i = u - n_S_triu
-        dK_ii = <double[:n]>calloc(n, sizeof(double))
+        dK_ii = <double*> calloc(n, sizeof(double))
 
         for j in range(n):
             if j == i:
@@ -238,6 +222,7 @@ cpdef dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out
 
         free(&dK_ii[0])
 
+    return 0
 
 cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n, double t):
     """Compute some of the terms required for d(exp(K))/d(theta). This
@@ -273,8 +258,36 @@ cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n, double t):
 
     return AL, AR, w, expwt
 
+cdef void build_dPu(const double[:, ::1] AL, const double[:, ::1] AR, const double[::1] expwt,
+                    const double[::1] w, const double[::1] exptheta, npy_intp n, npy_intp u,
+                    double t, double[:, ::1] temp1, double[:, ::1] temp2,
+                    double[:, ::1] dPu) nogil:
 
-def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1):
+    cdef npy_intp i, j
+    # write dKu into temp1
+    memset(&temp1[0, 0], 0, n*n * sizeof(double))
+    dK_dtheta(exptheta, n, u, temp1)
+
+    # Gu = AL.T * dKu * AR
+    cdgemm_TN(AL, temp1, temp2)
+    cdgemm_NN(temp2, AR, temp1)
+    # Gu is in temp1
+
+    # Vu matrix in temp2
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                temp2[i, j] = (expwt[i] - expwt[j]) / (w[i] - w[j]) * temp1[i, j]
+            else:
+                temp2[i, i] = t * expwt[i] * temp1[i, j]
+
+    # dPu = AR * Vu * AL.T
+    cdgemm_NN(AR, temp2, temp1)
+    cdgemm_NT(temp1, AL, dPu)
+
+
+def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
+                  npy_intp n_threads=1):
     """Log likelihood and gradient of the log likelihood of a continuous-time
     Markov model.
 
@@ -289,6 +302,8 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
         The size of `counts`
     t : double
         The lag time.
+    n_threads : int
+        The number of threads to use
 
     Returns
     -------
@@ -304,61 +319,43 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
         raise ValueError('theta must have length (n*(n-1)/2) + n')
 
     cdef npy_intp u, i, j
-    cdef double grad_u, objective
-    cdef double[::1] w, expwt, grad, exptheta
-    cdef double[:, ::1] AL, AR, Gu, transmat, temp, Vu, dPu, dKu, K
+    cdef int thread_num
+    cdef double logl
+    cdef double[::1] w, expwt, grad, exptheta, grad_u
+    cdef double[:, ::1] K, transmat, AL, AR, temp
+    cdef double[:, :, ::1] dPu
+    cdef double[:, :, :, ::1] temp1
 
     grad = zeros(size)
     exptheta = zeros(size)
-    temp = zeros((n, n))
     K = zeros((n, n))
-    Vu = zeros((n, n))
-    dKu = zeros((n, n))
+    temp = zeros((n, n))
+    temp1 = zeros((n_threads, 2, n, n))
+    dPu = zeros((n_threads, n, n))
+    grad_u = zeros((n_threads))
+
     for i in range(size):
         exptheta[i] = exp(theta[i])
 
     buildK(exptheta, n, K)
     AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
+    transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
 
-    cdgemm_NN(AR, diag(expwt), temp)
-    transmat = K
-    cdgemm_NT(temp, AL, transmat)
-    # Equivalent to  transmat = AR * diag(expw) * AL.T
-    # placing the results in the same memory as K (destroying K)
-    assert np.allclose(transmat, np.dot(np.dot(AR,  np.diag(expwt)), AL.T))
+    with nogil, parallel(num_threads=n_threads):
+        thread_num = openmp.omp_get_thread_num()
+        for u in prange(size):
+            # write dP / dtheta_u into dPu[thread_num]
+            build_dPu(AL, AR, expwt, w, exptheta, n, u, t, temp1[thread_num, 0], temp1[thread_num, 1], dPu[thread_num])
 
-    for u in range(size):
-        memset(&dKu[0, 0], 0, n*n * sizeof(double))
-        dK_dtheta(exptheta, n, u, dKu)
+            grad_u[thread_num] = 0
+            for i in range(n):
+                for j in range(n):
+                    grad_u[thread_num] += counts[i, j] * (dPu[thread_num, i, j] / transmat[i, j])
+            grad[u] = grad_u[thread_num]
 
-        cdgemm_TN(AL, dKu, temp)
-        Gu = dKu
-        cdgemm_NN(temp, AR, Gu)
-        # Equivalent to Gu = AL.T * dKu * AR
-        # placing results in same memory as dKu (destroying dKu)
-
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    Vu[i, j] = (expwt[i] - expwt[j]) / (w[i] - w[j]) * Gu[i, j]
-                else:
-                    Vu[i, i] = t * expwt[i] * Gu[i, j]
-
-        cdgemm_NN(AR, Vu, temp)
-        dPu = Vu
-        cdgemm_NT(temp, AL, dPu)
-        # Equivalent to dPu = AR * Vu * AL.T
-        # placing results in same memory as Vu (destroying Vu)
-
-        grad_u = 0
-        for i in range(n):
-            for j in range(n):
-                grad_u += counts[i, j] * (dPu[i, j] / transmat[i, j])
-        grad[u] = grad_u
-
-    objective = 0
+    logl = 0
     for i in range(n):
         for j in range(n):
-            objective += counts[i, j] * log(transmat[i, j])
+            logl += counts[i, j] * log(transmat[i, j])
 
-    return objective, ascontiguousarray(grad)
+    return logl, ascontiguousarray(grad)
