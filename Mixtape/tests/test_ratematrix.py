@@ -3,9 +3,12 @@ import numpy as np
 import scipy.linalg
 from mixtape.msm import _ratematrix
 from mixtape.msm import ContinousTimeMSM, MarkovStateModel
+from mixtape.example_datasets import load_doublewell
+from mixtape.cluster import NDGrid
 
 
 def test_dK_dtheta():
+    # test function `dK_dtheta` against the numerical gradient of `buildK`
     n = 4
     theta = np.random.randn(n*(n-1)/2 + n)
     exptheta = np.exp(theta)
@@ -27,12 +30,12 @@ def test_dK_dtheta():
         np.testing.assert_array_almost_equal(g(u), dKu)
 
 
-def test_grad_objective():
+def test_grad_logl():
+    # test the gradient of the `loglikelihood` against a numerical gradient
     n = 4
     C = np.random.randint(10, size=(n, n)).astype(float)
     theta = np.random.randn(n*(n-1)/2 + n)
     exptheta = np.exp(theta)
-
 
     h = 1e-7
     def bump(i):
@@ -55,7 +58,7 @@ def test_grad_objective():
         g = np.array([deriv(exptheta, i) for i in range(len(exptheta))])
         return objective(exptheta), g
 
-    analytic_f, analytic_grad = _ratematrix.loglikelihood(theta, C, n)
+    analytic_f, analytic_grad = _ratematrix.loglikelihood(theta, C, n, 1)
     numerical_f, numerical_grad = grad(exptheta)
     np.testing.assert_array_almost_equal(analytic_grad, numerical_grad, decimal=5)
     np.testing.assert_almost_equal(analytic_f, numerical_f)
@@ -63,7 +66,7 @@ def test_grad_objective():
 
 def test_fit_1():
     sequence = [0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2]
-    model = ContinousTimeMSM()
+    model = ContinousTimeMSM(verbose=False)
     model.fit([sequence])
 
     msm = MarkovStateModel(verbose=False)
@@ -71,3 +74,25 @@ def test_fit_1():
 
     # they shouldn't be equal in general, but for this input they seem to be
     np.testing.assert_array_almost_equal(model.transmat_, msm.transmat_)
+
+
+def test_fit_2():
+    grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
+    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+
+    model = ContinousTimeMSM(verbose=False, lag_time=10)
+    model.fit(seqs)
+    t1 = np.sort(model.timescales_)
+    t2 = -1/np.sort(np.log(np.linalg.eigvals(model.transmat_))[1:])
+
+    model = MarkovStateModel(verbose=False, lag_time=10)
+    model.fit(seqs)
+    t3 = np.sort(model.timescales_)
+
+    print(t1)
+    print(t2)
+    print(t3)
+
+    np.testing.assert_array_almost_equal(t1, t2)
+    # timescales should be similar to MSM (withing 50%)
+    assert abs(t1[-1] - t3[-1]) / t1[-1] < 0.50

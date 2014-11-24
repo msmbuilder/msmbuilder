@@ -229,7 +229,7 @@ cpdef dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out
         free(&dK_ii[0])
 
 
-cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n):
+cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n, double t):
     """Compute some of the terms required for d(exp(K))/d(theta). This
     includes the left and right eigenvectors of K, the eigenvalues, and
     the exp of the eigenvalues.
@@ -257,14 +257,14 @@ cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n):
     AL = ascontiguousarray(real(AL))
     AR = ascontiguousarray(real(AR))
     w = ascontiguousarray(real(w))
-    expw = zeros(w.shape[0])
+    expwt = zeros(w.shape[0])
     for i in range(w.shape[0]):
-        expw[i] = exp(w[i])
+        expwt[i] = exp(w[i]*t)
 
-    return AL, AR, w, expw
+    return AL, AR, w, expwt
 
 
-def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n):
+def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1):
     """Log likelihood and gradient of the log likelihood of a continuous-time
     Markov model.
 
@@ -277,6 +277,8 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n):
         The matrix of observed transition counts.
     n : int
         The size of `counts`
+    t : double
+        The lag time.
 
     Returns
     -------
@@ -293,7 +295,7 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n):
 
     cdef npy_intp u, i, j
     cdef double grad_u, objective
-    cdef double[::1] w, expw, grad, exptheta
+    cdef double[::1] w, expwt, grad, exptheta
     cdef double[:, ::1] AL, AR, Gu, transmat, temp, Vu, dPu, dKu, K
 
     grad = zeros(size)
@@ -306,14 +308,14 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n):
         exptheta[i] = exp(theta[i])
 
     buildK(exptheta, n, K)
-    AL, AR, w, expw = dP_dtheta_terms(K, n)
+    AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
 
-    cdgemm_NN(AR, diag(expw), temp)
+    cdgemm_NN(AR, diag(expwt), temp)
     transmat = K
     cdgemm_NT(temp, AL, transmat)
     # Equivalent to  transmat = AR * diag(expw) * AL.T
     # placing the results in the same memory as K (destroying K)
-    assert np.allclose(transmat, np.dot(np.dot(AR,  np.diag(expw)), AL.T))
+    assert np.allclose(transmat, np.dot(np.dot(AR,  np.diag(expwt)), AL.T))
 
     for u in range(size):
         memset(&dKu[0, 0], 0, n*n * sizeof(double))
@@ -328,9 +330,9 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n):
         for i in range(n):
             for j in range(n):
                 if i != j:
-                    Vu[i, j] = (expw[i] - expw[j]) / (w[i] - w[j]) * Gu[i, j]
+                    Vu[i, j] = (expwt[i] - expwt[j]) / (w[i] - w[j]) * Gu[i, j]
                 else:
-                    Vu[i, i] = expw[i] * Gu[i, j]
+                    Vu[i, i] = expwt[i] * Gu[i, j] * t
 
         cdgemm_NN(AR, Vu, temp)
         dPu = Vu

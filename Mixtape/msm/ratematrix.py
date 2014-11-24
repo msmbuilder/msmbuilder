@@ -66,9 +66,9 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         the "input space" is represented by the index ``j`` in this MSM.
     """
     def __init__(self, lag_time=1, prior_counts=0, verbose=True):
-        self.lag_time = lag_time
-        self.prior_counts = prior_counts
-        self.verbose = verbose
+        self.lag_time = int(lag_time)
+        self.prior_counts = float(prior_counts)
+        self.verbose = bool(verbose)
 
         self.ratemat_ = None
         self.transmat_ = None
@@ -79,30 +79,39 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
-        countsmat, mapping = _transition_counts(sequences, self.lag_time)
+        lag_time = int(self.lag_time)
+        if lag_time < 1:
+            raise ValueError('lag_time must be >= 1')
+        countsmat, mapping = _transition_counts(sequences, lag_time)
 
         n_states = countsmat.shape[0]
-        result = self._optimize(countsmat)
+        result = self._optimize(countsmat + self.prior_counts)
 
         K = np.zeros((n_states, n_states))
         _ratematrix.buildK(np.exp(result.x), n_states, K)
 
-        self.ratemat_ = K
-        self.transmat_ = scipy.linalg.expm(K)
+        self.ratemat_ = K / self.lag_time
+        self.transmat_ = scipy.linalg.expm(self.ratemat_)
         self.countsmat_ = countsmat
         self.n_states_ = n_states
         self.optimizer_state_ = result
         self.mapping_ = mapping
 
-        print(self.optimizer_state_.message)
-        print('ratemat\n', self.ratemat_)
-        print('transmat\n', self.transmat_)
+        if self.verbose:
+            print(self.optimizer_state_.message)
+            print('ratemat\n', self.ratemat_)
+            print('transmat\n', self.transmat_)
 
         return self
+
+    @property
+    def timescales_(self):
+        return -1 / np.sort(np.linalg.eigvals(self.ratemat_))[::-1][1:]
 
     def _optimize(self, countsmat):
         n = countsmat.shape[0]
 
+        lag_time = float(self.lag_time)
         def objective(theta):
             f, g = _ratematrix.loglikelihood(theta, countsmat, n)
             return -f, -g
@@ -110,7 +119,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         theta0 = self.initial_guess(countsmat)
         result = scipy.optimize.minimize(
             fun=objective, x0=theta0, method='L-BFGS-B', jac=True,
-            options={'disp': self.verbose})
+            options={'iprint': 0 if self.verbose else -1})
 
         return result
 
