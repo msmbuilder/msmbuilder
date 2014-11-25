@@ -51,17 +51,20 @@ stationary distribution. For :math:`n=4`, the function :math:`K(\theta)` is
 
 .. math ::
     K(\theta) = \begin{bmatrix}
-    k_{00}        &  s_0(r_0/r_1)   &   s_1r(_0/r_2)  &  s_2(r_0/r_3)  \\
-    s_0(r_1/r_0)  &    k_{11}       &   s_3(r_1/r_2)  &  s_4(r_1/r_3) \\
-    s_1(r_2/r_0)  &  s_3(r_2/r_1)   &     k_{22}      &  s_5(r_2/r_3) \\
-    s_2(r_3/r_0)  &  s_4(r_3/r_1)   &   s_5(r_3/r_2)  &    k_{33}
+    k_{00}        &  s_0(r_1/r_0)   &   s_1(r_2/r_0)  &  s_2(r_3/r_0)  \\
+    s_0(r_0/r_1)  &    k_{11}       &   s_3(r_2/r_1)  &  s_4(r_3/r_1) \\
+    s_1(r_0/r_2)  &  s_3(r_1/r_2)   &     k_{22}      &  s_5(r_3/r_2) \\
+    s_2(r_0/r_3)  &  s_4(r_1/r_3)   &   s_5(r_2/r_3)  &    k_{33}
     \end{bmatrix}
 
 where the diagonal elements :math:`k_{ii}` are set such that the row sums of
 :math:`K` are all zero, :math:`k_{ii} = -\sum_{j != i} K_{ij}`. This form for :math:`K` satisfies detailed balance by construction
 
 .. math ::
-  K_{ij} / K_{ji} =  r_i^2 / r_j^2  =  \pi_i / \pi_j
+  K_{ij} / K_{ji} =  r_j^2 / r_i^2  =  \pi_j / \pi_i
+
+.. math ::
+  \pi_i K_{ij} = pi_j K_{ji}
 
 Note that :math:`K` is built from :math:`\exp(\theta)`. This parameterization
 makes optimization easier, since it keeps the off-diagonal entries positive

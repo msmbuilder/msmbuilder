@@ -80,6 +80,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.n_states_ = None
         self.optimizer_state_ = None
         self.mapping_ = None
+        self.populations_ = None
 
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
@@ -91,8 +92,9 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         n_states = countsmat.shape[0]
         result = self._optimize(countsmat + self.prior_counts)
 
+        exptheta = np.exp(result.x)
         K = np.zeros((n_states, n_states))
-        _ratematrix.buildK(np.exp(result.x), n_states, K)
+        _ratematrix.buildK(exptheta, n_states, K)
 
         self.ratemat_ = K
         self.transmat_ = scipy.linalg.expm(self.ratemat_)
@@ -100,11 +102,15 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.n_states_ = n_states
         self.optimizer_state_ = result
         self.mapping_ = mapping
+        self.populations_ = exptheta[n_states*(n_states-1)/2:]
+        self.populations_ /= self.populations_.sum()
 
         if self.verbose:
             print(self.optimizer_state_.message)
             print('ratemat\n', self.ratemat_)
             print('transmat\n', self.transmat_)
+            print('populations\n', self.populations_)
+            print('timescales\n', self.timescales_)
 
         return self
 
@@ -125,10 +131,16 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
             return -f, -g
 
         theta0 = self.initial_guess(countsmat)
-        result = scipy.optimize.minimize(
-            fun=objective, x0=theta0, method='L-BFGS-B', jac=True,
-            options={'iprint': 0 if self.verbose else -1})
 
+        # this bound prevents the stationary probability for any state
+        # from going below exp(-20), which helps avoid NaNs, since the
+        # rate matrix involves terms like pi_i / pi_j, which get iffy
+        # numerically as the populations go too close to zero.
+        bounds = [(None, None)]*(n*(n-1)/2) + [(-20, 0)]*n
+
+        result = scipy.optimize.minimize(
+            fun=objective, x0=theta0, method='L-BFGS-B', jac=True, bounds=bounds,
+            options={'iprint': 0 if self.verbose else -1, 'ftol': 1e-10, 'gtol': 1e-10})
         return result
 
     def initial_guess(self, countsmat):
@@ -139,6 +151,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         K = np.real(scipy.linalg.logm(transmat))
         S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
         sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
-        theta = np.concatenate((np.log(sflat), np.log(pi)))
+        theta = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
+        print('theta0\n', theta)
 
         return theta

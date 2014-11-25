@@ -1,4 +1,4 @@
-#cython: boundscheck=False, cdivision=True, wraparound=False
+# cython: boundscheck=False, cdivision=True, wraparound=False
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
@@ -103,7 +103,6 @@ from scipy.linalg import blas, eig
 from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset
-# from libc.stdio import printf
 from libc.stdlib cimport calloc, malloc, free
 from cython.parallel cimport prange, parallel
 cimport openmp
@@ -136,8 +135,8 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
     for i in range(n):
         for j in range(i+1, n):
             s_ij = exptheta[u]
-            K_ij = s_ij * sqrt(pi[i] / pi[j])
-            K_ji = s_ij * sqrt(pi[j] / pi[i])
+            K_ij = s_ij * sqrt(pi[j] / pi[i])
+            K_ji = s_ij * sqrt(pi[i] / pi[j])
             out[i, j] = K_ij
             out[j, i] = K_ji
             K_ii[i] -= K_ij
@@ -149,6 +148,7 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
 
     free(&K_ii[0])
 
+    assert np.allclose(out[0,1]/out[1,0], pi[1]/pi[0])
     assert np.allclose(np.array(out).sum(axis=1), 0.0)
     assert np.allclose(scipy.linalg.expm(np.array(out)).sum(axis=1), 1)
     assert np.all(0 < scipy.linalg.expm(np.array(out)))
@@ -157,7 +157,20 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
 
 
 cpdef int dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out) nogil:
-    """Private implementation of the dK_dtheta (see docstring below)
+    """Derivative of the rate matrix, `K`, with respect to the free parameters,
+    `\theta`, dK_ij / dtheta_u
+
+    Parameters
+    ----------
+    exptheta : [input], array of length = (n*(n-1)/2) + n
+        The element-wise exponential of the free parameters, `\theta`.
+    n : [input]
+        The dimension
+    u : [input]
+        The index of the element in theta to compute the derivative of K with
+        respect to
+    out : [output], array of shape (n, n)
+        The output is written here, `out[i, j] = d(K_ij) / d(theta_u)`
     """
     cdef npy_intp n_S_triu = (n*(n-1)/2)
     cdef npy_intp i, j
@@ -183,8 +196,8 @@ cpdef int dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1]
         j = u + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
 
         s_ij = exptheta[u]
-        dK_ij = s_ij * sqrt(pi[i] / pi[j])
-        dK_ji = s_ij * sqrt(pi[j] / pi[i])
+        dK_ij = s_ij * sqrt(pi[j] / pi[i])
+        dK_ji = s_ij * sqrt(pi[i] / pi[j])
 
         out[i, j] = dK_ij
         out[j, i] = dK_ji
@@ -209,8 +222,8 @@ cpdef int dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1]
                 k = (n*(n-1)/2) - (n-j)*((n-j)-1)/2 + i - j - 1
 
             s_ij = exptheta[k]
-            dK_ij = 0.5  * s_ij * sqrt(pi[i] / pi[j])
-            dK_ji = -0.5 * s_ij * sqrt(pi[j] / pi[i])
+            dK_ij = -0.5 * s_ij * sqrt(pi[j] / pi[i])
+            dK_ji = 0.5  * s_ij * sqrt(pi[i] / pi[j])
 
             out[i, j] = dK_ij
             out[j, i] = dK_ji
@@ -334,10 +347,16 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
     dPu = zeros((n_threads, n, n))
     grad_u = zeros((n_threads))
 
-    for i in range(size):
-        exptheta[i] = exp(theta[i])
+    for u in range(size):
+        exptheta[u] = exp(theta[u])
 
     buildK(exptheta, n, K)
+    if not np.all(np.isfinite(K)):
+        # these parameters don't seem good...
+        # tell the optimizer to stear clear!
+        return -np.inf, ascontiguousarray(grad)
+
+
     AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
     transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
 
@@ -359,3 +378,106 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
             logl += counts[i, j] * log(transmat[i, j])
 
     return logl, ascontiguousarray(grad)
+
+
+def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
+            npy_intp n_threads=1):
+    cdef npy_intp size = (n*(n-1)/2) + n
+    if not (counts.shape[0] == n and counts.shape[1] == n):
+        raise ValueError('counts must be n x n')
+    if not theta.shape[0] == size:
+        raise ValueError('theta must have length (n*(n-1)/2) + n')
+
+    cdef npy_intp u, v, i, j
+    cdef int thread_num = 0
+    cdef double logl
+    cdef double[::1] w, expwt, exptheta, rowsums, hessian_uv
+    cdef double[:, ::1] K, transmat, AL, AR, temp, hessian
+    cdef double[:, :, ::1] dPu, dPv
+    cdef double[:, :, :, ::1] temp1
+
+    exptheta = np.exp(theta)
+    K = zeros((n, n))
+    temp = zeros((n, n))
+    temp1 = zeros((n_threads, 2, n, n))
+    dPu = zeros((n_threads, n, n))
+    dPv = zeros((n_threads, n, n))
+    hessian = zeros((size, size))
+    hessian_uv = zeros(n_threads)
+    rowsums = np.sum(counts, axis=1)
+
+    buildK(exptheta, n, K)
+    AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
+
+    transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
+
+    with nogil, parallel(num_threads=n_threads):
+        thread_num = openmp.omp_get_thread_num()
+        for u in range(size):
+            # write dP / dtheta_u into dPu[thread_num]
+            build_dPu(AL, AR, expwt, w, exptheta, n, u, t, temp1[thread_num, 0], temp1[thread_num, 1], dPu[thread_num])
+
+            for v in range(size):
+                # write dP / dtheta_v into dPv[thread_num]
+                build_dPu(AL, AR, expwt, w, exptheta, n, v, t, temp1[thread_num, 0], temp1[thread_num, 1], dPv[thread_num])
+
+                hessian_uv[thread_num] = 0
+                for i in range(n):
+                    for j in range(n):
+                        hessian_uv[thread_num] += (rowsums[i]/transmat[i,j]) * (dPu[thread_num, i, j] * dPv[thread_num, i, j])
+                hessian[u, v] = hessian_uv[thread_num]
+
+    return np.asarray(hessian)
+
+
+def uncertainty_K(const double[:, :] invhessian, const double[::1] theta, npy_intp n, npy_intp n_threads=1):
+    cdef npy_intp size = (n*(n-1)/2) + n
+    cdef npy_intp u, v, i, j
+    cdef double[::1] exptheta
+    cdef double[:, ::1] sigmaK, dKu, dKv, K
+
+    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+        raise ValueError('counts must be n*(n-1)/2+n  x  n*(n-1)/2+n')
+    if not theta.shape[0] == size:
+        raise ValueError('theta must have length n*(n-1)/2+n')
+
+    sigmaK = zeros((n, n))
+    dKu = zeros((n, n))
+    dKv = zeros((n, n))
+    K = zeros((n, n))
+    exptheta = np.exp(theta)
+
+    buildK(exptheta, n, K)
+
+    for u in range(size):
+        memset(&dKu[0,0], 0, n*n * sizeof(double))
+        dK_dtheta(exptheta, n, u, dKu)
+        for v in range(size):
+            memset(&dKv[0,0], 0, n*n * sizeof(double))
+            dK_dtheta(exptheta, n, v, dKv)
+
+
+            # this could be optimized, since dKu and dKv are sparse and we know their
+            # pattern
+            for i in range(n):
+                for j in range(n):
+                    sigmaK[i,j] += invhessian[u,v] * dKu[i,j] * dKv[i,j]
+
+    return np.asarray(sigmaK)
+
+
+def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta, npy_intp n):
+    cdef npy_intp u
+    cdef npy_intp size = (n*(n-1)/2) + n
+    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+        raise ValueError('counts must be n*(n-1)/2+n  x  n*(n-1)/2+n')
+    if not theta.shape[0] == size:
+        raise ValueError('theta must have length n*(n-1)/2+n')
+
+    cdef double[::1] pi = np.exp(theta)[n*(n-1)/2:]
+
+    sigma_pi = zeros(n)
+    for i in range(n):
+        sigma_pi[i] = pi[i] * invhessian[n*(n-1)/2 + i, n*(n-1)/2 + i]
+
+    return np.asarray(sigma_pi)

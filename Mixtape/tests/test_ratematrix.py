@@ -65,6 +65,32 @@ def test_grad_logl():
     np.testing.assert_almost_equal(analytic_f, numerical_f)
 
 
+def test_hessian():
+    grid = NDGrid(n_bins_per_feature=4, min=-np.pi, max=np.pi)
+    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    seqs = [seqs[i] for i in range(1)]
+
+    lag_time = 120
+    model = ContinousTimeMSM(verbose=True, lag_time=lag_time)
+    model.fit(seqs)
+    print('MSM timescales\n', MarkovStateModel(verbose=False, lag_time=lag_time).fit(seqs).timescales_)
+
+    np.set_printoptions(precision=3)
+    print(model.ratemat_)
+
+    theta = model.optimizer_state_.x
+    c = model.countsmat_
+    n = c.shape[0]
+
+    hessian = _ratematrix.hessian(theta, c, n, t=1)
+    print('Hessian\n', hessian)
+
+    information = scipy.linalg.pinv(hessian)
+    # print(information)
+    # print('sigmaK\n', _ratematrix.uncertainty_K(information, theta, n))
+    print('sigmaPi\n', _ratematrix.uncertainty_pi(information, theta, n))
+
+
 def test_fit_1():
     sequence = [0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2]
     model = ContinousTimeMSM(verbose=False)
