@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
+from __future__ import print_function, division
 import numpy as np
 import scipy.linalg
 import scipy.optimize
@@ -136,7 +136,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         # from going below exp(-20), which helps avoid NaNs, since the
         # rate matrix involves terms like pi_i / pi_j, which get iffy
         # numerically as the populations go too close to zero.
-        bounds = [(None, None)]*(n*(n-1)/2) + [(-20, 0)]*n
+        bounds = [(None, None)]*int(n*(n-1)/2) + [(-20, 0)]*int(n)
 
         result = scipy.optimize.minimize(
             fun=objective, x0=theta0, method='L-BFGS-B', jac=True, bounds=bounds,
