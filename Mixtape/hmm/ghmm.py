@@ -129,7 +129,7 @@ class GaussianFusionHMM(BaseEstimator):
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', transmat_prior=None, vars_prior=1e-3,
                  vars_weight=1, random_state=None, params='tmv',
-                 init_params='tmv', precision='mixed',
+                 init_params='tmv', precision='mixed', n_jobs=1,
                  timing=False, n_hotstart='all', init_algo="kmeans"):
         self.n_states = int(n_states)
         self.n_init = int(n_init)
@@ -145,6 +145,7 @@ class GaussianFusionHMM(BaseEstimator):
         self.random_state = random_state
         self.params = params
         self.init_params = init_params
+        self.n_jobs = n_jobs
         self.timing = timing
         self.n_hotstart = n_hotstart
         self.init_algo = init_algo
@@ -267,7 +268,7 @@ class GaussianFusionHMM(BaseEstimator):
                     warnings.simplefilter("ignore")
                     self.means_ = cluster.KMeans(
                         n_clusters=self.n_states, n_init=1, init='random',
-                        n_jobs=-1, random_state=self.random_state).fit(
+                        n_jobs=self.n_jobs, random_state=self.random_state).fit(
                         small_dataset).cluster_centers_
             if 'v' in init_params:
                 self.vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
