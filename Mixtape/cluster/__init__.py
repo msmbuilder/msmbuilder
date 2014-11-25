@@ -63,17 +63,6 @@ def _replace_labels(doc):
 
     return doc[:labelstart] + replace + doc[labelend:]
 
-# I'm pretty sure nothing uses this function
-#def _arrayify(list_like):
-#    """Transform a list into a MDTraj Trajectory or a Numpy array.
-#    """
-#    if isinstance(list_like[0], np.ndarray):
-#        return np.array(list_like)
-#    elif isinstance(list_like[0], md.Trajectory):
-#        return list_like[0].join(list_like[1:])
-#    else:
-#        raise TypeError('Unrecoginzed type: %s' % type(list_like[0]))
-
 #-----------------------------------------------------------------------------
 # New "multisequence" versions of all of the clustering algorithims in sklearn
 #-----------------------------------------------------------------------------
