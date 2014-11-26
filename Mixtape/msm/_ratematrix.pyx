@@ -105,54 +105,87 @@ from libc.math cimport sqrt, log, exp
 from libc.string cimport memset
 from libc.stdlib cimport calloc, malloc, free
 from cython.parallel cimport prange, parallel
-cimport openmp
 
 include "cy_blas.pyx"
+include "config.pxi"
+IF OPENMP:
+    cimport openmp
 
 
-cpdef int buildK(double[::1] exptheta, npy_intp n, double[:, ::1] out):
+cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] u,
+                 double[:, ::1] out):
     """Build the reversible rate matrix K from the free parameters, `\theta`
 
     Parameters
     ----------
-    exptheta : [input], array of length = (n*(n-1)/2) + n
+    exptheta : [input], array
         The element-wise exponential of the free parameters, `\theta`.
+        These values are the linearized elements of the upper triangular portion
+        of the symmetric rate matrix, S.
     n : [input]
-        The dimension
+        The dimension of the K matrix
+    u : [input, optional] (default=None)
+        If not supplied, exptheta is assumed to be a dense parameterization of
+        the upper triangular portion of the symmetric rate matrix, and must be
+        of length `n*(n-1)/2`. If `u` is supplied, it is a set of indices, with
+        `len == len(exptheta)`, `0 <= u < n*(n-1)/2`, giving the indices of the
+        nonzero elements of the upper triangular elements of the rate matrix.
     out : [output], 2d array of shape = (n, n)
         The rate matrix is written into this array
+
+    Notes
+    -----
+    The last `n` elements of exptheta must be nonzero, since they parameterize
+    the equilibrium populations, so even with the sparse parameterization,
+    `len(u)` must be greater than or equal to `n`.
+
+    u = indices_of_nonzero_elements(exptheta)
+    buildK(exptheta, n, None) == buildK(exptheta[u], n, u)
     """
-    assert out.shape[0] == n
-    assert out.shape[1] == n
-    assert exptheta.shape[0] == (n*(n-1)/2) + n
-    cdef npy_intp i, j, u
-    cdef double K_ij, K_ji, s_ij
-    cdef npy_intp n_S_triu = (n*(n-1)/2)
-    cdef double[::1] pi = exptheta[n_S_triu:]
-    cdef double[::1] K_ii = <double[:n]>calloc(n, sizeof(double))
+    cdef npy_intp uu, k, i, j, n_triu
+    cdef double[::1] pi
+    if DEBUG:
+        assert out.shape[0] == n
+        assert out.shape[1] == n
+        assert u is None or u.shape[0] >= n
+        assert ((exptheta.shape[0] == u.shape[0]) or
+                (u is None and exptheta.shape[0] == n*(n-1)/2 + n))
+        assert np.all(np.asarray(out) == 0)
+    if u is None:
+        n_triu = n*(n-1)/2
+    else:
+        n_triu = u.shape[0] - n
 
-    u = 0
-    for i in range(n):
-        for j in range(i+1, n):
-            s_ij = exptheta[u]
-            K_ij = s_ij * sqrt(pi[j] / pi[i])
-            K_ji = s_ij * sqrt(pi[i] / pi[j])
-            out[i, j] = K_ij
-            out[j, i] = K_ji
-            K_ii[i] -= K_ij
-            K_ii[j] -= K_ji
-            u += 1
+    pi = exptheta[n_triu:]
 
-    for i in range(n):
-        out[i, i] = K_ii[i]
+    for k in range(n_triu):
+        ## uu: index in linearized upper triangular elements of (n,n) matrix
+        if u is None:
+            uu = k
+        else:
+            uu = u[k]
 
-    free(&K_ii[0])
+        s_ij = exptheta[k]
 
-    assert np.allclose(out[0,1]/out[1,0], pi[1]/pi[0])
-    assert np.allclose(np.array(out).sum(axis=1), 0.0)
-    assert np.allclose(scipy.linalg.expm(np.array(out)).sum(axis=1), 1)
-    assert np.all(0 < scipy.linalg.expm(np.array(out)))
-    assert np.all(1 > scipy.linalg.expm(np.array(out)))
+        if DEBUG:
+            assert 0 <= uu < n*(n-1)/2
+
+        # linearized upper triangular index uu to -> (i, j) 2D index
+        i = n - 2 - <int>(sqrt(-8*uu + 4*n*(n-1)-7)/2.0 - 0.5)
+        j = uu + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+
+        K_ij = s_ij * sqrt(pi[j] / pi[i])
+        K_ji = s_ij * sqrt(pi[i] / pi[j])
+        out[i, j] = K_ij
+        out[j, i] = K_ji
+        out[i, i] -= K_ij
+        out[j, j] -= K_ji
+
+    if DEBUG:
+        assert np.allclose(np.array(out).sum(axis=1), 0.0)
+        assert np.allclose(scipy.linalg.expm(np.array(out)).sum(axis=1), 1)
+        assert np.all(0 < scipy.linalg.expm(np.array(out)))
+        assert np.all(1 > scipy.linalg.expm(np.array(out)))
     return 0
 
 
@@ -260,7 +293,8 @@ cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n, double t):
         # we need to ensure the proper normalization
         AL[:, i] /= dot(AL[:, i], AR[:, i])
 
-    assert np.allclose(scipy.linalg.inv(AR).T, AL)
+    if DEBUG:
+        assert np.allclose(scipy.linalg.inv(AR).T, AL)
 
     AL = ascontiguousarray(real(AL))
     AR = ascontiguousarray(real(AR))
@@ -332,7 +366,7 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
         raise ValueError('theta must have length (n*(n-1)/2) + n')
 
     cdef npy_intp u, i, j
-    cdef int thread_num
+    cdef int thread_num = 0
     cdef double logl
     cdef double[::1] w, expwt, grad, exptheta, grad_u
     cdef double[:, ::1] K, transmat, AL, AR, temp
@@ -350,7 +384,7 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, K)
+    buildK(exptheta, n, None, K)
     if not np.all(np.isfinite(K)):
         # these parameters don't seem good...
         # tell the optimizer to stear clear!
@@ -361,7 +395,8 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n, double t
     transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
 
     with nogil, parallel(num_threads=n_threads):
-        thread_num = openmp.omp_get_thread_num()
+        IF OPENMP:
+            thread_num = openmp.omp_get_thread_num()
         for u in prange(size):
             # write dP / dtheta_u into dPu[thread_num]
             build_dPu(AL, AR, expwt, w, exptheta, n, u, t, temp1[thread_num, 0], temp1[thread_num, 1], dPu[thread_num])
@@ -406,13 +441,14 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     hessian_uv = zeros(n_threads)
     rowsums = np.sum(counts, axis=1)
 
-    buildK(exptheta, n, K)
+    buildK(exptheta, n, None, K)
     AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
 
     transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
 
     with nogil, parallel(num_threads=n_threads):
-        thread_num = openmp.omp_get_thread_num()
+        IF OPENMP:
+            thread_num = openmp.omp_get_thread_num()
         for u in range(size):
             # write dP / dtheta_u into dPu[thread_num]
             build_dPu(AL, AR, expwt, w, exptheta, n, u, t, temp1[thread_num, 0], temp1[thread_num, 1], dPu[thread_num])
@@ -447,7 +483,7 @@ def uncertainty_K(const double[:, :] invhessian, const double[::1] theta, npy_in
     K = zeros((n, n))
     exptheta = np.exp(theta)
 
-    buildK(exptheta, n, K)
+    buildK(exptheta, n, None, K)
 
     for u in range(size):
         memset(&dKu[0,0], 0, n*n * sizeof(double))

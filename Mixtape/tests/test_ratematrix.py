@@ -7,6 +7,34 @@ from mixtape.msm import ContinousTimeMSM, MarkovStateModel
 from mixtape.example_datasets import load_doublewell
 from mixtape.cluster import NDGrid
 
+def test_buildKSParse_1():
+    n = 4
+    exptheta = np.exp(np.random.randn(n*(n-1)/2 + n))
+    u = np.arange(n*(n-1)/2 + n)
+    K1 = np.zeros((n, n))
+    K2 = np.zeros((n, n))
+
+    _ratematrix.buildK(exptheta, n, u, K1)
+    _ratematrix.buildK(exptheta, n, None, K2)
+    np.testing.assert_array_equal(K1, K2)
+
+
+def test_buildKSParse_2():
+    n = 4
+    exptheta = np.exp(np.random.randn(n*(n-1)/2 + n))
+    zero_out = np.random.random_integers(low=0, high=n*(n-1)/2, size=2)
+    exptheta[zero_out] = 0
+    u_sp = np.nonzero(exptheta)[0]
+    exptheta_sp = exptheta[np.nonzero(exptheta)]
+
+    K1 = np.zeros((n, n))
+    K2 = np.zeros((n, n))
+
+    _ratematrix.buildK(exptheta_sp, n, u_sp, K1)
+    _ratematrix.buildK(exptheta, n, None, K2)
+
+    np.testing.assert_array_equal(K1, K2)
+
 
 def test_dK_dtheta():
     # test function `dK_dtheta` against the numerical gradient of `buildK`

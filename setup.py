@@ -113,8 +113,13 @@ def write_spline_data():
                    newline=',\n')
 
 compiler = CompilerDetection(DISABLE_OPENMP)
-extensions = []
+with open('Mixtape/src/config.pxi', 'w') as f:
+    f.write('''
+DEF DEBUG = {debug}
+DEF OPENMP = {openmp}
+    '''.format(openmp=compiler.openmp_enabled, debug=DEBUG))
 
+extensions = []
 extensions.append(
     Extension('mixtape.msm._markovstatemodel',
               sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),
@@ -131,7 +136,6 @@ extensions.append(
               sources=[pjoin(MSMDIR, '_ratematrix.pyx')],
               extra_compile_args=compiler.compiler_args_openmp,
               libraries=compiler.compiler_libraries_openmp,
-              define_macros=([] if DEBUG else [('CYTHON_WITHOUT_ASSERTIONS', 1)]),
               include_dirs=['Mixtape/src', np.get_include()]))
 
 extensions.append(
