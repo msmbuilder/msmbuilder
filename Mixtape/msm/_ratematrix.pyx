@@ -112,7 +112,7 @@ IF OPENMP:
     cimport openmp
 
 
-cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] u,
+cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
                  double[:, ::1] out):
     """Build the reversible rate matrix K from the free parameters, `\theta`
 
@@ -124,12 +124,13 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] u,
         of the symmetric rate matrix, S.
     n : [input]
         The dimension of the K matrix
-    u : [input, optional] (default=None)
+    inds : [input, optional] (default=None)
         If not supplied, exptheta is assumed to be a dense parameterization of
         the upper triangular portion of the symmetric rate matrix, and must be
-        of length `n*(n-1)/2`. If `u` is supplied, it is a set of indices, with
-        `len == len(exptheta)`, `0 <= u < n*(n-1)/2`, giving the indices of the
-        nonzero elements of the upper triangular elements of the rate matrix.
+        of length `n*(n-1)/2`. If `inds` is supplied, it is a set of indices,
+        with `len(inds) == len(exptheta)`, `0 <= inds < n*(n-1)/2`, giving the
+        indices of the nonzero elements of the upper triangular elements of
+        the rate matrix.
     out : [output], 2d array of shape = (n, n)
         The rate matrix is written into this array
 
@@ -139,40 +140,38 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] u,
     the equilibrium populations, so even with the sparse parameterization,
     `len(u)` must be greater than or equal to `n`.
 
-    u = indices_of_nonzero_elements(exptheta)
-    buildK(exptheta, n, None) == buildK(exptheta[u], n, u)
+    inds = indices_of_nonzero_elements(exptheta)
+    buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
     """
-    cdef npy_intp uu, k, i, j, n_triu
+    cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
     cdef double[::1] pi
     if DEBUG:
         assert out.shape[0] == n
         assert out.shape[1] == n
-        assert u is None or u.shape[0] >= n
-        assert ((exptheta.shape[0] == u.shape[0]) or
-                (u is None and exptheta.shape[0] == n*(n-1)/2 + n))
+        assert inds is None or inds.shape[0] >= n
+        assert ((exptheta.shape[0] == inds.shape[0]) or
+                (inds is None and exptheta.shape[0] == n*(n-1)/2 + n))
         assert np.all(np.asarray(out) == 0)
-    if u is None:
+    if inds is None:
         n_triu = n*(n-1)/2
     else:
-        n_triu = u.shape[0] - n
+        n_triu = inds.shape[0] - n
 
     pi = exptheta[n_triu:]
 
     for k in range(n_triu):
-        ## uu: index in linearized upper triangular elements of (n,n) matrix
-        if u is None:
-            uu = k
+        if inds is None:
+            u = k
         else:
-            uu = u[k]
-
+            u = inds[k]
+            
+        # linearized upper triangular index, u, to -> (i, j) 2D index
+        i = n - 2 - <int>(sqrt(-8*u + 4*n*(n-1)-7)/2.0 - 0.5)
+        j = u + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
         s_ij = exptheta[k]
 
         if DEBUG:
-            assert 0 <= uu < n*(n-1)/2
-
-        # linearized upper triangular index uu to -> (i, j) 2D index
-        i = n - 2 - <int>(sqrt(-8*uu + 4*n*(n-1)-7)/2.0 - 0.5)
-        j = uu + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+            assert 0 <= u < n*(n-1)/2
 
         K_ij = s_ij * sqrt(pi[j] / pi[i])
         K_ji = s_ij * sqrt(pi[i] / pi[j])
@@ -187,6 +186,11 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] u,
         assert np.all(0 < scipy.linalg.expm(np.array(out)))
         assert np.all(1 > scipy.linalg.expm(np.array(out)))
     return 0
+
+
+def dK_dtheta_sp(double[::1] exptheta, npy_intp n, npy_intp u, npy_intp[::1] inds,
+                 double[:, ::1] out):
+    pass
 
 
 cpdef int dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out) nogil:
@@ -304,6 +308,7 @@ cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n, double t):
         expwt[i] = exp(w[i]*t)
 
     return AL, AR, w, expwt
+
 
 cdef void build_dPu(const double[:, ::1] AL, const double[:, ::1] AR, const double[::1] expwt,
                     const double[::1] w, const double[::1] exptheta, npy_intp n, npy_intp u,

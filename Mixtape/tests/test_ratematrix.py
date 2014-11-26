@@ -19,7 +19,7 @@ def test_buildKSParse_1():
     np.testing.assert_array_equal(K1, K2)
 
 
-def test_buildKSParse_2():
+def test_buildK_2():
     n = 4
     exptheta = np.exp(np.random.randn(n*(n-1)/2 + n))
     zero_out = np.random.random_integers(low=0, high=n*(n-1)/2, size=2)
@@ -55,6 +55,7 @@ def test_dK_dtheta():
     for u in range(len(exptheta)):
         dKu = np.zeros((n, n))
         _ratematrix.dK_dtheta(exptheta, n, u, dKu)
+        print(dKu)
 
         np.testing.assert_array_almost_equal(g(u), dKu)
 
