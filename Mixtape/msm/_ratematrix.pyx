@@ -105,11 +105,55 @@ from libc.math cimport sqrt, log, exp
 from libc.string cimport memset
 from libc.stdlib cimport calloc, malloc, free
 from cython.parallel cimport prange, parallel
+from cython.operator cimport dereference as deref
 
 include "cy_blas.pyx"
 include "config.pxi"
 IF OPENMP:
     cimport openmp
+
+
+cdef inline npy_intp ij_to_k(npy_intp i, npy_intp j, npy_intp n) nogil:
+    # (i, j) 2D index to linearized upper triaungular index
+    if j > i:
+        return (n*(n-1)/2) - (n-i)*((n-i)-1)/2 + j - i - 1
+    return (n*(n-1)/2) - (n-j)*((n-j)-1)/2 + i - j - 1
+
+
+cdef inline void k_to_ij(npy_intp k, npy_intp n, npy_intp *i, npy_intp *j) nogil:
+    # linearized upper triangular index, k, to -> (i, j) 2D index
+
+    # E.g with the 4x4 upper-triangular matrix, we need
+    # to get the (i,j) index of an element from its
+    # linear index:
+    #  [ 0  a0  a1  a2  a3 ]      0 -> (i=0,j=1)
+    #  [ 0   0  a4  a5  a6 ]      1 -> (i=0,j=2)
+    #  [ 0   0   0  a7  a8 ]      5 -> (i=1,j=3)
+    #  [ 0   0   0   0  a9 ]            etc
+    #  [ 0   0   0   0   0 ]
+    # http://stackoverflow.com/a/27088560/1079728
+
+    i[0] = n - 2 - <int>(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    j[0] = k + i[0] + 1 - n*(n-1)/2 + (n-i[0])*(n-i[0]-1)/2
+
+
+cpdef inline npy_intp bsearch(npy_intp[::1] haystack, npy_intp needle) nogil:
+    # http://rosettacode.org/wiki/Binary_search#Python:_Iterative
+    cdef npy_intp mid
+    cdef npy_intp low = 0
+    cdef npy_intp high = haystack.shape[0] - 1
+    # unsigned to avoid overflow in `(left + right)/2`
+
+    while low <= high:
+        mid = low + (high - low) / 2
+        if haystack[mid] > needle:
+            high = mid - 1
+        elif haystack[mid] < needle:
+            low = mid + 1
+        else:
+            return mid
+
+    return -1
 
 
 cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
@@ -144,6 +188,7 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
     buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
     """
     cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
+    cdef double s_ij, K_ij, K_ji
     cdef double[::1] pi
     if DEBUG:
         assert out.shape[0] == n
@@ -164,10 +209,8 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
             u = k
         else:
             u = inds[k]
-            
-        # linearized upper triangular index, u, to -> (i, j) 2D index
-        i = n - 2 - <int>(sqrt(-8*u + 4*n*(n-1)-7)/2.0 - 0.5)
-        j = u + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+
+        k_to_ij(u, n, &i, &j)
         s_ij = exptheta[k]
 
         if DEBUG:
@@ -187,10 +230,105 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
         assert np.all(1 > scipy.linalg.expm(np.array(out)))
     return 0
 
+cpdef int dK_dtheta_A(double[::1] exptheta, npy_intp n, npy_intp u, npy_intp[::1] inds,
+                      double[:, ::1] A, double[:, ::1] out) nogil:
+    """Compute the matrix product of the derivative of (the rate matrix, `K`,
+    with respect to the free parameters,`\theta`, dK_ij / dtheta_u) and another
+    matrix, A.
 
-def dK_dtheta_sp(double[::1] exptheta, npy_intp n, npy_intp u, npy_intp[::1] inds,
-                 double[:, ::1] out):
-    pass
+    Since dK/dtheta_u is a sparse matrix with a known sparsity structure, it's
+    more efficient to just do the matrix multiply as we construct it, and never
+    save the matrix elements directly.
+
+    """
+    cdef npy_intp n_S_triu = n*(n-1)/2
+    cdef npy_intp a, i, j, n_triu, uu, kk
+    cdef double dK_i, s_ij, dK_ij, dK_ji
+    cdef double[::1] pi
+    cdef double* dK_ii
+    dK_ii = <double*> calloc(n, sizeof(double))
+    if DEBUG:
+        assert out.shape[0] == n and out.shape[1] == n
+        assert A.shape[0] == n and A.shape[1] == n
+        assert inds is None or inds.shape[0] >= n
+        assert ((exptheta.shape[0] == inds.shape[0]) or
+                (inds is None and exptheta.shape[0] == n_S_triu + n))
+    if inds is None:
+        n_triu = n*(n-1)/2
+    else:
+        n_triu = inds.shape[0] - n
+
+    memset(&out[0,0], 0, n*n*sizeof(double))
+
+    pi = exptheta[n_triu:]
+    if inds is not None:
+        # if inds is None, then `u` indexes right into the linearized
+        # upper triangular rate matrix. Othewise, it's uu=inds[u] that indexes
+        # into the upper triangular rate matrix.
+        uu = inds[u]
+    else:
+        uu = u
+
+    if uu < n_S_triu:
+        # the perturbation is to the triu rate matrix
+        # first, use the linear index, u, to get the (i,j)
+        # indices of the symmetric rate matrix
+        k_to_ij(uu, n, &i, &j)
+
+        s_ij = exptheta[u]
+        dK_ij = s_ij * sqrt(pi[j] / pi[i])
+        dK_ji = s_ij * sqrt(pi[i] / pi[j])
+        dK_ii[i] = -dK_ij
+        dK_ii[j] = -dK_ji
+
+        # now, dK contains 4 nonzero elements, at
+        #  (i, i), (i, j) (j, i) and (j, j), so the matrix*matrix product
+        # populates two rows in `out`
+
+        for a in range(n):
+            out[i, a] = dK_ii[i] * A[i, a] + dK_ij * A[j, a]
+            out[j, a] = dK_ii[j] * A[j, a] + dK_ji * A[i, a]
+    else:
+        # the perturbation is to the equilibrium distribution
+
+        # `i` is now the index, in `pi`, of the perturbed element
+        # of the equilibrium distribution.
+        i = u - n_triu
+
+        # the matrix dKu has 1 nonzero row, 1 column, and the diagonal. e.g:
+        #
+        #    x     x
+        #      x   x
+        #        x x
+        #    x x x x x x
+        #          x x
+        #          x   x
+
+        for j in range(n):
+            if j == i:
+                continue
+
+            k = ij_to_k(i, j, n)
+            kk = bsearch(inds, k)
+            if kk == -1:
+                continue
+
+            s_ij = exptheta[kk]
+            dK_ij = -0.5 * s_ij * sqrt(pi[j] / pi[i])
+            dK_ji = 0.5  * s_ij * sqrt(pi[i] / pi[j])
+            dK_ii[i] -= dK_ij
+            dK_ii[j] -= dK_ji
+
+            for a in range(n):
+                out[i, a] += dK_ij * A[j, a]
+                out[j, a] += dK_ji * A[i, a]
+
+        for i in range(n):
+            dK_i = dK_ii[i]
+            for j in range(n):
+                out[i, j] += dK_i * A[i, j]
+
+    free(dK_ii)
 
 
 cpdef int dK_dtheta(double[::1] exptheta, npy_intp n, npy_intp u, double[:, ::1] out) nogil:
@@ -508,7 +646,7 @@ def uncertainty_K(const double[:, :] invhessian, const double[::1] theta, npy_in
 
 
 def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta, npy_intp n):
-    cdef npy_intp u
+    cdef npy_intp i
     cdef npy_intp size = (n*(n-1)/2) + n
     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
         raise ValueError('counts must be n*(n-1)/2+n  x  n*(n-1)/2+n')
