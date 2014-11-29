@@ -22,5 +22,3 @@ msmb GaussianFusionHMM --inp atom_pairs_tica \
     --out hmm \
     --n_states 2 \
     --n_features 4
-
-
