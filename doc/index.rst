@@ -48,6 +48,7 @@ licensed under the GNU LGPL (v2.1 or later).
     tpt
     tica
     hmm
+    persistence
     commandline
     apipatterns
     faq

@@ -21,32 +21,45 @@
 
 from __future__ import print_function, absolute_import
 
+import os
+
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..hmm import GaussianFusionHMM
 from ..msm import MarkovStateModel, BayesianMarkovStateModel
-from ..cmdline import NumpydocClassCommand, argument
+from ..cmdline import NumpydocClassCommand, argument, exttype
 
 
 class FitCommand(NumpydocClassCommand):
     inp = argument(
-        '--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True)
+        '-i', '--inp', help='''Input dataset. This should be serialized
+        list of numpy arrays.''', required=True, type=os.path.expanduser)
     model = argument(
-        '--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object.''', required=True)
+        '-o', '--out', help='''Output (fit) model. This will be a
+        serialized instance of the fit model object.''', required=True,
+        type=exttype('.pkl'))
 
     def start(self):
+        if not os.path.exists(self.inp):
+            self.error('File does not exist: %s' % self.inp)
+
         print(self.instance)
 
-        ds = dataset(self.inp, mode='r', fmt='dir-npy')
+        ds = dataset(self.inp, mode='r')
         self.instance.fit(ds)
-        verbosedump(self.instance, self.out)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
-        print('All done')
+        print('-' * 80)
 
+        verbosedump(self.instance, self.out)
+        print("To load this %s object interactively inside an IPython\n"
+              "shell or notebook, run: \n" % self.klass.__name__)
+        print("  $ ipython")
+        print("  >>> from mixtape.utils import load")
+        print("  >>> model = load('%s')\n" % self.out)
+
+        inp_ds.close()
 
 class GaussianFusionHMMCommand(FitCommand):
     klass = GaussianFusionHMM

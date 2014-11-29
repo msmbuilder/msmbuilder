@@ -72,10 +72,9 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         The number of clusters located.
     """
 
-    def __init__(self, d_min, metric='euclidean', opt=True):
+    def __init__(self, d_min, metric='euclidean'):
         self.d_min = d_min
         self.metric = metric
-        self.opt = opt
 
     def fit(self, X, y=None):
         cluster_ids = [0]
@@ -136,3 +135,14 @@ class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial, BaseEstimator):
         """
         MultiSequenceClusterMixin.fit(self, sequences)
         return self
+
+    def summarize(self):
+        return """
+RegularSpatial clustering
+-------------------------
+d_min      : {d_min}
+metric     : {metric}
+
+n_clusters : {n_clusters}
+""".format(d_min=self.d_min, metric=self.metric,
+           n_clusters=self.n_clusters_)
