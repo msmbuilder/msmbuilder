@@ -45,6 +45,8 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         probability between two states with no observed transitions will be
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
+    use_sparse : bool
+        Attempt to find a sparse rate matrix.
     verbose : bool
         Verbosity level
     n_threads : int, optional
@@ -68,9 +70,13 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         need not necessarily be integers in (0, ..., n_states_ - 1), for
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
+    populations_ : np.ndarray, shape=(n_states_,)
+    theta_ : array of shape n*(n+1)/2 or shorter
+    information_ : np.ndarray, shape=(len(theta_), len(theta_))
+    inds_ : array of shape n*(n+1)/2 or shorter, or None
     """
-    def __init__(self, lag_time=1, prior_counts=0, verbose=True,
-                 use_sparse=True, n_threads=None):
+    def __init__(self, lag_time=1, prior_counts=0, use_sparse=True,
+                 verbose=True, n_threads=None):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.verbose = verbose
@@ -87,7 +93,6 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.mapping_ = None
         self.populations_ = None
         self.information_ = None
-
 
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
@@ -141,7 +146,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         n_threads = self._get_n_threads()
 
         options = {
-            'iprint': 0, #if self.verbose else -1,
+            'iprint': 0 if self.verbose else -1,
             'ftol': 1e-10,
             'gtol': 1e-10
         }
@@ -188,6 +193,26 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
             print('[ContinuousTimeMSM] No rates forced to zero')
         return result0, inds0
 
+    def uncertainty_K(self):
+        n_threads = self._get_n_threads()
+        if self.information_ is None:
+            self._build_information()
+
+        sigma_K = _ratematrix.uncertainty_K(
+            self.information_, theta=self.theta_, n=self.n_states_,
+            inds=self.inds_, n_threads=n_threads)
+        return sigma_K
+
+    def uncertainty_pi(self):
+        n_threads = self._get_n_threads()
+        if self.information_ is None:
+            self._build_information()
+
+        sigma_pi = _ratematrix.uncertainty_pi(
+            self.information_, theta=self.theta_, n=self.n_states_,
+            inds=self.inds_)
+        return sigma_pi
+
     def initial_guess(self, countsmat):
         C = 0.5 * (countsmat + countsmat.T) + self.prior_counts
         pi = C.sum(axis=0) / C.sum(dtype=float)
@@ -213,23 +238,3 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
             self.theta_, self.countsmat_, self.n_states_, t=lag_time,
             inds=self.inds_, n_threads=n_threads)
         self.information_ = scipy.linalg.pinv(hessian)
-
-    def uncertainty_K(self):
-        n_threads = self._get_n_threads()
-        if self.information_ is None:
-            self._build_information()
-
-        sigma_K = _ratematrix.uncertainty_K(
-            self.information_, theta=self.theta_, n=self.n_states_,
-            inds=self.inds_, n_threads=n_threads)
-        return sigma_K
-
-    def uncertainty_pi(self):
-        n_threads = self._get_n_threads()
-        if self.information_ is None:
-            self._build_information()
-
-        sigma_pi = _ratematrix.uncertainty_pi(
-            self.information_, theta=self.theta_, n=self.n_states_,
-            inds=self.inds_)
-        return sigma_pi

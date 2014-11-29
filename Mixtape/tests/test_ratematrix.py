@@ -145,6 +145,7 @@ def test_grad_logl_1():
 
     def func(theta):
         return _ratematrix.loglikelihood(theta, C, n, inds=None, t=1.1)[0]
+
     def grad(theta):
         return _ratematrix.loglikelihood(theta, C, n, inds=None, t=1.1)[1]
 
@@ -161,6 +162,7 @@ def test_grad_logl_2():
 
     def func(theta):
         return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[0]
+
     def grad(theta):
         return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[1]
 
@@ -175,8 +177,9 @@ def test_hessian():
     lag_time = 120
     model = ContinousTimeMSM(verbose=True, lag_time=lag_time)
     model.fit(seqs)
+    msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
-    print('MSM timescales\n', MarkovStateModel(verbose=False, lag_time=lag_time).fit(seqs).timescales_)
+    print('MSM timescales\n', msm.fit(seqs).timescales_)
     # print('Uncertainty K\n', model.uncertainty_K())
     print('Uncertainty pi\n', model.uncertainty_pi())
 
