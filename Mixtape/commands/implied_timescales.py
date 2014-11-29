@@ -16,7 +16,8 @@ class ImpliedTimescales(Command):
     _group = 'MSM'
     _concrete = True
     description = "Scan the implied timescales of `MarkovStateModel`s with respect to lag time"
-    lag_times = argument('-l', '--lag_times', help='sdfsdf', default='1:10', type=slice_type)
+    lag_times = argument('-l', '--lag_times', default='1:10', type=slice_type, help='''
+        Range of lag times. Specify as 'start:stop' or 'start:stop:step''')
     inp = argument(
         '--inp', help='''Input dataset. This should be serialized
         list of numpy arrays.''', required=True)
