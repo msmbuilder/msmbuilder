@@ -60,7 +60,19 @@ import copy
 import argparse
 import inspect
 import itertools
-import numpydoc.docscrape
+try:
+    import numpydoc.docscrape
+except ImportError:
+    print('-'*35, file=sys.stderr)
+    print('              ERROR', file=sys.stderr)
+    print('-'*35, file=sys.stderr)
+    print('The package `numpydoc` is required.\n', file=sys.stderr)
+    print('Try:', file=sys.stderr)
+    print('  $ conda install numpydoc', file=sys.stderr)
+    print('or', file=sys.stderr)
+    print('  $ pip install numpydoc', file=sys.stderr)
+    print('-'*35, file=sys.stderr)
+    raise
 from IPython.utils.text import wrap_paragraphs
 
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
