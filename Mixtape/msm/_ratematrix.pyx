@@ -109,84 +109,52 @@ from cython.operator cimport dereference as deref
 
 include "cy_blas.pyx"
 include "config.pxi"
+include "triu_utils.pyx"      # ij_to_k() and k_to_ij()
+include "binary_search.pyx"   # bsearch()
 IF OPENMP:
     cimport openmp
 
 
-cdef inline npy_intp ij_to_k(npy_intp i, npy_intp j, npy_intp n) nogil:
-    # (i, j) 2D index to linearized upper triaungular index
-    # See also k_to_ij, the inverse operation
-    if j > i:
-        return (n*(n-1)/2) - (n-i)*((n-i)-1)/2 + j - i - 1
-    return (n*(n-1)/2) - (n-j)*((n-j)-1)/2 + i - j - 1
-
-
-cdef inline void k_to_ij(npy_intp k, npy_intp n, npy_intp *i, npy_intp *j) nogil:
-    # linearized upper triangular index, k, to -> (i, j) 2D index
-
-    # E.g with the 4x4 upper-triangular matrix, we need
-    # to get the (i,j) index of an element from its
-    # linear index:
-    #  [ 0  a0  a1  a2  a3 ]      0 -> (i=0,j=1)
-    #  [ 0   0  a4  a5  a6 ]      1 -> (i=0,j=2)
-    #  [ 0   0   0  a7  a8 ]      5 -> (i=1,j=3)
-    #  [ 0   0   0   0  a9 ]            etc
-    #  [ 0   0   0   0   0 ]
-    # http://stackoverflow.com/a/27088560/1079728
-
-    i[0] = n - 2 - <int>(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
-    j[0] = k + i[0] + 1 - n*(n-1)/2 + (n-i[0])*(n-i[0]-1)/2
-
-
-cpdef inline npy_intp bsearch(npy_intp[::1] haystack, npy_intp needle) nogil:
-    # http://rosettacode.org/wiki/Binary_search#Python:_Iterative
-    cdef npy_intp mid
-    cdef npy_intp low = 0
-    cdef npy_intp high = haystack.shape[0] - 1
-    # unsigned to avoid overflow in `(left + right)/2`
-
-    while low <= high:
-        mid = low + (high - low) / 2
-        if haystack[mid] > needle:
-            high = mid - 1
-        elif haystack[mid] < needle:
-            low = mid + 1
-        else:
-            return mid
-
-    return -1
-
-
-cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
+cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
                  double[:, ::1] out):
     """Build the reversible rate matrix K from the free parameters, `\theta`
 
     Parameters
     ----------
-    exptheta : [input], array
+    exptheta : array
         The element-wise exponential of the free parameters, `\theta`.
         These values are the linearized elements of the upper triangular portion
-        of the symmetric rate matrix, S.
-    n : [input]
-        The dimension of the K matrix
-    inds : [input, optional] (default=None)
-        If not supplied, exptheta is assumed to be a dense parameterization of
-        the upper triangular portion of the symmetric rate matrix, and must be
-        of length `n*(n-1)/2`. If `inds` is supplied, it is a set of indices,
-        with `len(inds) == len(exptheta)`, `0 <= inds < n*(n-1)/2`, giving the
-        indices of the nonzero elements of the upper triangular elements of
-        the rate matrix.
-    out : [output], 2d array of shape = (n, n)
-        The rate matrix is written into this array
-
+        of the symmetric rate matrix, S, followed by the equilibrium weights.
+    n : int
+        Dimension of the rate matrix, K, (number of states)
+    inds : array, optional (default=None)
+        Sparse linearized triu indices exptheta. If not supplied, exptheta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(exptheta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `exptheta` correspond.
     Notes
     -----
     The last `n` elements of exptheta must be nonzero, since they parameterize
     the equilibrium populations, so even with the sparse parameterization,
     `len(u)` must be greater than or equal to `n`.
 
-    inds = indices_of_nonzero_elements(exptheta)
-    buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
+    With the sparse parameterization, the following invariant holds. If
+
+        inds = indices_of_nonzero_elements(exptheta)
+
+    Then,
+
+        buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
+
+    Returns
+    -------
+    out : [output], 2d array of shape = (n, n)
+        The rate matrix is written into this array
+
     """
     cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
     cdef double s_ij, K_ij, K_ji
@@ -232,8 +200,9 @@ cpdef int buildK(double[::1] exptheta, npy_intp n, npy_intp[::1] inds,
     return 0
 
 
-cpdef int dK_dtheta_A(double[::1] exptheta, npy_intp n, npy_intp u, npy_intp[::1] inds,
-                      double[:, ::1] A, double[:, ::1] out) nogil:
+cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
+                      const npy_intp[::1] inds, const double[:, ::1] A,
+                      double[:, ::1] out) nogil:
     """Compute the matrix product of the derivative of (the rate matrix, `K`,
     with respect to the free parameters,`\theta`, dK_ij / dtheta_u) and another
     matrix, A.
@@ -242,6 +211,35 @@ cpdef int dK_dtheta_A(double[::1] exptheta, npy_intp n, npy_intp u, npy_intp[::1
     more efficient to just do the matrix multiply as we construct it, and never
     save the matrix elements directly.
 
+    Parameters
+    ----------
+    exptheta : array
+        The element-wise exponential of the free parameters, `\theta`.
+        These values are the linearized elements of the upper triangular portion
+        of the symmetric rate matrix, S, followed by the equilibrium weights.
+    n : int
+        Dimension of the rate matrix, K, (number of states)
+    u : int
+        The index, `0 <= u < len(exptheta)` of the element in `theta` to
+        construct the derivative of the rate matrix, `K` with respect to.
+    inds : array, optional (default=None)
+        Sparse linearized triu indices exptheta. If not supplied, exptheta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(exptheta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `exptheta` correspond.
+    A : array of shape=(n, n)
+        An arbitrary (n, n) matrix to be multiplied with the derivative of
+        the rate matrix.
+
+    Returns
+    -------
+    out : [output] array, shape=(n, n)
+        The derivative of the rate matrix, `K`, with respect to `theta[u]`,
+        multiplied by `A`. :math:`\frac{dK}/{d\theta_u} A`.
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp a, i, j, n_triu, uu, kk
@@ -334,7 +332,7 @@ cpdef int dK_dtheta_A(double[::1] exptheta, npy_intp n, npy_intp u, npy_intp[::1
     free(dK_ii)
 
 
-cdef dP_dtheta_terms(double[:, ::1] K, npy_intp n, double t):
+cdef dP_dtheta_terms(const double[:, ::1] K, npy_intp n, double t):
     """Compute some of the terms required for d(exp(K))/d(theta). This
     includes the left and right eigenvectors of K, the eigenvalues, and
     the exp of the eigenvalues.
@@ -374,11 +372,38 @@ cdef void build_dPu(const double[:, ::1] AL, const double[:, ::1] AR, const doub
                     const double[::1] w, const double[::1] exptheta, npy_intp n, npy_intp u,
                     double t, const npy_intp[::1] inds, double[:, ::1] temp1,
                     double[:, ::1] temp2, double[:, ::1] dPu) nogil:
+    """Build the derivative of the transition matrix, P, with respect to
+    \theta_u from its constituent terms
 
+    Parameters
+    ----------
+    AL : array shape=(n, n)
+        Left eigenvectors of `K`
+    AR : array of shape=(n, n)
+        Right eigenvectors of `K`
+    expwt : array of shape=(n,)
+        Exp of the eigenvalues of `K` times `t`.
+    w : array of shape=(n,)
+        Eigenvalues of `K`
+    n : int
+        Dimension of the rate matrix, K, (number of states)
+    u : int
+        The index of element in `theta` to construct the derivative w.r.t.
+    t : double
+        The lag time of the model
+    inds : array
+        The triu indices of the elements in `theta`, or None for dense.
+    temp1 : array of shape=(n, n)
+        Temporary workspace
+    temp2 : array of shape=(n, n)
+       Temporary workspace
+
+    Returns
+    -------
+    dPu : array of shape=(n, n)
+        Derivative of the transition matrix, P, with respect to theta[u]
+    """
     cdef npy_intp i, j
-    # write dKu into temp1
-    # memset(&temp1[0, 0], 0, n*n * sizeof(double))
-    # dK_dtheta(exptheta, n, u, temp1)
 
     # Gu = AL.T * dKu * AR
     dK_dtheta_A(exptheta, n, u, inds, AR, temp1)
@@ -398,26 +423,35 @@ cdef void build_dPu(const double[:, ::1] AL, const double[:, ::1] AR, const doub
     cdgemm_NT(temp2, AL, dPu)
 
 
-def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n,
-                  npy_intp[::1] inds=None, double t=1, npy_intp n_threads=1):
+def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp n,
+                  const npy_intp[::1] inds=None, double t=1, npy_intp n_threads=1):
     """Log likelihood and gradient of the log likelihood of a continuous-time
     Markov model.
 
     Parameters
     ----------
-    theta : array of shape = (n*(n-1)/2 + n) for dense parameterization, or shorter
-        The free parameters of the model. See the section titled
-        Parameterization.
+    theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
+        The free parameters of the model. These values are the (possibly sparse)
+        linearized elements of the log of the  upper triangular portion of the
+        symmetric rate matrix, S, followed by the log of the equilibrium
+        distribution.
     counts : array of shape = (n, n)
         The matrix of observed transition counts.
     n : int
         The size of `counts`
-    inds : array of shape matching theta, or None
-        For sparse parameterization, the active indices.
+    inds : array, optional (default=None)
+        Sparse linearized triu indices theta. If not supplied, theta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(theta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `theta` correspond.
     t : double
         The lag time.
     n_threads : int
-        The number of threads to use
+        The number of threads to use in parallel.
 
     Returns
     -------
@@ -494,12 +528,21 @@ def loglikelihood(double[::1] theta, double[:, ::1] counts, npy_intp n,
 
 def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
             npy_intp[::1] inds=None, npy_intp n_threads=1):
-    cdef npy_intp size = (n*(n-1)/2) + n
+    cdef npy_intp n_S_triu = n*(n-1)/2
     if not (counts.shape[0] == n and counts.shape[1] == n):
         raise ValueError('counts must be n x n')
-    if not theta.shape[0] == size:
-        raise ValueError('theta must have length (n*(n-1)/2) + n')
+    if not (inds is None or inds.shape[0] >= n):
+        raise ValueError('inds must be None (dense) or an array longer than n')
+    if inds is not None:
+        if not np.all(inds == np.unique(inds)):
+            raise ValueError('inds must be sorted, without redundant')
+    if not ((theta.shape[0] == inds.shape[0]) or
+            (inds is None and theta.shape[0] == n_S_triu + n)):
+        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
 
+    cdef npy_intp size = theta.shape[0]
     cdef npy_intp u, v, i, j
     cdef int thread_num = 0
     cdef double logl
@@ -518,7 +561,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     hessian_uv = zeros(n_threads)
     rowsums = np.sum(counts, axis=1)
 
-    buildK(exptheta, n, None, K)
+    buildK(exptheta, n, inds, K)
     AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
 
     transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
@@ -545,15 +588,23 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
 def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
                   npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
-    cdef npy_intp size = (n*(n-1)/2) + n
+    cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp u, v, i, j
     cdef double[::1] exptheta
     cdef double[:, ::1] sigmaK, dKu, dKv, K, eye
-
+    cdef npy_intp size = theta.shape[0]
+    if not (inds is None or inds.shape[0] >= n):
+        raise ValueError('inds must be None (dense) or an array longer than n')
+    if inds is not None:
+        if not np.all(inds == np.unique(inds)):
+            raise ValueError('inds must be sorted, without redundant')
+    if not ((theta.shape[0] == inds.shape[0]) or
+            (inds is None and theta.shape[0] == n_S_triu + n)):
+        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
-        raise ValueError('counts must be n*(n-1)/2+n  x  n*(n-1)/2+n')
-    if not theta.shape[0] == size:
-        raise ValueError('theta must have length n*(n-1)/2+n')
+        raise ValueError('counts must be `size` x `size`')
 
     sigmaK = zeros((n, n))
     dKu = zeros((n, n))
@@ -577,18 +628,28 @@ def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
     return np.asarray(sigmaK)
 
 
-def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta, npy_intp n):
+def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta,
+                   npy_intp n, npy_intp[::1] inds=None):
     cdef npy_intp i
-    cdef npy_intp size = (n*(n-1)/2) + n
+    cdef npy_intp n_S_triu = n*(n-1)/2
+    cdef npy_intp size = theta.shape[0]
+    if not (inds is None or inds.shape[0] >= n):
+        raise ValueError('inds must be None (dense) or an array longer than n')
+    if inds is not None:
+        if not np.all(inds == np.unique(inds)):
+            raise ValueError('inds must be sorted, without redundant')
+    if not ((theta.shape[0] == inds.shape[0]) or
+            (inds is None and theta.shape[0] == n_S_triu + n)):
+        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
-        raise ValueError('counts must be n*(n-1)/2+n  x  n*(n-1)/2+n')
-    if not theta.shape[0] == size:
-        raise ValueError('theta must have length n*(n-1)/2+n')
+        raise ValueError('counts must be `size` x `size`')
 
-    cdef double[::1] pi = np.exp(theta)[n*(n-1)/2:]
+    cdef double[::1] pi = np.exp(theta)[size-n:]
 
     sigma_pi = zeros(n)
     for i in range(n):
-        sigma_pi[i] = pi[i] * invhessian[n*(n-1)/2 + i, n*(n-1)/2 + i]
+        sigma_pi[i] = pi[i] * invhessian[size-n+i, size-n+i]
 
     return np.asarray(sigma_pi)

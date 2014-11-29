@@ -9,8 +9,10 @@ from mixtape.example_datasets import load_doublewell
 from mixtape.cluster import NDGrid
 np.random.seed(0)
 
+
 def dense_exptheta(n):
     return np.exp(np.random.randn(n*(n-1)/2 + n))
+
 
 def sparse_exptheta(n):
     exptheta = np.exp(np.random.randn(n*(n-1)/2 + n))
@@ -165,30 +167,18 @@ def test_grad_logl_2():
     assert check_grad(func, grad, theta0) < 1e-4
 
 
-def _test_hessian():
-    grid = NDGrid(n_bins_per_feature=4, min=-np.pi, max=np.pi)
+def test_hessian():
+    grid = NDGrid(n_bins_per_feature=10, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
-    seqs = [seqs[i] for i in range(1)]
+    seqs = [seqs[i] for i in range(10)]
 
     lag_time = 120
     model = ContinousTimeMSM(verbose=True, lag_time=lag_time)
     model.fit(seqs)
+    print(model.summarize())
     print('MSM timescales\n', MarkovStateModel(verbose=False, lag_time=lag_time).fit(seqs).timescales_)
-
-    np.set_printoptions(precision=3)
-    print(model.ratemat_)
-
-    theta = model.optimizer_state_.x
-    c = model.countsmat_
-    n = c.shape[0]
-
-    hessian = _ratematrix.hessian(theta, c, n, t=1)
-    print('Hessian\n', hessian)
-
-    information = scipy.linalg.pinv(hessian)
-    # print(information)
-    # print('sigmaK\n', _ratematrix.uncertainty_K(information, theta, n))
-    print('sigmaPi\n', _ratematrix.uncertainty_pi(information, theta, n))
+    # print('Uncertainty K\n', model.uncertainty_K())
+    print('Uncertainty pi\n', model.uncertainty_pi())
 
 
 def test_fit_1():
@@ -204,7 +194,7 @@ def test_fit_1():
     np.testing.assert_array_almost_equal(model.transmat_, msm.transmat_)
 
 
-def _test_fit_2():
+def test_fit_2():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
