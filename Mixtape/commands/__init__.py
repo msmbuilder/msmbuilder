@@ -6,3 +6,4 @@ from .fit import GaussianFusionHMMCommand
 from .fit_transform import KMeansCommand, KCentersCommand
 from .example_datasets import AlanineDipeptideDatasetCommand
 from .atomindices import AtomIndices
+from .implied_timescales import ImpliedTimescales

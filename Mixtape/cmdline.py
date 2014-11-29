@@ -436,7 +436,8 @@ def all_subclasses(cls):
                                    for g in all_subclasses(s)]
 
 
-class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                      argparse.RawDescriptionHelpFormatter):
 
     def __init__(self, *args, **kwargs):
         # to see what's going on here, you really have to look in the argparse source.
@@ -445,3 +446,13 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
         action_max_length = kwargs.pop('action_max_length', 0)
         super(MyHelpFormatter, self).__init__(*args, **kwargs)
         self._action_max_length = action_max_length
+
+
+def slice_type(s):
+    split = s.split(':')
+
+    if len(split) == 2:
+        return slice(int(split[0]), int(split[1]) + 1)
+    elif len(split) == 3:
+        return slice(int(split[0]), int(split[1]) + 1, int(split[2]))
+    raise ValueError(s)
