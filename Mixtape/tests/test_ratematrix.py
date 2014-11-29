@@ -27,7 +27,7 @@ def test_buildK_1():
     # test buildK in sparse mode vs. dense mode
     n = 4
     exptheta = dense_exptheta(n)
-    u = np.arange(n*(n-1)/2 + n)
+    u = np.arange(n*(n-1)/2 + n).astype(np.intp)
     K1 = np.zeros((n, n))
     K2 = np.zeros((n, n))
 
