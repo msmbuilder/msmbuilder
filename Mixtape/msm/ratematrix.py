@@ -51,7 +51,6 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         Verbosity level
     n_threads : int, optional
 
-
     Attributes
     ----------
     n_states_ : int
