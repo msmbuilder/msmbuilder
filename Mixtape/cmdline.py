@@ -61,7 +61,7 @@ import argparse
 import inspect
 import itertools
 import numpydoc.docscrape
-from IPython.utils.text import wrap_paragraphs
+
 
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
            'MultipleIntAction']
@@ -340,7 +340,17 @@ class NumpydocClassCommand(Command):
             summary += '.'
 
         extended = '\n'.join(doc['Extended Summary'])
-        return '\n'.join((summary, extended))
+
+        notes = ''
+        references = ''
+        if len(doc['Notes']) > 0:
+            notes = '\n'.join(('\nNotes', '------') + tuple(doc['Notes']))
+        if len(doc['References']) > 0:
+            references = '\n'.join(('\nReferences', '----------') +
+                                   tuple(doc['References']))
+
+
+        return '\n'.join((summary, '', extended, notes, references))
 
 
 
@@ -410,7 +420,7 @@ class App(object):
 
                 first_sentence = ' '.join(
                     ' '.join(re.split(r'(?<=[.:;])\s', klass_description)[:1]).split())
-                description = '\n\n'.join(wrap_paragraphs(klass_description))
+                description = klass_description
                 subparser = subparsers.add_parser(
                     klass._get_name(), help=first_sentence, description=description,
                     formatter_class=MyHelpFormatter)
