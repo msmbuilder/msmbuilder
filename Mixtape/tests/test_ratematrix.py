@@ -2,6 +2,7 @@ from __future__ import print_function
 import time
 import numpy as np
 import scipy.linalg
+from scipy.optimize import check_grad
 from mixtape.msm import _ratematrix
 from mixtape.msm import ContinousTimeMSM, MarkovStateModel
 from mixtape.example_datasets import load_doublewell
@@ -69,9 +70,6 @@ def test_dK_dtheta_1():
     for u in range(len(exptheta)):
         dKu = np.zeros((n, n))
         _ratematrix.dK_dtheta_A(exptheta, n, u, None, A, dKu)
-        print(u)
-        print(dKu)
-        print()
         np.testing.assert_array_almost_equal(g(u), dKu)
 
 
@@ -81,7 +79,6 @@ def test_dK_dtheta_2():
     n = 4
     A = np.eye(n)
     _, exp_sp, inds_sp = sparse_exptheta(n)
-    print(exp_sp, inds_sp)
 
     def g(i):
         h = 1e-7
@@ -94,62 +91,78 @@ def test_dK_dtheta_2():
         return (K2 - K1) / h
 
     for u in range(len(exp_sp)):
-        # print(u, inds_sp[u])
-        # print(g(u))
-        # print()
         dKu = np.zeros((n, n))
         _ratematrix.dK_dtheta_A(exp_sp, n, u, inds_sp, A, dKu)
         np.testing.assert_array_almost_equal(g(u), dKu)
-        print('passed u', u)
 
 
-
-def test_dK_dtheta_A_1():
+def test_dk_dtheta_3():
+    # test function `dK_dtheta` against the numerical gradient of `buildK`
+    # using sparse parameterization, plus the matrix multiply
     n = 4
     A = np.random.randn(n, n)
+    _, exp_sp, inds_sp = sparse_exptheta(n)
+
+    def g(i):
+        h = 1e-7
+        e = np.zeros_like(exp_sp)
+        e[i] = h
+        K1 = np.zeros((n, n))
+        K2 = np.zeros((n, n))
+        _ratematrix.buildK(exp_sp, n, inds_sp, K1)
+        _ratematrix.buildK(np.exp(np.log(exp_sp) + e), n, inds_sp, K2)
+        return np.dot((K2 - K1) / h, A)
+
+    for u in range(len(exp_sp)):
+        dKu = np.zeros((n, n))
+        _ratematrix.dK_dtheta_A(exp_sp, n, u, inds_sp, A, dKu)
+        np.testing.assert_array_almost_equal(g(u), dKu)
+
+
+def test_dK_dtheta_4():
+    # test the matrix multiply in dK_dtheta_A
+    n = 4
+    A = np.random.randn(n, n)
+    eye = np.eye(4)
     exptheta = np.exp(np.random.randn(n*(n-1)/2 + n))
 
     for u in range(len(exptheta)):
         dKu = np.zeros((n, n))
         dKuA = np.zeros((n, n))
-        _ratematrix.dK_dtheta(exptheta, n, u, dKu)
+        _ratematrix.dK_dtheta_A(exptheta, n, u, None, eye, dKu)
         _ratematrix.dK_dtheta_A(exptheta, n, u, None, A, dKuA)
         np.testing.assert_array_almost_equal(
             np.dot(dKu, A), dKuA)
 
 
-def test_grad_logl():
+def test_grad_logl_1():
     # test the gradient of the `loglikelihood` against a numerical gradient
     n = 4
     C = np.random.randint(10, size=(n, n)).astype(float)
-    theta = np.random.randn(n*(n-1)/2 + n)
-    exptheta = np.exp(theta)
+    theta0 = np.log(dense_exptheta(n))
 
-    h = 1e-7
-    def bump(i):
-        e = np.zeros_like(exptheta)
-        e[i] = h
-        return e
+    def func(theta):
+        return _ratematrix.loglikelihood(theta, C, n, inds=None, t=1.1)[0]
+    def grad(theta):
+        return _ratematrix.loglikelihood(theta, C, n, inds=None, t=1.1)[1]
 
-    def objective(exptheta, t):
-        K = np.zeros((n, n))
-        _ratematrix.buildK(exptheta, n, K)
-        T = scipy.linalg.expm(K * t)
-        return np.multiply(C, np.log(T)).sum()
+    assert check_grad(func, grad, theta0) < 1e-4
 
-    def deriv(exptheta, i, t):
-        o1 = objective(exptheta, t)
-        o2 = objective(np.exp(np.log(exptheta) + bump(i)), t)
-        return (o2 - o1) / h
 
-    def grad(exptheta, t):
-        g = np.array([deriv(exptheta, i, t) for i in range(len(exptheta))])
-        return objective(exptheta, t), g
+def test_grad_logl_2():
+    # test the gradient of the `loglikelihood` against a numerical gradient
+    # using the sparse parameterization
+    n = 4
+    C = np.random.randint(10, size=(n, n)).astype(float)
+    _, exptheta_sp, inds_sp = sparse_exptheta(n)
+    theta0 = np.log(exptheta_sp)
 
-    analytic_f, analytic_grad = _ratematrix.loglikelihood(theta, C, n, t=1.1)
-    numerical_f, numerical_grad = grad(exptheta, t=1.1)
-    np.testing.assert_array_almost_equal(analytic_grad, numerical_grad, decimal=5)
-    np.testing.assert_almost_equal(analytic_f, numerical_f)
+    def func(theta):
+        return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[0]
+    def grad(theta):
+        return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[1]
+
+    assert check_grad(func, grad, theta0) < 1e-4
 
 
 def _test_hessian():
@@ -178,7 +191,8 @@ def _test_hessian():
     print('sigmaPi\n', _ratematrix.uncertainty_pi(information, theta, n))
 
 
-def _test_fit_1():
+def test_fit_1():
+    # call fit, compare to MSM
     sequence = [0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2]
     model = ContinousTimeMSM(verbose=False)
     model.fit([sequence])
@@ -194,7 +208,7 @@ def _test_fit_2():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
-    model = ContinousTimeMSM(verbose=False, lag_time=10)
+    model = ContinousTimeMSM(verbose=True, lag_time=10)
     model.fit(seqs)
     t1 = np.sort(model.timescales_)
     t2 = -1/np.sort(np.log(np.linalg.eigvals(model.transmat_))[1:])
@@ -202,10 +216,6 @@ def _test_fit_2():
     model = MarkovStateModel(verbose=False, lag_time=10)
     model.fit(seqs)
     t3 = np.sort(model.timescales_)
-
-    print(t1)
-    print(t2)
-    print(t3)
 
     np.testing.assert_array_almost_equal(t1, t2)
     # timescales should be similar to MSM (withing 50%)

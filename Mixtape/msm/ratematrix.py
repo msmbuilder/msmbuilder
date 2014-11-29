@@ -23,7 +23,7 @@ import scipy.optimize
 from multiprocessing import cpu_count
 
 from ..base import BaseEstimator
-from ..utils import list_of_1d
+from ..utils import list_of_1d, printoptions
 from . import _ratematrix
 from .core import _MappingTransformMixin, _transition_counts
 
@@ -68,10 +68,12 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
     """
-    def __init__(self, lag_time=1, prior_counts=0, verbose=True, n_threads=None):
+    def __init__(self, lag_time=1, prior_counts=0, verbose=True,
+                 use_sparse=True, n_threads=None):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.verbose = verbose
+        self.use_sparse = use_sparse
         self.n_threads = n_threads
 
         self.ratemat_ = None
@@ -90,11 +92,11 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         countsmat, mapping = _transition_counts(sequences, lag_time)
 
         n_states = countsmat.shape[0]
-        result = self._optimize(countsmat + self.prior_counts)
+        result, inds = self._optimize(countsmat + self.prior_counts)
 
         exptheta = np.exp(result.x)
         K = np.zeros((n_states, n_states))
-        _ratematrix.buildK(exptheta, n_states, K)
+        _ratematrix.buildK(exptheta, n_states, inds, K)
 
         self.ratemat_ = K
         self.transmat_ = scipy.linalg.expm(self.ratemat_)
@@ -102,15 +104,16 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.n_states_ = n_states
         self.optimizer_state_ = result
         self.mapping_ = mapping
-        self.populations_ = exptheta[n_states*(n_states-1)/2:]
+        self.populations_ = exptheta[-n_states:]
         self.populations_ /= self.populations_.sum()
 
         if self.verbose:
-            print(self.optimizer_state_.message)
-            print('ratemat\n', self.ratemat_)
-            print('transmat\n', self.transmat_)
-            print('populations\n', self.populations_)
-            print('timescales\n', self.timescales_)
+            with printoptions(precision=3):
+                print(self.optimizer_state_.message)
+                print('ratemat\n', self.ratemat_)
+                print('transmat\n', self.transmat_)
+                print('populations\n', self.populations_)
+                print('timescales\n', self.timescales_)
 
         return self
 
@@ -120,28 +123,56 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
     def _optimize(self, countsmat):
         n = countsmat.shape[0]
+        nc2 = int(n*(n-1)/2)
+        theta_cutoff = np.log(1e-8)
 
+        theta0 = self.initial_guess(countsmat)
         lag_time = float(self.lag_time)
         if self.n_threads is None or self.n_threads < 1:
             n_threads = cpu_count()
         else:
             n_threads = int(self.n_threads)
-        def objective(theta):
-            f, g = _ratematrix.loglikelihood(theta, countsmat, n, lag_time, n_threads)
-            return -f, -g
 
-        theta0 = self.initial_guess(countsmat)
+        options = {
+            'iprint': 0 if self.verbose else -1,
+            'ftol': 1e-10,
+            'gtol': 1e-10
+        }
+
+        def objective(theta, inds):
+            f, g = _ratematrix.loglikelihood(
+                theta, countsmat, n, inds, lag_time, n_threads)
+            return -f, -g
 
         # this bound prevents the stationary probability for any state
         # from going below exp(-20), which helps avoid NaNs, since the
         # rate matrix involves terms like pi_i / pi_j, which get iffy
         # numerically as the populations go too close to zero.
-        bounds = [(None, None)]*int(n*(n-1)/2) + [(-20, 0)]*int(n)
+        bounds0 = [(None, None)]*nc2 + [(-20, 0)]*n
+        inds0 = None
+        result0 = scipy.optimize.minimize(
+            fun=objective, x0=theta0, method='L-BFGS-B', jac=True,
+            bounds=bounds0, args=(inds0,), options=options)
 
-        result = scipy.optimize.minimize(
-            fun=objective, x0=theta0, method='L-BFGS-B', jac=True, bounds=bounds,
-            options={'iprint': 0 if self.verbose else -1, 'ftol': 1e-10, 'gtol': 1e-10})
-        return result
+        # now, try rerunning the optimization with theta restricted to only
+        # the dominant elements -- try zeroing out the elements that are too
+        # small.
+        inds1 = np.concatenate((
+            np.where(result0.x[:nc2] > theta_cutoff)[0], nc2 + np.arange(n)))
+
+        if (len(inds1) == nc2 + n) or (not self.use_sparse):
+            return result0, inds0
+
+        bounds1 = [bounds0[i] for i in inds1]
+        result1 = scipy.optimize.minimize(
+            fun=objective, x0=theta0[inds1], method='L-BFGS-B', jac=True,
+            bounds=bounds1, args=(inds1,), options=options)
+
+        if result1.fun < 1.001 * result0.fun:
+            # if the sparse version is better (or even 0.1% worse, then
+            # prefer to return the sparse version)
+            return result1, inds1
+        return result0, inds0
 
     def initial_guess(self, countsmat):
         C = 0.5 * (countsmat + countsmat.T) + self.prior_counts
@@ -151,7 +182,6 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
         K = np.real(scipy.linalg.logm(transmat))
         S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
         sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
-        theta = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
-        print('theta0\n', theta)
+        theta0 = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
 
-        return theta
+        return theta0
