@@ -4,7 +4,7 @@ import numpy as np
 import scipy.linalg
 from scipy.optimize import check_grad
 from mixtape.msm import _ratematrix
-from mixtape.msm import ContinousTimeMSM, MarkovStateModel
+from mixtape.msm import ContinuousTimeMSM, MarkovStateModel
 from mixtape.example_datasets import load_doublewell
 from mixtape.cluster import NDGrid
 np.random.seed(0)
@@ -175,7 +175,7 @@ def test_hessian():
     seqs = [seqs[i] for i in range(10)]
 
     lag_time = 120
-    model = ContinousTimeMSM(verbose=True, lag_time=lag_time)
+    model = ContinuousTimeMSM(verbose=True, lag_time=lag_time)
     model.fit(seqs)
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
@@ -187,7 +187,7 @@ def test_hessian():
 def test_fit_1():
     # call fit, compare to MSM
     sequence = [0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2]
-    model = ContinousTimeMSM(verbose=False)
+    model = ContinuousTimeMSM(verbose=False)
     model.fit([sequence])
 
     msm = MarkovStateModel(verbose=False)
@@ -201,7 +201,7 @@ def test_fit_2():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
-    model = ContinousTimeMSM(verbose=True, lag_time=10)
+    model = ContinuousTimeMSM(verbose=True, lag_time=10)
     model.fit(seqs)
     t1 = np.sort(model.timescales_)
     t2 = -1/np.sort(np.log(np.linalg.eigvals(model.transmat_))[1:])

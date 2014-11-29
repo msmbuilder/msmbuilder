@@ -29,7 +29,7 @@ from . import _ratematrix
 from .core import _MappingTransformMixin, _transition_counts
 
 
-class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
+class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     """Reversible first order master equation model
 
     This model fits a reversible continuous-time Markov model for labeled
@@ -38,18 +38,21 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
     Parameters
     ----------
     lag_time : int
-        The lag time of the model
+        The lag time of the model. Transition counts are collected from the
+        input sequences at this interval.
     prior_counts : float, optional
         Add a number of "pseudo counts" to each entry in the counts matrix.
         When prior_counts == 0 (default), the assigned transition
         probability between two states with no observed transitions will be
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
-    use_sparse : bool
+    use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
-    verbose : bool
+    verbose : bool, default=False
         Verbosity level
-    n_threads : int, optional
+    n_threads : int, default=ALL
+        Number of threads to use in parallel (OpenMP) during fitting. If
+        `None`, one thread is used per CPU core.
 
     Attributes
     ----------
@@ -75,7 +78,7 @@ class ContinousTimeMSM(BaseEstimator, _MappingTransformMixin):
     inds_ : array of shape n*(n+1)/2 or shorter, or None
     """
     def __init__(self, lag_time=1, prior_counts=0, use_sparse=True,
-                 verbose=True, n_threads=None):
+                 verbose=False, n_threads=None):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.verbose = verbose

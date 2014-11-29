@@ -24,7 +24,7 @@ from __future__ import print_function, absolute_import
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..hmm import GaussianFusionHMM
-from ..msm import MarkovStateModel, BayesianMarkovStateModel
+from ..msm import MarkovStateModel, BayesianMarkovStateModel, ContinuousTimeMSM
 from ..cmdline import NumpydocClassCommand, argument
 
 
@@ -65,3 +65,8 @@ class BayesianMarkovStateModelCommand(FitCommand):
     _concrete = True
     _group = 'MSM'
 
+
+class ContinuousTimeMSMCommand(FitCommand):
+    klass = ContinuousTimeMSM
+    _concrete = True
+    _group = 'MSM'
