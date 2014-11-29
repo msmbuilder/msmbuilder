@@ -513,7 +513,8 @@ Timescales:
         u, lv, rv = self._get_eigensystem()
 
         # make sure to leave off equilibrium distribution
-        timescales = - self.lag_time / np.log(u[1:])
+        with np.errstate(invalid='ignore', divide='ignore'):
+            timescales = - self.lag_time / np.log(u[1:])
         return timescales
 
     @property
