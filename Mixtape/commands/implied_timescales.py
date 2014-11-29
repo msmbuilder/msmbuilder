@@ -25,7 +25,7 @@ class ImpliedTimescales(Command):
     fmt = argument('--fmt', help='Output file format', default='csv',
         choices=('csv', 'json', 'excel'))
     _extensions = {'csv': '.csv', 'json': '.json', 'excel': '.xlsx'}
-    
+
     n_jobs = argument('--n_jobs', help='Number of parallel processes', default=1)
 
     p = argument_group('Parameters')
@@ -57,12 +57,12 @@ class ImpliedTimescales(Command):
 
     def __init__(self, args):
         self.args = args
-        
+
     def start(self):
-        parallel = Parallel(n_jobs=self.args.n_jobs, verbose=self.args.verbose)        
+        parallel = Parallel(n_jobs=self.args.n_jobs, verbose=self.args.verbose)
         ds = dataset(self.args.inp, mode='r', fmt='dir-npy')
         kwargs = {
-            'n_timescales': self.args.n_timescales,        
+            'n_timescales': self.args.n_timescales,
             'reversible_type': self.args.reversible_type,
             'ergodic_cutoff': self.args.ergodic_cutoff,
             'prior_counts': self.args.prior_counts,
@@ -72,15 +72,15 @@ class ImpliedTimescales(Command):
         lines = parallel(delayed(_fit_and_timescales)(
                 lag_time, kwargs, ds)
             for lag_time in range(*self.args.lag_times.indices(sys.maxsize)))
-            
+
         cols = ['Lag time',] + ['Timescale %d' % (d+1) for d in range(len(lines[0])-1)]
 
-        df = pd.DataFrame(data=lines, columns=cols)        
+        df = pd.DataFrame(data=lines, columns=cols)
         self.write_output(df)
-        
+
     def write_output(self, df):
-        outfile = os.path.splitext(self.args.out)[0] + self._extensions[self.args.fmt]    
-        
+        outfile = os.path.splitext(self.args.out)[0] + self._extensions[self.args.fmt]
+
         print('Writing %s' % outfile)
         if self.args.fmt == 'csv':
             df.to_csv(outfile)
@@ -90,11 +90,9 @@ class ImpliedTimescales(Command):
         elif self.args.fmt == 'excel':
             df.to_excel(outfile)
         print('All done!')
-        
+
 
 def _fit_and_timescales(lag_time, kwargs, ds):
     model = MarkovStateModel(lag_time=lag_time, **kwargs)
     model.fit(ds)
     return ((lag_time, ) + tuple(model.timescales_))
-    
-        
