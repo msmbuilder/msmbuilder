@@ -1,0 +1,46 @@
+package:
+  name: mixtape-dev
+  version: !!str 3.0.0
+
+#source:
+#  fn: master.zip
+#  url: https://github.com/rmcgibbo/mixtape/archive/master.zip
+
+build:
+  preserve_egg_dir: True
+  number: 0
+  entry_points:
+    - msmb = mixtape.scripts.msmb:main
+
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - cython    
+    - numpy
+    - mdtraj-dev
+  run:
+    - python
+    - setuptools
+    - numpy
+    - scipy
+    - pandas
+    - six
+    - mdtraj-dev
+    - scikit-learn
+    - numpydoc
+    - pytables
+
+
+test:
+  imports:
+    - mixtape
+  commands:
+    - msmb
+  
+  
+about:
+  home: https://github.com/rmcgibbo/mixtape
+  license: LGPLv2.1+
+  summary: 'mixtape: Statistical models for biomolecular dynamics'
