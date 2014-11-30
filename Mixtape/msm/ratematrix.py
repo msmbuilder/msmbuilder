@@ -26,6 +26,7 @@ from multiprocessing import cpu_count
 from ..base import BaseEstimator
 from ..utils import list_of_1d, printoptions
 from . import _ratematrix
+from ._markovstatemodel import _transmat_mle_prinz
 from .core import _MappingTransformMixin, _transition_counts
 
 
@@ -149,8 +150,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         options = {
             'iprint': 0 if self.verbose else -1,
-            'ftol': 1e-10,
-            'gtol': 1e-10
+            #'ftol': 1e-10,
+            #'gtol': 1e-10
         }
 
         def objective(theta, inds):
@@ -182,17 +183,17 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         bounds1 = [bounds0[i] for i in inds1]
         result1 = scipy.optimize.minimize(
-            fun=objective, x0=theta0[inds1], method='L-BFGS-B', jac=True,
+            fun=objective, x0=result0.x[inds1], method='L-BFGS-B', jac=True,
             bounds=bounds1, args=(inds1,), options=options)
 
         if result1.fun < result0.fun:
             if self.verbose:
-                print('[ContinuousTimeMSM] %d rates forced to zero' %
+                print('[ContinuousTimeMSM] %d rates pegged to zero' %
                       (nc2 + n - len(inds1)))
             return result1, inds1
 
         if self.verbose:
-            print('[ContinuousTimeMSM] No rates forced to zero')
+            print('[ContinuousTimeMSM] No rates pegged to zero')
         return result0, inds0
 
     def uncertainty_K(self):
@@ -216,9 +217,10 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         return sigma_pi
 
     def initial_guess(self, countsmat):
-        C = 0.5 * (countsmat + countsmat.T) + self.prior_counts
-        pi = C.sum(axis=0) / C.sum(dtype=float)
-        transmat = C.astype(float) / C.sum(axis=1)[:, None]
+        # C = 0.5 * (countsmat + countsmat.T) + self.prior_counts
+        # pi = C.sum(axis=0) / C.sum(dtype=float)
+        # transmat = C.astype(float) / C.sum(axis=1)[:, None]
+        transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
 
         K = np.real(scipy.linalg.logm(transmat))
         S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
@@ -229,7 +231,9 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
     def _get_n_threads(self):
         if self.n_threads is None or self.n_threads < 1:
-            return cpu_count()
+            if _ratematrix._supports_openmp():
+                return cpu_count()
+            return 1
         return int(self.n_threads)
 
     def _build_information(self):

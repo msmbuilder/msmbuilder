@@ -653,3 +653,8 @@ def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta,
         sigma_pi[i] = pi[i] * invhessian[size-n+i, size-n+i]
 
     return np.asarray(sigma_pi)
+
+def _supports_openmp():
+    IF OPENMP:
+        return True
+    return False
