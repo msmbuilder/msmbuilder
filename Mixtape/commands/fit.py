@@ -21,6 +21,8 @@
 
 from __future__ import print_function, absolute_import
 
+import os
+
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..hmm import GaussianFusionHMM
@@ -30,16 +32,20 @@ from ..cmdline import NumpydocClassCommand, argument, exttype
 
 class FitCommand(NumpydocClassCommand):
     inp = argument(
-        '--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True)
+        '-i', '--inp', help='''Input dataset. This should be serialized
+        list of numpy arrays.''', required=True, type=os.path.expanduser)
     model = argument(
-        '--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object.''', required=True, type=exttype('.pkl'))
+        '-o', '--out', help='''Output (fit) model. This will be a
+        serialized instance of the fit model object.''', required=True,
+        type=exttype('.pkl'))
 
     def start(self):
+        if not os.path.exists(self.inp):
+            self.error('File does not exist: %s' % self.inp)
+
         print(self.instance)
 
-        ds = dataset(self.inp, mode='r', fmt='dir-npy')
+        ds = dataset(self.inp, mode='r')
         self.instance.fit(ds)
 
         print("*********\n*RESULTS*\n*********")

@@ -94,10 +94,9 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
         sequence_new : list of array-like, each of shape (n_samples_i, n_components)
         """
         check_iter_of_sequences(sequences)
-        s = super(MultiSequenceDecompositionMixin, self)
         transforms = []
-        for sequence in sequences:
-            transforms.append(s.transform(sequence))
+        for X in sequences:
+            transforms.append(self.partial_transform(X))
         return transforms
 
     def fit_transform(self, sequences, y=None):
@@ -119,3 +118,17 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
         transforms = self.transform(sequences)
 
         return transforms
+
+    def partial_transform(self, sequence):
+        """Apply dimensionality reduction to single sequence
+
+        Parameters
+        ----------
+        sequence: array like, shape (n_samples, n_features)
+            A single sequence to transform
+
+        Returns
+        -------
+        out : array like, shape (n_samples, n_features)
+        """
+        return super(MultiSequenceDecompositionMixin, self).transform(sequence)

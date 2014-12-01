@@ -75,6 +75,11 @@ except ImportError:
     print('-'*35, file=sys.stderr)
     raise
 
+# Work around a very odd bug in pytables, where it destroys arguments in
+# sys.argv when imported
+# https://github.com/PyTables/PyTables/issues/405
+SAVED_SYSARGV = copy.copy(sys.argv)
+
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
            'MultipleIntAction']
 
@@ -373,7 +378,7 @@ class App(object):
         self.name = name
         self.description = description
         if argv is None:
-            argv = sys.argv[1:]
+            argv = SAVED_SYSARGV[1:]
         if len(argv) == 0:
             argv.append('-h')
         self.parser = self._build_parser()
@@ -469,6 +474,12 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter,
         super(MyHelpFormatter, self).__init__(*args, **kwargs)
         self._action_max_length = action_max_length
 
+    def _get_help_string(self, action):
+        help = action.help
+        if action.default:
+            return super(MyHelpFormatter, self)._get_help_string(action)
+        return help
+
 
 def slicetype(s):
     split = s.split(':')
@@ -485,6 +496,8 @@ def exttype(suffix):
     Especially for output files, so that we can enforce the use of appropriate
     file-type specific suffixes"""
     def inner(s):
+        if s == '':
+            return s
         first, last = os.path.splitext(s)
         return first + suffix
     return inner
