@@ -1,10 +1,10 @@
 msmb AlanineDipeptide
-msmb AtomIndices --out atom_indices.dat \
+msmb AtomIndices --out atom_indices.txt \
      -p ~/mixtape_data/alanine_dipeptide/ala2.pdb \
      -d --heavy
 msmb AtomPairsFeaturizer --out atom_pairs \
     --trjs '~/mixtape_data/alanine_dipeptide/*.dcd' \
-    --pair_indices atom_indices.dat \
+    --pair_indices atom_indices.txt \
     --top ~/mixtape_data/alanine_dipeptide/ala2.pdb
 msmb MiniBatchKMeans --n_clusters 100 \
     --batch_size 1000 \

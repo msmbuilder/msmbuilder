@@ -45,8 +45,8 @@ class FitCommand(NumpydocClassCommand):
 
         print(self.instance)
 
-        ds = dataset(self.inp, mode='r')
-        self.instance.fit(ds)
+        inp_ds = dataset(self.inp, mode='r')
+        self.instance.fit(inp_ds)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())

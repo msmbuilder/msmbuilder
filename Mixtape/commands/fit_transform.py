@@ -56,7 +56,7 @@ class FitTransformCommand(NumpydocClassCommand):
         default='', type=exttype('.h5'))
 
     def load_dataset(self):
-        return dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
+        return dataset(self.inp, mode='r', verbose=False)
 
     def start(self):
         if self.out is '' and self.transformed is '':
@@ -64,7 +64,7 @@ class FitTransformCommand(NumpydocClassCommand):
         if self.transformed is not '' and os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
 
-        inpds = self.load_dataset()
+        inp_ds = self.load_dataset()
         print(self.instance)
 
         print("Fitting model...")
@@ -138,7 +138,7 @@ class TrajectoryClusterCommand(FitTransformCommand):
             # THIS IS KIND OF A HACK
             return dataset(self.inp, fmt='mdtraj', topology=self.top,
                            stride=self.stride, verbose=False)
-        return dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
+        return dataset(self.inp, mode='r', verbose=False)
 
 
 class tICACommand(FitTransformCommand):
