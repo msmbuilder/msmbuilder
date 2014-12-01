@@ -88,6 +88,8 @@ class ImpliedTimescales(Command):
                 json.dump(df.to_dict(orient='records'), f)
         elif self.args.fmt == 'excel':
             df.to_excel(outfile)
+        else:
+            raise RuntimeError('unknown fmt: %s' % fmt)
         print('All done!')
 
 
