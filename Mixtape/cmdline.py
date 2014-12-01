@@ -54,14 +54,26 @@ if __name__ == '__main__':
 from __future__ import print_function, division, absolute_import
 from six import with_metaclass
 import re
+import os
 import sys
 import abc
 import copy
 import argparse
 import inspect
 import itertools
-import numpydoc.docscrape
-from IPython.utils.text import wrap_paragraphs
+try:
+    import numpydoc.docscrape
+except ImportError:
+    print('-'*35, file=sys.stderr)
+    print('              ERROR', file=sys.stderr)
+    print('-'*35, file=sys.stderr)
+    print('The package `numpydoc` is required.\n', file=sys.stderr)
+    print('Try:', file=sys.stderr)
+    print('  $ conda install numpydoc', file=sys.stderr)
+    print('or', file=sys.stderr)
+    print('  $ pip install numpydoc', file=sys.stderr)
+    print('-'*35, file=sys.stderr)
+    raise
 
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
            'MultipleIntAction']
@@ -340,7 +352,17 @@ class NumpydocClassCommand(Command):
             summary += '.'
 
         extended = '\n'.join(doc['Extended Summary'])
-        return '\n'.join((summary, extended))
+
+        notes = ''
+        references = ''
+        if len(doc['Notes']) > 0:
+            notes = '\n'.join(('\nNotes', '------') + tuple(doc['Notes']))
+        if len(doc['References']) > 0:
+            references = '\n'.join(('\nReferences', '----------') +
+                                   tuple(doc['References']))
+
+
+        return '\n'.join((summary, '', extended, notes, references))
 
 
 
@@ -410,7 +432,7 @@ class App(object):
 
                 first_sentence = ' '.join(
                     ' '.join(re.split(r'(?<=[.:;])\s', klass_description)[:1]).split())
-                description = '\n\n'.join(wrap_paragraphs(klass_description))
+                description = klass_description
                 subparser = subparsers.add_parser(
                     klass._get_name(), help=first_sentence, description=description,
                     formatter_class=MyHelpFormatter)
@@ -448,7 +470,7 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter,
         self._action_max_length = action_max_length
 
 
-def slice_type(s):
+def slicetype(s):
     split = s.split(':')
 
     if len(split) == 2:
@@ -456,3 +478,13 @@ def slice_type(s):
     elif len(split) == 3:
         return slice(int(split[0]), int(split[1]) + 1, int(split[2]))
     raise ValueError(s)
+
+
+def exttype(suffix):
+    """Type for use with argument(... type=) that will force a specific suffix
+    Especially for output files, so that we can enforce the use of appropriate
+    file-type specific suffixes"""
+    def inner(s):
+        first, last = os.path.splitext(s)
+        return first + suffix
+    return inner

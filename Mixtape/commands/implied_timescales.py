@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.externals.joblib import Parallel, delayed
 
 from ..dataset import dataset
-from ..cmdline import Command, argument, argument_group, slice_type, FlagAction
+from ..cmdline import Command, argument, argument_group, slicetype, FlagAction
 from ..msm import MarkovStateModel
 
 
@@ -16,7 +16,7 @@ class ImpliedTimescales(Command):
     _group = 'MSM'
     _concrete = True
     description = "Scan the implied timescales of `MarkovStateModel`s with respect to lag time"
-    lag_times = argument('-l', '--lag_times', default='1:10', type=slice_type, help='''
+    lag_times = argument('-l', '--lag_times', default='1:10', type=slicetype, help='''
         Range of lag times. Specify as 'start:stop' or 'start:stop:step''')
     inp = argument(
         '--inp', help='''Input dataset. This should be serialized
