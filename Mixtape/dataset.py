@@ -46,7 +46,7 @@ def _guess_format(path):
     if path.endswith('.h5') or path.endswith('.hdf5'):
         return HDF5Dataset
 
-    raise ValueError('Could not guess format: %s' % path)
+    return MDTrajDataset
 
 
 class _BaseDataset(Sequence):

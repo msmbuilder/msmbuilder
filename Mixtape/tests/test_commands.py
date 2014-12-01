@@ -82,25 +82,25 @@ def test_atomindices():
     fn = get_mdtraj_fn('2EQQ.pdb')
     t = md.load(fn)
     with tempdir():
-        shell('msmb AtomIndices -o all.dat --all -a -p %s' % fn)
-        shell('msmb AtomIndices -o all-pairs.dat --all -d -p %s' % fn)
-        atoms = np.loadtxt('all.dat', int)
-        pairs =  np.loadtxt('all-pairs.dat', int)
+        shell('msmb AtomIndices -o all.txt --all -a -p %s' % fn)
+        shell('msmb AtomIndices -o all-pairs.txt --all -d -p %s' % fn)
+        atoms = np.loadtxt('all.txt', int)
+        pairs =  np.loadtxt('all-pairs.txt', int)
         eq(t.n_atoms, len(atoms))
         eq(int(t.n_atoms * (t.n_atoms-1) / 2), len(pairs))
 
     with tempdir():
-        shell('msmb AtomIndices -o heavy.dat --heavy -a -p %s' % fn)
-        shell('msmb AtomIndices -o heavy-pairs.dat --heavy -d -p %s' % fn)
-        atoms = np.loadtxt('heavy.dat', int)
-        pairs = np.loadtxt('heavy-pairs.dat', int)
+        shell('msmb AtomIndices -o heavy.txt --heavy -a -p %s' % fn)
+        shell('msmb AtomIndices -o heavy-pairs.txt --heavy -d -p %s' % fn)
+        atoms = np.loadtxt('heavy.txt', int)
+        pairs = np.loadtxt('heavy-pairs.txt', int)
         assert all(t.topology.atom(i).element.symbol != 'H' for i in atoms)
         assert sum(1 for a in t.topology.atoms if a.element.symbol != 'H') == len(atoms)
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
     
     with tempdir():
-        shell('msmb AtomIndices -o alpha.dat --alpha -a -p %s' % fn)
-        shell('msmb AtomIndices -o alpha-pairs.dat --alpha -d -p %s' % fn)
+        shell('msmb AtomIndices -o alpha.txt --alpha -a -p %s' % fn)
+        shell('msmb AtomIndices -o alpha-pairs.txt --alpha -d -p %s' % fn)
         atoms = np.loadtxt('alpha.dat', int)
         pairs = np.loadtxt('alpha-pairs.dat', int)
         assert all(t.topology.atom(i).name == 'CA' for i in atoms)
@@ -108,38 +108,38 @@ def test_atomindices():
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
 
     with tempdir():
-        shell('msmb AtomIndices -o minimal.dat --minimal -a -p %s' % fn)
-        shell('msmb AtomIndices -o minimal-pairs.dat --minimal -d -p %s' % fn)
-        atoms = np.loadtxt('minimal.dat', int)
-        pairs = np.loadtxt('minimal-pairs.dat', int)
+        shell('msmb AtomIndices -o minimal.txt --minimal -a -p %s' % fn)
+        shell('msmb AtomIndices -o minimal-pairs.txt --minimal -d -p %s' % fn)
+        atoms = np.loadtxt('minimal.txt', int)
+        pairs = np.loadtxt('minimal-pairs.txt', int)
         assert all(t.topology.atom(i).name in ['CA', 'CB', 'C', 'N' , 'O'] for i in atoms)
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
 
 
 def test_superpose_featurizer():
     with tempdir():
-        shell('msmb AtomIndices -o all.dat --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
+        shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
         shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out distances --atom_indices all.dat"
+              " --out distances --atom_indices all.txt"
               " --reference_traj {data_home}/alanine_dipeptide/ala2.pdb"
               " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
                   data_home=get_data_home()))
         ds = dataset('distances')
         assert len(ds) == 10
-        assert ds[0].shape[1] == len(np.loadtxt('all.dat'))
+        assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
 
 def test_atom_pairs_featurizer():
     with tempdir():
-        shell('msmb AtomIndices -o all.dat --all -d -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
+        shell('msmb AtomIndices -o all.txt --all -d -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
         shell("msmb AtomPairsFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out pairs --pair_indices all.dat"
+              " --out pairs --pair_indices all.txt"
               " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
                   data_home=get_data_home()))
         ds = dataset('pairs')
         assert len(ds) == 10
-        assert ds[0].shape[1] == len(np.loadtxt('all.dat')**2)
+        assert ds[0].shape[1] == len(np.loadtxt('all.txt')**2)
         print(ds.provenance)
 
 

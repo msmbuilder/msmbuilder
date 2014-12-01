@@ -32,6 +32,9 @@ class FeaturizerCommand(NumpydocClassCommand):
 
 
     def start(self):
+        if os.path.exists(self.out):
+            self.error('File exists: %s' % self.out)
+
         print(self.instance)
         if os.path.exists(self.top):
             top = self.top

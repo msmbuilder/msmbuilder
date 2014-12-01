@@ -43,7 +43,7 @@ class FitTransformCommand(NumpydocClassCommand):
     inp = g1.add_argument(
         '-i', '--inp', help='''Path to input dataset. Each dataset is a
         collection of sequences, which may either be an array or Trajectory,
-        depending on the model.''', required=True, type=os.path.expanduser)
+        depending on the model.''', required=True)
     g2 = argument_group('output', description='use one or both of the following')
     out = g2.add_argument(
         '-o', '--out', help='''Path to save fit model instance. This is the
@@ -60,8 +60,6 @@ class FitTransformCommand(NumpydocClassCommand):
             self.error('One of --out or --model should be specified')
         if self.transformed is not '' and os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
-        if not os.path.exists(self.inp):
-            self.error('File does not exist: %s' % self.inp)
 
         print(self.instance)
 
