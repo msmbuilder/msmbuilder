@@ -41,7 +41,7 @@ class FitTransformCommand(NumpydocClassCommand):
 
     inp = argument(
         '-i', '--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True)
+        list of numpy arrays.''', required=True, type=os.path.expanduser)
     out = argument(
         '-o', '--out', help='''Output (fit) model. This will be a
         serialized instance of the fit model object (optional).''',
