@@ -57,6 +57,8 @@ class FitTransformCommand(NumpydocClassCommand):
             self.error('One of --out or --model should be specified')
         if self.transformed is not '' and os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
+        if not os.path.exists(self.inp):
+            self.error('File does not exist: %s' % self.inp)
 
         print(self.instance)
 
