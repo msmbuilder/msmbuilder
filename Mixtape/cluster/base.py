@@ -87,7 +87,8 @@ class MultiSequenceClusterMixin(object):
         return [concat[cl - l: cl] for (cl, l) in zip(np.cumsum(self.__lengths), self.__lengths)]
 
     def predict(self, sequences, y=None):
-        """Predict the closest cluster each sample in X belongs to.
+        """Predict the closest cluster each sample in each sequence in
+        sequences belongs to.
 
         In the vector quantization literature, `cluster_centers_` is called
         the code book and each value returned by `predict` is the index of
@@ -107,11 +108,30 @@ class MultiSequenceClusterMixin(object):
         """
         predictions = []
         check_iter_of_sequences(sequences, allow_trajectory=self._allow_trajectory)
-        for sequence in sequences:
-            if isinstance(sequence, md.Trajectory):
-                sequence.center_coordinates()
-            predictions.append(super(MultiSequenceClusterMixin, self).predict(sequence))
+        for X in sequences:
+            predictions.append(self.partial_predict(X))
         return predictions
+
+    def partial_predict(X, y=None):
+        """Predict the closest cluster each sample in X belongs to.
+
+        In the vector quantization literature, `cluster_centers_` is called
+        the code book and each value returned by `predict` is the index of
+        the closest code in the code book.
+
+        Parameters
+        ----------
+        X : array-like shape=(n_samples, n_features)
+            A single timeseries.
+
+        Returns
+        -------
+        Y : array, shape=(n_samples,)
+            Index of the cluster that each sample belongs to
+        """
+        if isinstance(X, md.Trajectory):
+            X.center_coordinates()
+        return super(MultiSequenceClusterMixin, self).predict(sequence)
 
     def fit_predict(self, sequences, y=None):
         """Performs clustering on X and returns cluster labels.
@@ -142,6 +162,10 @@ class MultiSequenceClusterMixin(object):
     def transform(self, sequences):
         """Alias for predict"""
         return self.predict(sequences)
+
+    def partial_transform(self, X):
+        """Alias for partial_predict"""
+        return self.partial_predict(X)
 
     def fit_transform(self, sequences, y=None):
         """Alias for fit_predict"""

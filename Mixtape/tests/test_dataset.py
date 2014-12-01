@@ -8,13 +8,15 @@ from nose.tools import assert_raises
 from mixtape.dataset import dataset
 from mdtraj.testing import get_fn
 
+from .test_commands import tempdir
+
 
 def test_1():
     path = tempfile.mkdtemp()
     shutil.rmtree(path)
     try:
         X = np.random.randn(10,2)
-        ds = dataset(path, 'w')
+        ds = dataset(path, 'w', 'dir-npy')
         ds[0] = X
         assert set(os.listdir(path)) == set(('PROVENANCE.txt', '00000000.npy'))
         np.testing.assert_array_equal(ds[0], X)
@@ -47,10 +49,11 @@ def test_2():
 
         X = np.random.randn(10,2)
         Y = np.random.randn(10,2)
-        ds1 = dataset(path1, 'w')
+        ds1 = dataset(path1, 'w', 'dir-npy')
         ds1[0] = X
 
-        ds2 = ds1.write_derived(path2, [Y])
+        ds2 = ds1.create_derived(path2)
+        ds2[0] = Y
 
         np.testing.assert_array_equal(ds1[0], X)
         np.testing.assert_array_equal(ds2[0], Y)
@@ -72,7 +75,7 @@ def test_3():
     path = tempfile.mkdtemp()
     shutil.rmtree(path)
     try:
-         ds = dataset(path, 'w')
+         ds = dataset(path, 'w', 'dir-npy')
          ds[0] = np.random.randn(10,2)
          ds[1] = np.random.randn(10,2)
          ds[2] = np.random.randn(10,2)
@@ -92,7 +95,7 @@ def test_4():
     path = tempfile.mkdtemp()
     shutil.rmtree(path)
     try:
-         ds = dataset(path, 'w')
+         ds = dataset(path, 'w', 'dir-npy')
          ds[0] = np.random.randn(10,2)
          v = ds.get(0, mmap=True)
          assert isinstance(v, np.memmap)
@@ -112,3 +115,34 @@ def test_mdtraj_1():
     print(ds.keys())
     print(ds.get(0))
     print(ds.provenance)
+
+
+def test_hdf5_1():
+    with tempdir():
+        ds = dataset('ds.h5', 'w', 'hdf5')
+        print(ds.provenance)
+        ds[0] = np.zeros(10)
+        np.testing.assert_array_equal(ds.get(0), np.zeros(10))
+        assert list(ds.keys()) == [0]
+        assert len(ds) == 1
+
+        ds[0] = np.random.randn(10,1)
+        ds[1] = np.random.randn(10,2)
+        ds[2] = np.random.randn(10,3)
+
+        np.testing.assert_array_equal(ds[:][0], ds[0])
+        np.testing.assert_array_equal(ds[:][1], ds[1])
+        np.testing.assert_array_equal(ds[:][2], ds[2])
+
+        np.testing.assert_array_equal(ds[1:][0], ds[1])
+        np.testing.assert_array_equal(ds[1:][1], ds[2])
+
+        ds.close()
+        with dataset('ds.h5') as ds:
+            assert ds[0].shape == (10, 1)
+
+def test_hdf5_2():
+    with tempdir():
+        ds = dataset('ds.h5', 'w', 'hdf5')
+        ds2 = ds.create_derived('ds2.h5')
+        print(ds2.provenance)

@@ -11,21 +11,42 @@ import itertools
 from datetime import datetime
 from collections import Sequence
 
+import tables
 import mdtraj as md
 from mdtraj.core.trajectory import _parse_topology
 import numpy as np
 from . import version
 
-__all__ = ['dataset', 'NumpyDirDataset']
+__all__ = ['dataset']
 
 
-def dataset(path, mode='r', fmt='dir-npy', verbose=False, **kwargs):
+def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
+    if mode == 'r' and fmt is None:
+        return _guess_format(path)(path, mode=mode, verbose=verbose, **kwargs)
+    if mode == 'w' and fmt is None:
+        raise ValueError('mode="w", but no fmt. fmt=%s' % fmt)
+
     if fmt == 'dir-npy':
         return NumpyDirDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'mdtraj':
         return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
+    elif fmt == 'hdf5':
+        return HDF5Dataset(path, mode=mode, verbose=verbose, **kwargs)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("unknown fmt: %s" % fmt)
+
+
+def _guess_format(path):
+    if not isinstance(path, str):
+        return MDTrajDataset
+
+    if os.path.isdir(path):
+        return NumpyDirDataset
+
+    if path.endswith('.h5') or path.endswith('.hdf5'):
+        return HDF5Dataset
+
+    raise ValueError('Could not guess format: %s' % path)
 
 
 class _BaseDataset(Sequence):
@@ -56,16 +77,12 @@ class _BaseDataset(Sequence):
             os.makedirs(path)
             self._write_provenance()
 
-    def write_derived(self, out_path, sequences, comments='', fmt=None):
+    def create_derived(self, out_path,  comments='', fmt=None):
         if fmt is None:
             out_dataset = self.__class__(out_path, mode='w', verbose=self.verbose)
         else:
             out_dataset =  dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
-
-        for i, x in enumerate(sequences):
-            out_dataset[i] = x
-        out_dataset._write_provenance(previous=self.provenance,
-                                      comments=comments)
+        out_dataset._write_provenance(previous=self.provenance, comments=comments)
         return out_dataset
 
 
@@ -114,6 +131,18 @@ class _BaseDataset(Sequence):
 
     def set(self, i, x):
         raise NotImplementedError('implemeneted in subclass')
+
+    def close(self):
+        pass
+
+    def flush(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
 
 
 class NumpyDirDataset(_BaseDataset):
@@ -178,6 +207,71 @@ class NumpyDirDataset(_BaseDataset):
         with open(join(self.path, self._PROVENANCE_FILE), 'w') as f:
             p = self._build_provenance(previous=previous, comments=comments)
             f.write(p)
+
+
+class HDF5Dataset(_BaseDataset):
+    _ITEM_FORMAT = 'arr_%d'
+    _ITEM_RE = re.compile('arr_(\d+)')
+
+    def __init__(self, path, mode='r', verbose=False):
+        if mode not in ('r', 'w'):
+            raise ValueError('mode must be one of "r", "w"')
+        if mode == 'w':
+            if exists(path):
+                raise ValueError('File exists: %s' % path)
+
+        zlib = tables.Filters(complevel=9, complib='zlib', shuffle=True)
+        self._handle = tables.open_file(path, mode=mode, filters=zlib)
+
+        self.path = path
+        self.mode = mode
+        self.verbose = verbose
+
+        if mode == 'w':
+            self._write_provenance()
+
+    def get(self, i, mmap=False):
+        if isinstance(i, slice):
+            items = []
+            start, stop, step = i.indices(len(self))
+            for ii in itertools.islice(itertools.count(), start, stop, step):
+                items.append(self.get(ii))
+            return items
+
+        return self._handle.get_node('/', self._ITEM_FORMAT % i)[:]
+
+    def keys(self):
+        for node in self._handle.iter_nodes('/'):
+            match = self._ITEM_RE.match(node.name)
+            if match:
+                yield int(match.group(1))
+
+    def set(self, i, x):
+        if 'w' not in self.mode:
+            raise IOError('Dataset not opened for writing')
+
+        try:
+            self._handle.create_carray('/', self._ITEM_FORMAT % i, obj=x)
+        except tables.exceptions.NodeError:
+            self._handle.remove_node('/', self._ITEM_FORMAT % i)
+            self.set(i, x)
+
+    @property
+    def provenance(self):
+        try:
+            return self._handle.root._v_attrs['provenance']
+        except KeyError:
+            return 'No available provenance'
+
+    def _write_provenance(self, previous=None, comments=''):
+        p = self._build_provenance(previous=previous, comments=comments)
+        self._handle.root._v_attrs['provenance'] = p
+
+    def close(self):
+        self._handle.close()
+
+    def flush(self):
+        self._handle.flush()
 
 
 class MDTrajDataset(_BaseDataset):

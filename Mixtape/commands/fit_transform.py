@@ -28,7 +28,7 @@ import os
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
-from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
+from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans)
 from ..cmdline import NumpydocClassCommand, argument, exttype
 
@@ -55,15 +55,19 @@ class FitTransformCommand(NumpydocClassCommand):
             self.error('File exists: %s' % self.transformed)
 
         inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
+        print("Fitting model...")
         self.instance.fit(inpds)
+        outds = inpds.create_derived(self.transformed)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
         print('-' * 80)
 
         if self.transformed is not '':
-            out_sequences = self.instance.transform(inpds)
-            inpds.write_derived(self.transformed, out_sequences)
+            for key in inpds.keys():
+                inseq = inps.get(key)
+                outds[key] = self.instance.partial_transform(inseq)
+
             print("Saving transformed dataset to '%s'" % self.transformed)
             print("To load this dataset interactive inside an IPython")
             print("shell or notebook, run\n")
