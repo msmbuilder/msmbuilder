@@ -11,7 +11,7 @@ msmb MiniBatchKMeans --n_clusters 100 \
     --inp atom_pairs \
     --transformed kmedoids_centers
 msmb MarkovStateModel --inp kmedoids_centers \
-    --out /dev/null
+    --out msm.pkl
 
 msmb tICA --inp atom_pairs/ --transformed atom_pairs_tica/ \
     --n_components 4 \
