@@ -25,7 +25,7 @@ from ..dataset import dataset
 from ..utils import verbosedump
 from ..hmm import GaussianFusionHMM
 from ..msm import MarkovStateModel, BayesianMarkovStateModel
-from ..cmdline import NumpydocClassCommand, argument
+from ..cmdline import NumpydocClassCommand, argument, exttype
 
 
 class FitCommand(NumpydocClassCommand):
@@ -34,19 +34,24 @@ class FitCommand(NumpydocClassCommand):
         list of numpy arrays.''', required=True)
     model = argument(
         '--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object.''', required=True)
+        serialized instance of the fit model object.''', required=True, type=exttype('.pkl'))
 
     def start(self):
         print(self.instance)
 
         ds = dataset(self.inp, mode='r', fmt='dir-npy')
         self.instance.fit(ds)
-        verbosedump(self.instance, self.out)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
-        print("")
-        print('All done')
+        print('-' * 80)
+
+        verbosedump(self.instance, self.out)
+        print("To load this %s object interactively inside an IPython\n"
+              "shell or notebook, run: \n" % self.klass.__name__)
+        print("  $ ipython")
+        print("  >>> from mixtape.utils import load")
+        print("  >>> model = load('%s')\n" % self.out)
 
 
 class GaussianFusionHMMCommand(FitCommand):

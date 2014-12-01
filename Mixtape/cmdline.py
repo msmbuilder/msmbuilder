@@ -54,6 +54,7 @@ if __name__ == '__main__':
 from __future__ import print_function, division, absolute_import
 from six import with_metaclass
 import re
+import os
 import sys
 import abc
 import copy
@@ -445,3 +446,12 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
         action_max_length = kwargs.pop('action_max_length', 0)
         super(MyHelpFormatter, self).__init__(*args, **kwargs)
         self._action_max_length = action_max_length
+
+def exttype(suffix):
+    """Type for use with argument(... type=) that will force a specific suffix
+    Especially for output files, so that we can enforce the use of appropriate
+    file-type specific suffixes"""
+    def inner(s):
+        first, last = os.path.splitext(s)
+        return first + suffix
+    return inner

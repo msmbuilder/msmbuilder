@@ -163,7 +163,9 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
-        raw_counts, mapping = _transition_counts(sequences, self.lag_time)
+        if int(self.lag_time) <= 0:
+            raise ValueError('Invalid lag_time: %s' % self.lag_time)
+        raw_counts, mapping = _transition_counts(sequences, int(self.lag_time))
 
         if self.ergodic_cutoff >= 1:
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
