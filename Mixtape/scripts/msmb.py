@@ -1,8 +1,7 @@
-#!/usr/bin/env python
-"""Construct models of high-dimensional time-series data."""
-from mixtape.cmdline import App
+"""Statistical models for biomolecular dynamics"""
+from ..cmdline import App
+from ..commands import *
 # the commands register themselves when they're imported
-from mixtape.commands import *
 
 
 class MSMBuilderApp(App):
@@ -13,5 +12,10 @@ class MSMBuilderApp(App):
         return sorted(cmds, key=lambda e: ''.join(x.__name__ for x in e.mro()))
 
 
-app = MSMBuilderApp(name='MSMBuilder', description=__doc__)
-app.start()
+def main():
+    app = MSMBuilderApp(name='MSMBuilder', description=__doc__)
+    app.start()
+
+
+if __name__ == '__main__':
+    main()

@@ -524,8 +524,6 @@ class GaussianFusionHMM(BaseEstimator):
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
         GaussianFusionHMM.draw_samples : Draw samples from GHMM
-
-
         """
 
         logprob = [sklearn.mixture.log_multivariate_normal_density(
