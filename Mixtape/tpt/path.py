@@ -41,7 +41,7 @@ References
        coarse-grained protein dynamics. J. Chem. Phys.
        130, 205102 (2009).
 .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion with Graphs.
-       Numeriche Mathematic 1, 269-271 (1959).
+       Numeriche Mathematik 1, 269-271 (1959).
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
@@ -89,7 +89,7 @@ def top_path(sources, sinks, net_flux):
            coarse-grained protein dynamics. J. Chem. Phys.
            130, 205102 (2009).
     .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion with Graphs.
-           Numeriche Mathematic 1, 269-271 (1959).
+           Numeriche Mathematik 1, 269-271 (1959).
     """
     sources = np.array(sources, dtype=np.int).reshape((-1,))
     sinks = np.array(sinks, dtype=np.int).reshape((-1,))
@@ -275,7 +275,7 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
            coarse-grained protein dynamics. J. Chem. Phys.
            130, 205102 (2009).
     .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion with Graphs.
-           Numeriche Mathematic 1, 269-271 (1959).
+           Numeriche Mathematik 1, 269-271 (1959).
     """
 
     if not callable(remove_path):
