@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.externals.joblib import Parallel, delayed
 
 from ..dataset import dataset
-from ..cmdline import Command, argument, argument_group, slicetype, FlagAction
+from ..cmdline import Command, argument, argument_group, slicetype, FlagAction, exttype
 from ..msm import MarkovStateModel
 
 
@@ -19,8 +19,8 @@ class ImpliedTimescales(Command):
     lag_times = argument('-l', '--lag_times', default='1:10', type=slicetype, help='''
         Range of lag times. Specify as 'start:stop' or 'start:stop:step''')
     inp = argument(
-        '--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True)
+        '-i', '--inp', help='''Path to input dataset, a collection of 1D integer sequences
+        (such as the output from clustering)''', required=True)
     out = argument('--out', help='''Output file''',
         default='timescales.csv')
     fmt = argument('--fmt', help='Output file format', default='csv',
@@ -29,7 +29,7 @@ class ImpliedTimescales(Command):
 
     n_jobs = argument('--n_jobs', help='Number of parallel processes', default=1)
 
-    p = argument_group('Parameters')
+    p = argument_group('MSM parameters')
     n_timescales = p.add_argument('--n_timescales', default=10, help='''
         The number of dynamical timescales to calculate when diagonalizing
         the transition matrix.''',  type=int)
@@ -61,7 +61,7 @@ class ImpliedTimescales(Command):
 
     def start(self):
         parallel = Parallel(n_jobs=self.args.n_jobs, verbose=self.args.verbose)
-        ds = dataset(self.args.inp, mode='r', fmt='dir-npy')
+        ds = dataset(self.args.inp, mode='r')
         kwargs = {
             'n_timescales': self.args.n_timescales,
             'reversible_type': self.args.reversible_type,

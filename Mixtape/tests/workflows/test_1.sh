@@ -9,3 +9,5 @@ msmb tICA -i atom_pairs/ -t atom_pairs_tica.h5  --n_components 4 \
     --lag_time 2
 msmb KCenters -i atom_pairs_tica.h5 -t kcenters_clusters.h5 --metric cityblock
 msmb MarkovStateModel --inp kcenters_clusters.h5 --out mymsm.pkl
+msmb ImpliedTimescales -i kcenters_clusters.h5 -l 1:10
+cat timescales.csv
