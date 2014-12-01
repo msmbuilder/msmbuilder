@@ -67,9 +67,9 @@ Programming Language :: Python :: 3.4
 """
 
 # Where to find extensions
-MSMDIR = 'Mixtape/msm/'
-HMMDIR = 'Mixtape/hmm/'
-CLUSTERDIR = 'Mixtape/cluster/'
+MSMDIR = 'mixtape/msm/'
+HMMDIR = 'mixtape/hmm/'
+CLUSTERDIR = 'mixtape/cluster/'
 
 
 def write_spline_data():
@@ -122,10 +122,10 @@ extensions.append(
 extensions.append(
     Extension('mixtape.libdistance',
               language='c++',
-              sources=['Mixtape/libdistance/libdistance.pyx'],
+              sources=['mixtape/libdistance/libdistance.pyx'],
               # msvc needs to be told "libtheobald", gcc wants just "theobald"
               libraries=['%stheobald' % ('lib' if compiler.msvc else '')],
-              include_dirs=["Mixtape/libdistance/src",
+              include_dirs=["mixtape/libdistance/src",
                             mdtraj_capi['include_dir'], np.get_include()],
               library_dirs=[mdtraj_capi['lib_dir']],
              ))
@@ -146,7 +146,7 @@ extensions.append(
               libraries=compiler.compiler_libraries_openmp,
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
               include_dirs=[np.get_include(),
-                            "Mixtape/src",
+                            "mixtape/src",
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
 
@@ -160,9 +160,9 @@ extensions.append(
                        pjoin(HMMDIR, 'cephes/chbevl.c')],
               include_dirs=[np.get_include(),
                             pjoin(HMMDIR, 'cephes'),
-                            'Mixtape/src/f2py']))
+                            'mixtape/src/f2py']))
 
-write_version_py(VERSION, ISRELEASED, filename='Mixtape/version.py')
+write_version_py(VERSION, ISRELEASED, filename='mixtape/version.py')
 write_spline_data()
 setup(name='mixtape',
       author='Robert McGibbon',
@@ -174,8 +174,7 @@ setup(name='mixtape',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),
       packages=['mixtape'] + ['mixtape.%s' % e for e in
-                              find_packages('Mixtape')],
-      package_dir={'mixtape': 'Mixtape'},
+                              find_packages('mixtape')],
       scripts=['scripts/msmb'],
       zip_safe=False,
       ext_modules=extensions,
