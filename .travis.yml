@@ -11,7 +11,8 @@ install:
 script:
   - conda build devtools/conda-recipe
   - conda install --yes `conda build devtools/conda-recipe --output`
-  - nosetests Mixtape/tests -v
+  - mkdir -p runtest
+  - (cd runtest && nosetests msmbuilder -v)
 
 env:
   matrix:
