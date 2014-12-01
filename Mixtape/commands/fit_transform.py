@@ -80,6 +80,7 @@ class FitTransformCommand(NumpydocClassCommand):
             for key in pbar(inp_ds.keys()):
                 in_seq = inp_ds.get(key)
                 out_ds[key] = self.instance.partial_transform(in_seq)
+            out_ds.close()
 
             print("\nSaving transformed dataset to '%s'" % self.transformed)
             print("To load this dataset interactive inside an IPython")

@@ -1,5 +1,3 @@
-set -x
-set -e
 msmb AlanineDipeptide
 msmb AtomIndices --out atom_indices.txt -p ~/mixtape_data/alanine_dipeptide/ala2.pdb \
      -d --heavy

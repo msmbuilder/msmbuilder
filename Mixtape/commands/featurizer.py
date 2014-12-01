@@ -51,6 +51,7 @@ class FeaturizerCommand(NumpydocClassCommand):
             for i, chunk in enumerate(input_dataset.iterload(key, chunk=self.chunk)):
                 trajectory.append(self.instance.partial_transform(chunk))
             out_dataset[key] = np.concatenate(trajectory)
+            out_dataset.close()
 
         print("\nSaving transformed dataset to '%s'" % self.out)
         print("To load this dataset interactive inside an IPython")
