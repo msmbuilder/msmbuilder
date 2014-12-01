@@ -36,15 +36,18 @@ from ..cmdline import NumpydocClassCommand, argument, exttype
 
 
 class FitTransformCommand(NumpydocClassCommand):
+        # What format to use for saving transformed dataset
+    _transformed_fmt = 'hdf5'
+
     inp = argument(
-        '--inp', help='''Input dataset. This should be serialized
+        '-i', '--inp', help='''Input dataset. This should be serialized
         list of numpy arrays.''', required=True)
     out = argument(
-        '--out', help='''Output (fit) model. This will be a
+        '-o', '--out', help='''Output (fit) model. This will be a
         serialized instance of the fit model object (optional).''',
         default='', type=exttype('.pkl'))
     transformed = argument(
-        '--transformed', help='''Output (transformed)
+        '-t', '--transformed', help='''Output (transformed)
         dataset. This will be a serialized list of numpy arrays,
         corresponding to each array in the input data set after the
         applied transformation (optional).''', default='', type=exttype('.h5'))
@@ -66,7 +69,7 @@ class FitTransformCommand(NumpydocClassCommand):
         print('-' * 80)
 
         if self.transformed is not '':
-            out_ds = inp_ds.create_derived(self.transformed, fmt='hdf5')
+            out_ds = inp_ds.create_derived(self.transformed, fmt=self._transformed_fmt)
             pbar = ProgressBar(
                 widgets=['Transforming ', Percentage(), Bar(), ETA()],
                 maxval=len(inp_ds)).start()
@@ -95,18 +98,21 @@ class tICACommand(FitTransformCommand):
     klass = tICA
     _concrete = True
     _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
 
 
 class PCACommand(FitTransformCommand):
     klass = PCA
     _concrete = True
     _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
 
 
 class KMeansCommand(FitTransformCommand):
     klass = KMeans
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
     def _random_state_type(self, state):
         if state is None:
@@ -118,21 +124,26 @@ class MiniBatchKMeansCommand(KMeansCommand):
     klass = MiniBatchKMeans
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
 
 class KCentersCommand(KMeansCommand):
     klass = KCenters
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
 
 class KMedoidsCommand(KMeansCommand):
     klass = KMedoids
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
 
 class MiniBatchKMedoidsCommand(KMeansCommand):
     klass = MiniBatchKMedoids
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
