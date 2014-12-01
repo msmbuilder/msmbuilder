@@ -112,7 +112,7 @@ class MultiSequenceClusterMixin(object):
             predictions.append(self.partial_predict(X))
         return predictions
 
-    def partial_predict(X, y=None):
+    def partial_predict(self, X, y=None):
         """Predict the closest cluster each sample in X belongs to.
 
         In the vector quantization literature, `cluster_centers_` is called
@@ -131,7 +131,7 @@ class MultiSequenceClusterMixin(object):
         """
         if isinstance(X, md.Trajectory):
             X.center_coordinates()
-        return super(MultiSequenceClusterMixin, self).predict(sequence)
+        return super(MultiSequenceClusterMixin, self).predict(X)
 
     def fit_predict(self, sequences, y=None):
         """Performs clustering on X and returns cluster labels.
