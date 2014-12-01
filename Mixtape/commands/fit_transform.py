@@ -25,46 +25,64 @@
 from __future__ import print_function, absolute_import
 
 import os
+
+from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
-from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
+from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans)
-from ..cmdline import NumpydocClassCommand, argument, exttype
+from ..cmdline import NumpydocClassCommand, argument, argument_group, exttype
 
 
 class FitTransformCommand(NumpydocClassCommand):
-    inp = argument(
-        '--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True)
-    out = argument(
-        '--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object (optional).''',
+        # What format to use for saving transformed dataset
+    _transformed_fmt = 'hdf5'
+
+    g1 = argument_group('input')
+    inp = g1.add_argument(
+        '-i', '--inp', help='''Path to input dataset. Each dataset is a
+        collection of sequences, which may either be an array or Trajectory,
+        depending on the model.''', required=True)
+    g2 = argument_group('output', description='use one or both of the following')
+    out = g2.add_argument(
+        '-o', '--out', help='''Path to save fit model instance. This is the
+        model, after parameterization with fit(), saved using the pickle
+        protocol''',
         default='', type=exttype('.pkl'))
-    transformed = argument(
-        '--transformed', help='''Output (transformed)
-        dataset. This will be a serialized list of numpy arrays,
-        corresponding to each array in the input data set after the
-        applied transformation (optional).''', default='', type=exttype('/'))
+    transformed = g2.add_argument(
+        '-t', '--transformed', help='''Path to output transformed dataset. This
+        will be a collection of arrays, as transfomed by the model''',
+        default='', type=exttype('.h5'))
 
     def start(self):
-        print(self.instance)
         if self.out is '' and self.transformed is '':
             self.error('One of --out or --model should be specified')
         if self.transformed is not '' and os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
 
-        inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
-        self.instance.fit(inpds)
+        print(self.instance)
+
+        inp_ds = dataset(self.inp, mode='r', verbose=False)
+        print("Fitting model...")
+        self.instance.fit(inp_ds)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
         print('-' * 80)
 
         if self.transformed is not '':
-            out_sequences = self.instance.transform(inpds)
-            inpds.write_derived(self.transformed, out_sequences)
-            print("Saving transformed dataset to '%s'" % self.transformed)
+            out_ds = inp_ds.create_derived(self.transformed, fmt=self._transformed_fmt)
+            pbar = ProgressBar(
+                widgets=['Transforming ', Percentage(), Bar(), ETA()],
+                maxval=len(inp_ds)).start()
+
+            for key in pbar(inp_ds.keys()):
+                in_seq = inp_ds.get(key)
+                out_ds[key] = self.instance.partial_transform(in_seq)
+            out_ds.close()
+
+            print("\nSaving transformed dataset to '%s'" % self.transformed)
             print("To load this dataset interactive inside an IPython")
             print("shell or notebook, run\n")
             print("  $ ipython")
@@ -84,18 +102,21 @@ class tICACommand(FitTransformCommand):
     klass = tICA
     _concrete = True
     _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
 
 
 class PCACommand(FitTransformCommand):
     klass = PCA
     _concrete = True
     _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
 
 
 class KMeansCommand(FitTransformCommand):
     klass = KMeans
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
     def _random_state_type(self, state):
         if state is None:
@@ -107,21 +128,26 @@ class MiniBatchKMeansCommand(KMeansCommand):
     klass = MiniBatchKMeans
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
 
 class KCentersCommand(KMeansCommand):
     klass = KCenters
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
 
 class KMedoidsCommand(KMeansCommand):
     klass = KMedoids
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
 
 
 class MiniBatchKMedoidsCommand(KMeansCommand):
     klass = MiniBatchKMedoids
     _concrete = True
     _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+

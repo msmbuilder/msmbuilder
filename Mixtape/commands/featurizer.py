@@ -32,6 +32,9 @@ class FeaturizerCommand(NumpydocClassCommand):
 
 
     def start(self):
+        if os.path.exists(self.out):
+            self.error('File exists: %s' % self.out)
+
         print(self.instance)
         if os.path.exists(os.path.expanduser(self.top)):
             top = os.path.expanduser(self.top)
@@ -39,7 +42,7 @@ class FeaturizerCommand(NumpydocClassCommand):
             top = None
 
         input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=False)
-        out_dataset = input_dataset.write_derived(self.out, [], fmt='dir-npy')
+        out_dataset = input_dataset.create_derived(self.out, fmt='dir-npy')
 
         pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()],
                            maxval=len(input_dataset)).start()
@@ -48,6 +51,7 @@ class FeaturizerCommand(NumpydocClassCommand):
             for i, chunk in enumerate(input_dataset.iterload(key, chunk=self.chunk)):
                 trajectory.append(self.instance.partial_transform(chunk))
             out_dataset[key] = np.concatenate(trajectory)
+            out_dataset.close()
 
         print("\nSaving transformed dataset to '%s'" % self.out)
         print("To load this dataset interactive inside an IPython")
