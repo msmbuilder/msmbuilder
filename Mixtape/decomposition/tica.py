@@ -43,8 +43,6 @@ class tICA(BaseEstimator, TransformerMixin):
     only the vectors which decorrelate slowest to project the data into a lower
     dimensional space.
 
-    sdfssdf
-
     Parameters
     ----------
     n_components : int, None
