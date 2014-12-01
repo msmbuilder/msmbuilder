@@ -64,6 +64,11 @@ import itertools
 import numpydoc.docscrape
 from IPython.utils.text import wrap_paragraphs
 
+# Work around a very odd bug in pytables, where it destroys arguments in
+# sys.argv when imported
+# https://github.com/PyTables/PyTables/issues/405
+SAVED_SYSARGV = copy.copy(sys.argv)
+
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
            'MultipleIntAction']
 
@@ -352,7 +357,7 @@ class App(object):
         self.name = name
         self.description = description
         if argv is None:
-            argv = sys.argv[1:]
+            argv = SAVED_SYSARGV[1:]
         if len(argv) == 0:
             argv.append('-h')
         self.parser = self._build_parser()
