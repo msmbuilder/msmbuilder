@@ -4,14 +4,14 @@ msmb AtomIndices --out atom_indices.txt \
      -d --heavy
 msmb AtomPairsFeaturizer --out atom_pairs/ \
     --trjs '~/mixtape_data/alanine_dipeptide/*.dcd' \
-    --pair_indices atom_indices.dat \
+    --pair_indices atom_indices.txt \
     --top ~/mixtape_data/alanine_dipeptide/ala2.pdb
 msmb MiniBatchKMeans --n_clusters 100 \
     --batch_size 1000 \
     --inp atom_pairs \
     --transformed kmedoids_centers.h5
 msmb MarkovStateModel --inp kmedoids_centers.h5 \
-    --out /dev/null
+    --out msm.pkl
 
 msmb tICA --inp atom_pairs/ --transformed atom_pairs_tica.h5 \
     --n_components 4 \
