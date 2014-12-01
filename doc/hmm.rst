@@ -1,5 +1,5 @@
 .. _hmm:
-.. currentmodule:: mixtape.hmm
+.. currentmodule:: msmbuilder.hmm
 
 Hidden Markov models (HMMs)
 ===========================
@@ -72,8 +72,8 @@ Example
 -------
 .. code-block:: python
 
-    from mixtape.featurizer import SuperposeFeaturizer
-    from mixtape.ghmm import GaussianFusionHMM
+    from msmbuilder.featurizer import SuperposeFeaturizer
+    from msmbuilder.ghmm import GaussianFusionHMM
 
     xtal = md.load('crystal-structure.pdb')
     alpha_carbons = [a.index for a in xtal.topology.atoms if a.name == 'CA']

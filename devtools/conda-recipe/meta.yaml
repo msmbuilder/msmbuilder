@@ -1,16 +1,16 @@
 package:
-  name: mixtape-dev
+  name: msmbuilder-dev
   version: !!str 3.0.0
 
 #source:
 #  fn: master.zip
-#  url: https://github.com/rmcgibbo/mixtape/archive/master.zip
+#  url: https://github.com/msmbuilder/msmbuilder/archive/master.zip
 
 build:
   preserve_egg_dir: True
   number: 0
   entry_points:
-    - msmb = mixtape.scripts.msmb:main
+    - msmb = msmbuilder.scripts.msmb:main
 
 
 requirements:
@@ -35,12 +35,12 @@ requirements:
 
 test:
   imports:
-    - mixtape
+    - msmbuilder
   commands:
     - msmb
   
   
 about:
-  home: https://github.com/rmcgibbo/mixtape
+  home: https://github.com/msmbuilder/msmbuilder
   license: LGPLv2.1+
-  summary: 'mixtape: Statistical models for biomolecular dynamics'
+  summary: 'MSMBuilder: Statistical models for biomolecular dynamics'

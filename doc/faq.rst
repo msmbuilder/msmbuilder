@@ -18,19 +18,19 @@ How should I get started?
        packages. It is **much easier** than any of the alternatives, and will
        save you a lot of headaches.
     #. `Get involved on the github issue tracker
-       <https://github.com/rmcgibbo/mixtape/issues>`_.
+       <https://github.com/msmbuilder/msmbuilder/issues>`_.
 
 
 How do I report a bug?
 ----------------------
 
-    Post a note on the `github issue tracker <https://github.com/rmcgibbo/mixtape/issues>`_.
+    Post a note on the `github issue tracker <https://github.com/msmbuilder/msmbuilder/issues>`_.
 
 
 How do I contribute a new feature?
 ----------------------------------
 
-    File a pull request on `github <https://github.com/rmcgibbo/mixtape/>`_. If
+    File a pull request on `github <https://github.com/msmbuilder/msmbuilder/>`_. If
     you're not familiar with github, there are some instructions on the
     scikit-learn site `here
     <http://scikit-learn.org/stable/developers/index.html#how-to-contribute>`_.
@@ -109,14 +109,13 @@ Where should I start with the MSM literature?
       <http://dx.doi.org/10.1038/nchem.1821>`_ Nat. Chem. 6.1 (2014): 15-21.
 
 
-What is the relationship between Mixtape and other packages?
+What is the relationship between MSMBuilder and other packages?
 ------------------------------------------------------------
 
-    Mixtape is the "code name" for the next release of `MSMBuilder
-    <http://msmbuilder.org/>`_. Another software packages that performs similar
-    analyses is `EMMA <https://simtk.org/home/emma>`_.  Mixtape inherits a lot of
+    Another software packages that performs similar
+    analyses is `EMMA <https://simtk.org/home/emma>`_.  MSMBuilder inherits a lot of
     ideas about API design, machine learning, and software engineering from
-    `scikit-learn <http://scikit-learn.org/stable/>`_. Mixtape also has a number 
+    `scikit-learn <http://scikit-learn.org/stable/>`_. MSMBuilder also has a number 
     of python dependencies. See the :ref:`installation` page for details.
 
 
@@ -192,7 +191,7 @@ My simulations use replica exchange, aMD, or metadynamics. Can I use these tools
     meta-dynamics, and other related thermodynamic sampling methods sacrifice
     physical kinetics to achieve potentially faster thermodynamic sampling.
     So you're going to need to be careful about interpreting the time-related
-    quantities from any models you might build using mixtape such as the
+    quantities from any models you might build using msmbuilder such as the
     transition matrix of an MSM, or tICA eigenvalues. With clustering you're
     fine.
 
@@ -207,7 +206,7 @@ Why am I getting MemoryErrors?
             np.zeros((N, M))
         MemoryError
 
-    If you're running models in mixtape and you get a traceback with a MemoryError
+    If you're running models in msmbuilder and you get a traceback with a MemoryError
     (e.g. above), the reason is that you don't have enough RAM in your machine to
     run whatever you're trying to run. One thing you can do is just get more RAM,
     but his isn't going to scale very far.
@@ -215,23 +214,22 @@ Why am I getting MemoryErrors?
     To debug this kind of issue, you need really to reason about the size of the
     arrays that are being created, which means thinking about the number of data
     points in your dataset, the number of features, etc. Some algorithms, like
-    :class:`~mixtape.cluster.LandmarkHierarchical` let you trace off the memory
+    :class:`~msmbuilder.cluster.LandmarkHierarchical` let you trace off the memory
     memory requirement against accuracy.
 
     If you're trying to build models with thousands of features, consider running
-    a dimensionality reduction algorithm like :class:`~mixtape.decomposition.PCA` or :class:`~mixtape.decomposition.tICA`
+    a dimensionality reduction algorithm like :class:`~msmbuilder.decomposition.PCA` or :class:`~msmbuilder.decomposition.tICA`
     first. Or if you have milliseconds of MD data sampled at a picosecond frequency,
     consider subsampling (e.g. only analyze every 100th or 10,000th snapshot from
     your simulations).
 
 
-How can I cite Mixtape?
------------------------
+How can I cite MSMBuilder?
+---------------------------
 
-    There's no "Mixtape" paper. But consider citing `MSMBuilder2: Modeling Conformational Dynamics on the Picosecond to Millisecond Scale <http://pubs.acs.org/doi/abs/10.1021/ct200463m>`_
-    in the mean time. Many (most?) of the individual methods that are
-    implemented in Mixtape were also introduced in published papers. The
-    documentation for each class should have the appropriate references listed.
+    Please cite `MSMBuilder2: Modeling Conformational Dynamics on the Picosecond to Millisecond Scale <http://pubs.acs.org/doi/abs/10.1021/ct200463m>`_
+    Most of the individual methods that are implemented in MSMBuilder were also introduced in published papers. The
+    documentation for each class or command should have the appropriate references listed.
 
 
 References

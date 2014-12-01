@@ -1,5 +1,5 @@
 .. _featurization:
-.. currentmodule:: mixtape.featurizer
+.. currentmodule:: msmbuilder.featurizer
 
 
 Featurization and Distance Metrics
@@ -9,9 +9,9 @@ Background
 ----------
 
 Many analyses require that the input data be vectors in a (euclidean) vector
-space. This includes :class:`~mixtape.cluster.KMeans` clustering,
-:class:`~mixtape.decomposition.tICA` and others. Furthermore, other analyses like
-:class:`~mixtape.cluster.KCenters` clustering require that, if the data are not
+space. This includes :class:`~msmbuilder.cluster.KMeans` clustering,
+:class:`~msmbuilder.decomposition.tICA` and others. Furthermore, other analyses like
+:class:`~msmbuilder.cluster.KCenters` clustering require that, if the data are not
 vectors, that a pairwise distance metric be supplied.
 
 One of the complexities of featurizing molecular dynamics trajectories is that
@@ -39,4 +39,4 @@ Featurizations
 Distance Metrics
 ----------------
 
-Some :ref:`clustering <cluster>` methods let you pass in a custom distance metric. In that case, the input to ``fit()`` may be a list of MD trajectories instead of a list of numpy arrays. Clustering methods that allow this currently include :class:`~mixtape.cluster.KCenters` and :class:`~mixtape.cluster.LandmarkAgglomerative`. See their documentation for details.
+Some :ref:`clustering <cluster>` methods let you pass in a custom distance metric. In that case, the input to ``fit()`` may be a list of MD trajectories instead of a list of numpy arrays. Clustering methods that allow this currently include :class:`~msmbuilder.cluster.KCenters` and :class:`~msmbuilder.cluster.LandmarkAgglomerative`. See their documentation for details.
