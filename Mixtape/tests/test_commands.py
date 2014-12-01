@@ -101,8 +101,8 @@ def test_atomindices():
     with tempdir():
         shell('msmb AtomIndices -o alpha.txt --alpha -a -p %s' % fn)
         shell('msmb AtomIndices -o alpha-pairs.txt --alpha -d -p %s' % fn)
-        atoms = np.loadtxt('alpha.dat', int)
-        pairs = np.loadtxt('alpha-pairs.dat', int)
+        atoms = np.loadtxt('alpha.txt', int)
+        pairs = np.loadtxt('alpha-pairs.txt', int)
         assert all(t.topology.atom(i).name == 'CA' for i in atoms)
         assert sum(1 for a in t.topology.atoms if a.name == 'CA') == len(atoms)
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
