@@ -1,5 +1,5 @@
 .. _msm:
-.. currentmodule:: mixtape.msm
+.. currentmodule:: msmbuilder.msm
 
 Markov state models (MSMs)
 ===========================
@@ -12,7 +12,7 @@ map of the conformational space a molecule explores. The model consists of (1)
 a set of conformational states and (2) a matrix of transition probabilities
 (or, equivalently, transition rates) between each pair of states.
 
-In mixtape, you can use :class:`MarkovStateModel` to build MSMs from "labeled"
+In MSMBuilder, you can use :class:`MarkovStateModel` to build MSMs from "labeled"
 trajectories -- that is, sequences of integers corresponding to the index of
 the conformational state occupied by the system at each time point on a
 trajectory. The :ref:`cluster` module provides a number of different methods for
@@ -61,7 +61,7 @@ Assuming a prior distribution on :math:`T` of the form
    P(\mathbf{T} | S) \propto \prod_{i,j}^{k} T_{ij}^{B_{ij} + C_{ij}}.
 
 
-Mixtape implements two MSM estimators.
+MSMBuilder implements two MSM estimators.
 
  -  :class:`MarkovStateModel` performs maximum likelihood estimation.
     It estimates a single transition matrix, :math:`\mathbf{T}`, to

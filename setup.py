@@ -1,4 +1,4 @@
-"""MSMBuilder: robust time series analysis for molecular dynamics and more.
+"""MSMBuilder: Statistical models for Biomolecular Dynamics
 """
 
 from __future__ import print_function, absolute_import
@@ -67,9 +67,9 @@ Programming Language :: Python :: 3.4
 """
 
 # Where to find extensions
-MSMDIR = 'Mixtape/msm/'
-HMMDIR = 'Mixtape/hmm/'
-CLUSTERDIR = 'Mixtape/cluster/'
+MSMDIR = 'msmbuilder/msm/'
+HMMDIR = 'msmbuilder/hmm/'
+CLUSTERDIR = 'msmbuilder/cluster/'
 
 
 def write_spline_data():
@@ -105,13 +105,13 @@ compiler = CompilerDetection(False)
 extensions = []
 
 extensions.append(
-    Extension('mixtape.msm._markovstatemodel',
+    Extension('msmbuilder.msm._markovstatemodel',
               sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),
                        pjoin(MSMDIR, 'src/transmat_mle_prinz.c')],
               include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
 
 extensions.append(
-    Extension('mixtape.msm._metzner_mcmc_fast',
+    Extension('msmbuilder.msm._metzner_mcmc_fast',
               sources=[pjoin(MSMDIR, '_metzner_mcmc_fast.pyx'),
                        pjoin(MSMDIR, 'src/metzner_mcmc.c')],
               libraries=compiler.compiler_libraries_openmp,
@@ -120,25 +120,25 @@ extensions.append(
 
 
 extensions.append(
-    Extension('mixtape.libdistance',
+    Extension('msmbuilder.libdistance',
               language='c++',
-              sources=['Mixtape/libdistance/libdistance.pyx'],
+              sources=['msmbuilder/libdistance/libdistance.pyx'],
               # msvc needs to be told "libtheobald", gcc wants just "theobald"
               libraries=['%stheobald' % ('lib' if compiler.msvc else '')],
-              include_dirs=["Mixtape/libdistance/src",
+              include_dirs=["msmbuilder/libdistance/src",
                             mdtraj_capi['include_dir'], np.get_include()],
               library_dirs=[mdtraj_capi['lib_dir']],
              ))
 
 extensions.append(
-    Extension('mixtape.cluster._kmedoids',
+    Extension('msmbuilder.cluster._kmedoids',
               language='c++',
               sources=[pjoin(CLUSTERDIR, '_kmedoids.pyx'),
                        pjoin(CLUSTERDIR, 'src', 'kmedoids.cc')],
               include_dirs=[np.get_include()]))
 
 extensions.append(
-    Extension('mixtape.hmm._ghmm',
+    Extension('msmbuilder.hmm._ghmm',
               language='c++',
               sources=[pjoin(HMMDIR, 'wrappers/GaussianHMMCPUImpl.pyx')] +
                       glob.glob(pjoin(HMMDIR, 'src/*.c')) +
@@ -146,12 +146,12 @@ extensions.append(
               libraries=compiler.compiler_libraries_openmp,
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
               include_dirs=[np.get_include(),
-                            "Mixtape/src",
+                            "msmbuilder/src",
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
 
 extensions.append(
-    Extension('mixtape.hmm._vmhmm',
+    Extension('msmbuilder.hmm._vmhmm',
               sources=[pjoin(HMMDIR, 'vonmises/vmhmm.c'),
                        #pjoin(HMMDIR, 'vonmises/test.c'),
                        pjoin(HMMDIR, 'vonmises/vmhmmwrap.pyx'),
@@ -160,25 +160,24 @@ extensions.append(
                        pjoin(HMMDIR, 'cephes/chbevl.c')],
               include_dirs=[np.get_include(),
                             pjoin(HMMDIR, 'cephes'),
-                            'Mixtape/src/f2py']))
+                            'msmbuilder/src/f2py']))
 
-write_version_py(VERSION, ISRELEASED, filename='Mixtape/version.py')
+write_version_py(VERSION, ISRELEASED, filename='msmbuilder/version.py')
 write_spline_data()
-setup(name='mixtape',
+setup(name='msmbuilder',
       author='Robert McGibbon',
       author_email='rmcgibbo@gmail.com',
       description=DOCLINES[0],
       long_description="\n".join(DOCLINES[2:]),
       version=__version__,
-      url='https://github.com/rmcgibbo/mixtape',
+      url='https://github.com/msmbuilder/msmbuilder',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),
-      packages=['mixtape'] + ['mixtape.%s' % e for e in
-                              find_packages('Mixtape')],
-      package_data={'mixtape.tests': ['workflows/*']},
-      package_dir={'mixtape': 'Mixtape'},
+      packages=['msmbuilder'] + ['msmbuilder.%s' % e for e in
+                              find_packages('msmbuilder')],
+      package_data={'msmbuilder.tests': ['workflows/*']},
       entry_points={'console_scripts':
-              ['msmb = mixtape.scripts.msmb:main']},
+              ['msmb = msmbuilder.scripts.msmb:main']},
       zip_safe=False,
       ext_modules=extensions,
       cmdclass={'build_ext': build_ext})

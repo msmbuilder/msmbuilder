@@ -1,12 +1,12 @@
 Datasets and Persistence
 ========================
 
-Mixtape loads and saves two types of objects to and from the filesystem:
+MSMBuilder loads and saves two types of objects to and from the filesystem:
 datasets and models.
 
 Datasets
 --------
-In mixtape, a dataset is a collection of timeseries, or "sequences".
+In MSMBuilder, a dataset is a collection of timeseries, or "sequences".
 Conceptually, each timeseries usually represents a single molecular dynamics
 trajectory, and may be represented in a number of different formats
 
@@ -38,13 +38,13 @@ Trajectories (ready-only)
 """""""""""""""""""""""""
 Trajectory datasets are loaded using MDTraj. This requires
 specifying a `glob <http://en.wikipedia.org/wiki/Glob_%28programming%29>`_
-pattern for the trajectories, as well as the topology. Mixtape does not write
+pattern for the trajectories, as well as the topology. MSMBuilder does not write
 trajectory datasets.
 
 
     Example::
 
-      >>> from mixtape.dataset import dataset
+      >>> from msmbuilder.dataset import dataset
       >>> ds = dataset('trajectories/*.xtc', top='topology.pdb')
       >>> for traj in ds:
       ...     # iterate over trajectories
@@ -71,7 +71,7 @@ large datasets, because it enables features like memory-mapped IO. The transform
 
 Provenance Information
 """"""""""""""""""""""
-When mixtape saves a dataset, it also saves information which can be used to
+When msmbuilder saves a dataset, it also saves information which can be used to
 trace the provenance of the dataset.
 
   Example::
@@ -91,7 +91,7 @@ trace the provenance of the dataset.
     shell or notebook, run
 
       $ ipython
-      >>> from mixtape.dataset import dataset
+      >>> from msmbuilder.dataset import dataset
       >>> ds = dataset('atom_pairs/')
 
     $ ls atom_pairs
@@ -99,8 +99,8 @@ trace the provenance of the dataset.
     00000001.npy   00000003.npy   00000005.npy   00000007.npy   00000009.npy
 
     $ cat atom_pairs/PROVENANCE.txt
-    Mixtape Dataset:
-      Mixtape:	3.0.0-beta.dev-99bc8a9
+    MSMBuilder Dataset:
+      MSMBuilder:	3.0.0-beta.dev-99bc8a9
       Command:	msmb AtomPairsFeaturizer --out atom_pairs  --trjs '*.dcd'  --pair_indices
       Path:		atom_pairs/
       Username:	rmcgibbo
@@ -111,7 +111,7 @@ trace the provenance of the dataset.
     == Derived from ==
     MDTraj dataset:
       path:		*.dcd
-      topology:	/Users/rmcgibbo/mixtape_data/alanine_dipeptide/top.pdb
+      topology:	/Users/rmcgibbo/msmbuilder_data/alanine_dipeptide/top.pdb
       stride:	1
       atom_indices	None
 
@@ -119,6 +119,6 @@ trace the provenance of the dataset.
 Model persistence
 -----------------
 
-Mixtape models can be losslessly persisted to disk using Python's pickle
-infrastructure. We recommend using the functions :func:`mixtape.utils.load`
-and :func:`mixtape.utils.dump` to load and save models respectively.
+MSMBuilder models can be losslessly persisted to disk using Python's pickle
+infrastructure. We recommend using the functions :func:`msmbuilder.utils.load`
+and :func:`msmbuilder.utils.dump` to load and save models respectively.
