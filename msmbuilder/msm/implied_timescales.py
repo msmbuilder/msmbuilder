@@ -1,3 +1,9 @@
+# Author: Christian Schwantes
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
+
 import numpy as np
 from ..utils import param_sweep
 from . import MarkovStateModel

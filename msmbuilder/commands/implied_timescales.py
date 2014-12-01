@@ -1,3 +1,12 @@
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
+
 from __future__ import print_function, division, absolute_import
 import os
 import sys

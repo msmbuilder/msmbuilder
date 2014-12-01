@@ -1,3 +1,8 @@
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
 import numpy as np
 
 cdef extern from "transmat_mle_prinz.h":

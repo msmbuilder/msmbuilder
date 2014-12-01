@@ -1,3 +1,8 @@
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
 from __future__ import absolute_import, print_function, division
 
 import sys
@@ -50,8 +55,8 @@ def _guess_format(path):
 
 
 class _BaseDataset(Sequence):
-    _PROVENANCE_TEMPLATE = '''Mixtape Dataset:
-  Mixtape:\t{version}
+    _PROVENANCE_TEMPLATE = '''MSMBuilder Dataset:
+  MSMBuilder:\t{version}
   Command:\t{cmdline}
   Path:\t\t{path}
   Username:\t{user}

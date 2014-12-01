@@ -1,4 +1,10 @@
 # cython: c_string_type=str, c_string_encoding=ascii
+
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
 from __future__ import print_function
 import numpy as np
 import mdtraj as md

@@ -1,9 +1,13 @@
 """Very simple datasets of brownian dynamics in one dimension."""
-from __future__ import absolute_import
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
 
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
+from __future__ import absolute_import
 import time
 import numbers
 from os import makedirs

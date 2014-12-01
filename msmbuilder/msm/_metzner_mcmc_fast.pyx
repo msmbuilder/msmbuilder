@@ -1,3 +1,8 @@
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
 import numpy as np
 from sklearn.utils import check_random_state
 from cython.parallel import prange

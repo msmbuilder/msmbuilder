@@ -27,6 +27,11 @@ TODO
   Gellman-Rubin diagonstic (potential scale factor reduction). See eq.
   31 of 10.1103/PhysRevE.82.031114.
 """
+# Author: Robert McGibbon <rmcgibbo@gmail.com>
+# Contributors:
+# Copyright (c) 2014, Stanford University
+# All rights reserved.
+
 from __future__ import absolute_import, division
 
 import math
