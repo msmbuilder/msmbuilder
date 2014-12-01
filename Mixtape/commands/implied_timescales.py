@@ -93,9 +93,3 @@ class ImpliedTimescales(Command):
         else:
             raise RuntimeError('unknown fmt: %s' % fmt)
         print('All done!')
-
-
-def _fit_and_timescales(lag_time, kwargs, ds):
-    model = MarkovStateModel(lag_time=lag_time, **kwargs)
-    model.fit(ds)
-    return ((lag_time, ) + tuple(model.timescales_))
