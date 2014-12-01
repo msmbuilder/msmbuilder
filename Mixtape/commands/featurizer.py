@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import mdtraj as md
 
+from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..cmdline import NumpydocClassCommand, argument
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
@@ -40,13 +41,12 @@ class FeaturizerCommand(NumpydocClassCommand):
         input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=False)
         out_dataset = input_dataset.write_derived(self.out, [], fmt='dir-npy')
 
-        for key in input_dataset.keys():
+        pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()],
+                           maxval=len(input_dataset)).start()
+        for key in pbar(input_dataset.keys()):
             trajectory = []
             for i, chunk in enumerate(input_dataset.iterload(key, chunk=self.chunk)):
-                print('\r{chunk %d}' % i, end='')
-                sys.stdout.flush()
                 trajectory.append(self.instance.partial_transform(chunk))
-            print()
             out_dataset[key] = np.concatenate(trajectory)
 
         print('All done')
