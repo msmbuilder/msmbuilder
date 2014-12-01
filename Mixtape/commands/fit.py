@@ -36,7 +36,8 @@ class FitCommand(NumpydocClassCommand):
         list of numpy arrays.''', required=True, type=os.path.expanduser)
     model = argument(
         '-o', '--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object.''', required=True, type=exttype('.pkl'))
+        serialized instance of the fit model object.''', required=True,
+        type=exttype('.pkl'))
 
     def start(self):
         if not os.path.exists(self.inp):

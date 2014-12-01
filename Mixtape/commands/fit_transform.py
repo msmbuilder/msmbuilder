@@ -32,25 +32,28 @@ from ..utils import verbosedump
 from ..decomposition import tICA, PCA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans)
-from ..cmdline import NumpydocClassCommand, argument, exttype
+from ..cmdline import NumpydocClassCommand, argument, argument_group, exttype
 
 
 class FitTransformCommand(NumpydocClassCommand):
         # What format to use for saving transformed dataset
     _transformed_fmt = 'hdf5'
 
-    inp = argument(
-        '-i', '--inp', help='''Input dataset. This should be serialized
-        list of numpy arrays.''', required=True, type=os.path.expanduser)
-    out = argument(
-        '-o', '--out', help='''Output (fit) model. This will be a
-        serialized instance of the fit model object (optional).''',
+    g1 = argument_group('input')
+    inp = g1.add_argument(
+        '-i', '--inp', help='''Path to input dataset. Each dataset is a
+        collection of sequences, which may either be an array or Trajectory,
+        depending on the model.''', required=True, type=os.path.expanduser)
+    g2 = argument_group('output', description='use one or both of the following')
+    out = g2.add_argument(
+        '-o', '--out', help='''Path to save fit model instance. This is the
+        model, after parameterization with fit(), saved using the pickle
+        protocol''',
         default='', type=exttype('.pkl'))
-    transformed = argument(
-        '-t', '--transformed', help='''Output (transformed)
-        dataset. This will be a serialized list of numpy arrays,
-        corresponding to each array in the input data set after the
-        applied transformation (optional).''', default='', type=exttype('.h5'))
+    transformed = g2.add_argument(
+        '-t', '--transformed', help='''Path to output transformed dataset. This
+        will be a collection of arrays, as transfomed by the model''',
+        default='', type=exttype('.h5'))
 
     def start(self):
         if self.out is '' and self.transformed is '':

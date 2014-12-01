@@ -452,6 +452,12 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
         super(MyHelpFormatter, self).__init__(*args, **kwargs)
         self._action_max_length = action_max_length
 
+    def _get_help_string(self, action):
+        help = action.help
+        if action.default:
+            return super(MyHelpFormatter, self)._get_help_string(action)
+        return help
+
 def exttype(suffix):
     """Type for use with argument(... type=) that will force a specific suffix
     Especially for output files, so that we can enforce the use of appropriate
