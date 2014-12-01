@@ -45,6 +45,7 @@ class FitCommand(NumpydocClassCommand):
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
+        print("")
         print('All done')
 
 

@@ -276,8 +276,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         counts_nz = np.count_nonzero(self.countsmat_)
         cnz = self.countsmat_[np.nonzero(self.countsmat_)]
 
-        return """---------------------------
-Bayesian Markov State Model
+        return """Bayesian Markov State Model
 ---------------------------
 Lag time         : {lag_time}
 Reversible       : {reversible}

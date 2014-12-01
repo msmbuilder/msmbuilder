@@ -160,8 +160,7 @@ class KCenters(MultiSequenceClusterMixin, _KCenters, BaseEstimator):
         return self
 
     def summarize(self):
-        return """
-KCenters clustering
+        return """KCenters clustering
 --------------------
 n_clusters : {n_clusters}
 metric     : {metric}
