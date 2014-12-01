@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 import contextlib
 import numpy as np
 from sklearn.externals.joblib import load
-from skelearn.externals.joblib import dump as _dump
+from sklearn.externals.joblib import dump as _dump
 
 __all__ = ['printoptions', 'verbosedump', 'verboseload', 'dump', 'load']
 
