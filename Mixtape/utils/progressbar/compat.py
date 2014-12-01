@@ -18,12 +18,14 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-'''Compatability methods and classes for the progressbar module'''
+"""Compatibility methods and classes for the progressbar module."""
 
 
 # Python 3.x (and backports) use a modified iterator syntax
 # This will allow 2.x to behave with 3.x iterators
-if not hasattr(__builtins__, 'next'):
+try:
+  next
+except NameError:
     def next(iter):
         try:
             # Try new style iterators
@@ -34,9 +36,10 @@ if not hasattr(__builtins__, 'next'):
 
 
 # Python < 2.5 does not have "any"
-if not hasattr(__builtins__, 'any'):
+try:
+  any
+except NameError:
    def any(iterator):
       for item in iterator:
          if item: return True
-
       return False
