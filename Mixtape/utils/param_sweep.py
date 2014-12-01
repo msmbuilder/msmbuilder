@@ -6,7 +6,7 @@ from sklearn.externals.joblib import Parallel, delayed
 __all__ = ['param_sweep']
 
 
-def param_sweep(model, sequences, param_grid, n_jobs=1):
+def param_sweep(model, sequences, param_grid, n_jobs=1, verbose=0):
     """Fit a series of models over a range of parameters.
 
     Parameters
@@ -41,7 +41,7 @@ def param_sweep(model, sequences, param_grid, n_jobs=1):
     iter_args = ((clone(model).set_params(**params), sequences)
                  for params in param_grid)
 
-    models = Parallel(n_jobs=n_jobs)(
+    models = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(_param_sweep_helper)(args) for args in iter_args)
 
     return models

@@ -4,7 +4,7 @@ from . import MarkovStateModel
 
 
 def implied_timescales(sequences, lag_times, n_timescales=10,
-    msm=None, n_jobs=1):
+                       msm=None, n_jobs=1, verbose=0):
     """
     Calculate the implied timescales for a given MSM.
 
@@ -38,9 +38,8 @@ def implied_timescales(sequences, lag_times, n_timescales=10,
         msm = MarkovStateModel()
 
     param_grid = {'lag_time' : lag_times}
-
-    models = param_sweep(msm, sequences, param_grid, n_jobs=n_jobs)
-
+    models = param_sweep(msm, sequences, param_grid, n_jobs=n_jobs,
+                         verbose=verbose)
     timescales = np.array([model.timescales_[:n_timescales] for model in models])
 
     return timescales

@@ -4,12 +4,10 @@ import sys
 import json
 
 import pandas as pd
-import numpy as np
-from sklearn.externals.joblib import Parallel, delayed
 
 from ..dataset import dataset
-from ..cmdline import Command, argument, argument_group, slicetype, FlagAction, exttype
-from ..msm import MarkovStateModel
+from ..cmdline import Command, argument, argument_group, slicetype, FlagAction
+from ..msm import MarkovStateModel, implied_timescales
 
 
 class ImpliedTimescales(Command):
@@ -60,7 +58,6 @@ class ImpliedTimescales(Command):
         self.args = args
 
     def start(self):
-        parallel = Parallel(n_jobs=self.args.n_jobs, verbose=self.args.verbose)
         ds = dataset(self.args.inp, mode='r')
         kwargs = {
             'n_timescales': self.args.n_timescales,
@@ -69,15 +66,16 @@ class ImpliedTimescales(Command):
             'prior_counts': self.args.prior_counts,
             'verbose': self.args.verbose,
         }
-
-        lines = parallel(delayed(_fit_and_timescales)(
-                lag_time, kwargs, ds)
-            for lag_time in range(*self.args.lag_times.indices(sys.maxsize)))
+        model = MarkovStateModel(**kwargs)
+        lag_times = range(*self.args.lag_times.indices(sys.maxsize))
+        lines = implied_timescales(
+            ds, lag_times=lag_times, n_timescales=self.args.n_timescales,
+            msm=model, n_jobs=self.args.n_jobs, verbose=self.args.verbose)
 
         cols = ['Lag time',] + ['Timescale %d' % (d+1) for d in range(len(lines[0])-1)]
-
         df = pd.DataFrame(data=lines, columns=cols)
         self.write_output(df)
+        ds.close()
 
     def write_output(self, df):
         outfile = os.path.splitext(self.args.out)[0] + self._extensions[self.args.fmt]
