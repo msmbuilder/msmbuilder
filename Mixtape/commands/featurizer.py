@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import mdtraj as md
 
-from ..cmdline import NumpydocClassCommand, argument
+from ..cmdline import NumpydocClassCommand, argument, exttype
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
@@ -24,7 +24,7 @@ class FeaturizerCommand(NumpydocClassCommand):
         help='''Chunk size for loading trajectories using mdtraj.iterload''',
         default=10000, type=int)
     out = argument(
-        '--out', required=True, help='Output path')
+        '--out', required=True, help='Output path', type=exttype('/'))
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
@@ -49,7 +49,12 @@ class FeaturizerCommand(NumpydocClassCommand):
             print()
             out_dataset[key] = np.concatenate(trajectory)
 
-        print('All done')
+        print("\nSaving transformed dataset to '%s'" % self.out)
+        print("To load this dataset interactive inside an IPython")
+        print("shell or notebook, run\n")
+        print("  $ ipython")
+        print("  >>> from mixtape.dataset import dataset")
+        print("  >>> ds = dataset('%s')\n" % self.out)
 
 
 class DihedralFeaturizerCommand(FeaturizerCommand):
