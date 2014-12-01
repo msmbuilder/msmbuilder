@@ -24,13 +24,13 @@
 
 from __future__ import print_function, absolute_import
 
-
+import os
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
                        MiniBatchKMeans)
-from ..cmdline import NumpydocClassCommand, argument
+from ..cmdline import NumpydocClassCommand, argument, exttype
 
 
 class FitTransformCommand(NumpydocClassCommand):
@@ -40,32 +40,44 @@ class FitTransformCommand(NumpydocClassCommand):
     out = argument(
         '--out', help='''Output (fit) model. This will be a
         serialized instance of the fit model object (optional).''',
-        default='')
+        default='', type=exttype('.pkl'))
     transformed = argument(
         '--transformed', help='''Output (transformed)
         dataset. This will be a serialized list of numpy arrays,
         corresponding to each array in the input data set after the
-        applied transformation (optional).''', default='')
+        applied transformation (optional).''', default='', type=exttype('/'))
 
     def start(self):
         print(self.instance)
         if self.out is '' and self.transformed is '':
             self.error('One of --out or --model should be specified')
+        if self.transformed is not '' and os.path.exists(self.transformed):
+            self.error('File exists: %s' % self.transformed)
 
         inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
         self.instance.fit(inpds)
 
+        print("*********\n*RESULTS*\n*********")
+        print(self.instance.summarize())
+        print('-' * 80)
+
         if self.transformed is not '':
             out_sequences = self.instance.transform(inpds)
             inpds.write_derived(self.transformed, out_sequences)
-
-        print("*********\n*RESULTS*\n*********")
-        print(self.instance.summarize())
+            print("Saving transformed dataset to '%s'" % self.transformed)
+            print("To load this dataset interactive inside an IPython")
+            print("shell or notebook, run\n")
+            print("  $ ipython")
+            print("  >>> from mixtape.dataset import dataset")
+            print("  >>> ds = dataset('%s')\n" % self.transformed)
 
         if self.out is not '':
             verbosedump(self.instance, self.out)
-
-        print('All done')
+            print("To load this %s object interactively inside an IPython\n"
+                  "shell or notebook, run: \n" % self.klass.__name__)
+            print("  $ ipython")
+            print("  >>> from mixtape.utils import load")
+            print("  >>> model = load('%s')\n" % self.out)
 
 
 class tICACommand(FitTransformCommand):
