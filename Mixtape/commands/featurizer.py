@@ -5,7 +5,6 @@ import sys
 import numpy as np
 import mdtraj as md
 
-
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..cmdline import NumpydocClassCommand, argument, exttype
 from ..dataset import dataset, MDTrajDataset

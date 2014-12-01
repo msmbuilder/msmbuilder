@@ -75,7 +75,6 @@ except ImportError:
     print('-'*35, file=sys.stderr)
     raise
 
-
 # Work around a very odd bug in pytables, where it destroys arguments in
 # sys.argv when imported
 # https://github.com/PyTables/PyTables/issues/405

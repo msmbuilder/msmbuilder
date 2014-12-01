@@ -13,6 +13,8 @@ if [[ "$TRAVIS_BRANCH" != "master" ]]; then
     echo "No deployment on BRANCH='$TRAVIS_BRANCH'"; exit 0
 fi
 
+binstar upload -u omnia -t $BINSTAR_TOKEN --force `conda build devtools/conda-recipe --output`
+
 # Create the docs and push them to S3
 # -----------------------------------
 

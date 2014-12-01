@@ -44,7 +44,6 @@ class FitCommand(NumpydocClassCommand):
             self.error('File does not exist: %s' % self.inp)
 
         print(self.instance)
-
         inp_ds = dataset(self.inp, mode='r')
         self.instance.fit(inp_ds)
 

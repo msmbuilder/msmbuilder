@@ -32,6 +32,7 @@ from ..utils import verbosedump
 from ..decomposition import tICA, PCA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
                        MiniBatchKMeans, RegularSpatial)
+
 from ..cmdline import NumpydocClassCommand, argument, argument_group, exttype
 
 
