@@ -39,7 +39,7 @@ class FitCommand(NumpydocClassCommand):
     def start(self):
         print(self.instance)
 
-        ds = dataset(self.inp, mode='r', fmt='dir-npy')
+        ds = dataset(self.inp, mode='r')
         self.instance.fit(ds)
 
         print("*********\n*RESULTS*\n*********")

@@ -452,6 +452,8 @@ def exttype(suffix):
     Especially for output files, so that we can enforce the use of appropriate
     file-type specific suffixes"""
     def inner(s):
+        if s == '':
+            return s
         first, last = os.path.splitext(s)
         return first + suffix
     return inner

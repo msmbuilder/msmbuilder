@@ -25,6 +25,8 @@
 from __future__ import print_function, absolute_import
 
 import os
+
+from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
@@ -45,30 +47,35 @@ class FitTransformCommand(NumpydocClassCommand):
         '--transformed', help='''Output (transformed)
         dataset. This will be a serialized list of numpy arrays,
         corresponding to each array in the input data set after the
-        applied transformation (optional).''', default='', type=exttype('/'))
+        applied transformation (optional).''', default='', type=exttype('.h5'))
 
     def start(self):
-        print(self.instance)
         if self.out is '' and self.transformed is '':
             self.error('One of --out or --model should be specified')
         if self.transformed is not '' and os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
 
-        inpds = dataset(self.inp, mode='r', fmt='dir-npy', verbose=False)
+        print(self.instance)
+
+        inp_ds = dataset(self.inp, mode='r', verbose=False)
         print("Fitting model...")
-        self.instance.fit(inpds)
-        outds = inpds.create_derived(self.transformed)
+        self.instance.fit(inp_ds)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
         print('-' * 80)
 
         if self.transformed is not '':
-            for key in inpds.keys():
-                inseq = inps.get(key)
-                outds[key] = self.instance.partial_transform(inseq)
+            out_ds = inp_ds.create_derived(self.transformed, fmt='hdf5')
+            pbar = ProgressBar(
+                widgets=['Transforming ', Percentage(), Bar(), ETA()],
+                maxval=len(inp_ds)).start()
 
-            print("Saving transformed dataset to '%s'" % self.transformed)
+            for key in pbar(inp_ds.keys()):
+                in_seq = inp_ds.get(key)
+                out_ds[key] = self.instance.partial_transform(in_seq)
+
+            print("\nSaving transformed dataset to '%s'" % self.transformed)
             print("To load this dataset interactive inside an IPython")
             print("shell or notebook, run\n")
             print("  $ ipython")
