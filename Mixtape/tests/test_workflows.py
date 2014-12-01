@@ -27,8 +27,13 @@ def test_workflow_1():
             subprocess.check_call(shlex.split(line))
 
 
-
 def test_workflow_2():
     with tempdir():
         for line in shell_lines('tests/workflows/test_2.sh'):
+            subprocess.check_call(shlex.split(line))
+
+
+def test_workflow_3():
+    with tempdir():
+        for line in shell_lines('tests/workflows/test_3.sh'):
             subprocess.check_call(shlex.split(line))

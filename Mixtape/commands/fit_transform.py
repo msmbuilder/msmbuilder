@@ -30,8 +30,9 @@ from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
-from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
-                       MiniBatchKMeans)
+from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
+                       MiniBatchKMeans, RegularSpatial)
+
 from ..cmdline import NumpydocClassCommand, argument, argument_group, exttype
 
 
@@ -55,15 +56,18 @@ class FitTransformCommand(NumpydocClassCommand):
         will be a collection of arrays, as transfomed by the model''',
         default='', type=exttype('.h5'))
 
+    def load_dataset(self):
+        return dataset(self.inp, mode='r', verbose=False)
+
     def start(self):
         if self.out is '' and self.transformed is '':
             self.error('One of --out or --model should be specified')
         if self.transformed is not '' and os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
 
+        inp_ds = self.load_dataset()
         print(self.instance)
 
-        inp_ds = dataset(self.inp, mode='r', verbose=False)
         print("Fitting model...")
         self.instance.fit(inp_ds)
 
@@ -96,6 +100,46 @@ class FitTransformCommand(NumpydocClassCommand):
             print("  $ ipython")
             print("  >>> from mixtape.utils import load")
             print("  >>> model = load('%s')\n" % self.out)
+
+        inp_ds.close()
+
+
+
+class TrajectoryClusterCommand(FitTransformCommand):
+    # A fit-transform for clustering that can either accept a collection
+    # of arrays _or_ a collection of Trajectories to fit()
+    FitTransformCommand.g1.replace_argument(
+        '-i', '--inp', required=True, help='''Input dataset. This can either be a
+        glob pattern for trajectories (if using metric='rmsd'), or a dataset
+        containing a collection of .npy files, for other metrics.''')
+    md = argument_group('mdtraj input', description='If using metric="rmsd", '
+        'additional options required for loading trajectories')
+    md.add_argument('--stride', default=1, help='Load only every stride-th frame')
+    md.add_argument('--top', default='', help='Path to topology file matching the trajectories')
+    md.add_argument('--atom_indices', help='''Path to an index file
+        containing the zero-based indices of the atoms to use for
+        RMSD''')
+
+    def _random_state_type(self, state):
+        if state is None:
+            return None
+        return int(state)
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        arr = np.loadtxt(fn, dtype=int, ndmin=1)
+        if not arr.ndim == 1:
+            raise ValueError('%s has incorrect dimension' % self.fn)
+        return fn
+
+    def load_dataset(self):
+        if hasattr(self.instance, 'metric') and self.instance.metric == 'rmsd':
+            # use mdtraj format dataset for metric='rmsd'.
+            # THIS IS KIND OF A HACK
+            return dataset(self.inp, fmt='mdtraj', topology=self.top,
+                           stride=self.stride, verbose=False)
+        return dataset(self.inp, mode='r', verbose=False)
 
 
 class tICACommand(FitTransformCommand):
@@ -131,23 +175,29 @@ class MiniBatchKMeansCommand(KMeansCommand):
     _transformed_fmt = 'hdf5'
 
 
-class KCentersCommand(KMeansCommand):
+class KCentersCommand(TrajectoryClusterCommand):
     klass = KCenters
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'
 
 
-class KMedoidsCommand(KMeansCommand):
+class KMedoidsCommand(TrajectoryClusterCommand):
     klass = KMedoids
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'
 
 
-class MiniBatchKMedoidsCommand(KMeansCommand):
+class MiniBatchKMedoidsCommand(TrajectoryClusterCommand):
     klass = MiniBatchKMedoids
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'
 
+
+class RegularSpatialCommand(TrajectoryClusterCommand):
+    klass = RegularSpatial
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'

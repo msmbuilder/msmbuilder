@@ -190,7 +190,7 @@ class NumpyDirDataset(_BaseDataset):
         return np.save(filename, x)
 
     def keys(self):
-        for fn in sorted(os.listdir(self.path), key=_keynat):
+        for fn in sorted(os.listdir(os.path.expanduser(self.path)), key=_keynat):
             match = self._ITEM_RE.match(fn)
             if match:
                 yield int(match.group(1))
@@ -300,18 +300,19 @@ class MDTrajDataset(_BaseDataset):
         if topology is None:
             self._topology = None
         else:
-            self._topology = _parse_topology(topology)
+            self._topology = _parse_topology(os.path.expanduser(topology))
 
     def get(self, i):
         if self.verbose:
             print('[MDTraj dataset] loading %s' % self.filename(i))
 
         if self._topology is None:
-            return md.load(self.filename(i), stride=self.stride,
+            t = md.load(self.filename(i), stride=self.stride,
                            atom_indices=self.atom_indices)
         else:
-            return md.load(self.filename(i), stride=self.stride,
+            t = md.load(self.filename(i), stride=self.stride,
                            atom_indices=self.atom_indices, top=self._topology)
+        return t
 
     def filename(self, i):
         return self.glob_matches[i]

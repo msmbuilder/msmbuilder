@@ -150,6 +150,7 @@ class argument(object):
         root.add_argument(*self.args, **self.kwargs)
 
 
+
 class argument_group(object):
 
     """Wrapper for parser.add_argument_group"""
@@ -159,11 +160,26 @@ class argument_group(object):
         self.args = args
         self.kwargs = kwargs
         self.children = []
+        self.option_strings = {}
 
     def add_argument(self, *args, **kwargs):
         arg = argument(*args, **kwargs)
         arg.parent = self
+        for short in args:
+            if isinstance(short, str) and short.startswith('-'):
+                self.option_strings[short] = arg
         self.children.append(arg)
+
+    def remove_argument(self, name):
+        arg = self.option_strings[name]
+        if arg in self.children:
+            self.children.remove(arg)
+
+    def replace_argument(self, *args, **kwargs):
+        for short in args:
+            if isinstance(short, str) and short.startswith('-'):
+                self.remove_argument(short)
+        self.add_argument(*args, **kwargs)
 
     def add_mutually_exclusive_group(self, *args, **kwargs):
         group = mutually_exclusive_group(*args, **kwargs)

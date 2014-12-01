@@ -19,7 +19,7 @@ class FeaturizerCommand(NumpydocClassCommand):
         '--trjs', help='Glob pattern for trajectories',
         default='')
     top = argument(
-        '--top', help='Path to topology file', default='')
+        '--top', help='Path to topology file matching the trajectories', default='')
     chunk = argument(
         '--chunk',
         help='''Chunk size for loading trajectories using mdtraj.iterload''',

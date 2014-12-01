@@ -44,9 +44,8 @@ class FitCommand(NumpydocClassCommand):
             self.error('File does not exist: %s' % self.inp)
 
         print(self.instance)
-
-        ds = dataset(self.inp, mode='r')
-        self.instance.fit(ds)
+        inp_ds = dataset(self.inp, mode='r')
+        self.instance.fit(inp_ds)
 
         print("*********\n*RESULTS*\n*********")
         print(self.instance.summarize())
@@ -59,6 +58,7 @@ class FitCommand(NumpydocClassCommand):
         print("  >>> from mixtape.utils import load")
         print("  >>> model = load('%s')\n" % self.out)
 
+        inp_ds.close()
 
 class GaussianFusionHMMCommand(FitCommand):
     klass = GaussianFusionHMM
