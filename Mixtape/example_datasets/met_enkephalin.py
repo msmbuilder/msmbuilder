@@ -78,22 +78,22 @@ class MetEnkephalin(Dataset):
 
     def __init__(self, data_home=None):
         self.data_home = get_data_home(data_home)
-        self.cache_dir = join(self.data_home, TARGET_DIRECTORY)
+        self.data_dir = join(self.data_home, TARGET_DIRECTORY)
         self.cached = False
 
     def cache(self):
         if not exists(self.data_home):
             makedirs(self.data_home)
 
-        if not exists(self.cache_dir):
+        if not exists(self.data_dir):
             print('downloading met-enk from %s to %s' %
-                  (DATA_URL, self.cache_dir))
+                  (DATA_URL, self.data_dir))
             fhandle = urlopen(DATA_URL)
             buf = BytesIO(fhandle.read())
             zip_file = ZipFile(buf)
-            makedirs(self.cache_dir)
+            makedirs(self.data_dir)
             for name in zip_file.namelist():
-                zip_file.extract(name, path=self.cache_dir)
+                zip_file.extract(name, path=self.data_dir)
 
         self.cached = True
 
@@ -101,9 +101,9 @@ class MetEnkephalin(Dataset):
         if not self.cached:
             self.cache()
 
-        top = md.load(join(self.cache_dir, '1plx.pdb'))
+        top = md.load(join(self.data_dir, '1plx.pdb'))
         trajectories = []
-        for fn in glob(join(self.cache_dir, 'trajectory*.dcd')):
+        for fn in glob(join(self.data_dir, 'trajectory*.dcd')):
             trajectories.append(md.load(fn, top=top))
 
         return Bunch(trajectories=trajectories, DESCR=self.description())

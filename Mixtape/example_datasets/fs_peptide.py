@@ -71,31 +71,31 @@ class FsPeptide(Dataset):
 
     def __init__(self, data_home=None):
         self.data_home = get_data_home(data_home)
-        self.cache_dir = join(self.data_home, TARGET_DIRECTORY)
+        self.data_dir = join(self.data_home, TARGET_DIRECTORY)
         self.cached = False
 
     def cache(self):
         if not exists(self.data_home):
             makedirs(self.data_home)
 
-        if not exists(self.cache_dir):
+        if not exists(self.data_dir):
             print('downloading fs peptide from %s to %s' %
                   (DATA_URL, self.data_home))
             fhandle = urlopen(DATA_URL)
             buf = BytesIO(fhandle.read())
             zip_file = ZipFile(buf)
-            makedirs(self.cache_dir)
+            makedirs(self.data_dir)
             for name in zip_file.namelist():
-                zip_file.extract(name, path=self.cache_dir)
+                zip_file.extract(name, path=self.data_dir)
 
         self.cached = True
 
     def get(self):
         if not self.cached:
             self.cache()
-        top = md.load(join(self.cache_dir, 'fs_peptide.pdb'))
+        top = md.load(join(self.data_dir, 'fs_peptide.pdb'))
         trajectories = []
-        for fn in sorted(glob(join(self.cache_dir, 'trajectory*.xtc'))):
+        for fn in sorted(glob(join(self.data_dir, 'trajectory*.xtc'))):
             print('loading %s...' % basename(fn))
             trajectories.append(md.load(fn, top=top))
 
