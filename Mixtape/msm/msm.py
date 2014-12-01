@@ -142,7 +142,9 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         """
         sequences = list_of_1d(sequences)
         # step 1. count the number of transitions
-        raw_counts, mapping = _transition_counts(sequences, self.lag_time)
+        if int(self.lag_time) <= 0:
+            raise ValueError('Invalid lag_time: %s' % self.lag_time)
+        raw_counts, mapping = _transition_counts(sequences, int(self.lag_time))
 
         if self.ergodic_cutoff >= 1:
             # step 2. restrict the counts to the maximal strongly ergodic
@@ -513,7 +515,8 @@ Timescales:
         u, lv, rv = self._get_eigensystem()
 
         # make sure to leave off equilibrium distribution
-        timescales = - self.lag_time / np.log(u[1:])
+        with np.errstate(invalid='ignore', divide='ignore'):
+            timescales = - self.lag_time / np.log(u[1:])
         return timescales
 
     @property

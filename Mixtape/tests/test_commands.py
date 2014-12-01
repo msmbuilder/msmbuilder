@@ -145,35 +145,3 @@ def test_atom_pairs_featurizer():
 
 def test_help():
     shell('msmb -h')
-
-"""
-def test_fitghmm():
-    with tempdir():
-        RawPositionsFeaturizer().save('featurizer.pickl')
-        shell('hmsm fit-ghmm --featurizer featurizer.pickl  --n-init 10  '
-                  ' --n-states 4 --dir %s --ext h5 --top %s' % (
-                      DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
-        shell('hmsm Inspect -i hmms.jsonlines --details')
-        shell('hmsm sample-ghmm --no-match-vars -i hmms.jsonlines --lag-time 1 --n-state 4 '
-              '--featurizer featurizer.pickl --dir %s --ext h5 --top %s' % (
-                  DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
-        shell('hmsm means-ghmm -i hmms.jsonlines --lag-time 1 --n-state 4 '
-              '--featurizer featurizer.pickl --dir %s --ext h5 --top %s' % (
-                  DATADIR, os.path.join(DATADIR, 'Trajectory0.h5')))
-        shell('hmsm structures means.csv --ext pdb --prefix means --top %s' %  os.path.join(DATADIR, 'Trajectory0.h5'))
-        
-        samples_csv = pd.read_csv('samples.csv', skiprows=1)
-        means_csv = pd.read_csv('means.csv', skiprows=1)
-        
-        model = next(iterobjects('hmms.jsonlines'))
-        means_pdb = md.load(glob('means-*.pdb'))
-
-    means = np.array(sorted(model['means'], key=lambda e: e[0]))
-    print('true\n', HMM.means_)
-    print('learned\n', means)
-
-    eq(HMM.means_, means, decimal=0)
-
-    means_pdb_xyz = np.array(sorted(means_pdb.xyz.reshape(4, 3), key=lambda e: e[0]))
-    eq(means_pdb_xyz, np.array(sorted(model['means'], key=lambda e:e[0])), decimal=0)
-"""

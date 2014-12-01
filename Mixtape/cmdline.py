@@ -54,6 +54,7 @@ if __name__ == '__main__':
 from __future__ import print_function, division, absolute_import
 from six import with_metaclass
 import re
+import os
 import sys
 import abc
 import copy
@@ -73,7 +74,6 @@ except ImportError:
     print('  $ pip install numpydoc', file=sys.stderr)
     print('-'*35, file=sys.stderr)
     raise
-from IPython.utils.text import wrap_paragraphs
 
 __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
            'MultipleIntAction']
@@ -352,7 +352,17 @@ class NumpydocClassCommand(Command):
             summary += '.'
 
         extended = '\n'.join(doc['Extended Summary'])
-        return '\n'.join((summary, extended))
+
+        notes = ''
+        references = ''
+        if len(doc['Notes']) > 0:
+            notes = '\n'.join(('\nNotes', '------') + tuple(doc['Notes']))
+        if len(doc['References']) > 0:
+            references = '\n'.join(('\nReferences', '----------') +
+                                   tuple(doc['References']))
+
+
+        return '\n'.join((summary, '', extended, notes, references))
 
 
 
@@ -422,7 +432,7 @@ class App(object):
 
                 first_sentence = ' '.join(
                     ' '.join(re.split(r'(?<=[.:;])\s', klass_description)[:1]).split())
-                description = '\n\n'.join(wrap_paragraphs(klass_description))
+                description = klass_description
                 subparser = subparsers.add_parser(
                     klass._get_name(), help=first_sentence, description=description,
                     formatter_class=MyHelpFormatter)
@@ -457,3 +467,12 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
         action_max_length = kwargs.pop('action_max_length', 0)
         super(MyHelpFormatter, self).__init__(*args, **kwargs)
         self._action_max_length = action_max_length
+
+def exttype(suffix):
+    """Type for use with argument(... type=) that will force a specific suffix
+    Especially for output files, so that we can enforce the use of appropriate
+    file-type specific suffixes"""
+    def inner(s):
+        first, last = os.path.splitext(s)
+        return first + suffix
+    return inner
