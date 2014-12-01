@@ -24,7 +24,7 @@ import itertools
 
 import mdtraj as md
 import numpy as np
-from ..cmdline import Command, argument, argument_group
+from ..cmdline import Command, argument, argument_group, exttype
 
 
 class AtomIndices(Command):
@@ -32,7 +32,8 @@ class AtomIndices(Command):
     _concrete = True
     description = "Create index file for atoms or distance pairs."
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
-    out = argument('-o', '--out', required=True, help='Path to output file')
+    out = argument('-o', '--out', required=True, help='Path to output file',
+                   type=exttype('.txt'))
 
     section1 = argument_group(description='Mode: Choose One')
     group1 = section1.add_mutually_exclusive_group(required=True)
