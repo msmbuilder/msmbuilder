@@ -9,6 +9,7 @@ class DatasetCommand(NumpydocClassCommand):
     _group = 'Dataset'
     def start(self):
         self.instance.cache()
+        print('Example dataset saved: %s' % self.instance.data_dir)
 
 
 class AlanineDipeptideDatasetCommand(DatasetCommand):
