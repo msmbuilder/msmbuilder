@@ -6,7 +6,7 @@ import json
 import pandas as pd
 
 from ..dataset import dataset
-from ..cmdline import Command, argument, argument_group, slicetype, FlagAction
+from ..cmdline import Command, argument, argument_group, rangetype, FlagAction
 from ..msm import MarkovStateModel, implied_timescales
 
 
@@ -14,8 +14,9 @@ class ImpliedTimescales(Command):
     _group = 'MSM'
     _concrete = True
     description = "Scan the implied timescales of `MarkovStateModel`s with respect to lag time"
-    lag_times = argument('-l', '--lag_times', default='1:10', type=slicetype, help='''
-        Range of lag times. Specify as 'start:stop' or 'start:stop:step''')
+    lag_times = argument('-l', '--lag_times', default='1:10', type=rangetype, help='''
+        Range of lag times. Specify as 'start:stop' or 'start:stop:step. The endpoints
+        are inclusive.''')
     inp = argument(
         '-i', '--inp', help='''Path to input dataset, a collection of 1D integer sequences
         (such as the output from clustering)''', required=True)
@@ -67,13 +68,14 @@ class ImpliedTimescales(Command):
             'verbose': self.args.verbose,
         }
         model = MarkovStateModel(**kwargs)
-        lag_times = range(*self.args.lag_times.indices(sys.maxsize))
         lines = implied_timescales(
-            ds, lag_times=lag_times, n_timescales=self.args.n_timescales,
+            ds, lag_times=self.args.lag_times, n_timescales=self.args.n_timescales,
             msm=model, n_jobs=self.args.n_jobs, verbose=self.args.verbose)
 
-        cols = ['Lag time',] + ['Timescale %d' % (d+1) for d in range(len(lines[0])-1)]
+        cols = ['Timescale %d' % (d+1) for d in range(len(lines[0]))]
         df = pd.DataFrame(data=lines, columns=cols)
+        df['Lag Time'] = self.args.lag_times
+        df = df.reindex_axis(sorted(df.columns), axis=1)
         self.write_output(df)
         ds.close()
 

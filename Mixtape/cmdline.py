@@ -497,13 +497,13 @@ class MyHelpFormatter(argparse.ArgumentDefaultsHelpFormatter,
         return help
 
 
-def slicetype(s):
+def rangetype(s):
     split = s.split(':')
 
     if len(split) == 2:
-        return slice(int(split[0]), int(split[1]) + 1)
+        return list(range(int(split[0]), int(split[1]) + 1))
     elif len(split) == 3:
-        return slice(int(split[0]), int(split[1]) + 1, int(split[2]))
+        return list(range(int(split[0]), int(split[1]) + 1, int(split[2])))
     raise ValueError(s)
 
 
