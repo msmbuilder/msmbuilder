@@ -10,7 +10,8 @@ install:
 
 script:
   - python setup.py install
-  - nosetests Mixtape/tests -v
+  - mkdir -p runtest
+  - (cd runtest && nosetests mixtape -v)  # run in separate directory
 
 env:
   matrix:
