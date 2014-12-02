@@ -1,4 +1,4 @@
-#cython: boundscheck=False, cdivision=True, wraparound=False
+# cython: boundscheck=False, cdivision=True, wraparound=False
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
@@ -35,6 +35,7 @@ copy-free wrappers, following from Christoph Lassner's blog post:
 
 import numpy as np
 from scipy.linalg import blas
+cimport cython
 #from libc.stdio import stderr
 
 cdef extern from "f2py/f2pyptr.h":
@@ -43,13 +44,15 @@ cdef extern from "f2py/f2pyptr.h":
 ctypedef double d
 ctypedef int dgemm_t(char *transa, char *transb, int *m, int *n, int *k, d *alpha, d *a,
                      int *lda, d *b, int *ldb, d *beta, d *c, int *ldc) nogil
+ctypedef int dgemv_t(char *transa, int *m, int *n, d *alpha, d *a,
+                     int *lda, d *x, int *incx, d *beta, d *y, int *incy) nogil
+ctypedef d ddot_t(int *n, d *dx, int *incx, d *dy, int *incy) nogil
 cdef dgemm_t *FORTRAN_DGEMM = <dgemm_t*>f2py_pointer(blas.dgemm._cpointer)
-cdef extern from "stdio.h":
-    ctypedef struct FILE
-    cdef FILE *stderr
-    int fprintf  (FILE *stream, const char *template, ...) nogil
+cdef dgemv_t *FORTRAN_DGEMV = <dgemv_t*>f2py_pointer(blas.dgemv._cpointer)
+cdef ddot_t  *FORTRAN_DDOT  = <ddot_t*> f2py_pointer(blas.ddot._cpointer)
 
 
+@cython.boundscheck(False)
 cdef inline int cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a, b)
     """
@@ -58,12 +61,13 @@ cdef inline int cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, 
     k = a.shape[1]
     n = b.shape[1]
     if a.shape[1] != b.shape[0] or a.shape[0] != c.shape[0] or b.shape[1] != c.shape[1]:
-        # fprintf(stderr, "cdgemm_NN shapes are not aligned")
         return -1
 
     FORTRAN_DGEMM("N", "N", &n, &m, &k, &alpha, &b[0,0], &n, &a[0,0], &k, &beta, &c[0,0], &n)
     return 0
 
+
+@cython.boundscheck(False)
 cdef inline int cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a, b.T)
     """
@@ -72,12 +76,13 @@ cdef inline int cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, 
     k = a.shape[1]
     n = b.shape[0]
     if a.shape[1] != b.shape[1] or a.shape[0] != c.shape[0] or b.shape[0] != c.shape[1]:
-        # fprintf(stderr, "cdgemm_NN shapes are not aligned")
         return -1
 
     FORTRAN_DGEMM("T", "N", &n, &m, &k, &alpha, &b[0,0], &k, &a[0,0], &k, &beta, &c[0,0], &n)
     return 0
 
+
+@cython.boundscheck(False)
 cdef inline int cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a.T, b)
     """
@@ -86,8 +91,48 @@ cdef inline int cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, 
     k = a.shape[0]
     n = b.shape[1]
     if a.shape[0] != b.shape[0] or a.shape[1] != c.shape[0] or b.shape[1] != c.shape[1]:
-        # fprintf(stderr, "cdgemm_NN shapes are not aligned")
         return -1
 
     FORTRAN_DGEMM("N", "T", &n, &m, &k, &alpha, &b[0,0], &n, &a[0,0], &m, &beta, &c[0,0], &n)
+    return 0
+
+
+@cython.boundscheck(False)
+cdef int cdgemv_N(double[:, ::1] a, double[:] x, double[:] y, double alpha=1.0, double beta=0.0) nogil:
+    cdef int m, n, incx, incy
+    m = a.shape[0]
+    n = a.shape[1]
+    incx = x.strides[0] / sizeof(double)
+    incy = y.strides[0] / sizeof(double)
+    if a.shape[1] != x.shape[0] or a.shape[0] != y.shape[0]:
+        return -1
+
+    FORTRAN_DGEMV("T", &n, &m, &alpha, &a[0,0], &n, &x[0], &incx, &beta, &y[0], &incy)
+    return 0
+
+
+@cython.boundscheck(False)
+cdef int cdgemv_T(double[:, ::1] a, double[:] x, double[:] y, double alpha=1.0, double beta=0.0) nogil:
+    cdef int m, n, incx, incy
+    m = a.shape[1]
+    n = a.shape[0]
+    incx = x.strides[0] / sizeof(double)
+    incy = y.strides[0] / sizeof(double)
+    if a.shape[0] != x.shape[0] or a.shape[1] != y.shape[0]:
+        return -1
+
+    FORTRAN_DGEMV("N", &m, &n, &alpha, &a[0,0], &m, &x[0], &incx, &beta, &y[0], &incy)
+    return 0
+
+
+@cython.boundscheck(False)
+cdef int cddot(double[:] x, double[:] y, double *result) nogil:
+    cdef int n, incx, incy
+    n = x.shape[0]
+    incx = x.strides[0] / sizeof(double)
+    incy = y.strides[0] / sizeof(double)
+    if y.shape[0] != n:
+        return -1
+
+    result[0] = FORTRAN_DDOT(&n, &x[0], &incx, &y[0], &incy)
     return 0

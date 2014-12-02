@@ -7,7 +7,11 @@ from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
-np.random.seed(0)
+
+
+def setup():
+    print('Setting random seed')
+    np.random.seed(0)
 
 
 def dense_exptheta(n):
@@ -167,6 +171,46 @@ def test_grad_logl_2():
         return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[1]
 
     assert check_grad(func, grad, theta0) < 1e-4
+
+
+def test_dw_1():
+    n = 5
+    t = 1.0
+    theta0 = np.log(dense_exptheta(n))
+
+    def grad(theta, i):
+        # gradient of the ith eigenvalue of K with respect to theta
+        eye = np.eye(n)
+        K = np.zeros((n, n))
+        _ratematrix.buildK(np.exp(theta), n, None, K)
+        w, AR = scipy.linalg.eig(K)
+        order = np.argsort(np.real(w))
+
+        AR = np.real(np.ascontiguousarray(AR[:, order]))
+        AL = np.ascontiguousarray(scipy.linalg.inv(AR).T)
+
+        g = np.zeros(len(theta))
+
+        for u in range(len(theta)):
+            dKu = np.zeros((n, n))
+            _ratematrix.dK_dtheta_A(np.exp(theta), n, u, None, eye, dKu)
+            out = np.zeros(n)
+            temp = np.zeros(n)
+            _ratematrix.dw_du(dKu, AL, AR, n, temp, out)
+            g[u] = out[i]
+        return g
+
+
+    def func(theta, i):
+        # ith eigenvalue of K
+        K = np.zeros((n, n))
+        _ratematrix.buildK(np.exp(theta), n, None, K)
+        w = np.real(scipy.linalg.eigvals(K))
+        w = np.sort(w)
+        return w[i]
+
+    for i in range(n):
+        assert check_grad(func, grad, theta0, i) < 1e-5
 
 
 def test_hessian():

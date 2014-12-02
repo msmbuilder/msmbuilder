@@ -259,7 +259,7 @@ cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
     free(dK_ii)
 
 
-cdef dP_dtheta_terms(const double[:, ::1] K, npy_intp n, double t):
+cpdef dP_dtheta_terms(const double[:, ::1] K, npy_intp n, double t):
     """Compute some of the terms required for d(exp(K))/d(theta). This
     includes the left and right eigenvectors of K, the eigenvalues, and
     the exp of the eigenvalues.
@@ -682,15 +682,46 @@ def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta,
     return np.asarray(np.sqrt(var_pi))
 
 
+cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] AL,
+            const double[:, ::1] AR, npy_intp n, double[::1] temp,
+            double[::1] out) nogil:
+    r"""Calculate the derivative of the eigenvalues, w, of a matrix, K(\theta),
+    with respect to \theta_u.
+
+    Parameters
+    ----------
+    dKu : array, shape=(n, n)
+        Derivative of the rate matrix, K(\theta), with respect to \theta_u
+    AL : array, shape=(n, n)
+        Left eigenvectors of the rate matrix, K(\theta)
+    AR : array, shape=(n, n)
+        Right eigenvectors of the rate matrix, K(\theta)
+    n : int
+        Size of the matrices
+    temp : array, shape=(n,)
+        Temporary storage (overwritten)
+
+    Returns
+    -------
+    out : array, shape=(n,)
+        On exit, out[i] contains the derivative of the `i`th eigenvalue
+        of K with respect to \theta_u.
+    """
+    cdef npy_intp i
+    for i in range(n):
+        cdgemv_N(dKu, AR[:, i], temp)
+        cddot(temp, AL[:, i], &out[i])
+
+
 def uncertainty_timescales(const double[:, :] invhessian, const double[::1] theta,
                            npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
     """
 
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
-    cdef npy_intp u, v, i, j
-    cdef double[::1] exptheta,  var_T, w, expw
-    cdef double[:, ::1] dKu, dKv, K, eye#, AL, AR
+    cdef npy_intp u, v, i
+    cdef double[::1] exptheta, var_T, w, dw_u, dw_v, temp, w_pow_m4
+    cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
     cdef npy_intp size = theta.shape[0]
     if not (inds is None or inds.shape[0] >= n):
         raise ValueError('inds must be None (dense) or an array longer than n')
@@ -708,26 +739,33 @@ def uncertainty_timescales(const double[:, :] invhessian, const double[::1] thet
     var_T = zeros(n)
     dKu = zeros((n, n))
     dKv = zeros((n, n))
+    dw_u = zeros(n)
+    dw_v = zeros(n)
+    w_pow_m4 = zeros(n)
+    temp = zeros(n)
     K = zeros((n, n))
     exptheta = np.exp(theta)
     eye = np.eye(n)
 
     buildK(exptheta, n, inds, K)
-    AL, AR, w, expw = dP_dtheta_terms(K, n, 1.0)
+    AL, AR, w, _ = dP_dtheta_terms(K, n, 1.0)
     order = np.argsort(w)[::-1]
-    AL = np.asarray(AL)[:, order]
-    AR = np.asarray(AR)[:, order]
+    AL = ascontiguousarray(np.asarray(AL)[:, order])
+    AR = ascontiguousarray(np.asarray(AR)[:, order])
     w = np.asarray(w)[order]
+
+    for i in range(n):
+        w_pow_m4[i] = w[i]**(-4)
 
     for u in range(size):
         dK_dtheta_A(exptheta, n, u, inds, eye, dKu)
-        dw_u = np.diag(np.dot(np.dot(AL.T, dKu), AR.T))
+        dw_du(dKu, AL, AR, n, temp, dw_u)
         for v in range(size):
             dK_dtheta_A(exptheta, n, v, inds, eye, dKv)
-            dw_v = np.diag(np.dot(np.dot(AL.T, dKv), AR.T))
+            dw_du(dKv, AL, AR, n, temp, dw_v)
 
             for i in range(n):
-                var_T[i] += w[i]**(-4) * dw_u[i] * dw_v[i] * invhessian[u, v]
+                var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * invhessian[u, v]
 
     return np.asarray(np.sqrt(var_T))[1:]
 
