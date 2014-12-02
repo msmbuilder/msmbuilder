@@ -1,5 +1,5 @@
 .. _tica:
-.. currentmodule:: mixtape
+.. currentmodule:: msmbuilder
 
 Time-structure Independent Components Analysis (tICA)
 =====================================================
@@ -43,7 +43,7 @@ al. first measured the 66 atom-atom distances between a set of atoms in each
 frame of their MD trajectories, and then use tICA to find the slowest 1, 4, and
 10 linear combinations of these degrees of freedom and transform the
 66-dimensional dataset into a 1, 4, or 10-dimensional dataset. Then, they apply
-:class:`~mixtape.cluster.KMeans` to the resulting data and build an MSM.
+:class:`~msmbuilder.cluster.KMeans` to the resulting data and build an MSM.
 
 Example
 -------
@@ -51,9 +51,9 @@ Example
 
 .. code-block:: python
 
-    from mixtape.decomposition import tICA
-    from mixtape.cluster import KMeans
-    from mixtape.msm import MarkovStateModel
+    from msmbuilder.decomposition import tICA
+    from msmbuilder.cluster import KMeans
+    from msmbuilder.msm import MarkovStateModel
     from sklearn.pipeline import Pipeline
 
     pipeline = Pipeline([

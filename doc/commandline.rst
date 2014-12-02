@@ -4,7 +4,7 @@
 Command Line Interface (CLI)
 ============================
 
-Mixtape is really designed (at this point) as a python library. It's much more
+MSMBuilder is really designed (at this point) as a python library. It's much more
 powerful that way, and not any less convenient (especially when you're deailing
 with large datasets). But there is a limited CLI as well.
 
@@ -60,11 +60,11 @@ Tutorial
 
 .. code-block:: python
 
-    import mixtape.utils
+    import msmbuilder.utils
     from matplotlib import pyplot as plt
     import numpy as np
 
-    trajs = mixtape.utils.verboseload('tica_trajs.jl')  # Load file
+    trajs = msmbuilder.utils.verboseload('tica_trajs.jl')  # Load file
     trajs = np.concatenate(trajs)  # Flatten list of trajectories
     plt.hexbin(trajs[:,0], trajs[:,1], bins='log', mincnt=1)
     plt.show()

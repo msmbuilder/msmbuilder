@@ -1,5 +1,5 @@
 .. _tpt:
-.. currentmodule:: mixtape.tpt
+.. currentmodule:: msmbuilder.tpt
 
 Transition Path Theory
 ======================

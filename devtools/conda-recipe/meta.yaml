@@ -1,0 +1,46 @@
+package:
+  name: msmbuilder-dev
+  version: !!str 3.0.0
+
+#source:
+#  fn: master.zip
+#  url: https://github.com/msmbuilder/msmbuilder/archive/master.zip
+
+build:
+  preserve_egg_dir: True
+  number: 0
+  entry_points:
+    - msmb = msmbuilder.scripts.msmb:main
+
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - cython    
+    - numpy
+    - mdtraj-dev
+  run:
+    - python
+    - setuptools
+    - numpy
+    - scipy
+    - pandas
+    - six
+    - mdtraj-dev
+    - scikit-learn
+    - numpydoc
+    - pytables
+
+
+test:
+  imports:
+    - msmbuilder
+  commands:
+    - msmb
+  
+  
+about:
+  home: https://github.com/msmbuilder/msmbuilder
+  license: LGPLv2.1+
+  summary: 'MSMBuilder: Statistical models for biomolecular dynamics'
