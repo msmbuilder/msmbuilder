@@ -7,63 +7,8 @@
 """Implementation of the log-likelihood function and gradient for a
 continuous-time reversible Markov model sampled at a regular interval.
 
-Theory
-------
-
-Consider an `n`-state time-homogeneous Markov process, `X(t)` At time `t`, the
-`n`-vector P(t) = `Pr(X(t) = i)` is probability that the system is in each of
-the `n` states. These probabilities evolve forward in time, governed by
-an `n x n` transition rate matrix `K` ::
-
-    dP(t)/dt = P(t) * K
-
-The solution is ::
-
-    P(t) = exp(tK) * P(0)
-
-In other words, the state-to-state lag-\tau transition probability is ::
-
-    P[ X(t+\tau) = j | X(t) = i ] = exp(\tau K)_{ij}
-
-For this model, we observe the evolution of one or more chains, `X(t)` at a
-regular interval, `\tau`. Let `C_{ij}` be the number of times the chain was
-observed at state `i` at time `t` and at state `j` at time `t+\tau` (the number
-of observed transition counts). Suppose that `K` depends on a length-`b`
-parameter vector, `\theta`. The log-likelihood is ::
-
-  L(\theta) = \sum_{ij} C_{ij} log(exp(\tau K(\theta))_{ij})
-
-The function :func:`loglikelihood` computes this log-likelihood and and gradient
-of the log-likelihood with respect to `\theta`.
-
-Parameterization
-----------------
-This code parameterizes K(\theta) such that K is constrained to satisfy
-detailed-balance with respect to a stationary distribution, `pi`. For an
-`n`-state model, `theta` is of length `n*(n-1)/2 + n`. The first `n*(n-1)/2`
-elements of theta are the parameterize the symmetric rate matrix, S, and the
-remaining `n` entries parameterize the stationary distribution. For n=3, the
-function K(\theta) is shown below ::
-
-  s_u   =  exp(\theta_u)                for  u = 0, 1, ..., n*(n-1)/2
-  pi_i  =  exp(\theta_{i + n*(n-1)/2})  for  i = 0, 1, ..., n
-  r_i   =  sqrt(pi_i)                   for  i = 0, 1, ..., n
-
-     [[     k_00,     s0*(r0/r1),  s1*r(0/r2),  s2*(r0/r3)  ],
-      [  s0*(r1/r0),     k_11,     s3*(r1/r2),  s4*(r1/r3)  ],
-  K = [  s1*(r2/r0),  s3*(r2/r1),     k_22,     s5*(r2/r3)  ],
-      [  s2*(r3/r0),  s4*(r3/r1),  s5*(r3/r2),      k_33    ]]
-
-  where the diagonal elements `k_ii` are set such that the row sums of `K` are
-  all zero, `k_{ii} = -\sum_{j != i} K_{ij}`
-
-This form for `K` satisfies detailed balance by construction ::
-
-  K_{ij} / K_{ji}  =  ri**2 / rj**2  =  pi_i / pi_j
-
-Note that `K` is built from `exp(\theta)`. This parameterization makes
-optimization easier, since it keeps the off-diagonal entries positive and the
-diagonal entries negative.
+For details on the parameterization of the `\theta` vector, refer to
+the documentation in docs/ratematrix.rst
 
 Performance
 -----------
@@ -73,14 +18,8 @@ direct calls to the FORTRAN BLAS matrix multiply using the function pointers
 that scipy exposes.
 
 There are assert statements which provide some clarity, but are slow.
-They are compiled away by default using the CYTHON_WITHOUT_ASSERTIONS macro.
-To enable them when compiling from source `python setup.py install` needs to
-be run with the flag `--debug` on the command line.
-
-References
-----------
-..[1] Kalbfleisch, J. D., and Jerald F. Lawless. "The analysis of panel data
-under a Markov assumption." J. Am. Stat. Assoc. 80.392 (1985): 863-871.
+They are compiled away by default, unless `python setup.py install` is
+run with the flag `--debug` on the command line.
 """
 
 from __future__ import print_function
