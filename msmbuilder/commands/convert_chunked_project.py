@@ -29,13 +29,12 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 import json
-import argparse
 import traceback
 from datetime import datetime
 from fnmatch import fnmatch
 
 import mdtraj as md
-from mdtraj.utils  import timing
+from mdtraj.utils import timing
 from mdtraj.formats.registry import _FormatRegistry
 EXTENSIONS = _FormatRegistry.loaders.keys()
 
@@ -44,7 +43,7 @@ try:
 except ImportError:
     from os import walk as _walk
 
-from ..cmdline import Command, argument, argument_group, exttype
+from ..cmdline import Command, argument
 from ..dataset import _keynat
 
 
@@ -116,7 +115,7 @@ class ConvertChunkedProject(Command):
                 traceback.print_exc(file=sys.stderr)
                 print('-' * 60)
                 continue
-            
+
             out_filename = args.outfmt % len(metadata)
             assert out_filename not in {tuple(e['filename']) for e in metadata}
             assert not os.path.exists(os.path.join(args.outdir, out_filename))
