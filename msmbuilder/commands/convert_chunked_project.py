@@ -57,7 +57,7 @@ class ConvertChunkedProject(Command):
                       'converted trajectories. default="trajectories/"',
                       default='trajectories')
     outfmt = argument('--outfmt', help=('Output format. This should be a python '
-                      'string format specified, which is parameterized by a '
+                      'string format specifier, which is parameterized by a '
                       'single int. The filename extension can specify any '
                       'supported MDTraj trajectory format ({}). '
                       'default="traj-%%08d.dcd"').format(', '.join(EXTENSIONS)),
