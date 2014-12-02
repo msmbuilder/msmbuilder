@@ -455,6 +455,47 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
 def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
             npy_intp[::1] inds=None, npy_intp n_threads=1):
+    """Estimate of the hessian of the log-likelihood with respect to \theta.
+
+    Parameters
+    ----------
+    theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
+        The free parameters of the model. These values are the (possibly sparse)
+        linearized elements of the log of the  upper triangular portion of the
+        symmetric rate matrix, S, followed by the log of the equilibrium
+        distribution.
+    counts : array of shape = (n, n)
+        The matrix of observed transition counts.
+    n : int
+        The size of `counts`
+    t : double
+        The lag time.
+    inds : array, optional (default=None)
+        Sparse linearized triu indices theta. If not supplied, theta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(theta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `theta` correspond.
+    n_threads : int
+        The number of threads to use in parallel.
+
+    Notes
+    -----
+    This computation follows equation 3.6 of [1].
+
+    References
+    ----------
+    ..[1] Kalbfleisch, J. D., and Jerald F. Lawless. "The analysis of panel data
+          under a Markov assumption." J. Am. Stat. Assoc. 80.392 (1985): 863-871.
+
+    Returns
+    -------
+    m : array, shape=(len(theta), len(theta))
+        An estimate of the hessian of the log-likelihood
+    """
     cdef npy_intp n_S_triu = n*(n-1)/2
     if not (counts.shape[0] == n and counts.shape[1] == n):
         raise ValueError('counts must be n x n')
@@ -515,10 +556,40 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
 def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
                   npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+    """Estimate of the uncertainty in the rate matrix, `K`
+
+    Parameters
+    ----------
+    invhessian : array, shape=(len(theta), len(theta))
+        Inverse of the hessian of the log-likelihood
+    theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
+        The free parameters of the model. These values are the (possibly sparse)
+        linearized elements of the log of the  upper triangular portion of the
+        symmetric rate matrix, S, followed by the log of the equilibrium
+        distribution.
+    n : int
+        The size of `counts`
+    inds : array, optional (default=None)
+        Sparse linearized triu indices theta. If not supplied, theta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(theta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `theta` correspond.
+    n_threads : int
+        The number of threads to use in parallel.
+
+    Returns
+    -------
+    sigma_K : array, shape=(n, n)
+        Estimate of the element-wise asymptotic standard deviation of the rate matrix, K.
+    """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp u, v, i, j
     cdef double[::1] exptheta
-    cdef double[:, ::1] sigmaK, dKu, dKv, K, eye
+    cdef double[:, ::1] var_K, dKu, dKv, K, eye
     cdef npy_intp size = theta.shape[0]
     if not (inds is None or inds.shape[0] >= n):
         raise ValueError('inds must be None (dense) or an array longer than n')
@@ -533,7 +604,7 @@ def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
         raise ValueError('counts must be `size` x `size`')
 
-    sigmaK = zeros((n, n))
+    var_K = zeros((n, n))
     dKu = zeros((n, n))
     dKv = zeros((n, n))
     K = zeros((n, n))
@@ -550,13 +621,42 @@ def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
             # know their pattern
             for i in range(n):
                 for j in range(n):
-                    sigmaK[i,j] += invhessian[u,v] * dKu[i,j] * dKv[i,j]
+                    var_K[i,j] += invhessian[u,v] * dKu[i,j] * dKv[i,j]
 
-    return np.asarray(sigmaK)
+    return np.asarray(np.sqrt(var_K))
 
 
 def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta,
                    npy_intp n, npy_intp[::1] inds=None):
+    """Estimate of the uncertainty in the stationary distribution, `\pi`.
+
+    Parameters
+    ----------
+    invhessian : array, shape=(len(theta), len(theta))
+        Inverse of the hessian of the log-likelihood
+    theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
+        The free parameters of the model. These values are the (possibly sparse)
+        linearized elements of the log of the  upper triangular portion of the
+        symmetric rate matrix, S, followed by the log of the equilibrium
+        distribution.
+    n : int
+        The size of `counts`
+    inds : array, optional (default=None)
+        Sparse linearized triu indices theta. If not supplied, theta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(theta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `theta` correspond.
+
+    Returns
+    -------
+    sigma_pi : array, shape=(n,)
+        Estimate of the element-wise asymptotic standard deviation of the stationary
+        distribution, \pi.
+    """
     cdef npy_intp i
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp size = theta.shape[0]
@@ -575,13 +675,66 @@ def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta,
 
     cdef double[::1] pi = np.exp(theta)[size-n:]
 
-    sigma_pi = zeros(n)
+    var_pi = zeros(n)
     for i in range(n):
-        sigma_pi[i] = pi[i] * invhessian[size-n+i, size-n+i]
+        var_pi[i] = pi[i] * invhessian[size-n+i, size-n+i]
 
-    return np.asarray(sigma_pi)
+    return np.asarray(np.sqrt(var_pi))
+
+
+def uncertainty_timescales(const double[:, :] invhessian, const double[::1] theta,
+                           npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+    """
+
+    """
+    cdef npy_intp n_S_triu = n*(n-1)/2
+    cdef npy_intp u, v, i, j
+    cdef double[::1] exptheta,  var_T, w, expw
+    cdef double[:, ::1] dKu, dKv, K, eye#, AL, AR
+    cdef npy_intp size = theta.shape[0]
+    if not (inds is None or inds.shape[0] >= n):
+        raise ValueError('inds must be None (dense) or an array longer than n')
+    if inds is not None:
+        if not np.all(inds == np.unique(inds)):
+            raise ValueError('inds must be sorted, without redundant')
+    if not ((theta.shape[0] == inds.shape[0]) or
+            (inds is None and theta.shape[0] == n_S_triu + n)):
+        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
+    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+        raise ValueError('counts must be `size` x `size`')
+
+    var_T = zeros(n)
+    dKu = zeros((n, n))
+    dKv = zeros((n, n))
+    K = zeros((n, n))
+    exptheta = np.exp(theta)
+    eye = np.eye(n)
+
+    buildK(exptheta, n, inds, K)
+    AL, AR, w, expw = dP_dtheta_terms(K, n, 1.0)
+    order = np.argsort(w)[::-1]
+    AL = np.asarray(AL)[:, order]
+    AR = np.asarray(AR)[:, order]
+    w = np.asarray(w)[order]
+
+    for u in range(size):
+        dK_dtheta_A(exptheta, n, u, inds, eye, dKu)
+        dw_u = np.diag(np.dot(np.dot(AL.T, dKu), AR.T))
+        for v in range(size):
+            dK_dtheta_A(exptheta, n, v, inds, eye, dKv)
+            dw_v = np.diag(np.dot(np.dot(AL.T, dKv), AR.T))
+
+            for i in range(n):
+                var_T[i] += w[i]**(-4) * dw_u[i] * dw_v[i] * invhessian[u, v]
+
+    return np.asarray(np.sqrt(var_T))[1:]
+
+
 
 def _supports_openmp():
+    """Does the system support OpenMP?"""
     IF OPENMP:
         return True
     return False

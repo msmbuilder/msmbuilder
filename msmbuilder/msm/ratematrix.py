@@ -114,11 +114,14 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     def summarize(self):
         out = cStringIO()
         with printoptions(precision=4):
+            print('n_states: %s' % self.n_states_, file=out)
             print(self.optimizer_state_.message, file=out)
             print('ratemat\n', self.ratemat_, file=out)
             print('transmat\n', self.transmat_, file=out)
             print('populations\n', self.populations_, file=out)
             print('timescales\n', self.timescales_, file=out)
+            print('uncertainty pi\n', self.uncertainty_pi(), file=out)
+            print('uncertainty timescales\n', self.uncertainty_timescales(), file=out)
 
         return out.getvalue()
 
@@ -202,6 +205,15 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_)
         return sigma_pi
+
+    def uncertainty_timescales(self):
+        n_threads = self._get_n_threads()
+        if self.information_ is None:
+            self._build_information()
+        sigma_timescales = _ratematrix.uncertainty_timescales(
+            self.information_, theta=self.theta_, n=self.n_states_,
+            inds=self.inds_,  n_threads=n_threads)
+        return sigma_timescales
 
     def initial_guess(self, countsmat):
         # C = 0.5 * (countsmat + countsmat.T) + self.prior_counts
