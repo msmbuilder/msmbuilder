@@ -74,7 +74,7 @@ Sparse Parameterization
 -----------------------
 Using the dense parameterization, it is not possible for elements of :math:`K`
 to be exactly zero, because the symmetric rate matrix is parameterized in
-log-space. Thus, :class:`ContinousTimeMSM` also includes an ability to find a
+log-space. Thus, :class:`ContinuousTimeMSM` also includes an ability to find a
 sparse rate matrix, through an alternative parameterization. In the sparse
 parameterization, certain entries in :math:`theta` are fixed at :math:`-\infty`,
 such that :math:`s_u = 0`. The indices of the "active" elements in
@@ -83,7 +83,7 @@ representation of `\theta` is used, with only the "active" elements explicitly.
 
 Estimation
 ----------
-:class:`ContinousTimeMSM` uses L-BFGS-B to find a maximum likelihood estimate
+:class:`ContinuousTimeMSM` uses L-BFGS-B to find a maximum likelihood estimate
 (MLE) rate matrix, :math:`\hat{\theta}` and :math:`K(\hat{\theta})`. By default,
 the algorithim works first be estimating a fully dense rate matrix. Then, small
 off-diagonal elements of K are taken as candidates for truncation to zero. A
@@ -96,7 +96,7 @@ Algorithms
     :toctree: generated/
     :template: class.rst
 
-    ContinousTimeMSM
+    ContinuousTimeMSM
 
 References
 ----------
