@@ -7,6 +7,15 @@
   {%- set titlesuffix = "" %}
 {%- endif %}
 
+{%- if theme_oldversion == true %}
+    <div class="warning-wrapper">
+       <p>Warning: This documentation is
+         for {{project}} <strong>version {{ release|e }}</strong>.
+         &mdash; <a href="http://www.msmbuilder.org/latest">
+           Latest stable version</a></p></p>
+    </div>
+{%- endif %}
+
 <!DOCTYPE html>
 <!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->

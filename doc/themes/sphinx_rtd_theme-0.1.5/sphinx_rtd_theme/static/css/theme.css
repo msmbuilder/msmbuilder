@@ -3793,3 +3793,8 @@ table.docutils td.field-body, table.docutils th {
 body > div.wy-grid-for-nav > section {
     background: #EFEFEF;
 }
+
+div.warning-wrapper {
+    background-color: #ffaaaa;
+    text-align: center;
+}
