@@ -12,6 +12,5 @@ Algorithms available include:
 - Time-structure independent components analysis 
 - L1-regularized reversible hidden Markov models
 - Transition path theory
-
 - [Documentation](http://msmbuilder.org)
 - [Mailing List](https://mailman.stanford.edu/mailman/listinfo/msmbuilder-user)
