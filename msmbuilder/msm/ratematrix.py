@@ -11,7 +11,7 @@ from six.moves import cStringIO
 from multiprocessing import cpu_count
 
 from ..base import BaseEstimator
-from ..utils import list_of_1d, printoptions
+from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import _MappingTransformMixin, _transition_counts
@@ -23,11 +23,16 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     This model fits a reversible continuous-time Markov model for labeled
     sequence data.
 
+    .. warning::
+
+        This model is currently (as of December 2, 2014) experimental, and may
+        undergo significant changes or bugfixes in upcoming releases.
+
     Parameters
     ----------
     lag_time : int
-        The lag time of the model. Transition counts are collected from the
-        input sequences at this interval.
+        The lag time used to count the number of state to state transition
+        events.
     prior_counts : float, optional
         Add a number of "pseudo counts" to each entry in the counts matrix.
         When prior_counts == 0 (default), the assigned transition
@@ -47,23 +52,37 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     n_states_ : int
         The number of states
     ratemat_ : np.ndarray, shape=(n_states_, n_state_)
+        The estimated state-to-state transition rates.
     transmat_ : np.ndarray, shape=(n_states_, n_state_)
+        The estimated state-to-state transition probabilities over an interval
+        of 1 time unit.
+    timescales_ : array of shape (n-1,)
+        Estimated relaxation timescales of the model.
+    populations_ : np.ndarray, shape=(n_states_,)
+        Estimated stationary probability distribution over the states.
     countsmat_ : array_like, shape = (n_states_, n_states_)
-        Number of transition counts between states. countsmat_[i, j] is counted
-        during `fit()`. The indices `i` and `j` are the "internal" indices
-        described above. No correction for reversibility is made to this
-        matrix.
+        Number of transition counts between states, at a time delay of ``lag_time``
+        countsmat_[i, j] is counted during `fit()`.
     optimizer_state_ : object
+        Contains information about the optimization termination.
     mapping_ : dict
         Mapping between "input" labels and internal state indices used by the
         counts and transition matrix for this Markov state model. Input states
         need not necessarily be integers in (0, ..., n_states_ - 1), for
         example. The semantics of ``mapping_[i] = j`` is that state ``i`` from
         the "input space" is represented by the index ``j`` in this MSM.
-    populations_ : np.ndarray, shape=(n_states_,)
     theta_ : array of shape n*(n+1)/2 or shorter
+        Optimized set of parameters for the model.
     information_ : np.ndarray, shape=(len(theta_), len(theta_))
+        Approximate inverse of the hessian of the model log-likelihood
+        evaluated at ``theta_``.
     inds_ : array of shape n*(n+1)/2 or shorter, or None
+        For sparse parameterization, the indices of the non-zero elements of
+        \theta.
+
+    See Also
+    --------
+    MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, use_sparse=True,
                  verbose=False, n_threads=None):
@@ -84,6 +103,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.populations_ = None
         self.information_ = None
 
+    @experimental
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
         lag_time = int(self.lag_time)
@@ -108,6 +128,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.mapping_ = mapping
         self.populations_ = exptheta[-n_states:] / exptheta[-n_states:].sum()
         self.information_ = None
+        self.timescales_ = -1 / np.sort(np.linalg.eigvals(self.ratemat_))[::-1][1:]
 
         return self
 
@@ -124,10 +145,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             print('uncertainty timescales\n', self.uncertainty_timescales(), file=out)
 
         return out.getvalue()
-
-    @property
-    def timescales_(self):
-        return -1 / np.sort(np.linalg.eigvals(self.ratemat_))[::-1][1:]
 
     def _optimize(self, countsmat):
         n = countsmat.shape[0]
@@ -187,6 +204,9 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         return result0, inds0
 
     def uncertainty_K(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the rate matrix
+        """
         n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
@@ -197,6 +217,9 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         return sigma_K
 
     def uncertainty_pi(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the stationary distribution.
+        """
         n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
@@ -207,6 +230,9 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         return sigma_pi
 
     def uncertainty_timescales(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the model relaxation timescales.
+        """
         n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
@@ -236,6 +262,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         return int(self.n_threads)
 
     def _build_information(self):
+        """Build the inverse of hessian of the log likelihood at theta_
+        """
         lag_time = float(self.lag_time)
         n_threads = self._get_n_threads()
 
