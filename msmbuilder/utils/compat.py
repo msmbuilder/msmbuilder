@@ -43,11 +43,16 @@ class ExperimentalWarning(Warning):
         return repr(self.msg)
 
 
-def experimental(func):
+def experimental(name=None):
     """A simple decorator to mark functions and methods as experimental."""
-    @functools.wraps(func)
-    def wrapper(*fargs, **kw):
-        warnings.warn("%s" % func.__qualname__, category=ExperimentalWarning,
-                      stacklevel=2)
-        return func(*fargs, **kw)
-    return wrapper
+    def inner(func):
+        @functools.wraps(func)
+        def wrapper(*fargs, **kw):
+            fname = name
+            if name is None:
+                fname = func.__name__
+            warnings.warn("%s" % fname, category=ExperimentalWarning,
+                          stacklevel=2)
+            return func(*fargs, **kw)
+        return wrapper
+    return inner

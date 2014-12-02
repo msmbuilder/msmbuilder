@@ -103,7 +103,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.populations_ = None
         self.information_ = None
 
-    @experimental
+    @experimental('ContinuousTimeMSM')
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
         lag_time = int(self.lag_time)
