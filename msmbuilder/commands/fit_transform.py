@@ -10,6 +10,7 @@
 from __future__ import print_function, absolute_import
 
 import os
+import numpy as np
 
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset
@@ -18,7 +19,7 @@ from ..decomposition import tICA, PCA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
                        MiniBatchKMeans, RegularSpatial)
 
-from ..cmdline import NumpydocClassCommand, argument, argument_group, exttype
+from ..cmdline import NumpydocClassCommand, argument_group, exttype
 
 
 class FitTransformCommand(NumpydocClassCommand):
