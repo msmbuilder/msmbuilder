@@ -1,5 +1,5 @@
 # this file gets nose to find the tests that appear in the cython module
-from mixtape.tests import test_cyblas
+from msmbuilder.tests import test_cyblas
 
 def test():
     count = 0

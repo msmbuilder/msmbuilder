@@ -3,10 +3,10 @@ import time
 import numpy as np
 import scipy.linalg
 from scipy.optimize import check_grad
-from mixtape.msm import _ratematrix
-from mixtape.msm import ContinuousTimeMSM, MarkovStateModel
-from mixtape.example_datasets import load_doublewell
-from mixtape.cluster import NDGrid
+from msmbuilder.msm import _ratematrix
+from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
+from msmbuilder.example_datasets import load_doublewell
+from msmbuilder.cluster import NDGrid
 np.random.seed(0)
 
 
