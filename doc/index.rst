@@ -42,6 +42,7 @@ licensed under the GNU LGPL (v2.1 or later).
     featurization
     cluster
     msm
+    ratematrix
     tpt
     tica
     hmm

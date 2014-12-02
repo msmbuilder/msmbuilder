@@ -5,3 +5,4 @@ from .param_sweep import *
 from .probability import *
 from .subsampler import *
 from .validation import *
+from .compat import *

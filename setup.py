@@ -29,6 +29,17 @@ except (ImportError, AttributeError):
     traceback.print_exc()
     sys.exit(1)
 
+if '--debug' in sys.argv:
+    sys.argv.remove('--debug')
+    DEBUG = True
+else:
+    DEBUG = False
+if '--disable-openmp' in sys.argv:
+    sys.argv.remove('--disable-openmp')
+    DISABLE_OPENMP = True
+else:
+    DISABLE_OPENMP = False
+
 
 try:
     import Cython
@@ -101,14 +112,31 @@ def write_spline_data():
         np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_deriv.dat'), derivs,
                    newline=',\n')
 
-compiler = CompilerDetection(False)
-extensions = []
+compiler = CompilerDetection(DISABLE_OPENMP)
+with open('msmbuilder/src/config.pxi', 'w') as f:
+    f.write('''
+DEF DEBUG = {debug}
+DEF OPENMP = {openmp}
+    '''.format(openmp=compiler.openmp_enabled, debug=DEBUG))
 
+extensions = []
 extensions.append(
     Extension('msmbuilder.msm._markovstatemodel',
               sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),
                        pjoin(MSMDIR, 'src/transmat_mle_prinz.c')],
               include_dirs=[pjoin(MSMDIR, 'src'), np.get_include()]))
+
+extensions.append(
+    Extension('msmbuilder.tests.test_cyblas',
+              sources=['msmbuilder/tests/test_cyblas.pyx'],
+              include_dirs=['msmbuilder/src', np.get_include()]))
+
+extensions.append(
+    Extension('msmbuilder.msm._ratematrix',
+              sources=[pjoin(MSMDIR, '_ratematrix.pyx')],
+              extra_compile_args=compiler.compiler_args_openmp,
+              libraries=compiler.compiler_libraries_openmp,
+              include_dirs=['msmbuilder/src', np.get_include()]))
 
 extensions.append(
     Extension('msmbuilder.msm._metzner_mcmc_fast',
