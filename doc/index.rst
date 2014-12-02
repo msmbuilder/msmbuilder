@@ -22,7 +22,7 @@ Algorithms available include:
 
 MSMBuilder is developed by primarily by researchers at Stanford University and
 Memorial Sloan Kettering, but we welcome contributions. The development all
-takes place on `Github <https://github.com/rmcgibbo/msmbuilder>`_. MSMBuilder is
+takes place on `Github <https://github.com/msmbuilder/msmbuilder>`_. MSMBuilder is
 licensed under the GNU LGPL (v2.1 or later).
 
 

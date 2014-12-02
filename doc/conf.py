@@ -33,7 +33,7 @@ autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 
 html_context = {
-    'github_user': 'rmcgibbo',
+    'github_user': 'msmbuilder',
     'display_github': True,
     'github_repo': 'msmbuilder',
     'github_version': 'master',
