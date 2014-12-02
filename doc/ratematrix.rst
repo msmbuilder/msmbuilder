@@ -1,4 +1,4 @@
-.. currentmodule:: mixtape.msm
+.. currentmodule:: msmbuilder.msm
 
 Continuous-time Markov State Model
 ==================================
