@@ -1,6 +1,7 @@
 from __future__ import print_function, absolute_import
 import os
 import sys
+import imp
 import json
 import string
 import shutil
@@ -28,6 +29,36 @@ def find_packages():
         packages.append(package.replace('MDTraj', 'mdtraj'))
     return packages
 
+
+def check_dependencies(dependencies):
+    def module_exists(dep):
+        try:
+            imp.find_module(dep)
+            return True
+        except ImportError:
+            return False
+
+    for dep in dependencies:
+        if len(dep) == 1:
+            import_name, pkg_name = dep[0], dep[0]
+        elif len(dep) == 2:
+            import_name, pkg_name = dep
+        else:
+            raise ValueError(dep)
+
+        if not module_exists(import_name):
+            lines = [
+                '-' * 50,
+                'Warning: This package requires %r. Try' % import_name,
+                '',
+                '  $ conda install %s' % pkg_name,
+                '',
+                'or:',
+                '',
+                '  $ pip install %s' % pkg_name,
+                '-' * 50,
+            ]
+            print(os.linesep.join(lines), file=sys.stderr)
 
 
 ################################################################################
