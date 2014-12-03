@@ -22,6 +22,9 @@ from mdtraj.core.trajectory import _parse_topology
 import numpy as np
 from . import version
 
+_PYTABLES_DISABLE_COMPRESSION = tables.Filters(complevel=0)
+
+
 __all__ = ['dataset']
 
 
@@ -225,15 +228,27 @@ class HDF5Dataset(_BaseDataset):
             if exists(path):
                 raise ValueError('File exists: %s' % path)
 
-        zlib = tables.Filters(complevel=9, complib='zlib', shuffle=True)
-        self._handle = tables.open_file(path, mode=mode, filters=zlib)
-
+        filters = tables.Filters(complevel=0)
+        self._handle = tables.open_file(path, mode=mode,
+                                        filters=_PYTABLES_DISABLE_COMPRESSION)
         self.path = path
         self.mode = mode
         self.verbose = verbose
 
         if mode == 'w':
             self._write_provenance()
+
+    def __getstate__(self):
+        # pickle does not like to pickle the pytables handle, so...
+        # self.flush()
+        return {'path': self.path, 'mode': self.mode, 'verbose': self.verbose}
+
+    def __setstate__(self, state):
+        self.path = state['path']
+        self.mode = state['mode']
+        self.verbose = state['verbose']
+        self._handle = tables.open_file(self.path, mode=self.mode,
+                                        filters=_PYTABLES_DISABLE_COMPRESSION)
 
     def get(self, i, mmap=False):
         if isinstance(i, slice):
@@ -273,10 +288,14 @@ class HDF5Dataset(_BaseDataset):
         self._handle.root._v_attrs['provenance'] = p
 
     def close(self):
-        self._handle.close()
+        if hasattr(self, '_handle'):
+            self._handle.close()
 
     def flush(self):
         self._handle.flush()
+
+    def __del__(self):
+        self.close()
 
 
 class MDTrajDataset(_BaseDataset):

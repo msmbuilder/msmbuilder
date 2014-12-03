@@ -2,11 +2,13 @@ from __future__ import print_function, absolute_import, division
 import os
 import shutil
 import tempfile
+from six.moves import cPickle
 
 import numpy as np
 from nose.tools import assert_raises
 from msmbuilder.dataset import dataset
 from mdtraj.testing import get_fn
+from sklearn.externals.joblib import Parallel, delayed
 
 from .test_commands import tempdir
 
@@ -146,3 +148,24 @@ def test_hdf5_2():
         ds = dataset('ds.h5', 'w', 'hdf5')
         ds2 = ds.create_derived('ds2.h5')
         print(ds2.provenance)
+
+
+def _sum_helper(ds):
+    value = sum(np.sum(x) for x in ds)
+    ds.close()
+    return value
+
+
+def test_hdf5_3():
+    with tempdir():
+        with dataset('ds.h5', 'w', 'hdf5') as ds:
+            ds[0] = np.random.randn(10)
+            ds[1] = np.random.randn(10)
+            ref_sum = _sum_helper(ds)
+
+        iter_args = (dataset('ds.h5') for _ in range(5))
+
+        sums = Parallel(n_jobs=2)(
+            delayed(_sum_helper)(a) for a in iter_args)
+
+        assert all(s == ref_sum for s in sums)
