@@ -26,7 +26,7 @@ def main():
 An unexpected error has occurred with MSMBuilder (version %s), please
 consider sending the following traceback to MSMBuilder GitHub issue tracker at:
             https://github.com/msmbuilder/msmbuilder/issues
-    """
+"""
         print(message % version, file=sys.stderr)
         raise  # as if we did not catch it
 
