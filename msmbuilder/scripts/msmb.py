@@ -25,7 +25,7 @@ def main():
         if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
             message = """\
 An unexpected error has occurred with MSMBuilder (version %s), please
-consider sending the following traceback to MSMBuilder osprey GitHub issue tracker at:
+consider sending the following traceback to MSMBuilder GitHub issue tracker at:
             https://github.com/msmbuilder/msmbuilder/issues
     """
         print(message % version, file=sys.stderr)
