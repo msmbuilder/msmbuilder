@@ -1,6 +1,9 @@
 """Statistical models for biomolecular dynamics"""
+from __future__ import print_function, absolute_import, division
+import sys
 from ..cmdline import App
 from ..commands import *
+from ..version import version
 # the commands register themselves when they're imported
 
 
@@ -13,9 +16,20 @@ class MSMBuilderApp(App):
 
 
 def main():
-    app = MSMBuilderApp(name='MSMBuilder', description=__doc__)
-    app.start()
-
+    try:
+        app = MSMBuilderApp(name='MSMBuilder', description=__doc__)
+        app.start()
+    except RuntimeError as e:
+        sys.exit("Error: %s" % e)
+    except Exception as e:
+        if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
+            message = """\
+An unexpected error has occurred with MSMBuilder (version %s), please
+consider sending the following traceback to MSMBuilder osprey GitHub issue tracker at:
+            https://github.com/msmbuilder/msmbuilder/issues
+    """
+        print(message % version, file=sys.stderr)
+        raise  # as if we did not catch it
 
 if __name__ == '__main__':
     main()
