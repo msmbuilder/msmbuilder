@@ -2,6 +2,20 @@
 # Contributors:
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
+"""Scan the implied timescales of MarkovStateModels with respect to lag time
+
+This command will build a series of MarkovStateModels at different lag times,
+and save a file to disk containing the relaxation timescales of each of the
+models.
+
+A plot of these data can then be used to choose the lag time [1].
+
+References
+----------
+.. [1] Beauchamp, Kyle A., et al. "MSMBuilder2: modeling conformational
+   dynamics on the picosecond to millisecond scale." J. Chem. Theory.
+   Comput. 7.10 (2011): 3412-3419.
+"""
 
 # -----------------------------------------------------------------------------
 # Imports
@@ -22,7 +36,7 @@ from ..msm import MarkovStateModel, implied_timescales
 class ImpliedTimescales(Command):
     _group = 'MSM'
     _concrete = True
-    description = "Scan the implied timescales of `MarkovStateModel`s with respect to lag time"
+    description = __doc__
     lag_times = argument('-l', '--lag_times', default='1:10', type=rangetype, help='''
         Range of lag times. Specify as 'start:stop' or 'start:stop:step. The endpoints
         are inclusive.''')
