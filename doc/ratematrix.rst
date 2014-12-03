@@ -85,7 +85,7 @@ Estimation
 ----------
 :class:`ContinuousTimeMSM` uses L-BFGS-B to find a maximum likelihood estimate
 (MLE) rate matrix, :math:`\hat{\theta}` and :math:`K(\hat{\theta})`. By default,
-the algorithim works first be estimating a fully dense rate matrix. Then, small
+the algorithm works first be estimating a fully dense rate matrix. Then, small
 off-diagonal elements of K are taken as candidates for truncation to zero. A
 new optimization using the sparse parameterization is performed with these elements constrained. If the log-likelihood of the sparse model is superior to
 the log likelihood of the dense model, it is retained.
