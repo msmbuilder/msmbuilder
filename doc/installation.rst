@@ -24,7 +24,7 @@ MSMBuilder is a python package that heavily leans on other components of the
 scientific python ecosystem. To use msmbuilder, the following libraries and
 software will need to be installed.
 
-    Linux, Mac OS X or Windows operating system
+    Linux, or Mac OS X
         We develop mainly on 64-bit Linux and Mac machines. Windows is not
         well supported.
 
@@ -57,14 +57,7 @@ software will need to be installed.
 Optional packages:
 
     `nose <http://somethingaboutorange.com/mrl/projects/nose/>`_
-        Recommended, to run Theano's test-suite.
+        Recommended, to run the test-suite.
 
     `Git <http://git-scm.com>`_
         To download the source code
-
-    `NVIDIA CUDA drivers and SDK`_
-        Required for GPU code generation/execution. Only NVIDIA GPUs using
-        32-bit floating point numbers are currently supported.
-
-
-.. _NVIDIA CUDA drivers and SDK: http://developer.nvidia.com/object/gpucomputing.html
