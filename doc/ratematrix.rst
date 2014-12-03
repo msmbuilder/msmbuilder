@@ -76,7 +76,7 @@ Using the dense parameterization, it is not possible for elements of :math:`K`
 to be exactly zero, because the symmetric rate matrix is parameterized in
 log-space. Thus, :class:`ContinuousTimeMSM` also includes an ability to find a
 sparse rate matrix, through an alternative parameterization. In the sparse
-parameterization, certain entries in :math:`theta` are fixed at :math:`-\infty`,
+parameterization, certain entries in :math:`\theta` are fixed at :math:`-\infty`,
 such that :math:`s_u = 0`. The indices of the "active" elements in
 :math:`\theta` are stored in an array of indices, ``inds``, and a compressed
 representation of `\theta` is used, with only the "active" elements explicitly.
