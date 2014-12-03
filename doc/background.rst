@@ -3,17 +3,16 @@
 Background and Motivation
 -------------------------
 
-Conformation Dynamics in Mixtape
+Conformation Dynamics with MSMBuilder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 `This slide deck <http://htmlpreview.github.io/?https://rawgit.com/kyleabeauchamp/MixtapeTalk/master/index.html>`_,
-by Kyle A. Beauchamp, gives an introduction to the Mixtape package and the
-design of its Python API. The code for the slides can be found
+by Kyle A. Beauchamp, gives an introduction to the MSMBuilder (formerly Mixtape) package and the design of its Python API. The code for the slides
+can be found
 `here <https://github.com/kyleabeauchamp/MixtapeTalk>`_.
 
 
 The goals
 ~~~~~~~~~
-
 The aim of this package is to provide software tools for predictive modeling of the **long timescale dynamics** of biomolecular systems using **statistical modeling to analyze physical simulations**.
 
 The basic question we're interested in is, "given a dataset of one or more stochastic trajectories tracking the coordinates of every (>10,000+) atom in a molecular system at a discrete time interval, how do we understand the slow dynamical processes and make quantitative predictions about the system?"
