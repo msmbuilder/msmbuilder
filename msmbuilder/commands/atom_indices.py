@@ -1,4 +1,12 @@
-"""Create an index file for specified atoms in a PDB"""
+"""Create index file for atoms or distance pairs.
+
+This index file can be used by for RMSD distance calculations, to specify
+pairs of atoms for AtomPairsFeaturizer, or to specify particular atoms
+for SuperposeFeaturizer.
+
+The format of the index file is flat text, with each line containing either
+1 or 2 0-based atom indices.
+"""
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
@@ -16,7 +24,7 @@ from ..cmdline import Command, argument, argument_group, exttype
 class AtomIndices(Command):
     _group = '0-Support'
     _concrete = True
-    description = "Create index file for atoms or distance pairs."
+    description = __doc__
     pdb = argument('-p', '--pdb', required=True, help='Path to PDB file')
     out = argument('-o', '--out', required=True, help='Path to output file',
                    type=exttype('.txt'))

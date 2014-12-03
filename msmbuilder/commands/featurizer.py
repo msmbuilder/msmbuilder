@@ -17,7 +17,7 @@ class FeaturizerCommand(NumpydocClassCommand):
     _group = '1-Featurizer'
     trjs = argument(
         '--trjs', help='Glob pattern for trajectories',
-        default='')
+        default='', required=True)
     top = argument(
         '--top', help='Path to topology file matching the trajectories', default='')
     chunk = argument(

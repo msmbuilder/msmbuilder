@@ -25,6 +25,17 @@ __all__ = ['RegularSpatial']
 class _RegularSpatial(ClusterMixin, TransformerMixin):
     """Regular spatial clustering.
 
+    This method finds a set of cluster centers that are themselves data points,
+    chosen to be approximately equally separated in conformation space with
+    respect to the distance metric used. In pseudocode, the
+    algorithm, from Senne et al. [1], is:
+
+      - Initialize a list of cluster centers containing only the first data
+        point in the data set
+      - Iterating over all conformations in the input dataset (in order),
+          * If the data point is farther than ``d_min`` from all existing
+            cluster center, add it to the list of cluster centers
+
     Parameters
     ----------
     d_min : float
@@ -35,17 +46,6 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         The distance metric to use. metric = "rmsd" requires that sequences
         passed to ``fit()`` be ```md.Trajectory```; other distance metrics
         require ``np.ndarray``s.
-
-    Notes
-    -----
-    Clusters are chosen to be approximately equally separated in conformation
-    space with respect to the distance metric used. In pseudocode, the
-    algorithm, from Senne et al., is:
-      - Initialize a list of cluster centers containing only the first data
-        point in the data set
-      - Iterating over all conformations in the input dataset (in order),
-          * If the data point is farther than d_min from all existing
-            cluster center, add it to the list of cluster centers
 
     References
     ----------

@@ -3,19 +3,6 @@
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
-# Mixtape is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 2.1
-# of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with Mixtape. If not, see <http://www.gnu.org/licenses/>.
-
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
@@ -35,6 +22,16 @@ from ..base import BaseEstimator
 
 class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
     """Mini-Batch K-Medoids clustering.
+
+    This method finds a set of cluster centers that are themselves data points,
+    attempting to minimize the mean-squared distance from the datapoints to
+    their assigned cluster centers using only mini-batches of the dataset.
+
+    Mini batches of the dataset are selected, and augmented to include each
+    of the cluster centers. Then, standard KMedoids clustering is performed
+    on the batch, using code based on the C clustering library [1]. The memory
+    requirement scales as the square ``batch_size`` instead of the square of
+    the size of the dataset.
 
     Parameters
     ----------
@@ -58,6 +55,16 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
         The generator used to initialize the centers. If an integer is
         given, it fixes the seed. Defaults to the global numpy random
         number generator.
+
+    References
+    ----------
+    .. [1] de Hoon, Michiel JL, et al. "Open source clustering software."
+       Bioinformatics 20.9 (2004): 1453-1454.
+
+    See Also
+    --------
+    KMedoids:
+        Batch version, requring O(N^2) memory.
 
     Attributes
     ----------

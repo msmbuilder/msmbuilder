@@ -146,6 +146,11 @@ class Featurizer(BaseEstimator, TransformerMixin):
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
 
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector containing the distances from a specified set of atoms to
+    the 'reference position' of those atoms, in ``reference_traj``.
+
     Parameters
     ----------
     atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
@@ -189,8 +194,11 @@ class SuperposeFeaturizer(Featurizer):
 
 
 class AtomPairsFeaturizer(Featurizer):
+    """Featurizer based on distances between specified pairs of atoms.
 
-    """Featurizer based on atom pair distances.
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the distances between the specified pairs of atoms.
 
     Parameters
     ----------
@@ -240,12 +248,18 @@ class AtomPairsFeaturizer(Featurizer):
 class DihedralFeaturizer(Featurizer):
     """Featurizer based on dihedral angles.
 
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector containing one or more of the backbone or side-chain dihedral
+    angles, or the sin and cosine of these angles.
+
     Parameters
     ----------
-    types : list of strings
+    types : list
         One or more of ['phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4']
     sincos : bool
-        Transform to sine and cosine (double the number of featurizers)
+        Instead of outputting the angle, return the sine and cosine of the
+        angle as separate features.
     """
 
     def __init__(self, types=['phi', 'psi'], sincos=True):
@@ -356,10 +370,17 @@ class SASAFeaturizer(Featurizer):
 class ContactFeaturizer(Featurizer):
     """Featurizer based on residue-residue distances
 
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the distances between pairs of amino-acid residues.
+
+    The exact method for computing the the distance between two residues
+    is configurable with the ``scheme`` parameter.
+
     Parameters
     ----------
     contacts : np.ndarray or 'all'
-        numpy array containing (0-indexed) residues to compute the
+        array containing (0-indexed) indices of the residues to compute the
         contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
         the contact between residue 0 and residue 10 as well as
         the contact between residue 0 and residue 11.) [NOTE: if no
@@ -605,6 +626,16 @@ class RMSDFeaturizer(Featurizer):
 class DRIDFeaturizer(Featurizer):
     """Featurizer based on distribution of reciprocal interatomic
     distances (DRID)
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector containing the first three moments of a collection of
+    reciprocal interatomic distances. For details, see [1].
+
+    References
+    ----------
+    .. [1] Zhou, Caflisch; Distribution of Reciprocal of Interatomic Distances:
+       A Fast Structural Metric. JCTC 2012 doi:10.1021/ct3003145
 
     Parameters
     ----------
