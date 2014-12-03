@@ -1,5 +1,5 @@
 .. _cluster:
-.. currentmodule:: mixtape.cluster
+.. currentmodule:: msmbuilder.cluster
 
 Geometric Clustering
 ====================
@@ -24,12 +24,12 @@ on the difference in backbone dihedral angles, and probably others.
 
 On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a
 tradeoff between clustering quality and computational cost. For that reason
-Mixtape has a bunch of different clustering algorithms implemented.
+MSMBuilder has a bunch of different clustering algorithms implemented.
 
 API and Implementation Notes
 ----------------------------
 
-All clustering algorithms in Mixtape follow the following basic API.
+All clustering algorithms in MSMBuilder follow the following basic API.
 Hyperparameters, including the number of clusters, random seeds, the distance
 metric (if applicable), etc are passed to the class constructor. Then,
 the heavy-lifting is done by calling ``fit(sequences)``. The argument to
@@ -76,7 +76,7 @@ Example
         t = md.load(trajectory_file, top='topology.pdb')
         dataset.append(md.compute_phi(t))
 
-    from mixtape.cluster import KMeans
+    from msmbuilder.cluster import KMeans
     cluster = KMeans(n_clusters=10)
     cluster.fit(dataset)
 
