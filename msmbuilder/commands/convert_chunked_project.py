@@ -18,7 +18,7 @@ dataset, this is the WRONG script for you.]
 The concatenated trajectory will be saved to disk inside the ``outdir``
 directory, under a filename set by the ``outfmt`` format string.
 
-A record of conversion will be saved inside the ``metadata`` JSON Lines file
+A record of conversion will be saved inside the directory as a JSON Lines file
 [http://jsonlines.org/], which contains a newline-delimited collection of
 JSON records, each of which is of the form
     {"chunks": ["path/to/input-chunk"], "filename": "output-file"}
@@ -43,7 +43,7 @@ try:
 except ImportError:
     from os import walk as _walk
 
-from ..cmdline import Command, argument
+from ..cmdline import Command, argument, argument_group, FlagAction
 from ..dataset import _keynat
 
 
@@ -51,31 +51,30 @@ class ConvertChunkedProject(Command):
     _group = '0-Support'
     _concrete = True
     description = __doc__
-    root = argument('root', help='Root of the directory structure containing '
-                    'the MD trajectories to convert (filesystem path)')
-    outdir = argument('outdir', help='Output directory in which to save '
-                      'converted trajectories. default="trajectories/"',
-                      default='trajectories')
-    outfmt = argument('--outfmt', help=('Output format. This should be a python '
-                      'string format specifier, which is parameterized by a '
-                      'single int. The filename extension can specify any '
-                      'supported MDTraj trajectory format ({}). '
-                      'default="traj-%%08d.dcd"').format(', '.join(EXTENSIONS)),
-                      default='traj-%08d.dcd')
-    pattern = argument('--pattern', help='Glob pattern for matching trajectory '
-                        'chunks (example: \'frame*.xtc\'). Use single quotes '
-                        'to specify expandable patterns', required=True)
-    discard = argument('--discard-first', help='Flag to discard the initial frame '
-                       'in each chunk before concatenating trajectories. This '
-                       'is necessary for some old-style Folding@Home datasets',
-                       action='store_true')
-    stride =argument('--stride', type=int, help='Convert every stride-th '
-                     'frame from the trajectories. default=1', default=1)
-    top = argument('--topology', help='Path to system topology file (.pdb / '
-                        '.prmtop / .psf)', type=md.core.trajectory._parse_topology,
-                        required=True)
-    dry = argument('--dry-run', help='Trace the execution, without '
-                   'actually running any actions', action='store_true')
+    root = argument('root', help='''Root of the directory structure containing
+        the MD trajectories to convert (filesystem path)''')
+    outdir = argument('outdir', help='''Output directory in which to save
+        converted trajectories.''', default='trajectories')
+    req = argument_group('required arguments')
+    pattern = req.add_argument('--pattern', help='''Glob pattern for matching
+        trajectory chunks (example: \'frame*.xtc\'). Use single quotes to
+        specify expandable patterns''', required=True)
+    top = req.add_argument('-t', '--topology', help='''Path to system topology file
+        (.pdb / .prmtop / .psf)''', type=md.core.trajectory._parse_topology,
+        required=True)
+    outfmt = argument('--outfmt', help='''Format for output trajectories. This
+        should be a python string format specifier, which is parameterized by a
+        single int. The filename extension can specify any supported MDTraj
+        trajectory format ({}).'''.format(', '.join(EXTENSIONS)),
+        default='traj-%08d.dcd')
+    discard = argument('--discard-first', help='''Flag to discard the initial
+        frame in each chunk before concatenating trajectories. This is
+        necessary for some old-style Folding@Home datasets''',
+        action=FlagAction, default=False)
+    stride =argument('--stride', type=int, help='''Convert every stride-th
+        frame from the trajectories''', default=1)
+    dry = argument('--dry-run', help='''Trace the execution, without
+        actually running any actions''', action='store_true')
 
     def __init__(self, args):
         self.args = args

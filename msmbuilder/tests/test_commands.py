@@ -1,5 +1,7 @@
 from __future__ import print_function, division
 import os
+import json
+import glob
 import itertools
 import tempfile
 import shutil
@@ -145,3 +147,24 @@ def test_atom_pairs_featurizer():
 
 def test_help():
     shell('msmb -h')
+
+
+def test_convert_chunked_project_1():
+    fetch_alanine_dipeptide()
+    with tempdir():
+        root = os.path.join(get_data_home(), 'alanine_dipeptide')
+        pattern = "'*.dcd'"
+        cmd = 'msmb ConvertChunkedProject out {root} --pattern {pattern} -t {root}/ala2.pdb'.format(root=root, pattern=pattern)
+        shell(cmd)
+        assert set(os.listdir('out')) == set(('traj-00000000.dcd', 'trajectories.jsonl'))
+
+        # check that out/traj-00000.dcd really has concatenated all of
+        # the input trajs
+        length = len(md.open('out/traj-00000000.dcd'))
+        assert length == sum(len(md.open(f)) for f in glob.glob('%s/*.dcd' % root))
+
+        with open('out/trajectories.jsonl') as f:
+            record = json.load(f)
+        assert set(record.keys()) == set(('filename', 'chunks'))
+        assert record['filename'] == 'traj-00000000.dcd'
+        assert sorted(glob.glob('%s/*.dcd' % root)) == record['chunks']
