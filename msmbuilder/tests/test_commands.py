@@ -10,6 +10,7 @@ import mdtraj as md
 from mdtraj.testing import eq
 from mdtraj.testing import get_fn as get_mdtraj_fn
 
+from msmbuilder.utils import load
 from msmbuilder.dataset import dataset
 from msmbuilder.example_datasets import get_data_home
 from msmbuilder.example_datasets.alanine_dipeptide import fetch_alanine_dipeptide
@@ -141,6 +142,18 @@ def test_atom_pairs_featurizer():
         assert len(ds) == 10
         assert ds[0].shape[1] == len(np.loadtxt('all.txt')**2)
         print(ds.provenance)
+
+
+def test_transform_command_1():
+    with tempdir():
+        shell("msmb KCenters -i {data_home}/alanine_dipeptide/*.dcd "
+              "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
+              "--metric rmsd".format(data_home=get_data_home()))
+        shell("msmb TransformDataset -i {data_home}/alanine_dipeptide/*.dcd "
+              "-m model.pkl -t transformed.h5 --top "
+              "{data_home}/alanine_dipeptide/ala2.pdb".format(data_home=get_data_home()))
+
+        eq(dataset('transformed.h5')[0], load('model.pkl').labels_[0])
 
 
 def test_help():

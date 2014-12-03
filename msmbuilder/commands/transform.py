@@ -35,6 +35,13 @@ class TransformCommand(Command):
         will be a collection of arrays, as transformed by the model''',
         default='', type=exttype('.h5'), required=True)
 
+    md = argument_group('mdtraj input', description='additional options '
+        'required for loading trajectory datasets')
+    md.add_argument('--stride', default=1, help='Load only every stride-th frame')
+    md.add_argument('--top', default='', help='Path to topology file matching the trajectories')
+    md.add_argument('--atom_indices', help='''Path to an index file
+        containing the zero-based indices of the atoms to use for RMSD''')
+
     def __init__(self, args):
         self.args = args
 
@@ -52,7 +59,9 @@ class TransformCommand(Command):
 
         # load the input dataset
         print('Opening dataset %s...' % self.args.inp)
-        with dataset(self.args.inp, mode='r') as inp_ds:
+        with dataset(self.args.inp, mode='r', topology=self.args.top,
+                     stride=self.args.stride,
+                     atom_indices=self.args.atom_indices) as inp_ds:
             # create the output dataset
             print('Writing to %s...' % self.args.transformed)
             with inp_ds.create_derived(self.args.transformed, fmt='hdf5') as out_ds:
