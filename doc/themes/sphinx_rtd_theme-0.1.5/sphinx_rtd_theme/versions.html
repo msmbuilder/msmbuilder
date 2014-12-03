@@ -3,29 +3,31 @@
 // to a new set of root documentation
 $(document).ready(function() {
     $('#versionselector').change(function(){
-        window.location.href = "/" + $('#versionselector').val();
+        window.location.href = $('#versionselector option:selected').attr('url');
     });
 });
 
 
-// get all of the releases from github, and use these to populate the
+// get all of the releases from versions.json, and use these to populate the
 // dropdown menu of different releases
 $(document).ready(function() {
-    $.get("https://api.github.com/repos/msmbuilder/msmbuilder/releases")
+    $.getJSON("http://msmbuilder.org/versions.json")
       .done(function(data) {
           numItems = data.length;
-          tag_names = [];
+          tags = [];
           for (var i = 0; i < numItems; i++) {
-              tag_names.push(data[i].tag_name);
+              tags.push({ value : data[i].version, url : data[i].url })
           }
-          tag_names = tag_names.sort().reverse();
+          tags = tags.sort(function(a,b) { a.value < b.value }).reverse();
 
           for (var i = 0; i < numItems; i++) {
-              var key = tag_names[i];
               $('#versionselector')
-                .append($('<option></option>', { value : key})
-                .text(key)); 
-           }
+                .append($('<option></option>', { value : tags[i].value, 'url' : tags[i].url})
+                .text(tags[i].value)); 
+          }
+      })
+      .fail(function(d, textStatus, error) {
+        console.error("getJSON failed, status: " + textStatus + ", error: "+error);
       });
 });
 </script>
@@ -38,7 +40,7 @@ $(document).ready(function() {
 <span class="rst-current-version" data-toggle="rst-current-version">
   <span class="icon icon-book"> Versions</span>
   <form><select id="versionselector">
-      <option value="latest">latest</option>
+      <option value="latest" url="http://msmbuilder.org/latest">latest</option>
   </select></form>
 </span>
 </div>
