@@ -45,6 +45,7 @@ import os
 import sys
 import abc
 import copy
+import textwrap
 import argparse
 import inspect
 import itertools
@@ -355,22 +356,29 @@ class NumpydocClassCommand(Command):
     @classmethod
     def description(cls):
         doc = numpydoc.docscrape.ClassDoc(cls.klass)
+        lines = []
         summary = ' '.join(doc['Summary'])
         if not summary.endswith('.'):
             summary += '.'
 
-        extended = '\n'.join(doc['Extended Summary'])
+        lines.extend((summary, ''))
+        lines.extend(doc['Extended Summary'])
 
-        notes = ''
-        references = ''
         if len(doc['Notes']) > 0:
-            notes = '\n'.join(('\nNotes', '------') + tuple(doc['Notes']))
+            lines.extend(('', 'Notes', '------'))
+            lines.extend(doc['Notes'])
         if len(doc['References']) > 0:
-            references = '\n'.join(('\nReferences', '----------') +
-                                   tuple(doc['References']))
+            lines.extend(('', 'References', '----------'))
+            lines.extend(doc['References'])
+        if len(doc['See Also']) > 0:
+            lines.extend(('', 'See Also', '--------'))
+            for other in doc['See Also']:
+                name = other[0]
+                lines.append('%s:' % name)
+                for l in textwrap.wrap(' '.join(other[1])):
+                    lines.append('    %s' % l)
 
-
-        return '\n'.join((summary, '', extended, notes, references))
+        return '\n'.join(lines)
 
 
 

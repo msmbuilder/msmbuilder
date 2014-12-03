@@ -25,6 +25,13 @@ __all__ = ['KCenters']
 class _KCenters(ClusterMixin, TransformerMixin):
     """K-Centers clustering
 
+    Cluster a vector or Trajectory dataset using a simple heuristic to minimize
+    the maximum distance from any data point to its assigned cluster center.
+
+    The runtime of this algorithm is O(kN), where k is the number of
+    clusters and N is the size of the dataset, making it one of the least
+    expensive clustering algorithms available.
+
     Parameters
     ----------
     n_clusters : int, optional, default: 8
@@ -39,6 +46,14 @@ class _KCenters(ClusterMixin, TransformerMixin):
         The generator used to initialize the centers. If an integer is
         given, it fixes the seed. Defaults to the global numpy random
         number generator.
+
+    References
+    ----------
+    .. [1] Gonzalez, Teofilo F. "Clustering to minimize the maximum
+       intercluster distance." Theor. Comput. Sci. 38 (1985): 293-306.
+    .. [2] Beauchamp, Kyle A., et al. "MSMBuilder2: modeling conformational
+       dynamics on the picosecond to millisecond scale." J. Chem. Theory.
+       Comput. 7.10 (2011): 3412-3419.
 
     Attributes
     ----------

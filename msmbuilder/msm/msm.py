@@ -32,6 +32,15 @@ __all__ = ['MarkovStateModel']
 class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
     """Reversible Markov State Model
 
+    This model fits a first-order Markov model to a dataset of integer-valued
+    timeseries. The key estimated attribute, ``transmat_`` is a matrix
+    containing the estimated probability of transitioning between pairs
+    of states in the duration specified by ``lag_time``.
+
+    Unless otherwise specified, the model is constrained to be reversible
+    (satisfy detailed balance), which is appropriate for equilibrium chemical
+    systems.
+
     Parameters
     ----------
     lag_time : int
@@ -60,6 +69,14 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         will be given nonzero probability.
     verbose : bool
         Enable verbose printout
+
+    References
+    ----------
+    .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
+       Generation and validation." J Chem. Phys. 134.17 (2011): 174105.
+    .. [2] Pande, V. S., K. A. Beauchamp, and G. R. Bowman. "Everything you
+       wanted to know about Markov State Models but were afraid to ask"
+       Methods 52.1 (2010): 99-105.
 
     Attributes
     ----------

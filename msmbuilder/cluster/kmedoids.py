@@ -22,6 +22,14 @@ from ..base import BaseEstimator
 class _KMedoids(ClusterMixin, TransformerMixin):
     """K-Medoids clustering
 
+    This method finds a set of cluster centers that are themselves data points,
+    attempting to minimize the mean-squared distance from the datapoints to
+    their assigned cluster centers.
+
+    This algorithm requires computing the full distance matrix between all pairs
+    of data points, requiring O(N^2) memory. The implementation of this
+    method is based on the C clustering library [1].
+
     Parameters
     ----------
     n_clusters : int, optional, default: 8
@@ -39,6 +47,18 @@ class _KMedoids(ClusterMixin, TransformerMixin):
         The generator used to initialize the centers. If an integer is
         given, it fixes the seed. Defaults to the global numpy random
         number generator.
+
+    References
+    ----------
+    .. [1] de Hoon, Michiel JL, et al. "Open source clustering software."
+       Bioinformatics 20.9 (2004): 1453-1454.
+
+    See Also
+    --------
+    MiniBatchKMedoids:
+        Alternative online implementation that does incremental updates
+        of the cluster centers using mini-batches, for more memory
+        efficiency.
 
     Attributes
     ----------
