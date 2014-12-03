@@ -22,8 +22,7 @@ def main():
     except RuntimeError as e:
         sys.exit("Error: %s" % e)
     except Exception as e:
-        if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-            message = """\
+        message = """\
 An unexpected error has occurred with MSMBuilder (version %s), please
 consider sending the following traceback to MSMBuilder GitHub issue tracker at:
             https://github.com/msmbuilder/msmbuilder/issues
