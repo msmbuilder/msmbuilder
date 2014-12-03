@@ -57,10 +57,9 @@ from ._metzner_mcmc_slow import metzner_mcmc_slow
 class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     """Bayesian Markov state model
 
-    When ``fit()``, this model runs a Metropolis Markov chain Monte Carlo
-    sampler (from Ref [1]) to estimate transition matrices. This produces
-    an ensemble of ``n_samples`` transition matrices asymptotically sampled
-    from the distribution :math:`P(T | C)`. This distribution gives some
+    Variant of ``MarkovStateModel`` which estimates a distribution over
+    transition matrices instead of a single transition matrix using
+    Metropolis Markov chain Monte Carlo. This distribution gives
     information about the statistical uncertainty in the transition matrix
     (and functions of the transition matrix), and is stored in
     ``all_transmats_``
@@ -141,8 +140,8 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     References
     ----------
     .. [1] P. Metzner, F. Noe and C. Schutte, "Estimating the sampling error:
-        Distribution of transition matrices and functions of transition
-        matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
+       Distribution of transition matrices and functions of transition
+       matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
     """
     def __init__(self, lag_time=1, n_samples=100, n_steps=0, n_chains=None,
                  n_timescales=None, reversible=True, ergodic_cutoff=1,

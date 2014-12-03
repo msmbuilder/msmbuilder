@@ -36,9 +36,14 @@ EPS = np.finfo(np.float32).eps
 
 
 class GaussianFusionHMM(BaseEstimator):
+    """Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
 
-    """
-    Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
+    This model estimates Hidden Markov model for a vector dataset which is
+    contained to be reversible (satisfy detailed balance) with Gaussian
+    emission distributions. This model is similar to a ``MarkovStateModel``
+    without a "hard" assignments of conformations to clusters. Optionally, it
+    can apply L1-regularization to the positions of the Gaussians. See [1] for
+    details.
 
     Parameters
     ----------
@@ -100,6 +105,12 @@ class GaussianFusionHMM(BaseEstimator):
         Use this algorithm to hotstart the means and covariances.  Must
         be one of "kmeans" or "GMM"
 
+    References
+    ----------
+    .. [1] McGibbon, Robert T. et al., "Understanding Protein Dynamics with
+       L1-Regularized Reversible Hidden Markov Models" Proc. 31st Intl.
+       Conf. on Machine Learning (ICML). 2014.
+
     Attributes
     ----------
     means_ :
@@ -107,9 +118,6 @@ class GaussianFusionHMM(BaseEstimator):
     transmat_ :
     populations_ :
     fit_logprob_ :
-
-    Notes
-    -----
     """
 
     def __init__(self, n_states, n_features, n_init=10, n_em_iter=10,
