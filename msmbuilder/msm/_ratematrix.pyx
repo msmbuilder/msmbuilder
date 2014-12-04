@@ -127,15 +127,14 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
     return 0
 
 
-cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
-                      const npy_intp[::1] inds, const double[:, ::1] A,
-                      double[:, ::1] out) nogil:
-    """Compute the matrix product of the derivative of (the rate matrix, `K`,
-    with respect to the free parameters,`\theta`, dK_ij / dtheta_u) and another
-    matrix, A.
+cpdef double dK_dtheta_A_sum(const double[::1] exptheta, npy_intp n, npy_intp u,
+                             const npy_intp[::1] inds, const double[:, ::1] A) nogil:
+    """Compute the sum of the Hadamard (element-wise) product of the
+    derivative of (the rate matrix, `K`, with respect to the free
+    parameters,`\theta`, dK_ij / dtheta_u) and another matrix, A.
 
     Since dK/dtheta_u is a sparse matrix with a known sparsity structure, it's
-    more efficient to just do the matrix multiply as we construct it, and never
+    more efficient to just do sum as we construct it, and never
     save the matrix elements directly.
 
     Parameters
@@ -159,21 +158,21 @@ cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
         of the upper triangular elements of the rate matrix to which
         `exptheta` correspond.
     A : array of shape=(n, n)
-        An arbitrary (n, n) matrix to be multiplied with the derivative of
-        the rate matrix.
+        An arbitrary (n, n) matrix to be multiplied elementwise
+        with the derivative of the rate matrix.
 
     Returns
     -------
-    out : [output] array, shape=(n, n)
-        The derivative of the rate matrix, `K`, with respect to `theta[u]`,
-        multiplied by `A`. :math:`\frac{dK}/{d\theta_u} A`.
+    s : double
+        The sum of the element-wise product of dK/du and A
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp a, i, j, n_triu, uu, kk
     cdef double dK_i, s_ij, dK_ij, dK_ji
+    cdef double sum_elem_product = 0
     cdef double[::1] pi
     cdef double* dK_ii
-    dK_ii = <double*> calloc(n, sizeof(double))
+    # dK_ii = <double*> calloc(n, sizeof(double))
     if DEBUG:
         assert out.shape[0] == n and out.shape[1] == n
         assert A.shape[0] == n and A.shape[1] == n
@@ -184,8 +183,6 @@ cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
         n_triu = n*(n-1)/2
     else:
         n_triu = inds.shape[0] - n
-
-    memset(&out[0,0], 0, n*n*sizeof(double))
 
     pi = exptheta[n_triu:]
     uu = u
@@ -204,16 +201,12 @@ cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
         s_ij = exptheta[u]
         dK_ij = s_ij * sqrt(pi[j] / pi[i])
         dK_ji = s_ij * sqrt(pi[i] / pi[j])
-        dK_ii[i] = -dK_ij
-        dK_ii[j] = -dK_ji
 
-        # now, dK contains 4 nonzero elements, at
-        #  (i, i), (i, j) (j, i) and (j, j), so the matrix*matrix product
-        # populates two rows in `out`
+        sum_elem_product = (
+            A[i,j]*dK_ij +  A[j,i]*dK_ji
+          - A[i,i]*dK_ij - A[j,j]*dK_ji
+        )
 
-        for a in range(n):
-            out[i, a] = dK_ii[i] * A[i, a] + dK_ij * A[j, a]
-            out[j, a] = dK_ii[j] * A[j, a] + dK_ji * A[i, a]
     else:
         # the perturbation is to the equilibrium distribution
 
@@ -244,110 +237,87 @@ cpdef int dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
             s_ij = exptheta[kk]
             dK_ij = -0.5 * s_ij * sqrt(pi[j] / pi[i])
             dK_ji = 0.5  * s_ij * sqrt(pi[i] / pi[j])
-            dK_ii[i] -= dK_ij
-            dK_ii[j] -= dK_ji
+            sum_elem_product += (
+                A[i,j]*dK_ij +  A[j,i]*dK_ji
+                - A[i,i]*dK_ij - A[j,j]*dK_ji
+            )
 
-            for a in range(n):
-                out[i, a] += dK_ij * A[j, a]
-                out[j, a] += dK_ji * A[i, a]
-
-        for i in range(n):
-            dK_i = dK_ii[i]
-            for j in range(n):
-                out[i, j] += dK_i * A[i, j]
-
-    free(dK_ii)
+    return sum_elem_product
 
 
-cpdef dP_dtheta_terms(const double[:, ::1] K, npy_intp n, double t):
-    """Compute some of the terms required for d(exp(K))/d(theta). This
-    includes the left and right eigenvectors of K, the eigenvalues, and
-    the exp of the eigenvalues.
+cdef dT_dtheta(const double[:, ::1] K, const double[:, ::1] counts,
+               npy_intp n, double t,
+               double[:, ::1] T, double[:, ::1] dT):
+    """Compute some of the terms required for d(exp(K))/d(theta).
 
     Returns
     -------
-    AL : array of shape = (n, n)
-        The left eigenvectors of K
-    AR : array of shape = (n, n)
-        The right eigenvectors of K
-    w : array of shape = (n,)
-        The eigenvalues of K
-    expw : array of shape = (n,)
-        The exp of the eigenvalues of K
-    """
-    cdef npy_intp i
-    w, AL, AR = scipy.linalg.eig(K, left=True, right=True)
-
-    for i in range(n):
-        # we need to ensure the proper normalization
-        AL[:, i] /= dot(AL[:, i], AR[:, i])
-
-    if DEBUG:
-        assert np.allclose(scipy.linalg.inv(AR).T, AL)
-
-    AL = ascontiguousarray(real(AL))
-    AR = ascontiguousarray(real(AR))
-    w = ascontiguousarray(real(w))
-    expwt = zeros(w.shape[0])
-    for i in range(w.shape[0]):
-        expwt[i] = exp(w[i]*t)
-
-    return AL, AR, w, expwt
-
-
-cdef void build_dPu(const double[:, ::1] AL, const double[:, ::1] AR, const double[::1] expwt,
-                    const double[::1] w, const double[::1] exptheta, npy_intp n, npy_intp u,
-                    double t, const npy_intp[::1] inds, double[:, ::1] temp1,
-                    double[:, ::1] temp2, double[:, ::1] dPu) nogil:
-    """Build the derivative of the transition matrix, P, with respect to
-    \theta_u from its constituent terms
-
-    Parameters
-    ----------
-    AL : array shape=(n, n)
-        Left eigenvectors of `K`
-    AR : array of shape=(n, n)
-        Right eigenvectors of `K`
-    expwt : array of shape=(n,)
-        Exp of the eigenvalues of `K` times `t`.
-    w : array of shape=(n,)
-        Eigenvalues of `K`
-    n : int
-        Dimension of the rate matrix, K, (number of states)
-    u : int
-        The index of element in `theta` to construct the derivative w.r.t.
-    t : double
-        The lag time of the model
-    inds : array
-        The triu indices of the elements in `theta`, or None for dense.
-    temp1 : array of shape=(n, n)
-        Temporary workspace
-    temp2 : array of shape=(n, n)
-       Temporary workspace
-
-    Returns
-    -------
-    dPu : array of shape=(n, n)
-        Derivative of the transition matrix, P, with respect to theta[u]
     """
     cdef npy_intp i, j
+    cdef double norm
+    cdef double[::1] w, expwt
+    cdef double[:, ::1] U, V, X, temp1, temp2, dLdK
+    temp1 = zeros((n, n))
+    temp2 = zeros((n, n))
+    dLdK = zeros((n, n))
+    expwt = zeros(n)
 
-    # Gu = AL.T * dKu * AR
-    dK_dtheta_A(exptheta, n, u, inds, AR, temp1)
-    cdgemm_TN(AL, temp1, temp2)
-    # Gu is in temp2
+    w_, U_, V_ = scipy.linalg.eig(K, left=True, right=True)
+    U = ascontiguousarray(real(U_))
+    V = ascontiguousarray(real(V_))
+    w = ascontiguousarray(real(w_))
 
-    # Vu matrix in temp1
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                temp1[i, j] = (expwt[i] - expwt[j]) / (w[i] - w[j]) * temp2[i, j]
-            else:
-                temp1[i, i] = t * expwt[i] * temp2[i, j]
+    with nogil:
+        for i in range(n):
+            # we need to ensure the proper normalization
+            cddot(U[:, i], V[:, i], &norm)
+            for j in range(n):
+                U[j, i] = U[j, i] / norm
 
-    # dPu = AR * Vu * AL.T
-    cdgemm_NN(AR, temp1, temp2)
-    cdgemm_NT(temp2, AL, dPu)
+    if DEBUG:
+        assert np.allclose(scipy.linalg.inv(V).T, U)
+
+    with nogil:
+        for i in range(n):
+            expwt[i] = exp(w[i]*t)
+
+        # transmat = np.dot(np.dot(V, np.diag(expwt)), U.T)
+        for i in range(n):
+            for j in range(n):
+                temp1[i, j] = V[i, j] * expwt[j]
+        cdgemm_NT(temp1, U, T)
+
+        # dLdK[i,j] = counts[i,j] / T[i,j]
+        for i in range(n):
+            for j in range(n):
+                dLdK[i, j] = counts[i, j] / T[i, j]
+
+        # out = U \left(V^T dLdK U \circ X(\lambda, t))\right) V^T
+
+        # temp2 = V^T dLdK U
+        cdgemm_TN(V, dLdK, temp1)
+        cdgemm_NN(temp1, U, temp2)
+
+        # temp2 =  (V^T dLdK U \circ X(w, t))
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    temp2[i, j] *= (expwt[i] - expwt[j]) / (w[i] - w[j])
+                else:
+                    temp2[i, j] *= t * expwt[i]
+
+        # dT = U \left(V^TCU \circ X(\lambda, t))\right) V^T
+        cdgemm_NN(U, temp2, temp1)
+        cdgemm_NT(temp1, V, dT)
+
+    if DEBUG:
+        X = np.subtract.outer(expwt, expwt) / np.subtract.outer(w, w)
+        np.fill_diagonal(np.asarray(X), t*np.asarray(expwt))
+        Y = np.asarray(U).dot(np.asarray(V).T.dot(dLdK).dot(U) * X).dot(np.asarray(V).T)
+
+        assert np.allclose(dT, Y)
+        assert np.allclose(T, np.dot(np.dot(V, np.diag(expwt)), U.T))
+        assert np.allclose(T, scipy.linalg.expm(t*np.asarray(K)))
 
 
 def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp n,
@@ -403,20 +373,15 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
     cdef npy_intp u, i, j
     cdef npy_intp size = theta.shape[0]
-    cdef int thread_num = 0
-    cdef double logl
-    cdef double[::1] w, expwt, grad, exptheta, grad_u
-    cdef double[:, ::1] K, transmat, AL, AR, temp
-    cdef double[:, :, ::1] dPu
-    cdef double[:, :, :, ::1] temp1
+    cdef double logl = 0
+    cdef double[::1] grad, exptheta
+    cdef double[:, ::1] K, T, dT
 
     grad = zeros(size)
     exptheta = zeros(size)
     K = zeros((n, n))
-    temp = zeros((n, n))
-    temp1 = zeros((n_threads, 2, n, n))
-    dPu = zeros((n_threads, n, n))
-    grad_u = zeros((n_threads))
+    T = zeros((n, n))
+    dT = zeros((n, n))
 
     for u in range(size):
         exptheta[u] = exp(theta[u])
@@ -427,28 +392,15 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
         # tell the optimizer to stear clear!
         return -np.inf, ascontiguousarray(grad)
 
+    dT_dtheta(K, counts, n, t, T, dT)
 
-    AL, AR, w, expwt = dP_dtheta_terms(K, n, t)
-    transmat = np.dot(np.dot(AR, np.diag(expwt)), AL.T)
+    with nogil:
+        for u in range(size):
+            grad[u] = dK_dtheta_A_sum(exptheta, n, u, inds, dT)
 
-    with nogil, parallel(num_threads=n_threads):
-        IF OPENMP:
-            thread_num = openmp.omp_get_thread_num()
-        for u in prange(size):
-            # write dP / dtheta_u into dPu[thread_num]
-            build_dPu(AL, AR, expwt, w, exptheta, n, u, t, inds,
-                      temp1[thread_num, 0], temp1[thread_num, 1], dPu[thread_num])
-
-            grad_u[thread_num] = 0
-            for i in range(n):
-                for j in range(n):
-                    grad_u[thread_num] += counts[i, j] * (dPu[thread_num, i, j] / transmat[i, j])
-            grad[u] = grad_u[thread_num]
-
-    logl = 0
-    for i in range(n):
-        for j in range(n):
-            logl += counts[i, j] * log(transmat[i, j])
+        for i in range(n):
+            for j in range(n):
+                logl += counts[i, j] * log(T[i, j])    
 
     return logl, ascontiguousarray(grad)
 
@@ -512,6 +464,20 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
     cdef npy_intp size = theta.shape[0]
     cdef npy_intp u, v, i, j
+    cdef double[::1] grad, exptheta
+    cdef double[:, ::1] K, T, dT
+
+    grad = zeros(size)
+    exptheta = zeros(size)
+    K = zeros((n, n))
+    T = zeros((n, n))
+    dT = zeros((n, n))
+    
+    buildK(exptheta, n, inds, K)
+    dT_dtheta(K, counts, n, t, T, dT)
+
+
+    '''
     cdef int thread_num = 0
     cdef double logl
     cdef double[::1] w, expwt, exptheta, rowsums, hessian_uv
@@ -550,80 +516,80 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
                     for j in range(n):
                         hessian_uv[thread_num] += (rowsums[i]/transmat[i,j]) * (dPu[thread_num, i, j] * dPv[thread_num, i, j])
                 hessian[u, v] = hessian_uv[thread_num]
-
+    '''
     return np.asarray(hessian)
 
 
-def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
-                  npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
-    """Estimate of the uncertainty in the rate matrix, `K`
-
-    Parameters
-    ----------
-    invhessian : array, shape=(len(theta), len(theta))
-        Inverse of the hessian of the log-likelihood
-    theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
-        The free parameters of the model. These values are the (possibly sparse)
-        linearized elements of the log of the  upper triangular portion of the
-        symmetric rate matrix, S, followed by the log of the equilibrium
-        distribution.
-    n : int
-        The size of `counts`
-    inds : array, optional (default=None)
-        Sparse linearized triu indices theta. If not supplied, theta is
-        assumed to be a dense parameterization of the upper triangular portion
-        of the symmetric rate matrix followed by the log equilibrium weights,
-        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
-        set of indices, with  `len(inds) == len(theta)`,
-        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
-        of the upper triangular elements of the rate matrix to which
-        `theta` correspond.
-    n_threads : int
-        The number of threads to use in parallel.
-
-    Returns
-    -------
-    sigma_K : array, shape=(n, n)
-        Estimate of the element-wise asymptotic standard deviation of the rate matrix, K.
-    """
-    cdef npy_intp n_S_triu = n*(n-1)/2
-    cdef npy_intp u, v, i, j
-    cdef double[::1] exptheta
-    cdef double[:, ::1] var_K, dKu, dKv, K, eye
-    cdef npy_intp size = theta.shape[0]
-    if not (inds is None or inds.shape[0] >= n):
-        raise ValueError('inds must be None (dense) or an array longer than n')
-    if inds is not None:
-        if not np.all(inds == np.unique(inds)):
-            raise ValueError('inds must be sorted, without redundant')
-    if not ((theta.shape[0] == inds.shape[0]) or
-            (inds is None and theta.shape[0] == n_S_triu + n)):
-        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
-    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
-        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
-    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
-        raise ValueError('counts must be `size` x `size`')
-
-    var_K = zeros((n, n))
-    dKu = zeros((n, n))
-    dKv = zeros((n, n))
-    K = zeros((n, n))
-    exptheta = np.exp(theta)
-    eye = np.eye(n)
-
-    buildK(exptheta, n, inds, K)
-
-    for u in range(size):
-        dK_dtheta_A(exptheta, n, u, inds, eye, dKu)
-        for v in range(size):
-            dK_dtheta_A(exptheta, n, v, inds, eye, dKv)
-            # this could be optimized, since dKu and dKv are sparse and we
-            # know their pattern
-            for i in range(n):
-                for j in range(n):
-                    var_K[i,j] += invhessian[u,v] * dKu[i,j] * dKv[i,j]
-
-    return np.asarray(np.sqrt(var_K))
+# def uncertainty_K(const double[:, :] invhessian, const double[::1] theta,
+#                   npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+#     """Estimate of the uncertainty in the rate matrix, `K`
+#
+#     Parameters
+#     ----------
+#     invhessian : array, shape=(len(theta), len(theta))
+#         Inverse of the hessian of the log-likelihood
+#     theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
+#         The free parameters of the model. These values are the (possibly sparse)
+#         linearized elements of the log of the  upper triangular portion of the
+#         symmetric rate matrix, S, followed by the log of the equilibrium
+#         distribution.
+#     n : int
+#         The size of `counts`
+#     inds : array, optional (default=None)
+#         Sparse linearized triu indices theta. If not supplied, theta is
+#         assumed to be a dense parameterization of the upper triangular portion
+#         of the symmetric rate matrix followed by the log equilibrium weights,
+#         and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+#         set of indices, with  `len(inds) == len(theta)`,
+#         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+#         of the upper triangular elements of the rate matrix to which
+#         `theta` correspond.
+#     n_threads : int
+#         The number of threads to use in parallel.
+#
+#     Returns
+#     -------
+#     sigma_K : array, shape=(n, n)
+#         Estimate of the element-wise asymptotic standard deviation of the rate matrix, K.
+#     """
+#     cdef npy_intp n_S_triu = n*(n-1)/2
+#     cdef npy_intp u, v, i, j
+#     cdef double[::1] exptheta
+#     cdef double[:, ::1] var_K, dKu, dKv, K, eye
+#     cdef npy_intp size = theta.shape[0]
+#     if not (inds is None or inds.shape[0] >= n):
+#         raise ValueError('inds must be None (dense) or an array longer than n')
+#     if inds is not None:
+#         if not np.all(inds == np.unique(inds)):
+#             raise ValueError('inds must be sorted, without redundant')
+#     if not ((theta.shape[0] == inds.shape[0]) or
+#             (inds is None and theta.shape[0] == n_S_triu + n)):
+#         raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+#     if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+#         raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
+#     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+#         raise ValueError('counts must be `size` x `size`')
+#
+#     var_K = zeros((n, n))
+#     dKu = zeros((n, n))
+#     dKv = zeros((n, n))
+#     K = zeros((n, n))
+#     exptheta = np.exp(theta)
+#     eye = np.eye(n)
+#
+#     buildK(exptheta, n, inds, K)
+#
+#     for u in range(size):
+#         dK_dtheta_A(exptheta, n, u, inds, eye, dKu)
+#         for v in range(size):
+#             dK_dtheta_A(exptheta, n, v, inds, eye, dKv)
+#             # this could be optimized, since dKu and dKv are sparse and we
+#             # know their pattern
+#             for i in range(n):
+#                 for j in range(n):
+#                     var_K[i,j] += invhessian[u,v] * dKu[i,j] * dKv[i,j]
+#
+#     return np.asarray(np.sqrt(var_K))
 
 
 def uncertainty_pi(const double[:, :] invhessian, const double[::1] theta,
@@ -712,62 +678,62 @@ cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] AL,
         cdgemv_N(dKu, AR[:, i], temp)
         cddot(temp, AL[:, i], &out[i])
 
-
-def uncertainty_timescales(const double[:, :] invhessian, const double[::1] theta,
-                           npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
-    """
-
-    """
-    cdef npy_intp n_S_triu = n*(n-1)/2
-    cdef npy_intp u, v, i
-    cdef double[::1] exptheta, var_T, w, dw_u, dw_v, temp, w_pow_m4
-    cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
-    cdef npy_intp size = theta.shape[0]
-    if not (inds is None or inds.shape[0] >= n):
-        raise ValueError('inds must be None (dense) or an array longer than n')
-    if inds is not None:
-        if not np.all(inds == np.unique(inds)):
-            raise ValueError('inds must be sorted, without redundant')
-    if not ((theta.shape[0] == inds.shape[0]) or
-            (inds is None and theta.shape[0] == n_S_triu + n)):
-        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
-    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
-        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
-    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
-        raise ValueError('counts must be `size` x `size`')
-
-    var_T = zeros(n)
-    dKu = zeros((n, n))
-    dKv = zeros((n, n))
-    dw_u = zeros(n)
-    dw_v = zeros(n)
-    w_pow_m4 = zeros(n)
-    temp = zeros(n)
-    K = zeros((n, n))
-    exptheta = np.exp(theta)
-    eye = np.eye(n)
-
-    buildK(exptheta, n, inds, K)
-    AL, AR, w, _ = dP_dtheta_terms(K, n, 1.0)
-    order = np.argsort(w)[::-1]
-    AL = ascontiguousarray(np.asarray(AL)[:, order])
-    AR = ascontiguousarray(np.asarray(AR)[:, order])
-    w = np.asarray(w)[order]
-
-    for i in range(n):
-        w_pow_m4[i] = w[i]**(-4)
-
-    for u in range(size):
-        dK_dtheta_A(exptheta, n, u, inds, eye, dKu)
-        dw_du(dKu, AL, AR, n, temp, dw_u)
-        for v in range(size):
-            dK_dtheta_A(exptheta, n, v, inds, eye, dKv)
-            dw_du(dKv, AL, AR, n, temp, dw_v)
-
-            for i in range(n):
-                var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * invhessian[u, v]
-
-    return np.asarray(np.sqrt(var_T))[1:]
+#
+# def uncertainty_timescales(const double[:, :] invhessian, const double[::1] theta,
+#                            npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+#     """
+#
+#     """
+#     cdef npy_intp n_S_triu = n*(n-1)/2
+#     cdef npy_intp u, v, i
+#     cdef double[::1] exptheta, var_T, w, dw_u, dw_v, temp, w_pow_m4
+#     cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
+#     cdef npy_intp size = theta.shape[0]
+#     if not (inds is None or inds.shape[0] >= n):
+#         raise ValueError('inds must be None (dense) or an array longer than n')
+#     if inds is not None:
+#         if not np.all(inds == np.unique(inds)):
+#             raise ValueError('inds must be sorted, without redundant')
+#     if not ((theta.shape[0] == inds.shape[0]) or
+#             (inds is None and theta.shape[0] == n_S_triu + n)):
+#         raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+#     if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+#         raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
+#     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+#         raise ValueError('counts must be `size` x `size`')
+#
+#     var_T = zeros(n)
+#     dKu = zeros((n, n))
+#     dKv = zeros((n, n))
+#     dw_u = zeros(n)
+#     dw_v = zeros(n)
+#     w_pow_m4 = zeros(n)
+#     temp = zeros(n)
+#     K = zeros((n, n))
+#     exptheta = np.exp(theta)
+#     eye = np.eye(n)
+#
+#     buildK(exptheta, n, inds, K)
+#     AL, AR, w, _ = dP_dtheta_terms(K, n, 1.0)
+#     order = np.argsort(w)[::-1]
+#     AL = ascontiguousarray(np.asarray(AL)[:, order])
+#     AR = ascontiguousarray(np.asarray(AR)[:, order])
+#     w = np.asarray(w)[order]
+#
+#     for i in range(n):
+#         w_pow_m4[i] = w[i]**(-4)
+#
+#     for u in range(size):
+#         dK_dtheta_A(exptheta, n, u, inds, eye, dKu)
+#         dw_du(dKu, AL, AR, n, temp, dw_u)
+#         for v in range(size):
+#             dK_dtheta_A(exptheta, n, v, inds, eye, dKv)
+#             dw_du(dKv, AL, AR, n, temp, dw_v)
+#
+#             for i in range(n):
+#                 var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * invhessian[u, v]
+#
+#     return np.asarray(np.sqrt(var_T))[1:]
 
 
 
