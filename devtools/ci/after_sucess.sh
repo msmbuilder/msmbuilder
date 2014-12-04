@@ -26,3 +26,4 @@ conda install --yes `cat doc/requirements.txt | xargs`
 cd doc && make html && cd -
 cat /tmp/sphinx-*
 python devtools/ci/push-docs-to-s3.py
+python devtools/ci/update-versions.py
