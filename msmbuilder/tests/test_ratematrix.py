@@ -269,3 +269,10 @@ def test_fit_2():
     # timescales should be similar to MSM (withing 50%)
     assert abs(t1[-1] - t3[-1]) / t1[-1] < 0.50
 
+
+def test_optimize_1():
+    n = 10
+    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
+    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+
+    model = ContinuousTimeMSM(use_sparse=True, verbose=True).fit(seqs)
