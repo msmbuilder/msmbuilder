@@ -3,7 +3,7 @@
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
-'''Convert an MD dataset with chunked trajectories into a standard format.
+"""Convert an MD dataset with chunked trajectories into a standard format.
 
 This script will walk down the filesystem, starting in ``root``, looking
 for directories which contain one or more files matching ``pattern`` using
@@ -22,7 +22,7 @@ A record of conversion will be saved inside the directory as a JSON Lines file
 [http://jsonlines.org/], which contains a newline-delimited collection of
 JSON records, each of which is of the form
     {"chunks": ["path/to/input-chunk"], "filename": "output-file"}
-'''
+"""
 
 from __future__ import print_function, division, absolute_import
 
@@ -59,9 +59,9 @@ class ConvertChunkedProject(Command):
     pattern = req.add_argument('--pattern', help='''Glob pattern for matching
         trajectory chunks (example: \'frame*.xtc\'). Use single quotes to
         specify expandable patterns''', required=True)
-    top = req.add_argument('-t', '--topology', help='''Path to system topology file
-        (.pdb / .prmtop / .psf)''', type=md.core.trajectory._parse_topology,
-        required=True)
+    top = req.add_argument('-t', '--topology', help='''Path to system topology
+        file (.pdb / .prmtop / .psf)''',
+        type=md.core.trajectory._parse_topology, required=True)
     outfmt = argument('--outfmt', help='''Format for output trajectories. This
         should be a python string format specifier, which is parameterized by a
         single int. The filename extension can specify any supported MDTraj
@@ -84,8 +84,8 @@ class ConvertChunkedProject(Command):
         try:
             args.outfmt % 1
         except TypeError:
-            parser.error('"%s" is not a valid string format. It should contain '
-                         'a single %%d specifier' % args.outfmt)
+            self.error('"%s" is not a valid string format. It should contain '
+                       'a single %%d specifier' % args.outfmt)
 
     def start(self):
         args = self.args
@@ -122,7 +122,8 @@ class ConvertChunkedProject(Command):
             print('Saving... ', end=' ')
             if not args.dry_run:
                 traj.save(os.path.join(args.outdir, out_filename))
-            print('%s:  [%s]' % (out_filename, ', '.join(os.path.basename(e) for e in chunk_fns)))
+            print('%s:  [%s]' % (out_filename, ', '.join(os.path.basename(e)
+                                                         for e in chunk_fns)))
 
             metadata_item = {'filename': out_filename, 'chunks': chunk_fns}
             metadata.append(metadata_item)
@@ -134,12 +135,14 @@ class ConvertChunkedProject(Command):
                     f.write('\n')
 
         print_datetime()
-        print('Finished sucessfully!')
+        print('Finished successfully!')
 
 
 def walk_project(root, pattern):
     for dirpath, dirnames, filenames in _walk(root):
-        filenames = sorted([os.path.join(dirpath, fn) for fn in filenames if fnmatch(fn, pattern)], key=_keynat)
+        filenames = sorted([os.path.join(dirpath, fn)
+                            for fn in filenames
+                            if fnmatch(fn, pattern)], key=_keynat)
         if len(filenames) > 0:
             yield tuple(filenames)
 
