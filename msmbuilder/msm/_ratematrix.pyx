@@ -31,6 +31,9 @@ from libc.math cimport sqrt, log, exp
 from libc.string cimport memset
 from cython.parallel cimport prange, parallel
 
+cdef char CONST_S = 'S'
+cdef char CONST_K = 'K'
+
 include "cy_blas.pyx"
 include "config.pxi"
 include "triu_utils.pyx"      # ij_to_k() and k_to_ij()
@@ -41,7 +44,7 @@ IF OPENMP:
 
 
 cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
-                 double[:, ::1] out):
+                 char which, double[:, ::1] out):
     """Build the reversible rate matrix K from the free parameters, `\theta`
 
     Parameters
@@ -109,11 +112,17 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
 
         if DEBUG:
             assert 0 <= u < n*(n-1)/2
-
+                    
         K_ij = s_ij * sqrt(pi[j] / pi[i])
         K_ji = s_ij * sqrt(pi[i] / pi[j])
+        #if which == CONST_S:
+        #    out[i, j] = s_ij
+        #    out[j, i] = s_ij
+        #elif which == CONST_K:
         out[i, j] = K_ij
         out[j, i] = K_ji
+        #else:
+        #    raise ValueError('sfd')
         out[i, i] -= K_ij
         out[j, j] -= K_ji
 
@@ -327,7 +336,7 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, inds, K)
+    buildK(exptheta, n, inds, 'K', K)
 
     if not np.all(np.isfinite(K)):
         # these parameters don't seem good...
@@ -424,9 +433,10 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
     for u in range(size):
         exptheta[u] = exp(theta[u])
-    buildK(exptheta, n, inds, K)
 
+    buildK(exptheta, n, inds, 'K', K)
     w, U, V = eigK(K, n)
+
     for i in range(n):
         expwt[i] = exp(w[i]*t)
 
@@ -520,8 +530,6 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
     K = zeros((n, n))
     exptheta = np.exp(theta)
     eye = np.eye(n)
-
-    buildK(exptheta, n, inds, K)
 
     for u in range(size):
         dK_dtheta_A(exptheta, n, u, inds, None, dKu)
@@ -628,8 +636,9 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
     exptheta = np.exp(theta)
     eye = np.eye(n)
 
-    buildK(exptheta, n, inds, K)
+    buildK(exptheta, n, inds, 'K', K)
     w, U, V = eigK(K, n)
+
     order = np.argsort(w)[::-1]
 
     U = ascontiguousarray(np.asarray(U)[:, order])

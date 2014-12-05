@@ -235,7 +235,7 @@ def test_hessian():
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
     print('MSM timescales\n', msm.fit(seqs).timescales_)
-    # print('Uncertainty K\n', model.uncertainty_K())
+    print('Uncertainty K\n', model.uncertainty_K())
     print('Uncertainty pi\n', model.uncertainty_pi())
 
 
