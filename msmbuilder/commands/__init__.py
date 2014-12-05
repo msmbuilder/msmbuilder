@@ -8,3 +8,4 @@ from .transform import TransformCommand
 from .example_datasets import AlanineDipeptideDatasetCommand
 from .atom_indices import AtomIndices
 from .implied_timescales import ImpliedTimescales
+from .convert_chunked_project import ConvertChunkedProject
