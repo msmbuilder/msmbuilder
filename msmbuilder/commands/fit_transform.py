@@ -13,7 +13,7 @@ import os
 import numpy as np
 
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
-from ..dataset import dataset
+from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
@@ -120,6 +120,11 @@ class TrajectoryClusterCommand(FitTransformCommand):
         return fn
 
     def load_dataset(self):
+        if _guess_format(self.inp) == 'mdtraj':
+            if self.instance.metric != 'rmsd':
+                self.error("Direct use of a trajectory dataset by this model "
+                           "requires metric='rmsd'")
+
         if hasattr(self.instance, 'metric') and self.instance.metric == 'rmsd':
             # use mdtraj format dataset for metric='rmsd'.
             # THIS IS KIND OF A HACK

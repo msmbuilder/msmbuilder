@@ -30,31 +30,31 @@ __all__ = ['dataset']
 
 def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
     if mode == 'r' and fmt is None:
-        return _guess_format(path)(path, mode=mode, verbose=verbose, **kwargs)
-    if mode == 'w' and fmt is None:
+        fmt = _guess_format(path)
+    elif mode == 'w' and fmt is None:
         raise ValueError('mode="w", but no fmt. fmt=%s' % fmt)
 
     if fmt == 'dir-npy':
-        return NumpyDirDataset(path, mode=mode, verbose=verbose, **kwargs)
+        return NumpyDirDataset(path, mode=mode, verbose=verbose)
     elif fmt == 'mdtraj':
         return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'hdf5':
-        return HDF5Dataset(path, mode=mode, verbose=verbose, **kwargs)
+        return HDF5Dataset(path, mode=mode, verbose=verbose)
     else:
         raise NotImplementedError("unknown fmt: %s" % fmt)
 
 
 def _guess_format(path):
     if not isinstance(path, str):
-        return MDTrajDataset
+        return 'mdtraj'
 
     if os.path.isdir(path):
-        return NumpyDirDataset
+        return 'dir-npy'
 
     if path.endswith('.h5') or path.endswith('.hdf5'):
-        return HDF5Dataset
+        return 'hdf5'
 
-    return MDTrajDataset
+    return 'mdtraj'
 
 
 class _BaseDataset(Sequence):
@@ -332,7 +332,7 @@ class MDTrajDataset(_BaseDataset):
 
         if self._topology is None:
             t = md.load(self.filename(i), stride=self.stride,
-                           atom_indices=self.atom_indices)
+                        atom_indices=self.atom_indices)
         else:
             t = md.load(self.filename(i), stride=self.stride,
                            atom_indices=self.atom_indices, top=self._topology)
