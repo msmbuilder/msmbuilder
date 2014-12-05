@@ -168,7 +168,8 @@ cdef dT_dtheta(const double[::1] w, const double[:, ::1] U, const double[:, ::1]
         # dLdK[i,j] = counts[i,j] / T[i,j]
         for i in range(n):
             for j in range(n):
-                dLdK[i, j] = counts[i, j] / T[i, j]
+                if counts[i, j] > 0:
+                    dLdK[i, j] = counts[i, j] / T[i, j]
 
         # out = U \left(V^T dLdK U \circ X(\lambda, t))\right) V^T
 
