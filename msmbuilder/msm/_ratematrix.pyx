@@ -26,13 +26,10 @@ from __future__ import print_function
 import numpy as np
 from numpy import (zeros, allclose, array, real, ascontiguousarray, dot, diag)
 import scipy.linalg
-from scipy.linalg import blas, eig
 from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset
-from libc.stdlib cimport calloc, malloc, free
 from cython.parallel cimport prange, parallel
-from cython.operator cimport dereference as deref
 
 include "cy_blas.pyx"
 include "config.pxi"
@@ -175,8 +172,6 @@ cpdef double dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
     cdef double dK_i, s_ij, dK_ij, dK_ji
     cdef double sum_elem_product = 0
     cdef double[::1] pi
-    cdef double* dK_ii
-    # dK_ii = <double*> calloc(n, sizeof(double))
     if DEBUG:
         assert out.shape[0] == n and out.shape[1] == n
         assert A.shape[0] == n and A.shape[1] == n
