@@ -24,25 +24,23 @@ run with the flag `--debug` on the command line.
 
 from __future__ import print_function
 import numpy as np
-from numpy import (zeros, allclose, array, real, ascontiguousarray, dot, diag)
+from numpy import (zeros, allclose, real, ascontiguousarray, asfortranarray)
 import scipy.linalg
 from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
-from libc.string cimport memset
-from cython.parallel cimport prange, parallel
+from libc.string cimport memset, strcmp
 
 include "cy_blas.pyx"
 include "config.pxi"
 include "triu_utils.pyx"      # ij_to_k() and k_to_ij()
 include "binary_search.pyx"   # bsearch()
 include "_ratematrix_support.pyx"
-IF OPENMP:
-    cimport openmp
 
 
-cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
-                 double[:, ::1] out):
-    """Build the reversible rate matrix K from the free parameters, `\theta`
+cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
+                        double[:, ::1] out, char* which='K'):
+    """Build the reversible rate matrix K or symmetric rate matrix, S,
+    from the free parameters, `\theta`
 
     Parameters
     ----------
@@ -61,6 +59,11 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
         of the upper triangular elements of the rate matrix to which
         `exptheta` correspond.
+    which : {'S', 'K'}
+        Whether to build the matrix S or the matrix K
+    out : [output], array shape=(n, n)
+        On exit, out contains the matrix K or S
+
     Notes
     -----
     The last `n` elements of exptheta must be nonzero, since they parameterize
@@ -73,13 +76,7 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
 
     Then,
 
-        buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
-
-    Returns
-    -------
-    out : [output], 2d array of shape = (n, n)
-        The rate matrix is written into this array
-
+        build_ratemat(exptheta, n, None) == build_ratemat(exptheta[inds], n, inds)
     """
     cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
     cdef double s_ij, K_ij, K_ji
@@ -112,8 +109,12 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
 
         K_ij = s_ij * sqrt(pi[j] / pi[i])
         K_ji = s_ij * sqrt(pi[i] / pi[j])
-        out[i, j] = K_ij
-        out[j, i] = K_ji
+        if strcmp(which, 'S') == 0:
+           out[i, j] = s_ij
+           out[j, i] = s_ij
+        else:
+            out[i, j] = K_ij
+            out[j, i] = K_ji
         out[i, i] -= K_ij
         out[j, j] -= K_ji
 
@@ -262,7 +263,7 @@ cpdef double dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
 
 
 def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp n,
-                  const npy_intp[::1] inds=None, double t=1, npy_intp n_threads=1):
+                  const npy_intp[::1] inds=None, double t=1):
     """Log likelihood and gradient of the log likelihood of a continuous-time
     Markov model.
 
@@ -288,8 +289,6 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
         `theta` correspond.
     t : double
         The lag time.
-    n_threads : int
-        The number of threads to use in parallel.
 
     Returns
     -------
@@ -320,21 +319,20 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
     grad = zeros(size)
     exptheta = zeros(size)
-    K = zeros((n, n))
+    S = zeros((n, n))
     T = zeros((n, n))
     dT = zeros((n, n))
 
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, inds, K)
-
-    if not np.all(np.isfinite(K)):
+    build_ratemat(exptheta, n, inds, S, 'S')
+    if not np.all(np.isfinite(S)):
         # these parameters don't seem good...
         # tell the optimizer to stear clear!
         return -np.inf, ascontiguousarray(grad)
 
-    w, U, V = eigK(K, n)
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
     dT_dtheta(w, U, V, counts, n, t, T, dT)
 
     with nogil:
@@ -343,13 +341,14 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
         for i in range(n):
             for j in range(n):
-                logl += counts[i, j] * log(T[i, j])
+                if counts[i, j] > 0:
+                    logl += counts[i, j] * log(T[i, j])
 
     return logl, ascontiguousarray(grad)
 
 
 def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
-            npy_intp[::1] inds=None, npy_intp n_threads=1):
+            npy_intp[::1] inds=None):
     """Estimate of the hessian of the log-likelihood with respect to \theta.
 
     Parameters
@@ -374,8 +373,6 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
         of the upper triangular elements of the rate matrix to which
         `theta` correspond.
-    n_threads : int
-        The number of threads to use in parallel.
 
     Notes
     -----
@@ -413,7 +410,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     hessian = zeros((size, size))
     exptheta = zeros(size)
     expwt = zeros(n)
-    K = zeros((n, n))
+    S = zeros((n, n))
     T = zeros((n, n))
     Q = zeros((n, n))
     dKu = zeros((n, n))
@@ -424,9 +421,10 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
     for u in range(size):
         exptheta[u] = exp(theta[u])
-    buildK(exptheta, n, inds, K)
 
-    w, U, V = eigK(K, n)
+    build_ratemat(exptheta, n, inds, S, 'S')
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+
     for i in range(n):
         expwt[i] = exp(w[i]*t)
 
@@ -464,7 +462,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
 
 def sigma_K(const double[:, :] invhessian, const double[::1] theta,
-                  npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+                  npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty in the rate
     matrix, `K`
 
@@ -488,8 +486,6 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
         of the upper triangular elements of the rate matrix to which
         `theta` correspond.
-    n_threads : int
-        The number of threads to use in parallel.
 
     Returns
     -------
@@ -520,8 +516,6 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
     K = zeros((n, n))
     exptheta = np.exp(theta)
     eye = np.eye(n)
-
-    buildK(exptheta, n, inds, K)
 
     for u in range(size):
         dK_dtheta_A(exptheta, n, u, inds, None, dKu)
@@ -595,7 +589,7 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
 
 
 def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
-                           npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+                           npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty) in the
     implied timescales.
     """
@@ -624,12 +618,13 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
     dw_v = zeros(n)
     w_pow_m4 = zeros(n)
     temp = zeros(n)
-    K = zeros((n, n))
+    S = zeros((n, n))
     exptheta = np.exp(theta)
     eye = np.eye(n)
 
-    buildK(exptheta, n, inds, K)
-    w, U, V = eigK(K, n)
+    build_ratemat(exptheta, n, inds, S, 'S')
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+
     order = np.argsort(w)[::-1]
 
     U = ascontiguousarray(np.asarray(U)[:, order])
@@ -650,11 +645,3 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
                 var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * invhessian[u, v]
 
     return np.asarray(np.sqrt(var_T))[1:]
-
-
-
-def _supports_openmp():
-    """Does the system support OpenMP?"""
-    IF OPENMP:
-        return True
-    return False

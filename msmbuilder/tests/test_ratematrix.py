@@ -10,20 +10,17 @@ from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
+random = np.random.RandomState(0)
 
-
-def setup():
-    print('Setting random seed')
-    np.random.seed(0)
 
 
 def dense_exptheta(n):
-    return np.exp(np.random.randn(int(n*(n-1)/2 + n)))
+    return np.exp(random.randn(int(n*(n-1)/2 + n)))
 
 
 def sparse_exptheta(n):
-    exptheta = np.exp(np.random.randn(int(n*(n-1)/2 + n)))
-    zero_out = np.random.randint(low=0, high=n*(n-1)/2, size=2)
+    exptheta = np.exp(random.randn(int(n*(n-1)/2 + n)))
+    zero_out = random.randint(low=0, high=n*(n-1)/2, size=2)
     exptheta[zero_out] = 0
 
     exp_d = exptheta
@@ -32,38 +29,38 @@ def sparse_exptheta(n):
     return exp_d, exp_sp, inds_sp
 
 
-def test_buildK_1():
-    # test buildK in sparse mode vs. dense mode
+def test_build_ratemat_1():
+    # test build_ratemat in sparse mode vs. dense mode
     n = 4
     exptheta = dense_exptheta(n)
     u = np.arange(n*(n-1)/2 + n).astype(np.intp)
     K1 = np.zeros((n, n))
     K2 = np.zeros((n, n))
 
-    _ratematrix.buildK(exptheta, n, u, K1)
-    _ratematrix.buildK(exptheta, n, None, K2)
+    _ratematrix.build_ratemat(exptheta, n, u, K1)
+    _ratematrix.build_ratemat(exptheta, n, None, K2)
     np.testing.assert_array_equal(K1, K2)
 
 
-def test_buildK_2():
-    # test buildK in sparse mode vs. dense mode
+def test_build_ratemat_2():
+    # test build_ratemat in sparse mode vs. dense mode
     n = 4
     exp_d, exp_sp, inds_sp = sparse_exptheta(n)
 
     K1 = np.zeros((n, n))
     K2 = np.zeros((n, n))
 
-    _ratematrix.buildK(exp_sp, n, inds_sp, K1)
-    _ratematrix.buildK(exp_d, n, None, K2)
+    _ratematrix.build_ratemat(exp_sp, n, inds_sp, K1)
+    _ratematrix.build_ratemat(exp_d, n, None, K2)
 
     np.testing.assert_array_equal(K1, K2)
 
 
 def test_dK_dtheta_1():
-    # test function `dK_dtheta` against the numerical gradient of `buildK`
+    # test function `dK_dtheta` against the numerical gradient of `build_ratemat`
     # using dense parameterization
     n = 4
-    A = np.random.randn(4, 4)
+    A = random.randn(4, 4)
     exptheta = dense_exptheta(n)
 
     def g(i):
@@ -72,8 +69,8 @@ def test_dK_dtheta_1():
         e[i] = h
         K1 = np.zeros((n, n))
         K2 = np.zeros((n, n))
-        _ratematrix.buildK(exptheta, n, None, K1)
-        _ratematrix.buildK(np.exp(np.log(exptheta) + e), n, None, K2)
+        _ratematrix.build_ratemat(exptheta, n, None, K1)
+        _ratematrix.build_ratemat(np.exp(np.log(exptheta) + e), n, None, K2)
         return np.sum(np.multiply(A, (K2 - K1) / h)), (K2 - K1) / h
 
     for u in range(len(exptheta)):
@@ -85,10 +82,10 @@ def test_dK_dtheta_1():
 
 
 def test_dK_dtheta_2():
-    # test function `dK_dtheta` against the numerical gradient of `buildK`
+    # test function `dK_dtheta` against the numerical gradient of `build_ratemat`
     # using sparse parameterization
     n = 4
-    A = np.random.randn(4, 4)
+    A = random.randn(4, 4)
     _, exp_sp, inds_sp = sparse_exptheta(n)
 
     def g(i):
@@ -97,8 +94,8 @@ def test_dK_dtheta_2():
         e[i] = h
         K1 = np.zeros((n, n))
         K2 = np.zeros((n, n))
-        _ratematrix.buildK(exp_sp, n, inds_sp, K1)
-        _ratematrix.buildK(np.exp(np.log(exp_sp) + e), n, inds_sp, K2)
+        _ratematrix.build_ratemat(exp_sp, n, inds_sp, K1)
+        _ratematrix.build_ratemat(np.exp(np.log(exp_sp) + e), n, inds_sp, K2)
         return np.sum(np.multiply(A, (K2 - K1) / h))
 
     for u in range(len(exp_sp)):
@@ -110,7 +107,7 @@ def test_grad_logl_1():
     # test the gradient of the `loglikelihood` against a numerical gradient
     n = 4
     t = 1
-    C = np.random.randint(10, size=(n, n)).astype(float)
+    C = random.randint(10, size=(n, n)).astype(float)
     theta0 = np.log(dense_exptheta(n))
 
     def func(theta):
@@ -126,7 +123,7 @@ def test_grad_logl_2():
     # test the gradient of the `loglikelihood` against a numerical gradient
     # using the sparse parameterization
     n = 4
-    C = np.random.randint(10, size=(n, n)).astype(float)
+    C = random.randint(10, size=(n, n)).astype(float)
     _, exptheta_sp, inds_sp = sparse_exptheta(n)
     theta0 = np.log(exptheta_sp)
 
@@ -153,7 +150,7 @@ def test_dw_1():
     def grad(theta, i):
         # gradient of the ith eigenvalue of K with respect to theta
         K = np.zeros((n, n))
-        _ratematrix.buildK(np.exp(theta), n, None, K)
+        _ratematrix.build_ratemat(np.exp(theta), n, None, K)
         w, V = scipy.linalg.eig(K)
         order = np.argsort(np.real(w))
 
@@ -174,7 +171,7 @@ def test_dw_1():
     def func(theta, i):
         # ith eigenvalue of K
         K = np.zeros((n, n))
-        _ratematrix.buildK(np.exp(theta), n, None, K)
+        _ratematrix.build_ratemat(np.exp(theta), n, None, K)
         w = np.real(scipy.linalg.eigvals(K))
         w = np.sort(w)
         return w[i]
@@ -235,7 +232,7 @@ def test_hessian():
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
     print('MSM timescales\n', msm.fit(seqs).timescales_)
-    # print('Uncertainty K\n', model.uncertainty_K())
+    print('Uncertainty K\n', model.uncertainty_K())
     print('Uncertainty pi\n', model.uncertainty_pi())
 
 

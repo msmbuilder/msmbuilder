@@ -8,7 +8,6 @@ import numpy as np
 import scipy.linalg
 import scipy.optimize
 from six.moves import cStringIO
-from multiprocessing import cpu_count
 
 from ..base import BaseEstimator
 from ..utils import list_of_1d, printoptions, experimental
@@ -43,9 +42,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         Attempt to find a sparse rate matrix.
     verbose : bool, default=False
         Verbosity level
-    n_threads : int, default=ALL
-        Number of threads to use in parallel (OpenMP) during fitting. If
-        `None`, one thread is used per CPU core.
 
     Attributes
     ----------
@@ -85,12 +81,11 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, use_sparse=True,
-                 verbose=False, n_threads=None):
+                 verbose=False):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.verbose = verbose
         self.use_sparse = use_sparse
-        self.n_threads = n_threads
 
         self.inds_ = None
         self.theta_ = None
@@ -116,7 +111,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         exptheta = np.exp(result.x)
         K = np.zeros((n_states, n_states))
-        _ratematrix.buildK(exptheta, n_states, inds, K)
+        _ratematrix.build_ratemat(exptheta, n_states, inds, K, which='K')
 
         self.inds_ = inds
         self.theta_ = result.x
@@ -153,7 +148,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         theta0 = self.initial_guess(countsmat)
         lag_time = float(self.lag_time)
-        n_threads = self._get_n_threads()
 
         options = {
             'iprint': 0 if self.verbose else -1,
@@ -165,7 +159,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         def objective(theta, inds):
             start = time.time()
             f, g = _ratematrix.loglikelihood(
-                theta, countsmat, n, inds, lag_time, n_threads)
+                theta, countsmat, n, inds, lag_time)
 
             if self.verbose:
                 print(-f, time.time()-start)
@@ -213,20 +207,18 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         """Estimate of the element-wise asymptotic standard deviation
         in the rate matrix
         """
-        n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
 
         sigma_K = _ratematrix.sigma_K(
             self.information_, theta=self.theta_, n=self.n_states_,
-            inds=self.inds_, n_threads=n_threads)
+            inds=self.inds_)
         return sigma_K
 
     def uncertainty_pi(self):
         """Estimate of the element-wise asymptotic standard deviation
         in the stationary distribution.
         """
-        n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
 
@@ -239,12 +231,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         """Estimate of the element-wise asymptotic standard deviation
         in the model relaxation timescales.
         """
-        n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
+
         sigma_timescales = _ratematrix.sigma_timescales(
             self.information_, theta=self.theta_, n=self.n_states_,
-            inds=self.inds_,  n_threads=n_threads)
+            inds=self.inds_)
         return sigma_timescales
 
     def initial_guess(self, countsmat):
@@ -260,21 +252,13 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         return theta0
 
-    def _get_n_threads(self):
-        if self.n_threads is None or self.n_threads < 1:
-            if _ratematrix._supports_openmp():
-                return cpu_count()
-            return 1
-        return int(self.n_threads)
-
     def _build_information(self):
         """Build the inverse of hessian of the log likelihood at theta_
         """
         lag_time = float(self.lag_time)
-        n_threads = self._get_n_threads()
 
         hessian = _ratematrix.hessian(
             self.theta_, self.countsmat_, self.n_states_, t=lag_time,
-            inds=self.inds_, n_threads=n_threads)
+            inds=self.inds_)
 
         self.information_ = scipy.linalg.pinv(-hessian)
