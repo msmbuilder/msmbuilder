@@ -217,7 +217,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         if self.information_ is None:
             self._build_information()
 
-        sigma_K = _ratematrix.uncertainty_K(
+        sigma_K = _ratematrix.sigma_K(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_, n_threads=n_threads)
         return sigma_K
@@ -230,7 +230,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         if self.information_ is None:
             self._build_information()
 
-        sigma_pi = _ratematrix.uncertainty_pi(
+        sigma_pi = _ratematrix.sigma_pi(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_)
         return sigma_pi
@@ -242,7 +242,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
-        sigma_timescales = _ratematrix.uncertainty_timescales(
+        sigma_timescales = _ratematrix.sigma_timescales(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_,  n_threads=n_threads)
         return sigma_timescales
