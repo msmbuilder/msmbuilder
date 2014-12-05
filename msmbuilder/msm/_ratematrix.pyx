@@ -24,15 +24,12 @@ run with the flag `--debug` on the command line.
 
 from __future__ import print_function
 import numpy as np
-from numpy import (zeros, allclose, array, real, ascontiguousarray, dot, diag)
+from numpy import (zeros, allclose, real, ascontiguousarray, asfortranarray)
 import scipy.linalg
 from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
-from libc.string cimport memset
+from libc.string cimport memset, strcmp
 from cython.parallel cimport prange, parallel
-
-cdef char CONST_S = 'S'
-cdef char CONST_K = 'K'
 
 include "cy_blas.pyx"
 include "config.pxi"
@@ -44,7 +41,7 @@ IF OPENMP:
 
 
 cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
-                 char which, double[:, ::1] out):
+                 double[:, ::1] out, char* which='K'):
     """Build the reversible rate matrix K from the free parameters, `\theta`
 
     Parameters
@@ -64,6 +61,11 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
         of the upper triangular elements of the rate matrix to which
         `exptheta` correspond.
+    which : {'S', 'K'}
+        Whether to build the matrix S or the matrix K
+    out : [output], array shape=(n, n)
+        On exit, out contains the matrix K or S
+
     Notes
     -----
     The last `n` elements of exptheta must be nonzero, since they parameterize
@@ -77,12 +79,6 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
     Then,
 
         buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
-
-    Returns
-    -------
-    out : [output], 2d array of shape = (n, n)
-        The rate matrix is written into this array
-
     """
     cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
     cdef double s_ij, K_ij, K_ji
@@ -115,14 +111,12 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
                     
         K_ij = s_ij * sqrt(pi[j] / pi[i])
         K_ji = s_ij * sqrt(pi[i] / pi[j])
-        #if which == CONST_S:
-        #    out[i, j] = s_ij
-        #    out[j, i] = s_ij
-        #elif which == CONST_K:
-        out[i, j] = K_ij
-        out[j, i] = K_ji
-        #else:
-        #    raise ValueError('sfd')
+        if strcmp(which, 'S') == 0:
+           out[i, j] = s_ij
+           out[j, i] = s_ij
+        else:
+            out[i, j] = K_ij
+            out[j, i] = K_ji
         out[i, i] -= K_ij
         out[j, j] -= K_ji
 
@@ -336,14 +330,14 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, inds, 'K', K)
+    buildK(exptheta, n, inds, K, 'S')
+    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
 
     if not np.all(np.isfinite(K)):
         # these parameters don't seem good...
         # tell the optimizer to stear clear!
         return -np.inf, ascontiguousarray(grad)
 
-    w, U, V = eigK(K, n)
     dT_dtheta(w, U, V, counts, n, t, T, dT)
 
     with nogil:
@@ -434,8 +428,8 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, inds, 'K', K)
-    w, U, V = eigK(K, n)
+    buildK(exptheta, n, inds, K, 'S')
+    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
 
     for i in range(n):
         expwt[i] = exp(w[i]*t)
@@ -636,8 +630,8 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
     exptheta = np.exp(theta)
     eye = np.eye(n)
 
-    buildK(exptheta, n, inds, 'K', K)
-    w, U, V = eigK(K, n)
+    buildK(exptheta, n, inds, K, 'S')
+    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
 
     order = np.argsort(w)[::-1]
 

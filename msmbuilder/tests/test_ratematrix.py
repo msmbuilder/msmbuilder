@@ -10,20 +10,17 @@ from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
+random = np.random.RandomState(0)
 
-
-def setup():
-    print('Setting random seed')
-    np.random.seed(0)
 
 
 def dense_exptheta(n):
-    return np.exp(np.random.randn(int(n*(n-1)/2 + n)))
+    return np.exp(random.randn(int(n*(n-1)/2 + n)))
 
 
 def sparse_exptheta(n):
-    exptheta = np.exp(np.random.randn(int(n*(n-1)/2 + n)))
-    zero_out = np.random.randint(low=0, high=n*(n-1)/2, size=2)
+    exptheta = np.exp(random.randn(int(n*(n-1)/2 + n)))
+    zero_out = random.randint(low=0, high=n*(n-1)/2, size=2)
     exptheta[zero_out] = 0
 
     exp_d = exptheta
@@ -63,7 +60,7 @@ def test_dK_dtheta_1():
     # test function `dK_dtheta` against the numerical gradient of `buildK`
     # using dense parameterization
     n = 4
-    A = np.random.randn(4, 4)
+    A = random.randn(4, 4)
     exptheta = dense_exptheta(n)
 
     def g(i):
@@ -88,7 +85,7 @@ def test_dK_dtheta_2():
     # test function `dK_dtheta` against the numerical gradient of `buildK`
     # using sparse parameterization
     n = 4
-    A = np.random.randn(4, 4)
+    A = random.randn(4, 4)
     _, exp_sp, inds_sp = sparse_exptheta(n)
 
     def g(i):
@@ -110,7 +107,7 @@ def test_grad_logl_1():
     # test the gradient of the `loglikelihood` against a numerical gradient
     n = 4
     t = 1
-    C = np.random.randint(10, size=(n, n)).astype(float)
+    C = random.randint(10, size=(n, n)).astype(float)
     theta0 = np.log(dense_exptheta(n))
 
     def func(theta):
@@ -126,7 +123,7 @@ def test_grad_logl_2():
     # test the gradient of the `loglikelihood` against a numerical gradient
     # using the sparse parameterization
     n = 4
-    C = np.random.randint(10, size=(n, n)).astype(float)
+    C = random.randint(10, size=(n, n)).astype(float)
     _, exptheta_sp, inds_sp = sparse_exptheta(n)
     theta0 = np.log(exptheta_sp)
 

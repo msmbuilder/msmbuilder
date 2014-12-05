@@ -1,35 +1,63 @@
 # This file is designed to be included by _ratematrix.pyx
 
-cdef eigK(const double[:, ::1] K, npy_intp n):
+cdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
     """Diagonalize the rate matrix
+
+    If which == 'K', the first argument should be the rate matrix, K, and `pi`
+    is ignored. If which == 'S', the first argument should be the symmetric
+    rate matrix, S. This can be build using buildK(... which='S'), and pi
+    should contain the equilibrium distribution (left eigenvector of K with
+    eigenvalue 0, and also the last n elements of exptheta).
+
+    Whichever is supplied the return value is the eigen decomposition of `K`.
+    The eigendecomposition of S is not returned.
 
     Returns
     -------
-    w : eigenvalues
-    U : left eigenvectors
-    W : right eigenvectors
+    w : array
+        The eigenvalues of K
+    U : array, size=(n,n)
+        The left eigenvectors of K
+    V : array, size=(n,n)
+        The right eigenvectors of K
     """
-    cdef npy_intp i
+    cdef npy_intp i, j
     cdef double norm
     cdef double[::1] w
-    cdef double[:, ::1] U, V
+    cdef double[::1, :] U, V, VS
+    U = zeros((n, n), order='F')
+    V = zeros((n, n), order='F')
 
-    w_, U_, V_ = scipy.linalg.eig(K, left=True, right=True)
-    U = ascontiguousarray(real(U_))
-    V = ascontiguousarray(real(V_))
-    w = ascontiguousarray(real(w_))
+    if which == 'S':
+        w, VS = scipy.linalg.eigh(A)
+        with nogil:
+            for i in range(n):
+                for j in range(n):
+                    V[i, j] = sqrt(pi[j] / pi[i]) * VS[i, j]
+                    U[i, j] = sqrt(pi[i] / pi[j]) * VS[i, j]
+            for i in range(n):
+                cdnrm2(V[:, i], &norm)
+                for j in range(n):
+                    V[j, i] /= norm
+                    U[j, i] *= norm
 
-    with nogil:
-        for i in range(n):
-            # we need to ensure the proper normalization
-            cddot(U[:, i], V[:, i], &norm)
-            for j in range(n):
-                U[j, i] = U[j, i] / norm
+    else:
+        w_, U_, V_ = scipy.linalg.eig(A, left=True, right=True)
+        w = ascontiguousarray(real(w_))
+        U = asfortranarray(real(U_))
+        V = asfortranarray(real(V_))
+
+        with nogil:
+            for i in range(n):
+                # we need to ensure the proper normalization
+                cddot(U[:, i], V[:, i], &norm)
+                for j in range(n):
+                    U[j, i] = U[j, i] / norm
 
     if DEBUG:
         assert np.allclose(scipy.linalg.inv(V).T, U)
 
-    return w, U, V
+    return w, U.copy(), V.copy()
 
 
 cdef int hadamard_X(const double[::1] w, const double[::1] expwt, double t,
