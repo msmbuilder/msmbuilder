@@ -331,13 +331,12 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
         exptheta[u] = exp(theta[u])
 
     buildK(exptheta, n, inds, K, 'S')
-    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
-
     if not np.all(np.isfinite(K)):
         # these parameters don't seem good...
         # tell the optimizer to stear clear!
-        return -np.inf, ascontiguousarray(grad)
+        return -np.inf, ascontiguousarray(grad) + 10
 
+    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
     dT_dtheta(w, U, V, counts, n, t, T, dT)
 
     with nogil:
@@ -346,7 +345,8 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
         for i in range(n):
             for j in range(n):
-                logl += counts[i, j] * log(T[i, j])
+                if counts[i, j] > 0:
+                    logl += counts[i, j] * log(T[i, j])
 
     return logl, ascontiguousarray(grad)
 
