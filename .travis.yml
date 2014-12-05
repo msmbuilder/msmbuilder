@@ -9,10 +9,8 @@ install:
   - export PYTHONUNBUFFERED=true
 
 script:
+  # this builds the binary, unpacks it, and runs the tests
   - conda build devtools/conda-recipe
-  - conda install --yes `conda build devtools/conda-recipe --output`
-  - mkdir -p runtest
-  - (cd runtest && nosetests msmbuilder -v)
 
 env:
   matrix:

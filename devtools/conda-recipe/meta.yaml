@@ -34,10 +34,15 @@ requirements:
 
 
 test:
+  requires:
+    - nose
+    - munkres
+    - numdifftools
   imports:
     - msmbuilder
   commands:
-    - msmb
+    - msmb -h
+    - nosetests msmbuilder -v
   
   
 about:

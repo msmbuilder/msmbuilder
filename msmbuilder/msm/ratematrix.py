@@ -160,10 +160,16 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             #'ftol': 1e-10,
             #'gtol': 1e-10
         }
+        import time
 
         def objective(theta, inds):
+            start = time.time()
             f, g = _ratematrix.loglikelihood(
                 theta, countsmat, n, inds, lag_time, n_threads)
+
+            if self.verbose:
+                print(-f, time.time()-start)
+
             return -f, -g
 
         # this bound prevents the stationary probability for any state
@@ -211,7 +217,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         if self.information_ is None:
             self._build_information()
 
-        sigma_K = _ratematrix.uncertainty_K(
+        sigma_K = _ratematrix.sigma_K(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_, n_threads=n_threads)
         return sigma_K
@@ -224,7 +230,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         if self.information_ is None:
             self._build_information()
 
-        sigma_pi = _ratematrix.uncertainty_pi(
+        sigma_pi = _ratematrix.sigma_pi(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_)
         return sigma_pi
@@ -236,7 +242,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         n_threads = self._get_n_threads()
         if self.information_ is None:
             self._build_information()
-        sigma_timescales = _ratematrix.uncertainty_timescales(
+        sigma_timescales = _ratematrix.sigma_timescales(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_,  n_threads=n_threads)
         return sigma_timescales
@@ -270,4 +276,5 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         hessian = _ratematrix.hessian(
             self.theta_, self.countsmat_, self.n_states_, t=lag_time,
             inds=self.inds_, n_threads=n_threads)
-        self.information_ = scipy.linalg.pinv(hessian)
+
+        self.information_ = scipy.linalg.pinv(-hessian)
