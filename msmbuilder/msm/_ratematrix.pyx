@@ -108,7 +108,7 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
 
         if DEBUG:
             assert 0 <= u < n*(n-1)/2
-                    
+
         K_ij = s_ij * sqrt(pi[j] / pi[i])
         K_ji = s_ij * sqrt(pi[i] / pi[j])
         if strcmp(which, 'S') == 0:
