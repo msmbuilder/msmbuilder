@@ -120,7 +120,7 @@ class FlagAction(argparse.Action):
             setattr(namespace, self.dest, False)
 
 #-----------------------------------------------------------------------------
-# Argument Declaration Class Attibutes
+# Argument Declaration Class Attributes
 #-----------------------------------------------------------------------------
 
 
