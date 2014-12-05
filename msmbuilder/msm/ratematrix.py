@@ -4,6 +4,7 @@
 # All rights reserved.
 
 from __future__ import print_function, division
+import time
 import numpy as np
 import scipy.linalg
 import scipy.optimize
@@ -42,6 +43,9 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         Attempt to find a sparse rate matrix.
     verbose : bool, default=False
         Verbosity level
+    ftol : float, default=1e-6
+        Iteration stops when the relative increase in the log-likelihood is less
+        than this cutoff.
 
     Attributes
     ----------
@@ -81,11 +85,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, use_sparse=True,
-                 verbose=False):
+                 verbose=False, ftol=1e-6):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.verbose = verbose
         self.use_sparse = use_sparse
+        self.ftol = ftol
 
         self.inds_ = None
         self.theta_ = None
@@ -97,6 +102,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.mapping_ = None
         self.populations_ = None
         self.information_ = None
+        self.loglikelihoods_ = None
 
     @experimental('ContinuousTimeMSM')
     def fit(self, sequences, y=None):
@@ -145,25 +151,23 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         n = countsmat.shape[0]
         nc2 = int(n*(n-1)/2)
         theta_cutoff = np.log(1e-8)
+        loglikelihoods = []
 
         theta0 = self.initial_guess(countsmat)
         lag_time = float(self.lag_time)
 
         options = {
             'iprint': 0 if self.verbose else -1,
-            #'ftol': 1e-10,
+            'ftol': self.ftol,
             #'gtol': 1e-10
         }
-        import time
 
         def objective(theta, inds):
             start = time.time()
             f, g = _ratematrix.loglikelihood(
                 theta, countsmat, n, inds, lag_time)
 
-            if self.verbose:
-                print(-f, time.time()-start)
-
+            loglikelihoods.append((f, start, len(theta)))
             return -f, -g
 
         # this bound prevents the stationary probability for any state
@@ -175,9 +179,10 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         # truncated.
         bounds0 = [(-20, None)]*nc2 + [(-20, 0)]*n
         inds0 = None
+        options0 = dict(options, maxiter=max(n//10, 25)) if self.use_sparse else options
         result0 = scipy.optimize.minimize(
             fun=objective, x0=theta0, method='L-BFGS-B', jac=True,
-            bounds=bounds0, args=(inds0,), options=options)
+            bounds=bounds0, args=(inds0,), options=options0)
 
         # now, try rerunning the optimization with theta restricted to only
         # the dominant elements -- try zeroing out the elements that are too
@@ -186,22 +191,25 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             np.where(result0.x[:nc2] > theta_cutoff)[0], nc2 + np.arange(n)))
 
         if (len(inds1) == nc2 + n) or (not self.use_sparse):
-            return result0, inds0
+            value = (result0, inds0)
+        else:
+            bounds1 = [bounds0[i] for i in inds1]
+            result1 = scipy.optimize.minimize(
+                fun=objective, x0=result0.x[inds1], method='L-BFGS-B', jac=True,
+                bounds=bounds1, args=(inds1,), options=options)
 
-        bounds1 = [bounds0[i] for i in inds1]
-        result1 = scipy.optimize.minimize(
-            fun=objective, x0=result0.x[inds1], method='L-BFGS-B', jac=True,
-            bounds=bounds1, args=(inds1,), options=options)
+            if result1.fun < result0.fun:
+                if self.verbose:
+                    print('[ContinuousTimeMSM] %d rates pegged to zero' %
+                          (nc2 + n - len(inds1)))
+                value = (result1, inds1)
+            else:
+                if self.verbose:
+                    print('[ContinuousTimeMSM] No rates pegged to zero')
+                value = (result0, inds0)
 
-        if result1.fun < result0.fun:
-            if self.verbose:
-                print('[ContinuousTimeMSM] %d rates pegged to zero' %
-                      (nc2 + n - len(inds1)))
-            return result1, inds1
-
-        if self.verbose:
-            print('[ContinuousTimeMSM] No rates pegged to zero')
-        return result0, inds0
+        self.loglikelihoods_ = np.array(loglikelihoods)
+        return value
 
     def uncertainty_K(self):
         """Estimate of the element-wise asymptotic standard deviation
