@@ -160,10 +160,16 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             #'ftol': 1e-10,
             #'gtol': 1e-10
         }
+        import time
 
         def objective(theta, inds):
+            start = time.time()
             f, g = _ratematrix.loglikelihood(
                 theta, countsmat, n, inds, lag_time, n_threads)
+
+            if self.verbose:
+                print(-f, time.time()-start)
+
             return -f, -g
 
         # this bound prevents the stationary probability for any state
@@ -270,4 +276,5 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         hessian = _ratematrix.hessian(
             self.theta_, self.countsmat_, self.n_states_, t=lag_time,
             inds=self.inds_, n_threads=n_threads)
-        self.information_ = scipy.linalg.pinv(hessian)
+
+        self.information_ = scipy.linalg.pinv(-hessian)
