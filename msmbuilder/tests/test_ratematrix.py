@@ -268,8 +268,18 @@ def test_fit_2():
 
 
 def test_optimize_1():
-    n = 10
+    n = 100
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
     model = ContinuousTimeMSM(use_sparse=True, verbose=True).fit(seqs)
+
+    y, x, n = model.loglikelihoods_.T
+    x = x-x[0]
+    cross = np.min(np.where(n==n[-1])[0])
+
+    #import matplotlib.pyplot as pp
+    #pp.plot(x[cross], y[cross], 'kx')
+    #pp.axvline(x[cross], c='k')
+    #pp.plot(x, y)
+    #pp.show()
