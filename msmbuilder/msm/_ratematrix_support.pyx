@@ -31,8 +31,8 @@ cdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
     if which == 'S':
         w, VS = scipy.linalg.eigh(A)
         with nogil:
-            for i in range(n):
-                for j in range(n):
+            for j in range(n):
+                for i in range(n):
                     V[i, j] = sqrt(pi[j] / pi[i]) * VS[i, j]
                     U[i, j] = sqrt(pi[i] / pi[j]) * VS[i, j]
             for i in range(n):
