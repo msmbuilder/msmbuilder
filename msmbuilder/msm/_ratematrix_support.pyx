@@ -22,7 +22,7 @@ cdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
         The right eigenvectors of K
     """
     cdef npy_intp i, j
-    cdef double norm
+    cdef double norm = 1
     cdef double[::1] w
     cdef double[::1, :] U, V, VS
     U = zeros((n, n), order='F')

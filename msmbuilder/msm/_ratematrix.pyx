@@ -29,20 +29,18 @@ import scipy.linalg
 from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset, strcmp
-from cython.parallel cimport prange, parallel
 
 include "cy_blas.pyx"
 include "config.pxi"
 include "triu_utils.pyx"      # ij_to_k() and k_to_ij()
 include "binary_search.pyx"   # bsearch()
 include "_ratematrix_support.pyx"
-IF OPENMP:
-    cimport openmp
 
 
-cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
-                 double[:, ::1] out, char* which='K'):
-    """Build the reversible rate matrix K from the free parameters, `\theta`
+cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
+                        double[:, ::1] out, char* which='K'):
+    """Build the reversible rate matrix K or symmetric rate matrix, S,
+    from the free parameters, `\theta`
 
     Parameters
     ----------
@@ -78,7 +76,7 @@ cpdef int buildK(const double[::1] exptheta, npy_intp n, const npy_intp[::1] ind
 
     Then,
 
-        buildK(exptheta, n, None) == buildK(exptheta[inds], n, inds)
+        build_ratemat(exptheta, n, None) == build_ratemat(exptheta[inds], n, inds)
     """
     cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
     cdef double s_ij, K_ij, K_ji
@@ -265,7 +263,7 @@ cpdef double dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
 
 
 def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp n,
-                  const npy_intp[::1] inds=None, double t=1, npy_intp n_threads=1):
+                  const npy_intp[::1] inds=None, double t=1):
     """Log likelihood and gradient of the log likelihood of a continuous-time
     Markov model.
 
@@ -291,8 +289,6 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
         `theta` correspond.
     t : double
         The lag time.
-    n_threads : int
-        The number of threads to use in parallel.
 
     Returns
     -------
@@ -323,20 +319,20 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
     grad = zeros(size)
     exptheta = zeros(size)
-    K = zeros((n, n))
+    S = zeros((n, n))
     T = zeros((n, n))
     dT = zeros((n, n))
 
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, inds, K, 'S')
-    if not np.all(np.isfinite(K)):
+    build_ratemat(exptheta, n, inds, S, 'S')
+    if not np.all(np.isfinite(S)):
         # these parameters don't seem good...
         # tell the optimizer to stear clear!
-        return -np.inf, ascontiguousarray(grad) + 10
+        return -np.inf, ascontiguousarray(grad)
 
-    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
     dT_dtheta(w, U, V, counts, n, t, T, dT)
 
     with nogil:
@@ -352,7 +348,7 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
 
 
 def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
-            npy_intp[::1] inds=None, npy_intp n_threads=1):
+            npy_intp[::1] inds=None):
     """Estimate of the hessian of the log-likelihood with respect to \theta.
 
     Parameters
@@ -377,8 +373,6 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
         of the upper triangular elements of the rate matrix to which
         `theta` correspond.
-    n_threads : int
-        The number of threads to use in parallel.
 
     Notes
     -----
@@ -416,7 +410,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     hessian = zeros((size, size))
     exptheta = zeros(size)
     expwt = zeros(n)
-    K = zeros((n, n))
+    S = zeros((n, n))
     T = zeros((n, n))
     Q = zeros((n, n))
     dKu = zeros((n, n))
@@ -428,8 +422,8 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     for u in range(size):
         exptheta[u] = exp(theta[u])
 
-    buildK(exptheta, n, inds, K, 'S')
-    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
+    build_ratemat(exptheta, n, inds, S, 'S')
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
 
     for i in range(n):
         expwt[i] = exp(w[i]*t)
@@ -468,7 +462,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
 
 def sigma_K(const double[:, :] invhessian, const double[::1] theta,
-                  npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+                  npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty in the rate
     matrix, `K`
 
@@ -492,8 +486,6 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
         `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
         of the upper triangular elements of the rate matrix to which
         `theta` correspond.
-    n_threads : int
-        The number of threads to use in parallel.
 
     Returns
     -------
@@ -597,7 +589,7 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
 
 
 def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
-                           npy_intp n, npy_intp[::1] inds=None, npy_intp n_threads=1):
+                           npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty) in the
     implied timescales.
     """
@@ -626,12 +618,12 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
     dw_v = zeros(n)
     w_pow_m4 = zeros(n)
     temp = zeros(n)
-    K = zeros((n, n))
+    S = zeros((n, n))
     exptheta = np.exp(theta)
     eye = np.eye(n)
 
-    buildK(exptheta, n, inds, K, 'S')
-    w, U, V = eigK(K, n, exptheta[size-n:], 'S')
+    build_ratemat(exptheta, n, inds, S, 'S')
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
 
     order = np.argsort(w)[::-1]
 
@@ -653,11 +645,3 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
                 var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * invhessian[u, v]
 
     return np.asarray(np.sqrt(var_T))[1:]
-
-
-
-def _supports_openmp():
-    """Does the system support OpenMP?"""
-    IF OPENMP:
-        return True
-    return False
