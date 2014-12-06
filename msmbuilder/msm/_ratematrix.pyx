@@ -1,4 +1,4 @@
-# cython: boundscheck=False, cdivision=True, wraparound=False
+# cython: boundscheck=False, cdivision=True, wraparound=False, c_string_encoding=ascii
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
 # Copyright (c) 2014, Stanford University
@@ -38,7 +38,7 @@ include "_ratematrix_support.pyx"
 
 
 cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
-                        double[:, ::1] out, char* which='K'):
+                        double[:, ::1] out, char* which=b'K'):
     """Build the reversible rate matrix K or symmetric rate matrix, S,
     from the free parameters, `\theta`
 
@@ -531,7 +531,7 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
 
 
 def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
-                   npy_intp n, npy_intp[::1] inds=None):
+             npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty) in the stationary
     distribution, `\pi`.
 
@@ -562,7 +562,7 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
         Estimate of the element-wise asymptotic standard deviation of the stationary
         distribution, \pi.
     """
-    cdef npy_intp i
+    cdef npy_intp i, j
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp size = theta.shape[0]
     if not (inds is None or inds.shape[0] >= n):
@@ -578,13 +578,44 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
     if not invhessian.shape[0] == size and invhessian.shape[1] == size:
         raise ValueError('counts must be `size` x `size`')
 
-    cdef double[::1] pi = np.exp(theta)[size-n:]
+    cdef double[::1] pi = zeros(n)
+    cdef double[::1] temp = zeros(n)
+    cdef double[::1] sigma_pi = zeros(n)
+    cdef double[:, ::1] Hblock = zeros((n, n))
+    cdef double[:, ::1] dpi_dtheta = zeros((n, n))
+    cdef double z = 0, pi_i = 0, z_m2 = 0, var_pi_i = 0
 
-    var_pi = zeros(n)
+    # z = sum(pi)
     for i in range(n):
-        var_pi[i] = pi[i] * invhessian[size-n+i, size-n+i]
+        pi_i = exp(theta[size-n+i])
+        z += pi_i
+        pi[i] = pi_i
 
-    return np.asarray(np.sqrt(var_pi))
+    # z^{-2}
+    z_m2 = 1.0 / (z * z)
+
+    # copy the lower-right (n,n) block of invhessian into contiguous memory
+    # so that we can use BLAS
+    for i in range(n):
+        for j in range(n):
+            Hblock[i,j] = invhessian[size-n+i, size-n+j]
+
+    # build the Jacobian, \frac{d\pi}{d\theta}
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                dpi_dtheta[i, i] = z_m2 * pi[i] * (z-pi[i])
+            else:
+                dpi_dtheta[i, j] = -z_m2 * pi[i] * pi[j]
+
+    # multiply in the Jacobian with the inverse hessian
+    #\sigma_i = (h^i)^T M_{uv} (h^i)
+    for i in range(n):
+        cdgemv_N(Hblock, dpi_dtheta[i], temp)
+        cddot(dpi_dtheta[i], temp, &var_pi_i)
+        sigma_pi[i] = sqrt(var_pi_i)
+
+    return np.asarray(sigma_pi)
 
 
 

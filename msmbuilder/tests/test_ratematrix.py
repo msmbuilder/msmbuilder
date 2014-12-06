@@ -202,37 +202,54 @@ def test_hessian_1():
 def _plot_test_hessian():
     # plot the difference between the numerical hessian and the analytic
     # approximate hessian (opens Matplotlib window)
-    n = 5
+    n = 15
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    order = np.random.permutation(n)
+    for i in range(len(seqs)):
+        seqs[i] = order[seqs[i]]
+    seqs = [seqs[0]]
+    
 
-    model = ContinuousTimeMSM(use_sparse=False).fit(seqs)
+    model = ContinuousTimeMSM(use_sparse=True).fit(seqs)
     theta = model.theta_
     C = model.countsmat_
+    print(model.uncertainty_pi())
 
-    hessian1 = _ratematrix.hessian(theta, C, n)
-    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C, n)[1])
+    hessian1 = _ratematrix.hessian(theta, C, n, inds=model.inds_)
+    print(hessian1)
+    
+    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C, n, inds=model.inds_)[1])
+    #Hfun2 = nd.Hessian(lambda x: _ratematrix.loglikelihood(x, C, n, inds=model.inds_)[0])
+    
     hessian2 = Hfun(theta)
-
+    
+    import fastcluster
+    fastcluster.linkage(model.countsmat_)
+    
+    
     import matplotlib.pyplot as pp
-    pp.scatter(hessian1.flat, hessian2.flat, marker='x')
-    pp.plot(pp.xlim(), pp.xlim(), 'k')
-    print('Plotting...', file=sys.stderr)
+    pp.matshow(hessian1)
+    pp.colorbar()
+    pp.matshow(model.countsmat_)
+    pp.colorbar()
+    #pp.matshow(hessian3)
+    #pp.colorbar()
     pp.show()
 
 
 def test_hessian():
-    grid = NDGrid(n_bins_per_feature=10, min=-np.pi, max=np.pi)
+    grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     seqs = [seqs[i] for i in range(10)]
 
-    lag_time = 120
-    model = ContinuousTimeMSM(verbose=True, lag_time=lag_time)
+    lag_time = 4
+    model = ContinuousTimeMSM(verbose=False, lag_time=lag_time)
     model.fit(seqs)
-    msm = MarkovStateModel(verbose=False, lag_time=lag_time)
-    print(model.summarize())
-    print('MSM timescales\n', msm.fit(seqs).timescales_)
-    print('Uncertainty K\n', model.uncertainty_K())
+    #msm = MarkovStateModel(verbose=False, lag_time=lag_time)
+    #print(model.summarize())
+    #print('MSM timescales\n', msm.fit(seqs).timescales_)
+    #print('Uncertainty K\n', model.uncertainty_K())
     print('Uncertainty pi\n', model.uncertainty_pi())
 
 
