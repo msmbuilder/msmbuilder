@@ -54,10 +54,6 @@ class _NWell(Dataset):
         trajectories will not be cached.
     """
 
-    def simulate_func(self, random):
-        # Implement in subclass
-        raise NotImplementedError
-
     target_name = ""  # define in subclass
 
     def __init__(self, data_home=None, random_state=None):
@@ -93,6 +89,14 @@ class _NWell(Dataset):
         else:
             trajectories = verboseload(self.cache_path)
         return Bunch(trajectories=trajectories, DESCR=self.description())
+
+    def simulate_func(self, random):
+        # Implement in subclass
+        raise NotImplementedError
+
+    def potential(self, x):
+        # Implement in subclass
+        raise NotImplementedError
 
 
 class DoubleWell(_NWell):
@@ -132,6 +136,9 @@ class DoubleWell(_NWell):
     def simulate_func(self, random):
         return _simulate_doublewell(random)
 
+    def potential(self, x):
+        return 1 + np.cos(2*x)
+
 
 def load_doublewell(data_home=None, random_state=None):
     return DoubleWell(data_home, random_state).get()
@@ -161,7 +168,7 @@ class QuadWell(_NWell):
     This dataset consists of 100 trajectories simulated with Brownian dynamics
     on the reduced potential function
 
-    V = 4(x^8 + 0.8 exp(-80 x^2**2) + 0.2 exp(-80 (x-0.5)^2) + 0.5 exp(-40 (x+0.5)^2)).
+    V = 4(x^8 + 0.8 exp(-80 x^2) + 0.2 exp(-80 (x-0.5)^2) + 0.5 exp(-40 (x+0.5)^2)).
 
     The simulations are governed by the stochastic differential equation
 
@@ -176,6 +183,10 @@ class QuadWell(_NWell):
 
     def simulate_func(self, random):
         return _simulate_quadwell(random)
+
+    def potential(self, x):
+        return 4*(x**8 + 0.8*np.exp(-80*x**2) + 0.2*np.exp(-80*(x-0.5)**2) +
+                  0.5*np.exp(-40*(x+0.5)**2))
 
 
 def load_quadwell(data_home=None, random_state=None):
