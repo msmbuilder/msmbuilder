@@ -40,6 +40,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         probability between two states with no observed transitions will be
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
+    n_timescales : int, optional
+        Number of timescales to score in GMRQ.
     use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
     verbose : bool, default=False
@@ -62,7 +64,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     transmat_ : np.ndarray, shape=(n_states_, n_state_)
         The estimated state-to-state transition probabilities over an interval
         of 1 time unit.
-    timescales_ : array of shape=n_timescales,)
+    timescales_ : array of shape=(n_timescales,)
         Estimated relaxation timescales of the model.
     populations_ : np.ndarray, shape=(n_states_,)
         Estimated stationary probability distribution over the states.
