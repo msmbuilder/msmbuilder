@@ -461,15 +461,16 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
     return np.asarray(hessian)
 
 
-def sigma_K(const double[:, :] invhessian, const double[::1] theta,
+def sigma_K(const double[:, :] covar_theta, const double[::1] theta,
                   npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty in the rate
     matrix, `K`
 
     Parameters
     ----------
-    invhessian : array, shape=(len(theta), len(theta))
-        Inverse of the hessian of the log-likelihood
+    covar_theta : array, shape=(len(theta), len(theta))
+        Covariance matrix of \theta. This is estimated by the inverse hessian
+        of the log likelihood function.
     theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
         The free parameters of the model. These values are the (possibly sparse)
         linearized elements of the log of the  upper triangular portion of the
@@ -507,7 +508,7 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
         raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
     if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
         raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
-    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+    if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
         raise ValueError('counts must be `size` x `size`')
 
     var_K = zeros((n, n))
@@ -525,20 +526,21 @@ def sigma_K(const double[:, :] invhessian, const double[::1] theta,
             # know their pattern
             for i in range(n):
                 for j in range(n):
-                    var_K[i,j] += invhessian[u,v] * dKu[i,j] * dKv[i,j]
+                    var_K[i,j] += covar_theta[u,v] * dKu[i,j] * dKv[i,j]
 
     return np.asarray(np.sqrt(var_K))
 
 
-def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
+def sigma_pi(const double[:, :] covar_theta, const double[::1] theta,
              npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty) in the stationary
     distribution, `\pi`.
 
     Parameters
     ----------
-    invhessian : array, shape=(len(theta), len(theta))
-        Inverse of the hessian of the log-likelihood
+    covar_theta : array, shape=(len(theta), len(theta))
+        Covariance matrix of \theta. This is estimated by the inverse hessian
+        of the log likelihood function.
     theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
         The free parameters of the model. These values are the (possibly sparse)
         linearized elements of the log of the  upper triangular portion of the
@@ -575,13 +577,13 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
         raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
     if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
         raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
-    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
+    if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
         raise ValueError('counts must be `size` x `size`')
 
     cdef double[::1] pi = zeros(n)
     cdef double[::1] temp = zeros(n)
     cdef double[::1] sigma_pi = zeros(n)
-    cdef double[:, ::1] Hblock = zeros((n, n))
+    cdef double[:, ::1] C_block = zeros((n, n))
     cdef double[:, ::1] dpi_dtheta = zeros((n, n))
     cdef double z = 0, pi_i = 0, z_m2 = 0, var_pi_i = 0
 
@@ -594,11 +596,11 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
     # z^{-2}
     z_m2 = 1.0 / (z * z)
 
-    # copy the lower-right (n,n) block of invhessian into contiguous memory
+    # copy the lower-right (n,n) block of covar_theta into contiguous memory
     # so that we can use BLAS
     for i in range(n):
         for j in range(n):
-            Hblock[i,j] = invhessian[size-n+i, size-n+j]
+            C_block[i,j] = covar_theta[size-n+i, size-n+j]
 
     # build the Jacobian, \frac{d\pi}{d\theta}
     for i in range(n):
@@ -608,10 +610,10 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
             else:
                 dpi_dtheta[i, j] = -z_m2 * pi[i] * pi[j]
 
-    # multiply in the Jacobian with the inverse hessian
+    # multiply in the Jacobian with the covariance matrix
     #\sigma_i = (h^i)^T M_{uv} (h^i)
     for i in range(n):
-        cdgemv_N(Hblock, dpi_dtheta[i], temp)
+        cdgemv_N(C_block, dpi_dtheta[i], temp)
         cddot(dpi_dtheta[i], temp, &var_pi_i)
         sigma_pi[i] = sqrt(var_pi_i)
 
@@ -619,10 +621,38 @@ def sigma_pi(const double[:, :] invhessian, const double[::1] theta,
 
 
 
-def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
+def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
                            npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty) in the
     implied timescales.
+
+    Parameters
+    ----------
+    covar_theta : array, shape=(len(theta), len(theta))
+        Covariance matrix of \theta. This is estimated by the inverse hessian
+        of the log likelihood function.
+    theta : array of shape = (n*(n-1)/2 + n) for dense or shorter
+        The free parameters of the model. These values are the (possibly sparse)
+        linearized elements of the log of the  upper triangular portion of the
+        symmetric rate matrix, S, followed by the log of the equilibrium
+        distribution.
+    n : int
+        The size of `counts`
+    inds : array, optional (default=None)
+        Sparse linearized triu indices theta. If not supplied, theta is
+        assumed to be a dense parameterization of the upper triangular portion
+        of the symmetric rate matrix followed by the log equilibrium weights,
+        and must be of length `n*(n-1)/2 + n`. If `inds` is supplied, it is a
+        set of indices, with  `len(inds) == len(theta)`,
+        `0 <= inds < n*(n-1)/2+n`, giving the indices of the nonzero elements
+        of the upper triangular elements of the rate matrix to which
+        `theta` correspond.
+
+    Returns
+    -------
+    sigma_t : array, shape=(n-1,)
+        Estimate of the element-wise asymptotic standard deviation of the
+        relaxation timescales of the model.
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp u, v, i
@@ -639,8 +669,8 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
         raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
     if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
         raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
-    if not invhessian.shape[0] == size and invhessian.shape[1] == size:
-        raise ValueError('counts must be `size` x `size`')
+    if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
+        raise ValueError('covar_theta must be `size` x `size`')
 
     var_T = zeros(n)
     dKu = zeros((n, n))
@@ -673,6 +703,6 @@ def sigma_timescales(const double[:, :] invhessian, const double[::1] theta,
             dw_du(dKv, U, V, n, temp, dw_v)
 
             for i in range(n):
-                var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * invhessian[u, v]
+                var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * covar_theta[u, v]
 
     return np.asarray(np.sqrt(var_T))[1:]
