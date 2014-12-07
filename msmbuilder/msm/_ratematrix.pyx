@@ -656,7 +656,7 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp u, v, i
-    cdef double[::1] exptheta, var_T, w, dw_u, dw_v, temp, w_pow_m4
+    cdef double[::1] exptheta, var_T, w, dw_u, dw_v, temp, w_pow_m4, sigma
     cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
     cdef npy_intp size = theta.shape[0]
     if not (inds is None or inds.shape[0] >= n):
@@ -705,4 +705,8 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
             for i in range(n):
                 var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * covar_theta[u, v]
 
-    return np.asarray(np.sqrt(var_T))[1:]
+    # skip the stationary eigenvector
+    sigma = zeros(n-1)
+    for i in range(n-1):
+        sigma[i] = sqrt(var_T[1+i])
+    return np.asarray(sigma)
