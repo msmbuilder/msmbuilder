@@ -1,6 +1,6 @@
 # This file is designed to be included by _ratematrix.pyx
 
-cdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
+cpdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
     """Diagonalize the rate matrix
 
     If which == 'K', the first argument should be the rate matrix, K, and `pi`

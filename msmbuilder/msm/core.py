@@ -144,7 +144,13 @@ def _solve_msm_eigensystem(transmat, k):
     u = np.real_if_close(u[order[:k]])
     lv = np.real_if_close(lv[:, order[:k]])
     rv = np.real_if_close(rv[:, order[:k]])
+    return _normalize_eigensystem(u, lv, rv)
 
+
+def _normalize_eigensystem(u, lv, rv):
+    """Normalize the eigenvectors of a reversible Markov state model according
+    to our preferred scheme.
+    """
     # first normalize the stationary distribution separately
     lv[:, 0] = lv[:, 0] / np.sum(lv[:, 0])
 

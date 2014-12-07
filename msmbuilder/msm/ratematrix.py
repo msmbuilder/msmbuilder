@@ -14,7 +14,8 @@ from ..base import BaseEstimator
 from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import _MappingTransformMixin, _transition_counts
+from .core import (_MappingTransformMixin, _transition_counts,
+                   _normalize_eigensystem)
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
@@ -39,6 +40,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         probability between two states with no observed transitions will be
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
+    n_timescales : int, optional
+        Number of implied timescales to calculate.
     use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
     verbose : bool, default=False
@@ -46,6 +49,11 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     ftol : float, default=1e-6
         Iteration stops when the relative increase in the log-likelihood is less
         than this cutoff.
+    guess_ratemat : array of shape=(n_states_, n_states), optional
+        Guess for the rate matrix. This can be used to warm-start the optimizer.
+        Sometimes the optimizer is poorly behaved when the lag time is large,
+        so it can be helpful to seed it from a model estimated using a shorter
+        lag time.
 
     Attributes
     ----------
@@ -56,7 +64,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     transmat_ : np.ndarray, shape=(n_states_, n_state_)
         The estimated state-to-state transition probabilities over an interval
         of 1 time unit.
-    timescales_ : array of shape (n-1,)
+    timescales_ : array of shape=(n_timescales,)
         Estimated relaxation timescales of the model.
     populations_ : np.ndarray, shape=(n_states_,)
         Estimated stationary probability distribution over the states.
@@ -79,18 +87,26 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     inds_ : array of shape n*(n+1)/2 or shorter, or None
         For sparse parameterization, the indices of the non-zero elements of
         \theta.
+    eigenvalues_ :  array of shape=(n_timescales+1)
+        Largest eigenvalues of the rate matrix.
+    left_eigenvectors_ : array of shape=(n_timescales+1)
+        Dominant left eigenvectors of the rate matrix.
+    right_eigenvectors_ : array of shape=(n_timescales+1)
+        Dominant right eigenvectors of the rate matrix,
 
     See Also
     --------
     MarkovStateModel : discrete-time analog
     """
-    def __init__(self, lag_time=1, prior_counts=0, use_sparse=True,
-                 verbose=False, ftol=1e-6):
+    def __init__(self, lag_time=1, prior_counts=0, n_timescales=None,
+                 use_sparse=True, verbose=False, ftol=1e-6, guess_ratemat=None):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
+        self.n_timescales = n_timescales
         self.verbose = verbose
         self.use_sparse = use_sparse
         self.ftol = ftol
+        self.guess_ratemat = guess_ratemat
 
         self.inds_ = None
         self.theta_ = None
@@ -103,6 +119,10 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.populations_ = None
         self.information_ = None
         self.loglikelihoods_ = None
+        self.timescales_ = None
+        self.eigenvalues_ = None
+        self.left_eigenvectors_ = None
+        self.right_eigenvectors_ = None
 
     @experimental('ContinuousTimeMSM')
     def fit(self, sequences, y=None):
@@ -129,7 +149,10 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.mapping_ = mapping
         self.populations_ = exptheta[-n_states:] / exptheta[-n_states:].sum()
         self.information_ = None
-        self.timescales_ = -1 / np.sort(np.linalg.eigvals(self.ratemat_))[::-1][1:]
+
+        self.eigenvalues_, self.left_eigenvectors_, self.right_eigenvectors_ = \
+            self._solve_eigensystem()
+        self.timescales_ = -1 / self.eigenvalues_[1:]
 
         return self
 
@@ -153,7 +176,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         theta_cutoff = np.log(1e-8)
         loglikelihoods = []
 
-        theta0 = self.initial_guess(countsmat)
+        theta0 = self._initial_guess(countsmat)
         lag_time = float(self.lag_time)
 
         options = {
@@ -245,19 +268,28 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         sigma_timescales = _ratematrix.sigma_timescales(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_)
-        return sigma_timescales
+        if self.n_timescales is None:
+            return sigma_timescales
+        return sigma_timescales[:self.n_timescales]
 
-    def initial_guess(self, countsmat):
-        # C = 0.5 * (countsmat + countsmat.T) + self.prior_counts
-        # pi = C.sum(axis=0) / C.sum(dtype=float)
-        # transmat = C.astype(float) / C.sum(axis=1)[:, None]
-        transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
+    def _initial_guess(self, countsmat):
+        """Generate an initial guess for \theta.
+        """
+        guess = self.guess_ratemat
 
-        K = np.real(scipy.linalg.logm(transmat))
-        S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
+        if guess is None or guess.shape != countsmat.shape:
+            transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
+
+            K = np.real(scipy.linalg.logm(transmat))
+            S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
+        else:
+            n = guess.shape[0]
+            u, lv, _ = map(np.asarray, _ratematrix.eigK(guess, n, which='K'))
+            pi = lv[:, np.argmax(u)]
+            S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), guess)
+
         sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
         theta0 = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
-
         return theta0
 
     def _build_information(self):
@@ -270,3 +302,71 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             inds=self.inds_)
 
         self.information_ = scipy.linalg.pinv(-hessian)
+
+    def score(self, sequences, y=None):
+        """Score the model on new data using the generalized matrix Rayleigh
+        quotient
+
+        Parameters
+        ----------
+        sequences : list of array-like
+            List of sequences, or a single sequence. Each sequence should be a
+            1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
+
+        Returns
+        -------
+        gmrq : float
+            Generalized matrix Rayleigh quotient. This number indicates how
+            well the top ``n_timescales+1`` eigenvectors of this model perform
+            as slowly decorrelating collective variables for the new data in
+            ``sequences``.
+
+        References
+        ----------
+        .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
+           of slow dynamical modes in molecular kinetics"
+           http://arxiv.org/abs/1407.8083 (2014)
+        """
+        # eigenvectors from the model we're scoring, `self`
+        V = self.right_eigenvectors_
+
+        m2 = self.__class__(**self.get_params())
+        m2.fit(sequences)
+
+        if self.mapping_ != m2.mapping_:
+            #V = self._map_eigenvectors(V, m2.mapping_)
+            # we need to map this model's eigenvectors
+            # into the m2 space
+            raise NotImplementedError()
+
+        # How well do they diagonalize S and C, which are
+        # computed from the new test data?
+        S = np.diag(m2.populations_)
+        C = S.dot(m2.ratemat_)
+
+        try:
+            trace = np.trace(V.T.dot(C.dot(V)).dot(np.linalg.inv(V.T.dot(S.dot(V)))))
+        except np.linalg.LinAlgError:
+            trace = np.nan
+
+        return trace
+
+    def _solve_eigensystem(self):
+        n = self.n_states_
+
+        n_timescales = self.n_timescales
+        if n_timescales is None:
+            n_timescales = self.n_states_ - 1
+        k = n_timescales + 1
+
+        S = np.zeros((n, n))
+        exptheta = np.exp(self.theta_)
+        _ratematrix.build_ratemat(exptheta, n, self.inds_, S, which='S')
+        u, lv, rv = map(np.asarray, _ratematrix.eigK(S, n, exptheta[-n:], 'S'))
+        order = np.argsort(-u)
+        u = u[order[:k]]
+        lv = lv[:, order[:k]]
+        rv = rv[:, order[:k]]
+
+        return _normalize_eigensystem(u, lv, rv)

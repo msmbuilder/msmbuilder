@@ -267,6 +267,13 @@ def test_fit_2():
     assert abs(t1[-1] - t3[-1]) / t1[-1] < 0.50
 
 
+def test_score_1():
+    grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
+    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    model = ContinuousTimeMSM(verbose=False, lag_time=10, n_timescales=3).fit(seqs)
+    model.score(seqs)
+
+
 def test_optimize_1():
     n = 100
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
