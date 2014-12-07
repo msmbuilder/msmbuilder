@@ -268,6 +268,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         sigma_timescales = _ratematrix.sigma_timescales(
             self.information_, theta=self.theta_, n=self.n_states_,
             inds=self.inds_)
+        if self.n_timescales is None:
+            return sigma_timescales
         return sigma_timescales[:self.n_timescales]
 
     def _initial_guess(self, countsmat):
