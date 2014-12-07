@@ -50,7 +50,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     guess_ratemat : array of shape=(n_states_, n_states), optional
         Guess for the rate matrix. This can be used to warm-start the optimizer.
         Sometimes the optimizer is poorly behaved when the lag time is large,
-        so it can be helpful to seed it from a model estimated using a shorted
+        so it can be helpful to seed it from a model estimated using a shorter
         lag time.
 
     Attributes
