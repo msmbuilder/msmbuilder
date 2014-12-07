@@ -46,6 +46,7 @@ def implied_timescales(sequences, lag_times, n_timescales=10,
     param_grid = {'lag_time' : lag_times}
     models = param_sweep(msm, sequences, param_grid, n_jobs=n_jobs,
                          verbose=verbose)
-    timescales = np.array([model.timescales_[:n_timescales] for model in models])
-
+    timescales = [m.timescales_ for m in models]
+    n_timescales = min(n_timescales, min(len(ts) for ts in timescales))
+    timescales = np.array([ts[:n_timescales] for ts in timescales])
     return timescales
