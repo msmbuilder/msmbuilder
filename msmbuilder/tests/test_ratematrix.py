@@ -226,7 +226,7 @@ def test_hessian():
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     seqs = [seqs[i] for i in range(10)]
 
-    lag_time = 120
+    lag_time = 10
     model = ContinuousTimeMSM(verbose=True, lag_time=lag_time)
     model.fit(seqs)
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
