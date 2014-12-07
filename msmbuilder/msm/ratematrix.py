@@ -282,15 +282,14 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
             K = np.real(scipy.linalg.logm(transmat))
             S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
-            sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
-            theta0 = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
         else:
             n = guess.shape[0]
-            u, lv, rv = map(np.asarray, _ratematrix.eigK(guess, n, which='K'))
+            u, lv, _ = map(np.asarray, _ratematrix.eigK(guess, n, which='K'))
             pi = lv[:, np.argmax(u)]
             S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), guess)
-            sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
-            theta0 = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
+
+        sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
+        theta0 = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
         return theta0
 
     def _build_information(self):
