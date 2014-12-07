@@ -41,7 +41,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
     n_timescales : int, optional
-        Number of timescales to score in GMRQ.
+        Number of implied timescales to calculate.
     use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
     verbose : bool, default=False
