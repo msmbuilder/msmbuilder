@@ -149,8 +149,8 @@ void inv_mbessel_ratio(double* x, size_t n) {
   // y = A(x) = I_1(x) / I_0(x)
   //
   // This function computes A^(-1)(y) by way of a precomputed spline
-  // interpolation. The spline coefficients are calculated at build time
-  // by setup.py and saved in .dat files, which are #included here.
+  // interpolation. The spline coefficients are saved in .dat files,
+  // which are #included here.
 
   static const double SPLINE_x[] = {
     #include "data/inv_mbessel_x.dat"

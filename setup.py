@@ -96,35 +96,6 @@ HMMDIR = 'msmbuilder/hmm/'
 CLUSTERDIR = 'msmbuilder/cluster/'
 
 
-def write_spline_data():
-    """Precompute spline coefficients and save them to data files that
-    are #included in the remaining c source code. This is a little devious.
-    """
-    vmhmmdir = pjoin(HMMDIR, 'vonmises')
-    import scipy.special
-    import pyximport
-
-    pyximport.install(setup_args={'include_dirs': [np.get_include()]})
-    sys.path.insert(0, vmhmmdir)
-    import buildspline
-
-    del sys.path[0]
-    n_points = 1024
-    miny, maxy = 1e-5, 700
-    y = np.logspace(np.log10(miny), np.log10(maxy), n_points)
-    x = scipy.special.iv(1, y) / scipy.special.iv(0, y)
-
-    # fit the inverse function
-    derivs = buildspline.createNaturalSpline(x, np.log(y))
-    if not os.path.exists(pjoin(vmhmmdir, 'data/inv_mbessel_x.dat')):
-        np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_x.dat'), x, newline=',\n')
-    if not os.path.exists(pjoin(vmhmmdir, 'data/inv_mbessel_y.dat')):
-        np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_y.dat'), np.log(y),
-                   newline=',\n')
-    if not os.path.exists(pjoin(vmhmmdir, 'data/inv_mbessel_deriv.dat')):
-        np.savetxt(pjoin(vmhmmdir, 'data/inv_mbessel_deriv.dat'), derivs,
-                   newline=',\n')
-
 compiler = CompilerDetection(DISABLE_OPENMP)
 with open('msmbuilder/src/config.pxi', 'w') as f:
     f.write('''
@@ -204,7 +175,6 @@ extensions.append(
                             'msmbuilder/src/f2py']))
 
 write_version_py(VERSION, ISRELEASED, filename='msmbuilder/version.py')
-write_spline_data()
 setup(name='msmbuilder',
       author='Robert McGibbon',
       author_email='rmcgibbo@gmail.com',
