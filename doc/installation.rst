@@ -61,3 +61,14 @@ Optional packages:
 
     `Git <http://git-scm.com>`_
         To download the source code
+
+Frequently Asked Questions
+==========================
+
+I get a wierd error during compilation with ``pip install`` or ``python setup.py install``. What's wrong?
+---------------------------------------------------------------------------------------------------------
+
+We've received a couple `reports <https://github.com/msmbuilder/msmbuilder/issues/391>`_
+of incorrect code generation on earlier versions of cython with python3.4. Try upgrading
+to the latest verion of cython, and reinstalling. If that doesn't work, open an issue
+on the github `issue tracker <https://github.com/msmbuilder/msmbuilder/issues>`_.
