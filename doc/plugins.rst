@@ -6,7 +6,9 @@ any of its children. You can even build your plugin to work with the
 ``msmb`` command-line interface. 
 
 1. Subclass ``cmdline.Command`` or any of its children. For example,
-   if you want to expose a new Featurizer from the command line ::
+   if you want to expose a new Featurizer from the command line.
+
+.. code-block:: python
 
     from msmbuilder.commands.featurizer import FeaturizerCommand
     class MyNiftyFeaturizerCommand(FeaturizerCommand):
@@ -15,7 +17,9 @@ any of its children. You can even build your plugin to work with the
 
 2. Provide your command as an "entry point" with ``setuptools``.
    Use ``"msmbuilder.commands"`` as the entry point.
-   For example, in your ``setup.py`` ::
+   For example, in your ``setup.py``.
+
+.. code-block:: python
 
     setup(
         ...
