@@ -54,13 +54,24 @@ def test_score_1():
         assert tica.score([X2]) < tica.score([X])
 
 
+def test_score_2():
+    X = np.random.randn(100,5)
+    Y = np.random.randn(100,5)
+    model = tICA(n_components=2, gamma=0.05).fit([X])
+
+    s1 = model.score([Y])
+    s2 = tICA(gamma=0.0).fit(model.transform([Y])).eigenvalues_.sum()
+
+    eq(s1, s2)
+
+
 def test_multiple_components():
     X = np.random.randn(100, 5)
     tica = tICA(n_components=1, gamma=0)
     tica.fit([X])
 
     Y1 = tica.transform([X])[0]
-    
+
     tica.n_components = 4
     Y4 = tica.transform([X])[0]
 
@@ -73,4 +84,3 @@ def test_multiple_components():
 
     eq(Y1.flatten(), Y3[:, 0])
     eq(Y3, Y4[:, :3])
-
