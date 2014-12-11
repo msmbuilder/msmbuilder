@@ -95,11 +95,12 @@ class SparseTICA(tICA):
 
     References
     ----------
-    .. [1] Sriperumbudur, Bharath K., David A. Torres, and Gert RG Lanckriet.
+    .. [1] McGibbon, R. T. and V. S. Pande "Identification of sparse, slow
+       reaction coordinates from molular dynamics simulations" In preparation.
+    .. [1] Sriperumbudur, B. K., D. A. Torres, and G. R. Lanckriet.
        "A majorization-minimization approach to the sparse generalized eigenvalue
        problem." Machine learning 85.1-2 (2011): 3-39.
-    .. [2] Mackey, Lester. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
-
+    .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
     """
 
     def __init__(self, n_components=None, lag_time=1, gamma=0.05,
