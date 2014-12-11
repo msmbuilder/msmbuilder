@@ -40,8 +40,8 @@ def scdeflate(A, x):
     return A - np.outer(np.dot(A, x), np.dot(x, A)) / np.dot(np.dot(x, A), x)
 
 
-def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, greedy=True,
-           verbose=True):
+def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
+           greedy=True, verbose=True, return_x_f=False):
     """Find a sparse approximate generalized eigenpair.
 
     The generalized eigenvalue equation, :math:`Av = lambda Bv`,
@@ -84,6 +84,12 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, greedy=True,
         to the solver complaining when it gets too small.
     tol : float
         Convergence criteria for the eigensolver.
+    tau : float
+        Should be the maximum of 0 and the negtion of smallest eigenvalue
+        of A, ``tau=max(0, -lambda_min(A))``. If not supplied, the smallest
+        eigenvalue of A will have to be computed.
+    return_x_f : bool, optional
+        Also return the final iterate.
 
     Returns
     -------
@@ -91,6 +97,9 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, greedy=True,
         The approximate eigenvalue.
     v_final : np.ndarray, shape=(N,)
         The sparse approximate eigenvector
+    x_f : np.ndarray, shape=(N,), optional
+        The sparse approximate eigenvector, before variational renormalization
+        returned only in ``return_x_f = True``.
 
     Notes
     -----
@@ -104,12 +113,14 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, greedy=True,
     ..[2] https://github.com/cvxgrp/cvxpy
     """
 
-
     pprint = print
     if not verbose:
         pprint = lambda *args : None
     length = A.shape[0]
     x = v_init
+
+    if tau is None:
+        tau = max(0, -np.min(scipy.linalg.eigvalsh(A)))
 
     old_x = np.empty(length)
     rho_e = rho / np.log(1 + 1.0/eps)
@@ -200,18 +211,21 @@ def speigh(A, B, v_init, rho, eps, tol, tau=None, maxiter=10000, greedy=True,
     Ak, Bk = A[grid], B[grid]  # form the submatrices
 
     if len(Ak) == 0:
-        return 0, np.zeros(length)
+        u, v = 0, np.zeros(length)
     if len(Ak) == 1:
         v = np.zeros(length)
         v[mask] = 1.0
-        return Ak[0,0] / Bk[0,0], v
+        u = Ak[0,0] / Bk[0,0]
+    else:
+        gevals, gevecs = scipy.sparse.linalg.eigsh(
+            A=Ak, M=Bk, k=1, v0=x[mask], which='LA')
 
-    gevals, gevecs = scipy.sparse.linalg.eigsh(
-        A=Ak, M=Bk, k=1, v0=x[mask], which='LA')
+        u = gevals[-1]
+        v = np.zeros(length)
+        v[mask] = gevecs[:, -1]
 
-    u = gevals[-1]
-    v = np.zeros(length)
-    v[mask] = gevecs[:, -1]
+    if return_x_f:
+        return u, v, x
     return u, v
 
 
@@ -254,7 +268,7 @@ class Problem2(object):
             return self.solve(y, w)
         else:
             return self.solve_sparse(y, w, x_mask)
-    
+
     def solve(self, y, w):
         assert y.ndim == 1 and w.ndim == 1 and y.shape == w.shape
         assert w.shape[0] == self.n
@@ -276,10 +290,10 @@ class Problem2(object):
     def solve_sparse(self, y, w, x_mask=None):
         assert y.ndim == 1 and w.ndim == 1 and y.shape == w.shape
         assert w.shape[0] == self.n
-        
+
         x = cp.Variable(np.count_nonzero(x_mask))
         inv_mask = np.logical_not(x_mask)
-        
+
         term1 = cp.square(cp.norm(x-y[x_mask]))# + cp.square(cp.norm(y[inv_mask]))
         term2 = self.c * cp.norm1(cp.diag(w[x_mask]) * x)
 
