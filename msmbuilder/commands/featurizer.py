@@ -6,7 +6,7 @@ import numpy as np
 import mdtraj as md
 
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
-from ..cmdline import NumpydocClassCommand, argument, exttype
+from ..cmdline import NumpydocClassCommand, argument, exttype, stripquotestype
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
@@ -17,7 +17,7 @@ class FeaturizerCommand(NumpydocClassCommand):
     _group = '1-Featurizer'
     trjs = argument(
         '--trjs', help='Glob pattern for trajectories',
-        default='', required=True)
+        default='', required=True, type=stripquotestype)
     top = argument(
         '--top', help='Path to topology file matching the trajectories', default='')
     chunk = argument(

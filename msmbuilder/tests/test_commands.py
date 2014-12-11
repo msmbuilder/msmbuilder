@@ -1,11 +1,12 @@
 from __future__ import print_function, division
 import os
+import sys
 import json
 import glob
+import shlex
 import itertools
 import tempfile
 import shutil
-import shlex
 import subprocess
 import numpy as np
 import mdtraj as md
@@ -72,8 +73,11 @@ class tempdir(object):
 
 def shell(str):
     # Capture stdout
-    split = shlex.split(str)
-    print(str)
+    if sys.platform == 'win32':
+        split = str.split()
+    else:
+        split = shlex.split(str)
+    print(split)
     with open(os.devnull, 'w') as noout:
         assert subprocess.call(split, stdout=noout) == 0
 
@@ -100,7 +104,7 @@ def test_atomindices():
         assert all(t.topology.atom(i).element.symbol != 'H' for i in atoms)
         assert sum(1 for a in t.topology.atoms if a.element.symbol != 'H') == len(atoms)
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
-    
+
     with tempdir():
         shell('msmb AtomIndices -o alpha.txt --alpha -a -p %s' % fn)
         shell('msmb AtomIndices -o alpha-pairs.txt --alpha -d -p %s' % fn)
@@ -166,7 +170,10 @@ def test_convert_chunked_project_1():
     fetch_alanine_dipeptide()
     with tempdir():
         root = os.path.join(get_data_home(), 'alanine_dipeptide')
-        pattern = "'*.dcd'"
+        if sys.platform == 'win32':
+            pattern = "*.dcd"
+        else:
+            pattern = "'*.dcd'"
         cmd = 'msmb ConvertChunkedProject out {root} --pattern {pattern} -t {root}/ala2.pdb'.format(root=root, pattern=pattern)
         shell(cmd)
         assert set(os.listdir('out')) == set(('traj-00000000.dcd', 'trajectories.jsonl'))

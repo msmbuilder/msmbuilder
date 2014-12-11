@@ -14,7 +14,7 @@ import os
 from ..base import BaseEstimator
 from ..utils import load
 from ..dataset import dataset
-from ..cmdline import Command, argument, argument_group, exttype
+from ..cmdline import Command, argument, argument_group, exttype, stripquotestype
 
 
 class TransformCommand(Command):
@@ -27,7 +27,7 @@ class TransformCommand(Command):
     inp = g.add_argument(
         '-i', '--inp', help='''Path to input dataset. Each dataset is a
         collection of sequences, which may either be an array or Trajectory,
-        depending on the model.''', required=True)
+        depending on the model.''', required=True, type=stripquotestype)
     mdl = g.add_argument('-m', '--model', help='''Path pre-fit model instance,
         saved using the pickle protocol. (suffix .pkl)''', required=True)
     transformed = g.add_argument(

@@ -7,9 +7,7 @@ from msmbuilder.libdistance import assign_nearest, pdist, dist, sumdist
 from msmbuilder.example_datasets import AlanineDipeptide
 
 
-seed = np.random.randint(2**32-1)
-#seed = 1227789621
-seed = 2144326277
+seed = np.random.randint(2**31-1)
 print('seed', seed, file=sys.stderr)
 random = np.random.RandomState(seed)
 VECTOR_METRICS = ("euclidean", "sqeuclidean", "cityblock", "chebyshev",
