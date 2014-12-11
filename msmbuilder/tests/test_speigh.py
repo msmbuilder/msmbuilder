@@ -70,8 +70,7 @@ class Test_scdeflate(object):
                     np.allclose(remaining_V1[:, i], -remaining_V2[:, i]))
 
 
-class Test_speigh(object):
-
+class Test_speigh_1(object):
     def test_1(self):
         # test with indefinite A matrix, identity B
         n = 4
@@ -131,3 +130,30 @@ class Test_speigh(object):
                 np.allclose(v0, -V[:, 0]))
         assert (np.linalg.norm(v0f + V[:, 0]) < 1e-3 or
                 np.linalg.norm(v0f - V[:, 0]) < 1e-3)
+
+
+class Test_speigh_2(object):
+    def test_1(self):
+        # test with indefinite A matrix, identity B
+        n = 4
+        x = np.array([1.0, 2.0, 3.0, 0])
+        A = np.outer(x, x)
+        B = np.eye(n)
+        w, V = eigh(A, B)
+
+        w0, v0, v0f = speigh(A, B, v_init=np.ones(4), rho=0.0001, verbose=True, return_x_f=True)
+        self.assert_close(w0, v0, v0f, A, B)
+
+    def assert_close(self, w0, v0, v0f, A, B):
+        w, V = eigh(A, B)
+
+        v0 /= np.linalg.norm(v0)
+        v0f /= np.linalg.norm(v0f)
+        V[:, 0] /= np.linalg.norm(V[:,0])
+
+        np.testing.assert_almost_equal(w0, w[0])
+        assert (np.allclose(v0,  V[:, 0]) or
+                np.allclose(v0, -V[:, 0]))
+        assert (np.linalg.norm(v0f + V[:, 0]) < 1e-3 or
+                np.linalg.norm(v0f - V[:, 0]) < 1e-3)
+

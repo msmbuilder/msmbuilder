@@ -128,7 +128,7 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
     b = np.diag(B)
     B_is_diagonal = np.all(np.diag(b) == B)
 
-    if tau == 0:
+    if tau < 1e-12:
         if B_is_diagonal:
             pprint('Path [1]: tau=0, diagonal B')
             old_x.fill(np.inf)
@@ -199,14 +199,16 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
 
     if len(Ak) == 0:
         u, v = 0, np.zeros(length)
-    if len(Ak) == 1:
+    elif len(Ak) == 1:
         v = np.zeros(length)
         v[mask] = 1.0
         u = Ak[0,0] / Bk[0,0]
     else:
-        gevals, gevecs = scipy.sparse.linalg.eigsh(
-            A=Ak, M=Bk, k=1, v0=x[mask], which='LA')
-
+        gevals, gevecs = scipy.linalg.eigh(
+            Ak, Bk, eigvals=(Ak.shape[0]-2, Ak.shape[0]-1))
+        # Usually slower to use sparse linear algebra here
+        # gevals, gevecs = scipy.sparse.linalg.eigsh(
+        #     A=Ak, M=Bk, k=1, v0=x[mask], which='LA')
         u = gevals[-1]
         v = np.zeros(length)
         v[mask] = gevecs[:, -1]
