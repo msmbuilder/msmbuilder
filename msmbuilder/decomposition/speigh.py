@@ -156,13 +156,14 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
             problem1 = Problem1(B, rho_e/2, sparse=greedy)
             for i in range(maxiter):
                 norm = np.linalg.norm(x[np.abs(old_x) > tol] - old_x[np.abs(old_x) > tol])
-                if norm < tol:
+                if norm < tol or np.count_nonzero(x) == 1:
                     break
                 pprint('x: ', x)
                 old_x = x
 
                 w = 1.0 / (np.abs(x) + eps)
                 x = problem1(A.dot(x), w, x_mask=(np.abs(x)>tol))
+                x /= np.dot(x, B).dot(x)
 
     else:
         pprint('Path [3]: tau != 0')
@@ -171,7 +172,7 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         problem2 = Problem2(B, rho_e / tau, sparse=greedy)
         for i in range(maxiter):
             norm = np.linalg.norm(x[np.abs(old_x) > tol] - old_x[np.abs(old_x) > tol])
-            if norm < tol:
+            if norm < tol or np.count_nonzero(x) == 1:
                 break
             old_x = x
             y = scaledA.dot(x)
@@ -179,6 +180,7 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
             start = time.time()
 
             x = problem2(y, w, x_mask=(np.abs(x)>tol))
+            x /= np.dot(x, B).dot(x)
             pprint('norm', norm, time.time()-start, '\nx', np.where(np.abs(x)>tol)[0])
 
     pprint('\nxf:', x)

@@ -102,10 +102,10 @@ class SparseTICA(tICA):
 
     """
 
-    def __init__(self, n_components=None, offset=1, gamma=0.05,
+    def __init__(self, n_components=None, lag_time=1, gamma=0.05,
                  rho=0.01, epsilon=1e-6, tolerance=1e-8, maxiter=10000,
                  greedy=True, verbose=False):
-        super(SparseTICA, self).__init__(n_components, offset, gamma)
+        super(SparseTICA, self).__init__(n_components, lag_time=lag_time, gamma=gamma)
         self.rho = rho
         self.epsilon = epsilon
         self.tolerance = tolerance
@@ -122,7 +122,7 @@ class SparseTICA(tICA):
         if not np.allclose(self.covariance_, self.covariance_.T):
             raise RuntimeError('correlation matrix is not symmetric')
         if self.rho <= 0:
-            return super(SparseTICA, self).solve()
+            return super(SparseTICA, self)._solve()
 
         A = self.offset_correlation_
         B = self.covariance_ + (self.gamma / self.n_features) * \
