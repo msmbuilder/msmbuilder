@@ -4,8 +4,8 @@
 import numpy as np
 import scipy.linalg
 from msmbuilder.decomposition.speigh import speigh, scdeflate
-random = np.random.RandomState(0)
-np.set_printoptions(precision=3, suppress=True)
+random = np.random.RandomState(1)
+#np.set_printoptions(precision=3, suppress=True)
 
 
 def rand_pos_semidef(n):
@@ -73,7 +73,7 @@ class Test_scdeflate(object):
 class Test_speigh(object):
 
     def test_1(self):
-        # test with indefinite A matrix
+        # test with indefinite A matrix, identity B
         n = 4
         A = rand_sym(n)
         B = np.eye(n)
@@ -84,10 +84,22 @@ class Test_speigh(object):
         self.assert_close(w0, v0, v0f, A, B)
 
     def test_2(self):
-        #test with positive semidefinite A matrix
+        # test with indefinite B matrix, indefinite B
+        n = 4
+        A = rand_sym(n)
+        B = rand_pos_semidef(n)
+        w, V = eigh(A, B)
+        v_init = V[:, 0] + 0.1*random.randn(n)
+
+        w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
+        self.assert_close(w0, v0, v0f, A, B)
+
+    def test_3(self):
+        # test with positive semidefinite A matrix, and diagonal
+        # matrix B
         n = 4
         A = rand_pos_semidef(n)
-        B = np.eye(n)
+        B = np.diag(np.random.randn(n)**2)
 
         w, V = eigh(A, B)
         v_init = V[:, 0] + 0.1*random.randn(n)
@@ -95,9 +107,24 @@ class Test_speigh(object):
         w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
+    def test_4(self):
+        # test with positive semidefinite A matrix, and general
+        # matrix B
+        n = 4
+        A = rand_pos_semidef(n)
+        B = rand_pos_semidef(n) + np.eye(n)
+        w, V = eigh(A, B)
+        v_init = V[:, 0] + 0.1*random.randn(n)
+
+        w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
+        self.assert_close(w0, v0, v0f, A, B)
 
     def assert_close(self, w0, v0, v0f, A, B):
         w, V = eigh(A, B)
+
+        v0 /= np.linalg.norm(v0)
+        v0f /= np.linalg.norm(v0f)
+        V[:, 0] /= np.linalg.norm(V[:,0])
 
         np.testing.assert_almost_equal(w0, w[0])
         assert (np.allclose(v0,  V[:, 0]) or

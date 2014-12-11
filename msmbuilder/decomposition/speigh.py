@@ -4,6 +4,7 @@ from __future__ import print_function
 import time
 import numpy as np
 import scipy.linalg
+import scipy.special
 try:
     import cvxpy as cp
 except:
@@ -41,7 +42,7 @@ def scdeflate(A, x):
 
 
 def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
-           greedy=True, verbose=True, return_x_f=False):
+           greedy=True, verbose=False, return_x_f=False):
     """Find a sparse approximate generalized eigenpair.
 
     The generalized eigenvalue equation, :math:`Av = lambda Bv`,
@@ -123,7 +124,7 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         tau = max(0, -np.min(scipy.linalg.eigvalsh(A)))
 
     old_x = np.empty(length)
-    rho_e = rho / np.log(1 + 1.0/eps)
+    rho_e = rho / scipy.special.log1p(1.0/eps)
     b = np.diag(B)
     B_is_diagonal = np.all(np.diag(b) == B)
 
@@ -152,30 +153,16 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         else:
             pprint('Path [2]: tau=0, general B')
             old_x.fill(np.inf)
+            problem1 = Problem1(B, rho_e/2, sparse=greedy)
             for i in range(maxiter):
                 norm = np.linalg.norm(x[np.abs(old_x) > tol] - old_x[np.abs(old_x) > tol])
                 if norm < tol:
                     break
                 pprint('x: ', x)
                 old_x = x
+
                 w = 1.0 / (np.abs(x) + eps)
-                Ax = A.dot(x)
-                absAx = np.abs(Ax)
-
-                if rho_e < 2 * np.max(absAx.dot(w**(-1))):
-                    gamma = absAx - (rho_e / 2.0 * w)
-                    S = np.diag(np.sign(Ax))
-                    SBSInv = scipy.linalg.pinv(S.dot(B).dot(S))
-
-                    # solve for lambda, line 20 of Algorithm 1
-                    lambd = problem1(SBSinv, gamma)
-
-                    temp = SBSInv.dot(gamma + lambd)
-                    x_num = S.dot(temp)
-                    x_den = np.sqrt((gamma + lambd).dot(temp))
-                    x = x_num / x_den
-                else:
-                    x = np.zeros(length)
+                x = problem1(A.dot(x), w, x_mask=(np.abs(x)>tol))
 
     else:
         pprint('Path [3]: tau != 0')
@@ -229,24 +216,55 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
     return u, v
 
 
-def problem1(A, gamma):
-    """Solve the problem from line 20 of Algorithm 1
+class Problem1(object):
+    """Solve the problem for special case 1.
 
-    x = argmin_x (x + gamma)^T A (x + \gamma)
-    s.t. x >= 0
+    x = argmin_x x^T y - c||diag(w)*x||_1
+    s.t. x^T B x <= 1
     """
-    assert A.ndim == 2 and gamma.ndim == 1 and A.shape[0] == gamma.shape[0] \
-        and A.shape[1] == gamma.shape[0]
 
-    x = cp.Variable(len(gamma))
-    objective = cp.Minimize(cp.quad_form(gamma + x, A))
-    constraints = [x >= 0]
-    problem = cp.Problem(objective, constraints)
+    def __init__(self, B, c, sparse=True):
+        assert B.ndim == 2 and np.isscalar(c)
+        self.B = B
+        self.c = c
+        self.n = B.shape[0]
+        self.sparse = sparse
 
-    result = problem.solve(solver=cp.SCS)
-    if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
-        raise ValueError(problem.status)
-    return np.asarray(x.value).flatten()
+    def __call__(self, y, w, x_mask=None):
+        if x_mask is None or (not self.sparse):
+            return self.solve(y, w)
+        else:
+            return self.solve_sparse(y, w, x_mask)
+
+    def solve(self, y, w):
+        assert y.ndim == 1 and w.ndim == 1 and y.shape == w.shape
+        assert w.shape[0] == self.n
+
+        x = cp.Variable(self.n)
+
+        term1 = x.T*y - self.c*cp.norm1(cp.diag(w) * x)
+        constraints = [cp.quad_form(x, self.B) <= 1]
+        problem = cp.Problem(cp.Maximize(term1), constraints)
+
+        result = problem.solve(solver=cp.SCS)
+        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
+            raise ValueError(problem.status)
+        return np.asarray(x.value).flatten()
+
+    def solve_sparse(self, y, w, x_mask):
+        assert y.ndim == 1 and w.ndim == 1 and y.shape == w.shape
+        assert w.shape[0] == self.n
+
+        x = cp.Variable(np.count_nonzero(x_mask))
+
+        term1 = x.T*y[x_mask] - self.c*cp.norm1(cp.diag(w[x_mask]) * x)
+        constraints = [cp.quad_form(x, self.B[np.ix_(x_mask, x_mask)]) <= 1]
+        problem = cp.Problem(cp.Maximize(term1), constraints)
+
+        result = problem.solve(solver=cp.SCS)
+        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
+            raise ValueError(problem.status)
+        return np.asarray(x.value).flatten()
 
 
 class Problem2(object):
@@ -284,8 +302,11 @@ class Problem2(object):
         result = problem.solve(solver=cp.SCS)
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(problem.status)
-        return np.asarray(x.value).flatten()
 
+        out = np.zeros(self.n)
+        x = np.asarray(x.value).flatten()
+        out[x_mask] = x
+        return out
 
     def solve_sparse(self, y, w, x_mask=None):
         assert y.ndim == 1 and w.ndim == 1 and y.shape == w.shape
@@ -294,7 +315,7 @@ class Problem2(object):
         x = cp.Variable(np.count_nonzero(x_mask))
         inv_mask = np.logical_not(x_mask)
 
-        term1 = cp.square(cp.norm(x-y[x_mask]))# + cp.square(cp.norm(y[inv_mask]))
+        term1 = cp.square(cp.norm(x-y[x_mask]))
         term2 = self.c * cp.norm1(cp.diag(w[x_mask]) * x)
 
         objective = cp.Minimize(term1 + term2)
@@ -306,5 +327,6 @@ class Problem2(object):
             raise ValueError(problem.status)
 
         out = np.zeros(self.n)
-        out[x_mask] = np.asarray(x.value).flatten()
+        x = np.asarray(x.value).flatten()
+        out[x_mask] = x
         return out
