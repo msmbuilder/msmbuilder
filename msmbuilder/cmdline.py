@@ -512,3 +512,6 @@ def exttype(suffix):
         first, last = os.path.splitext(s)
         return first + suffix
     return inner
+
+def stripquotestype(s):
+    return s.strip('\'"')

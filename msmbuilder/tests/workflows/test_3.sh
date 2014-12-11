@@ -16,5 +16,5 @@ msmb RegularSpatial --inp  '~/msmbuilder_data/alanine_dipeptide/*.dcd' \
     --top ~/msmbuilder_data/alanine_dipeptide/ala2.pdb \
     --d_min 0.1
 
-h5ls kcenters_rmsd.h5
-h5ls rs_rmsd.h5
+# h5ls kcenters_rmsd.h5
+# h5ls rs_rmsd.h5

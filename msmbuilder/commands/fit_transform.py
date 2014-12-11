@@ -16,10 +16,10 @@ from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA
-from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids, 
+from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans, RegularSpatial)
 
-from ..cmdline import NumpydocClassCommand, argument_group, exttype
+from ..cmdline import NumpydocClassCommand, argument_group, exttype, stripquotestype
 
 
 class FitTransformCommand(NumpydocClassCommand):
@@ -97,7 +97,8 @@ class TrajectoryClusterCommand(FitTransformCommand):
     FitTransformCommand.g1.replace_argument(
         '-i', '--inp', required=True, help='''Input dataset. This can either be a
         glob pattern for trajectories (if using metric='rmsd'), or a dataset
-        containing a collection of .npy files, for other metrics.''')
+        containing a collection of .npy files, for other metrics.''',
+        type=stripquotestype)
     md = argument_group('mdtraj input', description='If using metric="rmsd", '
         'additional options required for loading trajectories')
     md.add_argument('--stride', default=1, help='Load only every stride-th frame')
