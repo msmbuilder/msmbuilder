@@ -21,7 +21,7 @@ def test_1():
     tic0 = tica.components_[0]
     print('tICA\n', tic0)
 
-    stica = SparseTICA(n_components=1, rho=1e-5, verbose=True).fit(data)
+    stica = SparseTICA(n_components=1, verbose=True).fit(data)
     stic0 = stica.components_[0]
     print('Sparse tICA\n', stic0)
     assert np.allclose(stic0, [1,0,0,0,0,0,0,0,0,0])

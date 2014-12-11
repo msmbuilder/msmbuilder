@@ -7,10 +7,9 @@ import scipy.linalg
 import scipy.special
 try:
     import cvxpy as cp
+    imported_cvxpy = True
 except:
-    raise ImportError(
-        "Could not import cvxpy, a required package for this module. "
-        "See https://github.com/cvxgrp/cvxpy for details")
+    imported_cvxpy = False
 
 __all__ = ['scdeflate', 'speigh']
 
@@ -228,6 +227,8 @@ class Problem1(object):
     """
 
     def __init__(self, B, c, sparse=True):
+        if not imported_cvxpy:
+            raise ImportError("Could not import cvxpy")
         assert B.ndim == 2 and np.isscalar(c)
         self.B = B
         self.c = c
@@ -279,6 +280,8 @@ class Problem2(object):
     """
 
     def __init__(self, B, c, sparse=True):
+        if not imported_cvxpy:
+            raise ImportError("Could not import cvxpy")
         assert B.ndim == 2 and np.isscalar(c)
         self.c = c
         self.B = B
