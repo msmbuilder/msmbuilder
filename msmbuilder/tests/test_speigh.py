@@ -1,9 +1,7 @@
-"""
-
-"""
 import numpy as np
 import scipy.linalg
-from msmbuilder.decomposition.speigh import speigh, scdeflate
+from msmbuilder.decomposition.speigh import speigh, scdeflate, imported_cvxpy
+from numpy.testing.decorators import skipif
 random = np.random.RandomState(1)
 #np.set_printoptions(precision=3, suppress=True)
 
@@ -33,6 +31,8 @@ def eigh(A, B=None):
 
 
 class Test_scdeflate(object):
+
+    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_1(self):
         n = 4
         A = rand_sym(n)
@@ -43,6 +43,7 @@ class Test_scdeflate(object):
 
         self.assert_deflated(w1, V1, w2, V2)
 
+    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_2(self):
         n = 4
         A = rand_sym(n)
@@ -71,6 +72,8 @@ class Test_scdeflate(object):
 
 
 class Test_speigh_1(object):
+
+    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_1(self):
         # test with indefinite A matrix, identity B
         n = 4
@@ -82,6 +85,7 @@ class Test_speigh_1(object):
         w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0,  return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
+    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_2(self):
         # test with indefinite B matrix, indefinite B
         n = 4
@@ -93,6 +97,7 @@ class Test_speigh_1(object):
         w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
+    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_3(self):
         # test with positive semidefinite A matrix, and diagonal
         # matrix B
@@ -106,6 +111,7 @@ class Test_speigh_1(object):
         w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
+    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_4(self):
         # test with positive semidefinite A matrix, and general
         # matrix B
@@ -156,4 +162,3 @@ class Test_speigh_2(object):
                 np.allclose(v0, -V[:, 0]))
         assert (np.linalg.norm(v0f + V[:, 0]) < 1e-3 or
                 np.linalg.norm(v0f - V[:, 0]) < 1e-3)
-

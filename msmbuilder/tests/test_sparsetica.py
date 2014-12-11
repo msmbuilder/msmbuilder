@@ -1,6 +1,8 @@
 import numpy as np
 from msmbuilder.example_datasets import DoubleWell
 from msmbuilder.decomposition import tICA, SparseTICA
+from msmbuilder.decomposition.speigh import imported_cvxpy
+from numpy.testing.decorators import skipif
 
 
 def build_dataset():
@@ -14,7 +16,7 @@ def build_dataset():
         data.append(t)
     return data
 
-
+@skipif(not imported_cvxpy, 'cvxpy is required')
 def test_1():
     data = build_dataset()
     tica = tICA(n_components=1).fit(data)
