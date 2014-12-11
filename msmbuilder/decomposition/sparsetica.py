@@ -12,6 +12,7 @@ from six import PY2
 import numpy as np
 import scipy.linalg
 from .tica import tICA
+from ..utils import experimental
 from .speigh import speigh, scdeflate
 
 __all__ = ['SparseTICA']
@@ -112,6 +113,7 @@ class SparseTICA(tICA):
         self.maxiter = maxiter
         self.verbose = verbose
 
+    @experimental('SparseTICA')
     def _solve(self):
         if not self._is_dirty:
             return
