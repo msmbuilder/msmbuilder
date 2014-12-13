@@ -269,7 +269,11 @@ class Problem1(object):
         result = problem.solve(solver=cp.SCS)
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(problem.status)
-        return np.asarray(x.value).flatten()
+
+        out = np.zeros(self.n)
+        x = np.asarray(x.value).flatten()
+        out[x_mask] = x
+        return out
 
 
 class Problem2(object):
