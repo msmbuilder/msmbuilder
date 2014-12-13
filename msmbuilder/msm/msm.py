@@ -435,6 +435,13 @@ Timescales:
             ts=', '.join(['{:.2f}'.format(t) for t in self.timescales_]),
             )
 
+    @property
+    def score_(self):
+        """Training score
+        """
+        return self.eigenvalues_.sum()
+
+
     def score(self, sequences, y=None):
         """Score the model on new data using the generalized matrix Rayleigh quotient
 
