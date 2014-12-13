@@ -2,10 +2,13 @@
 """
 from __future__ import print_function
 import time
+import sys
+import itertools
 import warnings
 import numpy as np
 import scipy.linalg
 import scipy.special
+from .utils import iterate_tracker
 try:
     import cvxpy as cp
     imported_cvxpy = True
@@ -50,7 +53,7 @@ def scdeflate(A, x):
 
 
 def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
-           greedy=True, verbose=False, return_x_f=False):
+           max_nc=100, greedy=True, verbose=False, return_x_f=False):
     """Find a sparse approximate generalized eigenpair.
 
     The generalized eigenvalue equation, :math:`Av = lambda Bv`,
@@ -98,6 +101,11 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         Should be the maximum of 0 and the negtion of smallest eigenvalue
         of A, ``tau=max(0, -lambda_min(A))``. If not supplied, the smallest
         eigenvalue of A will have to be computed.
+    max_iter : int
+        Maximum number of iterations.
+    max_nc
+        Maximum number of iterations without any change in the sparsity
+        pattern
     return_x_f : bool, optional
         Also return the final iterate.
 
@@ -167,12 +175,19 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
             pprint('Path [2]: tau=0, general B')
             old_x.fill(np.inf)
             problem1 = Problem1(B, rho_e / 2, sparse=greedy)
-            for i in range(maxiter):
+
+            generator = iterate_tracker(maxiter, max_nc, verbose=verbose)
+            generator.send(None)  # start the generator
+            x_mask = np.ones(len(x), dtype=np.bool)
+
+            for i in (generator.send(x_mask) for a in itertools.count()):
                 x_mask = np.abs(x) > tol
                 norm = np.linalg.norm(x - old_x)
                 if norm < tol or np.count_nonzero(x_mask) <= 1:
+                    pprint('Solved within tolerance')
                     break
-                pprint('x: ', x)
+                pprint(x[2])
+                pprint(i, 'x: ', x[x_mask])
                 old_x = x
 
                 w = 1.0 / (np.abs(x) + eps)
@@ -181,11 +196,11 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
                     if np.any(np.logical_not(np.isfinite(x))):
                         raise ValueError('Numerical failure!')
                 except:
-                    print('x=', repr(old_x))
-                    print('y=', repr(A.dot(x)))
-                    print('w=', repr(w))
-                    print('B=', repr(B))
-                    print('x_mask=', repr(x_mask))
+                    print('x=', repr(old_x), file=sys.stderr)
+                    print('y=', repr(A.dot(x)), file=sys.stderr)
+                    print('w=', repr(w), file=sys.stderr)
+                    print('B=', repr(B), file=sys.stderr)
+                    print('x_mask=', repr(x_mask), file=sys.stderr)
                     raise
                 x /= np.dot(x, B).dot(x)
                 pprint('norm', norm, '\nactive indices', np.where(np.abs(x)>tol)[0])
@@ -195,10 +210,15 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         old_x.fill(np.inf)
         scaledA = (A / tau + np.eye(length))
         problem2 = Problem2(B, rho_e / tau, sparse=greedy)
-        for i in range(maxiter):
+        generator = iterate_tracker(maxiter, max_nc, verbose=verbose)
+        generator.send(None)  # start the generator
+        x_mask = np.ones(len(x), dtype=np.bool)
+
+        for i in (generator.send(x_mask) for a in itertools.count()):
             x_mask = np.abs(x) > tol
             norm = np.linalg.norm(x - old_x)
             if norm < tol or np.count_nonzero(x_mask) <= 1:
+                pprint('Solved within tolerance')
                 break
             old_x = x
             y = scaledA.dot(x)
@@ -208,7 +228,7 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
 
             pprint('norm', norm, '\nx', np.where(np.abs(x)>tol)[0])
 
-    pprint('\nxf:', x)
+    pprint('\nFinal iterate:\n', x)
     # return x.dot(A).dot(x), x
 
     # Proposition 1 and the "variational renormalization" described in [1].
@@ -239,6 +259,7 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         u = gevals[-1]
         v = np.zeros(length)
         v[mask] = gevecs[:, -1]
+    pprint('\nRenormalized sparse eigenvector:\n', v)
 
     if return_x_f:
         return u, v, x
@@ -296,7 +317,6 @@ class Problem1(object):
 
         result = problem.solve(solver=cp.SCS)
         if problem.status != cp.OPTIMAL:
-            print(y, w)
             warnings.warn(problem.status)
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(problem.status)

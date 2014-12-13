@@ -65,6 +65,9 @@ class SparseTICA(tICA):
         Convergence criteria for the sparse generalized eigensolver.
     maxiter : int
         Maximum number of iterations for the sparse generalized eigensolver.
+    max_nc : int
+        Maximum number of iterations without any change in the sparsity
+        pattern.
     greedy : bool, default=True
         Use a greedy heuristic in the sparse generalized eigensolver. This
         *significantly* accelerates the solution for high-dimensional problems
@@ -117,7 +120,7 @@ class SparseTICA(tICA):
 
     def __init__(self, n_components, lag_time=1, gamma=0.05,
                  rho=0.01, weighted_transform=True, epsilon=1e-6, tolerance=1e-8,
-                 maxiter=10000, greedy=True, verbose=False):
+                 maxiter=10000, max_nc=100, greedy=True, verbose=False):
         super(SparseTICA, self).__init__(
             n_components, lag_time=lag_time, gamma=gamma,
             weighted_transform=weighted_transform)
@@ -126,6 +129,7 @@ class SparseTICA(tICA):
         self.tolerance = tolerance
         self.greedy = greedy
         self.maxiter = maxiter
+        self.max_nc = max_nc
         self.verbose = verbose
 
     def _solve(self):
@@ -156,7 +160,8 @@ class SparseTICA(tICA):
         for i in range(self.n_components):
             u, v = speigh(A, B, rho=self.rho, v_init=gevecs[:, i], eps=self.epsilon,
                           tol=self.tolerance, tau=tau, maxiter=self.maxiter,
-                          greedy=self.greedy, verbose=self.verbose)
+                          max_nc=self.max_nc, greedy=self.greedy,
+                          verbose=self.verbose)
 
             self._eigenvalues_[i] = u
             self._eigenvectors_[:, i] = v
