@@ -437,7 +437,8 @@ Timescales:
 
     @property
     def score_(self):
-        """Training score
+        """Training score of the model, computed as the generalized matrix,
+        Rayleigh quotient, the sum of the first `n_components` eigenvalues
         """
         return self.eigenvalues_.sum()
 
