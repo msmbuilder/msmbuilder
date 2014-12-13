@@ -23,7 +23,7 @@ __all__ = ['SparseTICA']
 
 
 class SparseTICA(tICA):
-    """Sparse Time-structure Independent Component Analysis (tICA).
+    """Sparse time-structure Independent Component Analysis (tICA).
 
     Linear dimensionality reduction which finds sparse linear combinations
     of the input features which decorrelate most slowly. These can be
@@ -65,7 +65,8 @@ class SparseTICA(tICA):
         Maximum number of iterations for the sparse generalized eigensolver.
     greedy : bool, default=True
         Use a greedy heuristic in the sparse generalized eigensolver. This
-        highly accelerates the solution for high-dimensional problems.
+        *significantly* accelerates the solution for high-dimensional problems
+        under moderate to strong regularization.
     verbose : bool, default=False
         Print verbose information from the sparse generalized eigensolver.
 
