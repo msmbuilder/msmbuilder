@@ -303,6 +303,13 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         self.information_ = scipy.linalg.pinv(-hessian)
 
+    @property
+    def score_(self):
+        """Training score of the model, computed as the generalized matrix,
+        Rayleigh quotient, the sum of the first `n_components` eigenvalues
+        """
+        return self.eigenvalues_.sum()
+
     def score(self, sequences, y=None):
         """Score the model on new data using the generalized matrix Rayleigh
         quotient
