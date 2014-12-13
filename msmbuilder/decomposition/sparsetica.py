@@ -36,9 +36,9 @@ class SparseTICA(tICA):
     ----------
     n_components : int
         Number of sparse tICs to find.
-    offset : int
+    lag_time : int
         Delay time forward or backward in the input data. The time-lagged
-        correlations is computed between datas X[t] and X[t+offset].
+        correlations is computed between datas X[t] and X[t+lag_time].
     gamma : nonnegative float, default=0.05
         L2 regularization strength. Positive `gamma` entails incrementing
         the sample covariance matrix by a constant times the identity,
@@ -49,18 +49,20 @@ class SparseTICA(tICA):
 
         where :math:`Tr` is the trace operator.
     rho : positive float
-        Controls the sparsity. Higher values of rho gives more
-        sparse solutions. rho=0 corresponds to standard tICA
+        Regularization strength with controls the sparsity of the solutions.
+        Higher values of rho gives more sparse tICS with nonozero loadings on
+        fewer degrees of freedom. rho=0 corresponds to standard tICA.
     weighted_transform : bool, default=False
         If True, weight the projections by the implied timescales, giving
         a quantity that has units [Time].
     epsilon : positive float, default=1e-6
         epsilon should be a number very close to zero, which is used to
         construct the approximation to the L_0 penality function. However,
-        when it gets *too* close to zero, the solvers may report feasability
-        problems due to numberical stability.
+        when it gets *too* close to zero, the solvers may report feasibility
+        problems due to numerical stability issues. 1e-6 is a fairly good
+        balance here.
     tolerance : positive float
-        Convergence critera for the sparse generalized eigensolver.
+        Convergence criteria for the sparse generalized eigensolver.
     maxiter : int
         Maximum number of iterations for the sparse generalized eigensolver.
     greedy : bool, default=True
