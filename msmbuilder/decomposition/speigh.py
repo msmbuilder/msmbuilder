@@ -2,6 +2,7 @@
 """
 from __future__ import print_function
 import time
+import warnings
 import numpy as np
 import scipy.linalg
 import scipy.special
@@ -12,6 +13,14 @@ except:
     imported_cvxpy = False
 
 __all__ = ['scdeflate', 'speigh']
+
+# Global constants
+TAU_NEAR_ZERO_CUTOFF = 1e-6
+# Note: when the largest eigenvalue of `A` is just a touch greater than zero,
+# we're supposed to use branch 3, with \tau!=0. But this can lead to some
+# bad numerical stability issues because we need to form the matrix \tau^{-1}A,
+# which gets very large. So with TAU_NEAR_ZERO_CUTOFF, we just use the \tau=0
+# code branch in this case.
 
 
 def scdeflate(A, x):
@@ -132,7 +141,7 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
     b = np.diag(B)
     B_is_diagonal = np.all(np.diag(b) == B)
 
-    if tau < 1e-12:
+    if tau < TAU_NEAR_ZERO_CUTOFF:
         if B_is_diagonal:
             pprint('Path [1]: tau=0, diagonal B')
             old_x.fill(np.inf)
@@ -157,17 +166,29 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         else:
             pprint('Path [2]: tau=0, general B')
             old_x.fill(np.inf)
-            problem1 = Problem1(B, rho_e/2, sparse=greedy)
+            problem1 = Problem1(B, rho_e / 2, sparse=greedy)
             for i in range(maxiter):
-                norm = np.linalg.norm(x[np.abs(old_x) > tol] - old_x[np.abs(old_x) > tol])
-                if norm < tol or np.count_nonzero(x) == 1:
+                x_mask = np.abs(x) > tol
+                norm = np.linalg.norm(x - old_x)
+                if norm < tol or np.count_nonzero(x_mask) <= 1:
                     break
                 pprint('x: ', x)
                 old_x = x
 
                 w = 1.0 / (np.abs(x) + eps)
-                x = problem1(A.dot(x), w, x_mask=(np.abs(x)>tol))
+                try:
+                    x = problem1(A.dot(x), w, x_mask=x_mask)
+                    if np.any(np.logical_not(np.isfinite(x))):
+                        raise ValueError('Numerical failure!')
+                except:
+                    print('x=', repr(old_x))
+                    print('y=', repr(A.dot(x)))
+                    print('w=', repr(w))
+                    print('B=', repr(B))
+                    print('x_mask=', repr(x_mask))
+                    raise
                 x /= np.dot(x, B).dot(x)
+                pprint('norm', norm, '\nactive indices', np.where(np.abs(x)>tol)[0])
 
     else:
         pprint('Path [3]: tau != 0')
@@ -175,17 +196,17 @@ def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
         scaledA = (A / tau + np.eye(length))
         problem2 = Problem2(B, rho_e / tau, sparse=greedy)
         for i in range(maxiter):
-            norm = np.linalg.norm(x[np.abs(old_x) > tol] - old_x[np.abs(old_x) > tol])
-            if norm < tol or np.count_nonzero(x) == 1:
+            x_mask = np.abs(x) > tol
+            norm = np.linalg.norm(x - old_x)
+            if norm < tol or np.count_nonzero(x_mask) <= 1:
                 break
             old_x = x
             y = scaledA.dot(x)
             w = 1.0 / (np.abs(x) + eps)
-            start = time.time()
+            x = problem2(y, w, x_mask=x_mask)
+            x = x / np.dot(x, B).dot(x)
 
-            x = problem2(y, w, x_mask=(np.abs(x)>tol))
-            x /= np.dot(x, B).dot(x)
-            pprint('norm', norm, time.time()-start, '\nx', np.where(np.abs(x)>tol)[0])
+            pprint('norm', norm, '\nx', np.where(np.abs(x)>tol)[0])
 
     pprint('\nxf:', x)
     # return x.dot(A).dot(x), x
@@ -257,6 +278,8 @@ class Problem1(object):
         problem = cp.Problem(cp.Maximize(term1), constraints)
 
         result = problem.solve(solver=cp.SCS)
+        if problem.status != cp.OPTIMAL:
+            warnings.warn(problem.status)
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(problem.status)
         return np.asarray(x.value).flatten()
@@ -272,6 +295,9 @@ class Problem1(object):
         problem = cp.Problem(cp.Maximize(term1), constraints)
 
         result = problem.solve(solver=cp.SCS)
+        if problem.status != cp.OPTIMAL:
+            print(y, w)
+            warnings.warn(problem.status)
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(problem.status)
 
@@ -316,7 +342,10 @@ class Problem2(object):
         problem = cp.Problem(objective, constraints)
 
         result = problem.solve(solver=cp.SCS)
-        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
+        if problem.status != cp.OPTIMAL:
+            warnings.warn(problem.status)
+        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE,
+                                  cp.UNBOUNDED_INACCURATE):
             raise ValueError(problem.status)
 
         out = np.zeros(self.n)
@@ -339,7 +368,10 @@ class Problem2(object):
         problem = cp.Problem(objective, constraints)
 
         result = problem.solve(solver=cp.SCS)
-        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
+        if problem.status != cp.OPTIMAL:
+            warnings.warn(problem.status)
+        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE,
+                                  cp.UNBOUNDED_INACCURATE):
             raise ValueError(problem.status)
 
         out = np.zeros(self.n)
