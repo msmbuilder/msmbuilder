@@ -186,6 +186,14 @@ class tICA(BaseEstimator, TransformerMixin):
         self._is_dirty = False
 
     @property
+    def score_(self):
+        """Training score of the model, computed as the generalized matrix,
+        Rayleigh quotient, the sum of the first `n_components` eigenvalues
+        """
+        self._solve()
+        return self._eigenvalues_[:self.n_components].sum()
+
+    @property
     def eigenvectors_(self):
         self._solve()
         return self._eigenvectors_[:, :self.n_components]

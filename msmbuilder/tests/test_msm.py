@@ -334,3 +334,5 @@ def test_score_1():
         model.fit([sequence])
 
         assert_approx_equal(model.score([sequence]), model.eigenvalues_.sum())
+        assert_approx_equal(model.score([sequence]), model.score_)
+

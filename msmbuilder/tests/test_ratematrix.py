@@ -276,7 +276,8 @@ def test_score_1():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     model = ContinuousTimeMSM(verbose=False, lag_time=10, n_timescales=3).fit(seqs)
-    model.score(seqs)
+    np.testing.assert_approx_equal(model.score(seqs), model.score_)
+
 
 
 def test_optimize_1():
