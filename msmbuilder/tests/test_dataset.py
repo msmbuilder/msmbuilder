@@ -102,6 +102,7 @@ def test_4():
          v = ds.get(0, mmap=True)
          assert isinstance(v, np.memmap)
          np.testing.assert_array_equal(ds[0], v)
+         del v  # close the underlying file
     finally:
         shutil.rmtree(path)
 
@@ -143,11 +144,13 @@ def test_hdf5_1():
         with dataset('ds.h5') as ds:
             assert ds[0].shape == (10, 1)
 
+
 def test_hdf5_2():
     with tempdir():
-        ds = dataset('ds.h5', 'w', 'hdf5')
-        ds2 = ds.create_derived('ds2.h5')
-        print(ds2.provenance)
+        with dataset('ds.h5', 'w', 'hdf5') as ds:
+            ds2 = ds.create_derived('ds2.h5')
+            print(ds2.provenance)
+            ds2.close()
 
 
 def _sum_helper(ds):

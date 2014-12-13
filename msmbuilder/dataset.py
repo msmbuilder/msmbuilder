@@ -106,7 +106,7 @@ class _BaseDataset(Sequence):
             hostname=socket.gethostname(),
             path=self.path,
             comments=comments,
-            date=datetime.now().strftime("%B %d, %Y %l:%M %p"))
+            date=datetime.now().strftime("%B %d, %Y %I:%M %p"))
         if previous:
             val += self._PREV_TEMPLATE.format(previous=previous)
         return val

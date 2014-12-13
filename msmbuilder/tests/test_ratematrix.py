@@ -4,7 +4,12 @@ import sys
 import numpy as np
 import scipy.linalg
 from scipy.optimize import check_grad, approx_fprime
-import numdifftools as nd
+try:
+    import numdifftools as nd
+except ImportError:
+    print('Missig test dependency', file=sys.stderr)
+    print('  pip installl numdifftools', file=sys.stderr)
+    raise
 
 from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
