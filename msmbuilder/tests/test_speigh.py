@@ -20,12 +20,30 @@ def rand_sym(n):
     A = random.randn(n, n)
     return A + A.T
 
+
+def build_lowrank(n, v):
+    """Return n x n matrices (A, B) such that A is symmetric, B is positive
+    definite, and the 1st generalized eigenvector of (A,B) is v, with an
+    associated eigenvalue of 1. The other eigenvalues are 0.
+    """
+    # http://stackoverflow.com/a/27436614/1079728
+    V = random.rand(n, n)
+    V[:, 0] = v
+    w = np.zeros(n)
+    w[0] = 1
+
+    A = scipy.linalg.inv(V.T).dot(np.diag(w)).dot(scipy.linalg.inv(V))
+    B = scipy.linalg.inv(V.dot(V.T))
+    return A, B
+
+
 def eigh(A, B=None):
     w, V = scipy.linalg.eigh(A, b=B)
     order = np.argsort(-w)
     w = w[order]
     V = V[:, order]
     return w, V
+
 
 #######################################################
 
@@ -80,9 +98,8 @@ class Test_speigh_1(object):
         A = rand_sym(n)
         B = np.eye(n)
         w, V = eigh(A, B)
-        v_init = V[:, 0] + 0.1*random.randn(n)
 
-        w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0,  return_x_f=True)
+        w0, v0, v0f = speigh(A, B, rho=0,  return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
     @skipif(not imported_cvxpy, 'cvxpy is required')
@@ -92,9 +109,8 @@ class Test_speigh_1(object):
         A = rand_sym(n)
         B = rand_pos_semidef(n)
         w, V = eigh(A, B)
-        v_init = V[:, 0] + 0.1*random.randn(n)
 
-        w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
+        w0, v0, v0f = speigh(A, B, rho=0, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
     @skipif(not imported_cvxpy, 'cvxpy is required')
@@ -106,9 +122,8 @@ class Test_speigh_1(object):
         B = np.diag(np.random.randn(n)**2)
 
         w, V = eigh(A, B)
-        v_init = V[:, 0] + 0.1*random.randn(n)
 
-        w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
+        w0, v0, v0f = speigh(A, B, rho=0, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
     @skipif(not imported_cvxpy, 'cvxpy is required')
@@ -121,7 +136,7 @@ class Test_speigh_1(object):
         w, V = eigh(A, B)
         v_init = V[:, 0] + 0.1*random.randn(n)
 
-        w0, v0, v0f = speigh(A, B, v_init=v_init, rho=0, return_x_f=True)
+        w0, v0, v0f = speigh(A, B, rho=0, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
 
     def assert_close(self, w0, v0, v0f, A, B):
@@ -138,6 +153,7 @@ class Test_speigh_1(object):
         assert (np.linalg.norm(v0f + V[:, 0]) < 1e-2 or
                 np.linalg.norm(v0f - V[:, 0]) < 1e-2)
 
+
 class Test_speigh_2(object):
     def test_1(self):
         # test with indefinite A matrix, identity B
@@ -147,8 +163,23 @@ class Test_speigh_2(object):
         B = np.eye(n)
         w, V = eigh(A, B)
 
-        w0, v0, v0f = speigh(A, B, v_init=np.ones(4), rho=0.0001, verbose=True, return_x_f=True)
+        w0, v0, v0f = speigh(A, B, rho=0.0001, return_x_f=True)
         self.assert_close(w0, v0, v0f, A, B)
+
+    def test_2(self):
+        n = 4
+        # build matrix with specified first generalized eigenvector
+        A, B = build_lowrank(n, [1, 2, 0.001, 3])
+        w, V = eigh(A, B)
+
+        v0 = speigh(A, B, rho=0)[1][2]
+        v001 = speigh(A, B, rho=0.001)[1][2]
+        v01 = speigh(A, B, rho=0.01)[1][2]
+        # using a low value for `rho`, we should recover the small element
+        # but when rho is higher, it should be truncated to zero.
+        np.testing.assert_almost_equal(np.abs(v0), 0.001)
+        np.testing.assert_almost_equal(np.abs(v001), 0.001)
+        np.testing.assert_almost_equal(v01, 0)
 
     def assert_close(self, w0, v0, v0f, A, B):
         w, V = eigh(A, B)
