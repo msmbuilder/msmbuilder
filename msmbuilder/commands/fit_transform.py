@@ -15,7 +15,7 @@ import numpy as np
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
-from ..decomposition import tICA, PCA
+from ..decomposition import tICA, PCA, SparseTICA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans, RegularSpatial)
 
@@ -136,6 +136,13 @@ class TrajectoryClusterCommand(FitTransformCommand):
 
 class tICACommand(FitTransformCommand):
     klass = tICA
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+
+
+class SparseTICACommand(FitTransformCommand):
+    klass = SparseTICA
     _concrete = True
     _group = '3-Decomposition'
     _transformed_fmt = 'hdf5'
