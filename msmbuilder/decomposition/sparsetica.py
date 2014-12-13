@@ -138,7 +138,7 @@ class SparseTICA(tICA):
         self._eigenvectors_ = np.zeros((self.n_features, self.n_components))
 
         for i in range(self.n_components):
-            u, v = speigh(A, B, gevecs[:, i], rho=self.rho, eps=self.epsilon,
+            u, v = speigh(A, B, rho=self.rho, v_init=gevecs[:, i], eps=self.epsilon,
                           tol=self.tolerance, tau=tau, maxiter=self.maxiter,
                           greedy=self.greedy, verbose=self.verbose)
 

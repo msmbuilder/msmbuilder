@@ -40,7 +40,7 @@ def scdeflate(A, x):
     return A - np.outer(np.dot(A, x), np.dot(x, A)) / np.dot(np.dot(x, A), x)
 
 
-def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
+def speigh(A, B, rho, v_init=None, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
            greedy=True, verbose=False, return_x_f=False):
     """Find a sparse approximate generalized eigenpair.
 
@@ -72,12 +72,13 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
     B : np.ndarray, shape=(N, N)
         B is a positive semidefinite matrix, the right-hand-side of the
         eigenvalue equation.
-    v_init : np.ndarray, shape=(N,)
-        Initial guess for the eigenvector. This should probably be computed by
-        running the standard generalized eigensolver first.
     rho : float
         Regularization strength. Larger values for rho will lead to more sparse
         solutions.
+    v_init : np.ndarray, shape=(N,), optional
+        Initial guess for the eigenvector. This should probably be computed by
+        running the standard generalized eigensolver first. If not supplied,
+        we just use a vector of all ones.
     eps : float
         Small number, used in the approximation to the L0. Smaller is better
         (closer to L0), but trickier from a numerical standpoint and can lead
@@ -117,7 +118,11 @@ def speigh(A, B, v_init, rho, eps=1e-6, tol=1e-8, tau=None, maxiter=10000,
     if not verbose:
         pprint = lambda *args : None
     length = A.shape[0]
-    x = v_init
+
+    if v_init is None:
+        x = np.ones(length)
+    else:
+        x = v_init
 
     if tau is None:
         tau = max(0, -np.min(scipy.linalg.eigvalsh(A)))
@@ -269,7 +274,11 @@ class Problem1(object):
         result = problem.solve(solver=cp.SCS)
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise ValueError(problem.status)
-        return np.asarray(x.value).flatten()
+
+        out = np.zeros(self.n)
+        x = np.asarray(x.value).flatten()
+        out[x_mask] = x
+        return out
 
 
 class Problem2(object):
