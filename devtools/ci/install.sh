@@ -8,7 +8,7 @@ fi
 bash $MINICONDA -b
 PIP_ARGS="-U"
 
-export CXX="c++"
+sudo ln -s /usr/bin/g++ /usr/bin/g++44
 export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
