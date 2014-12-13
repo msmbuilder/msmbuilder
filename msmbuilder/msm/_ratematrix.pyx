@@ -404,6 +404,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
     cdef npy_intp size = theta.shape[0]
     cdef npy_intp u, v, i, j
+    cdef double hessian_uv
     cdef double[::1] grad, exptheta, expwt
     cdef double[:, ::1] K, T, Q, dKu,  Au, temp1, temp2
 
@@ -455,8 +456,10 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
         cdgemm_NN(U, temp2, temp1)
         cdgemm_NT(temp1, V, Au)
 
-        for v in range(size):
-            hessian[u, v] = dK_dtheta_A(exptheta, n, v, inds, Au)
+        for v in range(u, size):
+            hessian_uv = dK_dtheta_A(exptheta, n, v, inds, Au)
+            hessian[u, v] = hessian_uv
+            hessian[v, u] = hessian_uv
 
     return np.asarray(hessian)
 
