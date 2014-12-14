@@ -1,5 +1,5 @@
-MSM Uncertainty Estimation
-==========================
+Bayesian Estimation of MSMs
+===========================
 
-.. notebook:: bayesian-msm.ipynb
+.. notebook:: examples/bayesian-msm.ipynb
 

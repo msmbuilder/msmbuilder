@@ -8,8 +8,8 @@ Basic Installation
 
 .. code-block:: python
 
-    git clone https://github.com/rmcgibbo/mixtape
-    cd mixtape
+    git clone https://github.com/msmbuilder/msmbuilder
+    cd msmbuilder
     python setup.py install
 
 
@@ -20,11 +20,11 @@ Dependencies
 .. (http://deeplearning.net/software/theano/_sources/install.txt)
 .. Thanks guys!
 
-Mixtape is a python package that heavily leans on other components of the
-scientific python ecosystem. To use mixtape, the following libraries and
+MSMBuilder is a python package that heavily leans on other components of the
+scientific python ecosystem. To use msmbuilder, the following libraries and
 software will need to be installed.
 
-    Linux, Mac OS X or Windows operating system
+    Linux, or Mac OS X
         We develop mainly on 64-bit Linux and Mac machines. Windows is not
         well supported.
 
@@ -40,7 +40,7 @@ software will need to be installed.
         optimization.
 
     `scikit-learn <http://sklearn.org>`_ >= 0.14.0
-        Many of the models in mixtape build off base classes in scikit-learn.
+        Many of the models in msmbuilder build off base classes in scikit-learn.
 
     `MDTraj <http://mdtraj.org>`_ >= 0.8.0
         MDTraj is a library for handing molecular dynamics trajectories.
@@ -52,19 +52,23 @@ software will need to be installed.
         This is needed to compile the package.
 
     `cvxopt <http://cvxopt.org/>`_
-        Only one module in mixtape uses cvxopt. TODO: make cvxopt optional.
+        Only one module in MSMBuilder uses cvxopt. TODO: make cvxopt optional.
 
 Optional packages:
 
     `nose <http://somethingaboutorange.com/mrl/projects/nose/>`_
-        Recommended, to run Theano's test-suite.
+        Recommended, to run the test-suite.
 
     `Git <http://git-scm.com>`_
         To download the source code
 
-    `NVIDIA CUDA drivers and SDK`_
-        Required for GPU code generation/execution. Only NVIDIA GPUs using
-        32-bit floating point numbers are currently supported.
+Frequently Asked Questions
+==========================
 
+I get a wierd error during compilation with ``pip install`` or ``python setup.py install``. What's wrong?
+---------------------------------------------------------------------------------------------------------
 
-.. _NVIDIA CUDA drivers and SDK: http://developer.nvidia.com/object/gpucomputing.html
+We've received a couple `reports <https://github.com/msmbuilder/msmbuilder/issues/391>`_
+of incorrect code generation on earlier versions of cython with python3.4. Try upgrading
+to the latest verion of cython, and reinstalling. If that doesn't work, open an issue
+on the github `issue tracker <https://github.com/msmbuilder/msmbuilder/issues>`_.

@@ -1,9 +1,6 @@
-# PYTHON_VERSION=`python -c 'import sys; print("%d.%d" % sys.version_info[:2])'`
-# coveralls
-
 echo $TRAVIS_PULL_REQUEST $TRAVIS_BRANCH
 
-if [[ "$TRAVIS_PULL_REQUEST" == "true" ]]; then
+if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
     echo "This is a pull request. No deployment will be done."; exit 0
 fi
 
@@ -16,15 +13,22 @@ if [[ "$TRAVIS_BRANCH" != "master" ]]; then
     echo "No deployment on BRANCH='$TRAVIS_BRANCH'"; exit 0
 fi
 
+conda install --yes binstar
+binstar upload -u omnia -t $BINSTAR_TOKEN --force `conda build devtools/conda-recipe --output`
+
 # Create the docs and push them to S3
 # -----------------------------------
 
+conda install --yes pip
+conda install --yes `conda build devtools/conda-recipe --output`
+pip install msmb_theme
+
 # Install stuff for running the example IPython notebooks
+sudo apt-get update -qq
 sudo apt-get install -qq pandoc         # notebook -> rst
-conda install --yes matplotlib scikit-learn sphinx boto ipython-notebook jinja2
-pip install runipy==0.0.4                      # example notebooks
-pip install triangle
+conda install --yes `cat doc/requirements.txt | xargs`
 
 cd doc && make html && cd -
 cat /tmp/sphinx-*
 python devtools/ci/push-docs-to-s3.py
+python devtools/ci/update-versions.py

@@ -1,9 +1,0 @@
-pyflakes
-scripttest
-nose
-argparse
-importlib
-ordereddict
-coverage
-coveralls
-munkres

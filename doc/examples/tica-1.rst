@@ -1,5 +1,5 @@
 tICA and PCA
 ============
 
-.. notebook:: tica-example.ipynb
+.. notebook:: examples/tica-example.ipynb
 

@@ -1,23 +1,30 @@
 language: c
 
+branches:
+  only:
+    - master
+
 install:
   - source devtools/ci/install.sh
   - export PYTHONUNBUFFERED=true
 
 script:
-  - git clone https://github.com/rmcgibbo/numpydoc.git
-  - cd numpydoc && python setup.py install && cd -
-
-  - python setup.py -q install
-  - nosetests --attr='!plots,!cuda,!broken,!slow' -v
+  # this builds the binary, unpacks it, and runs the tests
+  - conda build devtools/conda-recipe
 
 env:
   matrix:
-    - python=2.7
-    - python=3.3
+    - CONDA_PY=2.7
+    - CONDA_PY=3.3
+    - CONDA_PY=3.4
   global:
-    - secure: "FHhyCiqHXTUjEMVXrxY1pVoO6iSXQediuIQbiHieX6enF0STEU0IOzQ4Ld2BY2oFmJlhZIr1uCzf++WktX8M4HKVl9ouGmhweFkXR/4BjKot9dB+dUiN9JnTbXPx5GgFqFPPedqMCeq/u8hRO/ZG3fyA2ERSnHe0QzeBY5aa5vw="
-    - secure: "P+edtRE09wXe30kvZONNB/aMXlUrVDHYTAc4gNMFrDdxvBZonjwVSvSC+rOpgPOUKbFn7+MgIBlQoIqSpQ9PBY3aCOrbnemdgc41ZYLcZ8aLJD50kLtslW5rHZs/jyPHD/2IB3VSNK9GJAi0uQCF0YII3ng4wgrD6/jQtNR0tnU="
+    # For pushing docs to S3:
+    # travis encrypt AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    # travis encrypt AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - secure: "U2tY/Y6BBgpDR6FQP/bX7Hm89MadrlIeyuviAwbejJ7REb+ppWWY4pfvmVKhGFoPjOgLdvTdioarJUZHtbujTNkEsI9d6JW99YYdHuMruj9Y/1mwbDJdric1jBg29sqc6NSycaTNa/uiL8EDJBJI/JLN9GcCModbO7QbqlbhNns="
+    - secure: "K36Ags61kE9/+iSvN6N3Pzi6QIB6z4g25wdNlK4HBjxW90MFMDhvR3OMw6yJgNgFu5A95lTlIsUnqqx3tbQdqX/+XY4aMPIGzVIRKWpYS6d9+HoNO1d85sGy78dpGsybDR7AdsKi2SkoxYVmwD1CSUoA/S8pE3fIb5Ou28DKKyQ="
+    # BINSTAR_TOKEN
+    - secure: "DISF0Evu4jZm/E3N+7At6nvsy+2yUScrEdOUc5nrX+f1nvtHfMo9L7Q/5LodF4/iD0zo046+xL/kLqlXbneMIgNyUrruGCliki1kefwEfzAPaYndC/ZIZQ3RcQ29rvu1ALv/x8KMiyC2N9h90P6RNi8YJ63Rjl8KRGa6N2cFlVM="
 
 after_success:
-  - # source devtools/ci/after_sucess.sh
+  - source devtools/ci/after_sucess.sh

@@ -1,22 +1,22 @@
 .. _meta:
-.. currentmodule:: mixtape
+.. currentmodule:: msmbuilder
 
-Mixtape API Patterns
+MSMBuilder API Patterns
 ====================
 
-Mixtape API
+MSMBuilder API
 -----------
 
 Hyperparameters
 ~~~~~~~~~~~~~~
-Models in mixtape inherit from base classes in `scikit-learn
+Models in msmbuilder inherit from base classes in `scikit-learn
 <http://scikit-learn.org/stable/>`_, and follow a similar API. Like sklearn,
 each type of model is a python class. Hyperparameters are passed in via
 the ``__init__`` method and set as instance attributes.
 
 .. code-block:: python
 
-    from mixtape.tica import tICA
+    from msmbuilder.decomposition import tICA
     tica = tICA(gamma=0.05)
     tica.fit(...)
 
@@ -26,7 +26,7 @@ the ``__init__`` method and set as instance attributes.
 
 Fit Signature
 ~~~~~~~~~~~~~
-The heavy lifting to actually fit the model is done in ``fit()``. In mixtape the
+The heavy lifting to actually fit the model is done in ``fit()``. In msmbuilder the
 ``fit()`` method always accepts a ``list`` of 2-dimensional arrays as input data,
 where each array represents a single timeseries / trajectory and has a shape of
 ``(length_of_trajectory, n_features)``. Some models can also accept a list of
@@ -75,22 +75,16 @@ to a dataset. [TODO: WRITE ME]
 Pipelines
 ---------
 
-The models in mixtape are designed to work together as part of a
+The models in msmbuilder are designed to work together as part of a
 :class:`sklearn.pipeline.Pipeline`
 
 .. code-block:: python
 
-    from mixtape.cluster import KMeans
-    from mixtape.markovstatemodel import MarkovStateModel
+    from msmbuilder.cluster import KMeans
+    from msmbuilder.msm import MarkovStateModel
     from sklearn.pipeline import Pipeline
     pipeline = Pipeline([
         ('cluster', KMeans(n_clusters=100)),
         ('msm', MarkovStateModel())
     ])
     pipeline.fit(dataset)
-
-Serialization
--------------
-1. pickle
-2. joblib
-3. [TODO: WRITE ME]

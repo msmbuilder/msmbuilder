@@ -1,6 +1,0 @@
-pyflakes
-scripttest
-nose
-coverage
-coveralls
-munkres
