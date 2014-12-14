@@ -32,6 +32,11 @@ class SparseTICA(tICA):
     This model requires the additional python package `cvxpy`, which can be
     installed from `PyPI <https://pypi.python.org/pypi/cvxpy/>`_.
 
+    .. warning::
+
+        This model is currently  experimental, and may undergo significant
+        changes or bug fixes in upcoming releases.
+
     Parameters
     ----------
     n_components : int
