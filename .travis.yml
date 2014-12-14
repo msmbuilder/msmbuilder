@@ -14,9 +14,9 @@ script:
 
 env:
   matrix:
-    - python=2.7
-    - python=3.3
-    - python=3.4
+    - CONDA_PY=2.7
+    - CONDA_PY=3.3
+    - CONDA_PY=3.4
   global:
     # For pushing docs to S3:
     # travis encrypt AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
