@@ -416,7 +416,7 @@ class UnionDataset(_BaseDataset):
     def __init__(self, paths, mode, fmt='dir-npy', verbose=False):
         # Check mode
         if mode != 'r':
-            raise ValueError("Merge datasets are read only")
+            raise ValueError("Union datasets are read only")
 
         # Check format
         supported_subformats = ['dir-npy', 'hdf5']
