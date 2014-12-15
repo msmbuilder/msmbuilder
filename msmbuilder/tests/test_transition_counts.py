@@ -20,7 +20,7 @@ def test_2():
 def test_3():
     # test the simple example with lag_time > 1
     c, m = _transition_counts([range(10)], lag_time=2)
-    np.testing.assert_array_equal(c, np.eye(10, k=2))
+    np.testing.assert_array_equal(c, 0.5*np.eye(10, k=2))
 
 
 def test_4():
@@ -61,3 +61,17 @@ def test_7():
         assert m == {}
         np.testing.assert_array_equal(c, np.zeros((0,0)))
 
+
+def test_8():
+    X = np.arange(6)
+    C, _ = _transition_counts([X], lag_time=3)
+    np.testing.assert_array_almost_equal(
+        C, np.eye(6, k=3) / 3)
+
+
+def test_9():
+    X = np.arange(10)
+    C1, m1 = _transition_counts([X], lag_time=3, sliding_window=False)
+    C2, m2 = _transition_counts([X[::3]], sliding_window=True)
+    np.testing.assert_array_almost_equal(C1, C2)
+    assert m1 == m2

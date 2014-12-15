@@ -13,6 +13,7 @@ from six import PY3
 from msmbuilder.utils import map_drawn_samples
 from msmbuilder import cluster
 
+from msmbuilder.msm.core import _transition_counts
 from msmbuilder.msm import MarkovStateModel
 
 
@@ -335,4 +336,3 @@ def test_score_1():
 
         assert_approx_equal(model.score([sequence]), model.eigenvalues_.sum())
         assert_approx_equal(model.score([sequence]), model.score_)
-
