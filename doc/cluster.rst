@@ -15,9 +15,9 @@ are structurally distinct.
 The two central issues for clustering MD data are
 
 #. How should "structurally similar" be defined? What distance metric should be used?
-#. Given the distance metric, what algorithm should be used to actually cluster the data.
+#. Given the distance metric, what algorithm should be used to actually cluster the data?
 
-On point 1, there is no consensus in the protein MD literature. Popular distanc
+On point 1, there is no consensus in the protein MD literature. Popular distance
 metrics include cartesian root-mean squared deviation of atomic positions (RMSD)
 [#f3]_, distances based on the number of native contacts formed, distances based
 on the difference in backbone dihedral angles, and probably others.
