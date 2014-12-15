@@ -34,7 +34,7 @@ trajectory, and may be represented in a number of different formats
 Datasets on Disk
 ~~~~~~~~~~~~~~~~
 
-Trajectories (ready-only)
+Trajectories (read-only)
 """""""""""""""""""""""""
 Trajectory datasets are loaded using MDTraj. This requires
 specifying a `glob <http://en.wikipedia.org/wiki/Glob_%28programming%29>`_
