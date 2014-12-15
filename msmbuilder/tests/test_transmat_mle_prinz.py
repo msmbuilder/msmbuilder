@@ -113,3 +113,12 @@ def test_6():
     C = np.array([[1]], dtype=float)
     T, pi = _transmat_mle_prinz(C)
     np.testing.assert_array_equal(T, C)
+
+
+def test_7():
+    C = np.random.randint(10, size=(5,5)).astype(float)
+    transmat1, pi2 = _transmat_mle_prinz(C)
+
+    transmat2, pi1 = _transmat_mle_prinz(10*C)
+    np.testing.assert_array_almost_equal(transmat1, transmat2)
+    np.testing.assert_array_almost_equal(pi1, pi2)
