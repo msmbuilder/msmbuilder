@@ -266,6 +266,21 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             inds=self.inds_)
         return sigma_pi
 
+    def uncertainty_eigenvalues(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the model eigenvalues
+        """
+        if self.information_ is None:
+            self._build_information()
+
+        sigma_eigenvalues = _ratematrix.sigma_eigenvalues(
+            self.information_, theta=self.theta_, n=self.n_states_,
+            inds=self.inds_)
+
+        if self.n_timescales is None:
+            return sigma_eigenvalues
+        return np.nan_to_num(sigma_eigenvalues[:self.n_timescales+1])
+
     def uncertainty_timescales(self):
         """Estimate of the element-wise asymptotic standard deviation
         in the model relaxation timescales.

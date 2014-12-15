@@ -623,9 +623,67 @@ def sigma_pi(const double[:, :] covar_theta, const double[::1] theta,
     return np.asarray(sigma_pi)
 
 
+def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
+                     npy_intp n, npy_intp[::1] inds=None):
+    """Estimate the asymptotic standard deviation (uncertainty) in the
+    eigenvalues of K
+    """
+    cdef npy_intp n_S_triu = n*(n-1)/2
+    cdef npy_intp u, v, i
+    cdef double[::1] exptheta, var_w, w, dw_u, dw_v, temp, sigma
+    cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
+    cdef npy_intp size = theta.shape[0]
+    if not (inds is None or inds.shape[0] >= n):
+        raise ValueError('inds must be None (dense) or an array longer than n')
+    if inds is not None:
+        if not np.all(inds == np.unique(inds)):
+            raise ValueError('inds must be sorted, without redundant')
+    if not ((theta.shape[0] == inds.shape[0]) or
+            (inds is None and theta.shape[0] == n_S_triu + n)):
+        raise ValueError('theta must have shape n*(n+1)/2+n, or match inds')
+    if inds is not None and not np.all(inds[-n:] == n*(n-1)/2 + np.arange(n)):
+        raise ValueError('last n indices of inds must be n*(n-1)/2, ..., n*(n-1)/2+n-1')
+    if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
+        raise ValueError('covar_theta must be `size` x `size`')
+
+    var_w = zeros(n)
+    dKu = zeros((n, n))
+    dKv = zeros((n, n))
+    dw_u = zeros(n)
+    dw_v = zeros(n)
+    w_pow_m4 = zeros(n)
+    temp = zeros(n)
+    S = zeros((n, n))
+    exptheta = np.exp(theta)
+    eye = np.eye(n)
+
+    build_ratemat(exptheta, n, inds, S, 'S')
+    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+
+    order = np.argsort(w)[::-1]
+
+    U = ascontiguousarray(np.asarray(U)[:, order])
+    V = ascontiguousarray(np.asarray(V)[:, order])
+    w = np.asarray(w)[order]
+
+    for u in range(size):
+        dK_dtheta_A(exptheta, n, u, inds, None, dKu)
+        dw_du(dKu, U, V, n, temp, dw_u)
+        for v in range(size):
+            dK_dtheta_A(exptheta, n, v, inds, None, dKv)
+            dw_du(dKv, U, V, n, temp, dw_v)
+
+            for i in range(n):
+                var_w[i] += dw_u[i] * dw_v[i] * covar_theta[u, v]
+
+    sigma = zeros(n)
+    for i in range(n):
+        sigma[i] = sqrt(var_w[i])
+    return np.asarray(sigma)
+
 
 def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
-                           npy_intp n, npy_intp[::1] inds=None):
+                     npy_intp n, npy_intp[::1] inds=None):
     """Estimate the asymptotic standard deviation (uncertainty) in the
     implied timescales.
 
