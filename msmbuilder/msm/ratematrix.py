@@ -44,16 +44,21 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         Number of implied timescales to calculate.
     use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
-    verbose : bool, default=False
-        Verbosity level
     ftol : float, default=1e-6
         Iteration stops when the relative increase in the log-likelihood is less
         than this cutoff.
+    sliding_window : bool, optional
+        Count transitions using a window of length ``lag_time``, which is slid
+        along the sequences 1 unit at a time, yielding transitions which contain
+        more data but cannot be assumed to be statistically independent. Otherwise,
+        the sequences are simply subsampled at an interval of ``lag_time``.
     guess_ratemat : array of shape=(n_states_, n_states), optional
         Guess for the rate matrix. This can be used to warm-start the optimizer.
         Sometimes the optimizer is poorly behaved when the lag time is large,
         so it can be helpful to seed it from a model estimated using a shorter
         lag time.
+    verbose : bool, default=False
+        Verbosity level
 
     Attributes
     ----------
@@ -99,13 +104,15 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, n_timescales=None,
-                 use_sparse=True, verbose=False, ftol=1e-6, guess_ratemat=None):
+                 use_sparse=True, ftol=1e-6, sliding_window=True,
+                 guess_ratemat=None, verbose=False):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.n_timescales = n_timescales
         self.verbose = verbose
         self.use_sparse = use_sparse
         self.ftol = ftol
+        self.sliding_window = sliding_window
         self.guess_ratemat = guess_ratemat
 
         self.inds_ = None
@@ -130,7 +137,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         lag_time = int(self.lag_time)
         if lag_time < 1:
             raise ValueError('lag_time must be >= 1')
-        countsmat, mapping = _transition_counts(sequences, lag_time)
+        countsmat, mapping = _transition_counts(
+            sequences, int(lag_time), self.sliding_window)
 
         n_states = countsmat.shape[0]
         result, inds = self._optimize(countsmat + self.prior_counts)

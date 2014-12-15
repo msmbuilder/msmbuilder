@@ -234,7 +234,7 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     return trimmed_counts, mapping
 
 
-def _transition_counts(sequences, lag_time=1):
+def _transition_counts(sequences, lag_time=1, sliding_window=True):
     """Count the number of directed transitions in a collection of sequences
     in a discrete space.
 
@@ -282,6 +282,9 @@ def _transition_counts(sequences, lag_time=1):
     transition counts from or to a sequence item which is NaN or None will not
     be counted. The mapping return value will not include the NaN or None.
     """
+    if (not sliding_window) and lag_time > 1:
+        return  _transition_counts([X[::lag_time] for X in sequences], lag_time=1)
+
     classes = np.unique(np.concatenate(sequences))
     contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
     contains_none = any(c is None for c in classes)
@@ -324,7 +327,7 @@ def _transition_counts(sequences, lag_time=1):
             shape=(n_states, n_states))
         counts = counts + np.asarray(C.todense())
 
-    return counts, mapping
+    return counts / float(lag_time), mapping
 
 
 def _dict_compose(dict1, dict2):

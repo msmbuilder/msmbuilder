@@ -67,6 +67,11 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         probability between two states with no observed transitions will be
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
+    sliding_window : bool, optional
+        Count transitions using a window of length ``lag_time``, which is slid
+        along the sequences 1 unit at a time, yielding transitions which contain
+        more data but cannot be assumed to be statistically independent. Otherwise,
+        the sequences are simply subsampled at an interval of ``lag_time``.
     verbose : bool
         Enable verbose printout
 
@@ -100,14 +105,15 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, lag_time=1, n_timescales=10,
-                 reversible_type='mle', ergodic_cutoff=1,
-                 prior_counts=0, verbose=True):
+    def __init__(self, lag_time=1, n_timescales=10, reversible_type='mle',
+                 ergodic_cutoff=1, prior_counts=0, sliding_window=True,
+                 verbose=True):
         self.reversible_type = reversible_type
         self.ergodic_cutoff = ergodic_cutoff
         self.lag_time = lag_time
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
+        self.sliding_window = sliding_window
         self.verbose = verbose
 
         # Keep track of whether to recalculate eigensystem
@@ -148,7 +154,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         # step 1. count the number of transitions
         if int(self.lag_time) <= 0:
             raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(sequences, int(self.lag_time))
+        raw_counts, mapping = _transition_counts(
+            sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
         if self.ergodic_cutoff >= 1:
             # step 2. restrict the counts to the maximal strongly ergodic
