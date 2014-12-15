@@ -104,7 +104,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, n_timescales=None,
-                 use_sparse=True, ftol=1e-6, sliding_windiw=True,
+                 use_sparse=True, ftol=1e-6, sliding_window=True,
                  guess_ratemat=None, verbose=False):
         self.lag_time = lag_time
         self.prior_counts = prior_counts

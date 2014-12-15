@@ -160,6 +160,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self.reversible = reversible
         self.ergodic_cutoff = ergodic_cutoff
         self.prior_counts = prior_counts
+        self.sliding_window = sliding_window
         self.random_state = random_state
         self.sampler = sampler
         self.verbose = verbose
