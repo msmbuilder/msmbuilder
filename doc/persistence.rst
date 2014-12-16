@@ -14,7 +14,8 @@ trajectory, and may be represented in a number of different formats
    trajectory object.
  - A sequence may be a ``double`` or ``float``-valued 2D array with shape
    ``n_frames x n_features``, representing the projection of each frame in
-   molecular dynamics trajectory into some vector space of dimension :math:`\mathbb{R}^{n_{features}}`. The leading dimension with length
+   molecular dynamics trajectory into some vector space of dimension 
+   :math:`\mathbb{R}^{n_{features}}`. The leading dimension with length
    ``n_frames`` indexes over the timeseries.
 
    ..
@@ -122,3 +123,10 @@ Model persistence
 MSMBuilder models can be losslessly persisted to disk using Python's pickle
 infrastructure. We recommend using the functions :func:`msmbuilder.utils.load`
 and :func:`msmbuilder.utils.dump` to load and save models respectively.
+
+.. currentmodule msmbuilder.dataset
+
+Functions
+---------
+
+.. autofunction:: msmbuilder.dataset.dataset

@@ -172,3 +172,55 @@ def test_hdf5_3():
             delayed(_sum_helper)(a) for a in iter_args)
 
         assert all(s == ref_sum for s in sums)
+
+
+def test_union():
+    with tempdir():
+        # This doesn't work with py2.6
+        with dataset('ds1.h5', 'w', 'hdf5') as ds1, \
+             dataset('ds2.h5', 'w', 'hdf5') as ds2:
+            ds1[0] = np.random.randn(10, 2)
+            ds1[1] = np.random.randn(10)
+            ds2[0] = np.random.randn(10,4)
+            ds2[1] = np.random.randn(10,4)
+
+            # Compare row sums
+            rs1 = np.sum(ds1[0], axis=1) + np.sum(ds2[0], axis=1)
+            rs2 = ds1[1] + np.sum(ds2[1], axis=1)
+
+        mds = dataset(['ds1.h5', 'ds2.h5'])
+
+        assert len(mds) == 2
+        assert mds[0].shape == (10, 6)
+        assert mds[1].shape == (10, 5)
+        np.testing.assert_array_almost_equal(np.sum(mds[0], axis=1), rs1)
+        np.testing.assert_array_almost_equal(np.sum(mds[1], axis=1), rs2)
+
+
+def test_union_2():
+    with tempdir():
+        # This doesn't work with py2.6
+        with dataset('ds1/', 'w', 'dir-npy') as ds1, \
+                dataset('ds2/', 'w', 'dir-npy') as ds2:
+            ds1[0] = np.random.randn(10, 2)
+            ds1[1] = np.random.randn(10)
+            ds2[0] = np.random.randn(10,4)
+            ds2[1] = np.random.randn(10,4)
+
+
+        mds = dataset(['ds1', 'ds2'])
+        mds_out = mds.create_derived('derived', fmt='dir-npy')
+        assert len(mds_out.provenance.split('\n')) > 0
+
+def test_union_3():
+    with tempdir():
+        # This doesn't work with py2.6
+        with dataset('ds1/', 'w', 'dir-npy') as ds1, \
+                dataset('ds2/', 'w', 'dir-npy') as ds2:
+            ds1[0] = np.random.randn(10, 2)
+            ds1[1] = np.random.randn(10)
+            ds2[0] = np.random.randn(10,4)
+            # Uneven length!
+
+        with assert_raises(ValueError):
+            mds = dataset(['ds1', 'ds2'])

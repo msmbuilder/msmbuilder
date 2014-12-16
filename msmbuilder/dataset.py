@@ -29,6 +29,41 @@ __all__ = ['dataset']
 
 
 def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
+    """Open a dataset object
+
+    MSMBuilder supports several dataset 'formats' for storing
+    lists of sequences on disk.
+
+    This function can also be used as a context manager.
+
+    Parameters
+    ----------
+    path : str
+        The path to the dataset on the filesystem
+    mode : {'r', 'w'}
+        Open a dataset for reading or writing
+    fmt : {'dir-npy', 'hdf5', 'mdtraj'}
+        The format of the data on disk
+
+        ``dir-npy``
+            A directory of binary numpy files, one file per sequence
+
+        ``hdf5``
+            A single hdf5 file with each sequence as an array node
+
+        ``mdtraj``
+            A read-only set of trajectory files that can be loaded
+            with mdtraj
+
+        ``dir-npy-union`` or ``hdf5-union``
+            Several datasets of the respective type which will have
+            their features union-ed together.
+
+    verbose : bool
+        Whether to print information about the dataset
+
+    """
+
     if mode == 'r' and fmt is None:
         fmt = _guess_format(path)
     elif mode == 'w' and fmt is None:
@@ -40,20 +75,31 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
         return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'hdf5':
         return HDF5Dataset(path, mode=mode, verbose=verbose)
+    elif fmt.endswith("-union"):
+        sub_fmt = fmt[:-len('-union')]
+        return UnionDataset(path, fmt=sub_fmt, mode=mode, verbose=verbose)
     else:
         raise NotImplementedError("unknown fmt: %s" % fmt)
 
 
 def _guess_format(path):
-    if not isinstance(path, str):
-        return 'mdtraj'
+    if isinstance(path, (list, tuple)):
+        fmt = _guess_format(path[0])
+        err = "Only the union of 'dir-npy' and 'hdf5' formats is supported"
+        assert fmt in ['dir-npy', 'hdf5'], err
+        err = "All datasets must be the same format"
+        for p in path[1:]:
+            assert _guess_format(p) == fmt, err
+        return "{}-union".format(fmt)
 
     if os.path.isdir(path):
         return 'dir-npy'
 
     if path.endswith('.h5') or path.endswith('.hdf5'):
+        # TODO: Check for mdtraj .h5 file
         return 'hdf5'
 
+    # TODO: What about a list of trajectories, e.g. from command line nargs='+'
     return 'mdtraj'
 
 
@@ -89,7 +135,7 @@ class _BaseDataset(Sequence):
         if fmt is None:
             out_dataset = self.__class__(out_path, mode='w', verbose=self.verbose)
         else:
-            out_dataset =  dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
+            out_dataset = dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
         out_dataset._write_provenance(previous=self.provenance, comments=comments)
         return out_dataset
 
@@ -364,11 +410,69 @@ class MDTrajDataset(_BaseDataset):
             atom_indices=self.atom_indices, stride=self.stride)
 
 
+def _dim_match(arr):
+    if arr.ndim == 1:
+        return arr[:, np.newaxis]
+    return arr
+
+
+class UnionDataset(_BaseDataset):
+    def __init__(self, paths, mode, fmt='dir-npy', verbose=False):
+        # Check mode
+        if mode != 'r':
+            raise ValueError("Union datasets are read only")
+
+        # Check format
+        supported_subformats = ['dir-npy', 'hdf5']
+        if fmt not in supported_subformats:
+            err = "Format must be one of {}. You gave {}"
+            err = err.format(supported_subformats, fmt)
+            raise ValueError(err)
+
+        # Save parameters
+        self.verbose = verbose
+        self.datasets = [dataset(path, mode, fmt, verbose)
+                         for path in paths]
+
+        # Sanity check
+        self._check_same_length()
+
+    def _check_same_length(self):
+        """Check that the datasets are the same length"""
+        lens = []
+        for ds in self.datasets:
+            lens.append(
+                sum(1 for _ in ds.keys())
+            )
+        if len(set(lens)) > 1:
+            err = "Each dataset must be the same length. You gave: {}"
+            err = err.format(lens)
+            raise ValueError(err)
+
+    def keys(self):
+        return self.datasets[0].keys()
+
+    def get(self, i):
+        return np.concatenate([_dim_match(ds.get(i))
+                               for ds in self.datasets], axis=1)
+
+    def close(self):
+        for ds in self.datasets:
+            ds.close()
+
+    def flush(self):
+        for ds in self.datasets:
+            ds.close()
+
+    @property
+    def provenance(self):
+        return "\n\n".join(ds.provenance for ds in self.datasets)
+
 
 def _keynat(string):
-    '''A natural sort helper function for sort() and sorted()
+    """A natural sort helper function for sort() and sorted()
     without using regular expression.
-    '''
+    """
     r = []
     for c in string:
         if c.isdigit():
