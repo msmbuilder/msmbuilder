@@ -45,16 +45,20 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
     fmt : {'dir-npy', 'hdf5', 'mdtraj'}
         The format of the data on disk
 
-        - 'dir-npy': A directory of binary numpy files, one file per sequence
+        ``dir-npy``
+            A directory of binary numpy files, one file per sequence
 
-        - 'hdf5': A single hdf5 file with each sequence as an array node
+        ``hdf5``
+            A single hdf5 file with each sequence as an array node
 
-        - 'mdtraj': A read-only set of trajectory files that can be loaded
-                    with mdtraj
+        ``mdtraj``
+            A read-only set of trajectory files that can be loaded
+            with mdtraj
 
-        - 'dir-npy-union' or 'hdf5-union': Several datasets of the
-                                           respective type which will have
-                                           their features union-ed together.
+        ``dir-npy-union`` or ``hdf5-union``
+            Several datasets of the respective type which will have
+            their features union-ed together.
+
     verbose : bool
         Whether to print information about the dataset
 
