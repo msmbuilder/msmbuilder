@@ -38,7 +38,7 @@ This code parameterizes :math:`K(\theta)` such that :math:`K` is constrained
 to satisfy `detailed balance <http://en.wikipedia.org/wiki/Detailed_balance>`_
 with respect to a stationary distribution, :math:`\pi`. For an :math:`n`-state
 model, :math:`\theta` is of length :math:`n(n-1)/2 + n`. The first
-:math:`n(n-1)/2` elements of :math:`theta` are the parameterize the symmetric
+:math:`n(n-1)/2` elements of :math:`\theta` are the parameterize the symmetric
 rate matrix, :math:`S`, and the remaining :math:`n` entries parameterize the
 stationary distribution. For :math:`n=4`, the function :math:`K(\theta)` is
 
