@@ -3,12 +3,20 @@
 Continuous-time Markov State Model
 ==================================
 
+Algorithms
+----------
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
+
+    ContinuousTimeMSM
+
 Theory
 ------
 
 Consider an `n`-state time-homogeneous Markov process, :math:`X(t)` At time
 :math:`t`, the :math:`n`-vector :math:`P(t) = Pr[ X(t) = i ]` is probability that the system is in each of the :math:`n` states. These probabilities
-evolve forward in time, governed by an :math:`n \times n` transition rate matrix :math:`K` 
+evolve forward in time, governed by an :math:`n \times n` transition rate matrix :math:`K`
 
 .. math ::
     dP(t)/dt = P(t) \cdot K
@@ -90,13 +98,23 @@ off-diagonal elements of K are taken as candidates for truncation to zero. A
 new optimization using the sparse parameterization is performed with these elements constrained. If the log-likelihood of the sparse model is superior to
 the log likelihood of the dense model, it is retained.
 
-Algorithms
-----------
+
+
+Under the hood (expert functions)
+---------------------------------
+.. currentmodule:: msmbuilder.msm._ratematrix
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
 
-    ContinuousTimeMSM
+    build_ratemat
+    dK_dtheta_A
+    loglikelihood
+    hessian
+    sigma_K
+    sigma_pi
+    sigma_eigenvalues
+    sigma_timescales
+    eig_K
 
 References
 ----------
