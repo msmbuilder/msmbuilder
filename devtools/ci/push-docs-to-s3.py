@@ -11,7 +11,7 @@ AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 BUCKET_NAME = 'msmbuilder.org'
 
 bucket_name = AWS_ACCESS_KEY_ID.lower() + '-' + BUCKET_NAME
-conn = boto.connect_s3(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, calling_format=SubdomainCallingFormat)
+conn = boto.connect_s3(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, calling_format=SubdomainCallingFormat())
 bucket = conn.get_bucket(BUCKET_NAME)
 
 root = 'doc/_build'
