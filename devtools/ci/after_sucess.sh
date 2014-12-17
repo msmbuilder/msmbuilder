@@ -21,7 +21,7 @@ binstar upload -u omnia -t $BINSTAR_TOKEN --force `conda build devtools/conda-re
 
 conda install --yes pip
 conda install --yes `conda build devtools/conda-recipe --output`
-pip install msmb_theme
+pip install msmb_theme s3cmd
 
 # Install stuff for running the example IPython notebooks
 sudo apt-get update -qq
