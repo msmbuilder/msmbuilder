@@ -307,7 +307,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
         else:
             n = guess.shape[0]
-            u, lv, _ = map(np.asarray, _ratematrix.eigK(guess, n, which='K'))
+            u, lv, _ = map(np.asarray, _ratematrix.eig_K(guess, n, which='K'))
             pi = lv[:, np.argmax(u)]
             S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), guess)
 
@@ -321,8 +321,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         lag_time = float(self.lag_time)
 
         hessian = _ratematrix.hessian(
-            self.theta_, self.countsmat_, self.n_states_, t=lag_time,
-            inds=self.inds_)
+            self.theta_, self.countsmat_, self.n_states_, inds=self.inds_,
+            t=lag_time)
 
         self.information_ = scipy.linalg.pinv(-hessian)
 
@@ -393,7 +393,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         S = np.zeros((n, n))
         exptheta = np.exp(self.theta_)
         _ratematrix.build_ratemat(exptheta, n, self.inds_, S, which='S')
-        u, lv, rv = map(np.asarray, _ratematrix.eigK(S, n, exptheta[-n:], 'S'))
+        u, lv, rv = map(np.asarray, _ratematrix.eig_K(S, n, exptheta[-n:], 'S'))
         order = np.argsort(-u)
         u = u[order[:k]]
         lv = lv[:, order[:k]]

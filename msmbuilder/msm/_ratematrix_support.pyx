@@ -1,7 +1,11 @@
 # This file is designed to be included by _ratematrix.pyx
 
-cpdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
-    """Diagonalize the rate matrix
+cpdef eig_K(const double[:, ::1] A, npy_intp n, double[::1] pi=None,
+                    which='K'):
+    r"""eig_K(A, n, pi=None, which='K')
+
+    Diagonalize the rate matrix, K, from either the matrix K or the symmetric
+    rate matrix, S.
 
     If which == 'K', the first argument should be the rate matrix, K, and `pi`
     is ignored. If which == 'S', the first argument should be the symmetric
@@ -11,6 +15,9 @@ cpdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
 
     Whichever is supplied the return value is the eigen decomposition of `K`.
     The eigendecomposition of S is not returned.
+
+    Using the symmetric rate matrix, S, is somewhat faster and more numerically
+    stable.
 
     Returns
     -------

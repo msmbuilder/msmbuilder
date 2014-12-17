@@ -116,5 +116,5 @@ References
 .. [#f2] Pande, V. S., K. A. Beauchamp, and G. R. Bowman. `Everything you wanted to know about Markov State Models but were afraid to ask <http://dx.doi.org/10.1016/j.ymeth.2010.06.002>`_ Methods 52.1 (2010): 99-105.
 .. [#f3] McGibbon, R. T., C. R. Schwantes, and Vijay S. Pande. `Statistical Model Selection for Markov Models of Biomolecular Dynamics. <http://dx.doi.org/10.1021/jp411822r>`_ J. Phys. Chem. B (2014).
 .. [#f4] Kellogg, E. H., O. F. Lange, and D. Baker. `Evaluation and optimization of discrete state models of protein folding. <http://dx.doi.org//10.1021/jp3044303>`_ J. Phys. Chem. B 116.37 (2012): 11405-11413.
-.. [#f5] Metzner, P., F. Noé, and C. Schütte. `Estimating the sampling error: Distribution of transition matrices and functions of transition matrices for given trajectory data. <http://journals.aps.org/pre/abstract/10.1103/PhysRevE.80.021106>`_ Phys. Rev. E 80.2 (2009): 021106.
-.. [#f6] Nüske, F., et al. `Variational approach to molecular kinetics. <http://pubs.acs.org/doi/abs/10.1021/ct4009156>`_ J. Chem. Theory Comput.10.4 (2014): 1739-1752.
+.. [#f5] Metzner, P., F. Noe, and C. Schutte. `Estimating the sampling error: Distribution of transition matrices and functions of transition matrices for given trajectory data. <http://journals.aps.org/pre/abstract/10.1103/PhysRevE.80.021106>`_ Phys. Rev. E 80.2 (2009): 021106.
+.. [#f6] Nuske, F., et al. `Variational approach to molecular kinetics. <http://pubs.acs.org/doi/abs/10.1021/ct4009156>`_ J. Chem. Theory Comput.10.4 (2014): 1739-1752.

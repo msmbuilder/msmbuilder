@@ -39,7 +39,9 @@ include "_ratematrix_support.pyx"
 
 cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
                         double[:, ::1] out, char* which=b'K'):
-    """Build the reversible rate matrix K or symmetric rate matrix, S,
+    r"""build_ratemat(exptheta, n, inds, out, which='K')
+
+    Build the reversible rate matrix K or symmetric rate matrix, S,
     from the free parameters, `\theta`
 
     Parameters
@@ -71,12 +73,8 @@ cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[:
     `len(u)` must be greater than or equal to `n`.
 
     With the sparse parameterization, the following invariant holds. If
-
-        inds = indices_of_nonzero_elements(exptheta)
-
-    Then,
-
-        build_ratemat(exptheta, n, None) == build_ratemat(exptheta[inds], n, inds)
+    ``inds = indices_of_nonzero_elements(exptheta)``, then
+    ``build_ratemat(exptheta, n, None) == build_ratemat(exptheta[inds], n, inds)``
     """
     cdef npy_intp u = 0, k = 0, i = 0, j = 0, n_triu = 0
     cdef double s_ij, K_ij, K_ji
@@ -129,7 +127,9 @@ cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[:
 cpdef double dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
                          const npy_intp[::1] inds, const double[:, ::1] A,
                          double[:, ::1] out=None) nogil:
-    """Compute the sum of the Hadamard (element-wise) product of the
+    r"""dK_dtheta_A(exptheta, n, u, inds, A, out=None)
+
+    Compute the sum of the Hadamard (element-wise) product of the
     derivative of (the rate matrix, `K`, with respect to the free
     parameters,`\theta`, dK_ij / dtheta_u) and another matrix, A.
 
@@ -264,7 +264,9 @@ cpdef double dK_dtheta_A(const double[::1] exptheta, npy_intp n, npy_intp u,
 
 def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp n,
                   const npy_intp[::1] inds=None, double t=1):
-    """Log likelihood and gradient of the log likelihood of a continuous-time
+    r"""loglikelihood(theta, counts, n, inds=None, t=1)
+
+    Log likelihood and gradient of the log likelihood of a continuous-time
     Markov model.
 
     Parameters
@@ -332,7 +334,7 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
         # tell the optimizer to stear clear!
         return -np.inf, ascontiguousarray(grad)
 
-    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+    w, U, V = eig_K(S, n, exptheta[size-n:], 'S')
     dT_dtheta(w, U, V, counts, n, t, T, dT)
 
     with nogil:
@@ -347,9 +349,11 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, npy_intp
     return logl, ascontiguousarray(grad)
 
 
-def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
-            npy_intp[::1] inds=None):
-    """Estimate of the hessian of the log-likelihood with respect to \theta.
+def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n,
+            npy_intp[::1] inds=None, double t=1):
+    r"""hessian(theta, counts, n, inds=None, t=1)
+
+    Estimate of the hessian of the log-likelihood with respect to \theta.
 
     Parameters
     ----------
@@ -380,8 +384,8 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
     References
     ----------
-    ..[1] Kalbfleisch, J. D., and Jerald F. Lawless. "The analysis of panel data
-          under a Markov assumption." J. Am. Stat. Assoc. 80.392 (1985): 863-871.
+    .. [1] Kalbfleisch, J. D., and Jerald F. Lawless. "The analysis of panel data
+       under a Markov assumption." J. Am. Stat. Assoc. 80.392 (1985): 863-871.
 
     Returns
     -------
@@ -424,7 +428,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
         exptheta[u] = exp(theta[u])
 
     build_ratemat(exptheta, n, inds, S, 'S')
-    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+    w, U, V = eig_K(S, n, exptheta[size-n:], 'S')
 
     for i in range(n):
         expwt[i] = exp(w[i]*t)
@@ -466,7 +470,9 @@ def hessian(double[::1] theta, double[:, ::1] counts, npy_intp n, double t=1,
 
 def sigma_K(const double[:, :] covar_theta, const double[::1] theta,
                   npy_intp n, npy_intp[::1] inds=None):
-    """Estimate the asymptotic standard deviation (uncertainty in the rate
+    r"""sigma_K(covar_theta, theta, n, inds=None)
+
+    Estimate the asymptotic standard deviation (uncertainty in the rate
     matrix, `K`
 
     Parameters
@@ -494,7 +500,8 @@ def sigma_K(const double[:, :] covar_theta, const double[::1] theta,
     Returns
     -------
     sigma_K : array, shape=(n, n)
-        Estimate of the element-wise asymptotic standard deviation of the rate matrix, K.
+        Estimate of the element-wise asymptotic standard deviation of the
+        rate matrix, K.
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp u, v, i, j
@@ -536,7 +543,9 @@ def sigma_K(const double[:, :] covar_theta, const double[::1] theta,
 
 def sigma_pi(const double[:, :] covar_theta, const double[::1] theta,
              npy_intp n, npy_intp[::1] inds=None):
-    """Estimate the asymptotic standard deviation (uncertainty) in the stationary
+    r"""sigma_pi(covar_theta, theta, n, inds=None)
+
+    Estimate the asymptotic standard deviation (uncertainty) in the stationary
     distribution, `\pi`.
 
     Parameters
@@ -625,8 +634,16 @@ def sigma_pi(const double[:, :] covar_theta, const double[::1] theta,
 
 def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
                      npy_intp n, npy_intp[::1] inds=None):
-    """Estimate the asymptotic standard deviation (uncertainty) in the
+    r"""sigma_eigenvalues(covar_theta, theta, n, inds=None)
+
+    Estimate the asymptotic standard deviation (uncertainty) in the
     eigenvalues of K
+
+    Returns
+    -------
+    sigma_eigenvalues : array, shape=(n,)
+        Estimate of the element-wise asymptotic standard deviation of the
+        eigenvalues of the rate matrix (in sorted order).
     """
     cdef npy_intp n_S_triu = n*(n-1)/2
     cdef npy_intp u, v, i
@@ -658,7 +675,7 @@ def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
     eye = np.eye(n)
 
     build_ratemat(exptheta, n, inds, S, 'S')
-    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+    w, U, V = eig_K(S, n, exptheta[size-n:], 'S')
 
     order = np.argsort(w)[::-1]
 
@@ -678,13 +695,18 @@ def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
 
     sigma = zeros(n)
     for i in range(n):
-        sigma[i] = sqrt(var_w[i])
+        if var_w[i] <= 0:
+            sigma[i] = 0
+        else:
+            sigma[i] = sqrt(var_w[i])
     return np.asarray(sigma)
 
 
 def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
                      npy_intp n, npy_intp[::1] inds=None):
-    """Estimate the asymptotic standard deviation (uncertainty) in the
+    r"""sigma_timescales(covar_theta, theta, n, inds=None)
+
+    Estimate the asymptotic standard deviation (uncertainty) in the
     implied timescales.
 
     Parameters
@@ -745,7 +767,7 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
     eye = np.eye(n)
 
     build_ratemat(exptheta, n, inds, S, 'S')
-    w, U, V = eigK(S, n, exptheta[size-n:], 'S')
+    w, U, V = eig_K(S, n, exptheta[size-n:], 'S')
 
     order = np.argsort(w)[::-1]
 
