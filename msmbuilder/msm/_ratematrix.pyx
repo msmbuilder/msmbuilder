@@ -35,6 +35,7 @@ include "config.pxi"
 include "triu_utils.pyx"      # ij_to_k() and k_to_ij()
 include "binary_search.pyx"   # bsearch()
 include "_ratematrix_support.pyx"
+include "_ratematrix_priors.pyx"
 
 
 cpdef int build_ratemat(const double[::1] exptheta, npy_intp n, const npy_intp[::1] inds,
