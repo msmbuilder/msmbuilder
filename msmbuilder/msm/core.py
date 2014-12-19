@@ -7,14 +7,18 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 import scipy.linalg
-from ..utils import list_of_1d
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
+
 from sklearn.base import TransformerMixin
+
+from . import _ratematrix
+from ..utils import list_of_1d
+
 
 __all__ = [
     '_MappingTransformMixin', '_dict_compose', '_strongly_connected_subgraph',
     '_transition_counts',
-    '_solve_msm_eigensystem',
+    '_solve_msm_eigensystem', '_solve_ratemat_eigensystem',
 ]
 
 
@@ -106,6 +110,54 @@ class _MappingTransformMixin(TransformerMixin):
 
             result.append(f(y))
         return result
+
+
+def _solve_ratemat_eigensystem(theta, k, n, inds=None):
+    """Find the dominant eigenpairs of a reversible rate matrix (master
+    equation)
+
+    Parameters
+    ----------
+    theta : ndarray, shape=(n_params,)
+        The free parameters of the rate matrix
+    k : int
+        The number of eigenpairs to find
+    n : int
+        The number of states
+    inds : array, optional (default=None)
+        Sparse linearized triu indices theta.
+
+    Notes
+    -----
+    Normalize the left (:math:`\phi`) and right (:math:``\psi``) eigenfunctions
+    according to the following criteria.
+      * The first left eigenvector, \phi_1, _is_ the stationary
+        distribution, and thus should be normalized to sum to 1.
+      * The left-right eigenpairs should be biorthonormal:
+        <\phi_i, \psi_j> = \delta_{ij}
+      * The left eigenvectors should satisfy
+        <\phi_i, \phi_i>_{\mu^{-1}} = 1
+      * The right eigenvectors should satisfy <\psi_i, \psi_i>_{\mu} = 1
+
+    Returns
+    -------
+    eigvals : np.ndarray, shape=(k,)
+        The largest `k` eigenvalues
+    lv : np.ndarray, shape=(n_states, k)
+        The normalized left eigenvectors (:math:`\phi`) of the rate matrix.
+    rv :  np.ndarray, shape=(n_states, k)
+        The normalized right eigenvectors (:math:`\psi`) of the rate matrix.
+    """
+    S = np.zeros((n, n))
+    exptheta = np.exp(theta)
+    _ratematrix.build_ratemat(exptheta, n, inds, S, which='S')
+    u, lv, rv = map(np.asarray, _ratematrix.eig_K(S, n, exptheta[-n:], 'S'))
+    order = np.argsort(-u)
+    u = u[order[:k]]
+    lv = lv[:, order[:k]]
+    rv = rv[:, order[:k]]
+
+    return _normalize_eigensystem(u, lv, rv)
 
 
 def _solve_msm_eigensystem(transmat, k):
@@ -303,6 +355,8 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
                                otypes=[np.float])
 
     counts = np.zeros((n_states, n_states), dtype=float)
+    _transitions = []
+    
     for y in sequences:
         y = np.asarray(y)
         from_states = y[: -lag_time: 1]
@@ -322,10 +376,12 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
-        transitions = np.row_stack((from_states, to_states))
-        C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
-            shape=(n_states, n_states))
-        counts = counts + np.asarray(C.todense())
+        _transitions.append(np.row_stack((from_states, to_states)))
+
+    transitions = np.hstack(_transitions)
+    C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
+        shape=(n_states, n_states))
+    counts = counts + np.asarray(C.todense())
 
     return counts / float(lag_time), mapping
 

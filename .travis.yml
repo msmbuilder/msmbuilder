@@ -11,6 +11,8 @@ install:
 script:
   # this builds the binary, unpacks it, and runs the tests
   - conda build devtools/conda-recipe
+  # check that any changed python files are pep8
+  - pip install git-lint && git-lint
 
 env:
   matrix:

@@ -17,20 +17,22 @@ requirements:
   build:
     - python
     - setuptools
-    - cython    
+    - cython
     - numpy
     - mdtraj
+
   run:
     - python
     - setuptools
     - numpy
-    - scipy
+    - scipy <=0.14
     - pandas
     - six
     - mdtraj
     - scikit-learn
     - numpydoc
     - pytables
+    - pyhmc
 
 
 test:
@@ -38,13 +40,15 @@ test:
     - nose
     - munkres
     - numdifftools
+    - pyhmc
+    - statsmodels
   imports:
     - msmbuilder
   commands:
     - msmb -h
     - nosetests msmbuilder -v
-  
-  
+
+
 about:
   home: https://github.com/msmbuilder/msmbuilder
   license: LGPLv2.1+

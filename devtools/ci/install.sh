@@ -6,12 +6,12 @@ if [[ $MINICONDA_MD5 != $(md5sum $MINICONDA | cut -d ' ' -f 1) ]]; then
     exit 1
 fi
 bash $MINICONDA -b
-PIP_ARGS="-U"
+rm -f $MINICONDA
 
 sudo ln -s /usr/bin/g++ /usr/bin/g++44
 export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
 conda config --add channels http://conda.binstar.org/omnia
-conda install --yes conda-build
+conda install --yes conda-build pip
 

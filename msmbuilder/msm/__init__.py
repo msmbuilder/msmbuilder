@@ -4,3 +4,4 @@ from .msm import MarkovStateModel
 from .ratematrix import ContinuousTimeMSM
 from .bayesmsm import BayesianMarkovStateModel
 from .implied_timescales import implied_timescales
+from .bayes_ratematrix import HMCContinuousTimeMSM

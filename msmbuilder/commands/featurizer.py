@@ -10,7 +10,7 @@ from ..cmdline import NumpydocClassCommand, argument, exttype, stripquotestype
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
-                          ContactFeaturizer)
+                          ContactFeaturizer, GaussianSolventFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -108,3 +108,13 @@ class ContactFeaturizerCommand(FeaturizerCommand):
             return val
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
+
+class GaussianSolventFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = GaussianSolventFeaturizer
+
+    def _solvent_indices_type(self, fn):
+        return np.loadtxt(fn, dtype=int, ndmin=1)
+
+    def _solute_indices_type(self, fn):
+        return np.loadtxt(fn, dtype=int, ndmin=1)

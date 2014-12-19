@@ -52,15 +52,15 @@ import itertools
 try:
     import numpydoc.docscrape
 except ImportError:
-    print('-'*35, file=sys.stderr)
+    print('-' * 35, file=sys.stderr)
     print('              ERROR', file=sys.stderr)
-    print('-'*35, file=sys.stderr)
+    print('-' * 35, file=sys.stderr)
     print('The package `numpydoc` is required.\n', file=sys.stderr)
     print('Try:', file=sys.stderr)
     print('  $ conda install numpydoc', file=sys.stderr)
     print('or', file=sys.stderr)
     print('  $ pip install numpydoc', file=sys.stderr)
-    print('-'*35, file=sys.stderr)
+    print('-' * 35, file=sys.stderr)
     raise
 
 # Work around a very odd bug in pytables, where it destroys arguments in
@@ -77,7 +77,6 @@ __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
 
 
 class MultipleIntAction(argparse.Action):
-
     """An argparse Action to be used as an alternative to `nargs='+', type=int`
     (instead, you use `nargs='+', action=MultipleIntAction`. This allows the user
     to specify either a space separated list of ints (ala the former solution)
@@ -125,7 +124,6 @@ class FlagAction(argparse.Action):
 
 
 class argument(object):
-
     """Wrapper for parser.add_argument"""
 
     def __init__(self, *args, **kwargs):
@@ -138,9 +136,7 @@ class argument(object):
         root.add_argument(*self.args, **self.kwargs)
 
 
-
 class argument_group(object):
-
     """Wrapper for parser.add_argument_group"""
 
     def __init__(self, *args, **kwargs):
@@ -182,7 +178,6 @@ class argument_group(object):
 
 
 class mutually_exclusive_group(object):
-
     """Wrapper parser.add_mutually_exclusive_group"""
 
     def __init__(self, *args, **kwargs):
@@ -210,8 +205,8 @@ class ClassProperty(property):
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
 
-class Command(with_metaclass(abc.ABCMeta, object)):
 
+class Command(with_metaclass(abc.ABCMeta, object)):
     # Set _concrete to true for all final classes in the heirarchy
     _concrete = False
 
@@ -327,7 +322,7 @@ class NumpydocClassCommand(Command):
             # get default value
             kwargs = {}
             try:
-                kwargs['default'] = defaults[i-len(args)]
+                kwargs['default'] = defaults[i - len(args)]
             except (IndexError, TypeError):
                 kwargs['required'] = True
 
@@ -381,7 +376,6 @@ class NumpydocClassCommand(Command):
         return '\n'.join(lines)
 
 
-
 class App(object):
     subcommand_dest = 'subcommand'
 
@@ -400,8 +394,8 @@ class App(object):
         if not argv[0] in cmdnames:
             import difflib
             lower2native = {s.lower(): s for s in cmdnames}
-            didyoumean = difflib.get_close_matches(argv[0].lower(),
-                lower2native.keys(), n=1, cutoff=0)[0]
+            didyoumean = difflib.get_close_matches(
+                argv[0].lower(), lower2native.keys(), n=1, cutoff=0)[0]
             self.parser.error("invalid choice: '%s'. did you mean '%s'?" % (
                 argv[0], lower2native[didyoumean]))
             sys.exit(1)
@@ -427,12 +421,12 @@ class App(object):
         # do this, you need to increase the "action_max_length" argument which
         # puts more whitespace between the end of the action name and the start
         # of the helptext.
+        fmt_class = lambda prog: MyHelpFormatter(
+            prog, indent_increment=1, width=120, action_max_length=22)
         parser = argparse.ArgumentParser(
-            description=self.description, formatter_class=lambda prog: MyHelpFormatter(prog,
-            indent_increment=1, width=120, action_max_length=22))
+            description=self.description, formatter_class=fmt_class)
 
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
-
 
         def _key(klass):
             #return getattr(klass, '_group', klass)
@@ -512,6 +506,7 @@ def exttype(suffix):
         first, last = os.path.splitext(s)
         return first + suffix
     return inner
+
 
 def stripquotestype(s):
     return s.strip('\'"')

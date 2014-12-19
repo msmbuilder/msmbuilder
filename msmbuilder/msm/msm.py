@@ -161,7 +161,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                raw_counts, self.ergodic_cutoff, self.verbose)
+                self.lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             # no ergodic trimming.

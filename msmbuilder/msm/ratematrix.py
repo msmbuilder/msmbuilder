@@ -15,11 +15,11 @@ from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _transition_counts,
-                   _normalize_eigensystem)
+                   _solve_ratemat_eigensystem)
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
-    """Reversible first order master equation model
+    """Reversible first order Master equation model
 
     This model fits a reversible continuous-time Markov model for labeled
     sequence data.
@@ -158,8 +158,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.populations_ = exptheta[-n_states:] / exptheta[-n_states:].sum()
         self.information_ = None
 
+        n_timescales = self.n_timescales
+        if n_timescales is None:
+            n_timescales = self.n_states_ - 1
+        k = n_timescales + 1
         self.eigenvalues_, self.left_eigenvectors_, self.right_eigenvectors_ = \
-            self._solve_eigensystem()
+            _solve_ratemat_eigensystem(self.theta_, k, self.n_states_, self.inds_)
         self.timescales_ = -1 / self.eigenvalues_[1:]
 
         return self
@@ -381,22 +385,3 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             trace = np.nan
 
         return trace
-
-    def _solve_eigensystem(self):
-        n = self.n_states_
-
-        n_timescales = self.n_timescales
-        if n_timescales is None:
-            n_timescales = self.n_states_ - 1
-        k = n_timescales + 1
-
-        S = np.zeros((n, n))
-        exptheta = np.exp(self.theta_)
-        _ratematrix.build_ratemat(exptheta, n, self.inds_, S, which='S')
-        u, lv, rv = map(np.asarray, _ratematrix.eig_K(S, n, exptheta[-n:], 'S'))
-        order = np.argsort(-u)
-        u = u[order[:k]]
-        lv = lv[:, order[:k]]
-        rv = rv[:, order[:k]]
-
-        return _normalize_eigensystem(u, lv, rv)

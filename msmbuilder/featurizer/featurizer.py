@@ -443,9 +443,9 @@ class GaussianSolventFeaturizer(Featurizer):
 
     Parameters
     ----------
-    solute_indices : np.ndarray, shape=(n_solute,1)
+    solute_indices : np.ndarray, shape=(n_solute,)
         Indices of solute atoms
-    solvent_indices : np.ndarray, shape=(n_solvent, 1)
+    solvent_indices : np.ndarray, shape=(n_solvent,)
         Indices of solvent atoms
     sigma : float
         Sets the length scale for the gaussian kernel
@@ -460,8 +460,8 @@ class GaussianSolventFeaturizer(Featurizer):
     """
 
     def __init__(self, solute_indices, solvent_indices, sigma, periodic=False):
-        self.solute_indices = solute_indices[:, 0]
-        self.solvent_indices = solvent_indices[:, 0]
+        self.solute_indices = solute_indices
+        self.solvent_indices = solvent_indices
         self.sigma = sigma
         self.periodic = periodic
         self.n_features = len(self.solute_indices)
