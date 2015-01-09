@@ -12,7 +12,7 @@ script:
   # this builds the binary, unpacks it, and runs the tests
   - conda build devtools/conda-recipe
   # check that any changed python files are pep8
-  - conda install pep8
+  - conda install --yes pep8
   - git diff --name-only master | grep '.*.py$' | xargs pep8 --ignore E265,E501
 
 env:
