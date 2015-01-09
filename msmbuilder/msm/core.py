@@ -303,6 +303,8 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
                                otypes=[np.float])
 
     counts = np.zeros((n_states, n_states), dtype=float)
+    _transitions = []
+    
     for y in sequences:
         y = np.asarray(y)
         from_states = y[: -lag_time: 1]
@@ -322,10 +324,12 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
-        transitions = np.row_stack((from_states, to_states))
-        C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
-            shape=(n_states, n_states))
-        counts = counts + np.asarray(C.todense())
+        _transitions.append(np.row_stack((from_states, to_states)))
+
+    transitions = np.hstack(_transitions)
+    C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
+        shape=(n_states, n_states))
+    counts = counts + np.asarray(C.todense())
 
     return counts / float(lag_time), mapping
 

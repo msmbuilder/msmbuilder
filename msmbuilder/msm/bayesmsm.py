@@ -180,7 +180,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
 
         if self.ergodic_cutoff >= 1:
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                raw_counts, self.ergodic_cutoff, self.verbose)
+                self.lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             self.countsmat_ = raw_counts

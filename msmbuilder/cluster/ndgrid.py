@@ -122,8 +122,8 @@ class _NDGrid(ClusterMixin, TransformerMixin):
         binassign = np.zeros((self.n_features, len(X)), dtype=int)
         for i in range(self.n_features):
             binassign[i] = np.digitize(X[:, i], self.grid[i]) - 1
-        labels = np.dot(self.n_features ** np.arange(self.n_features), binassign)
 
+        labels = np.dot(self.n_bins_per_feature ** np.arange(self.n_features), binassign)
         assert np.max(labels) < self.n_bins
         return labels
 
