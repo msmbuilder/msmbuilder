@@ -22,6 +22,7 @@ __all__ = ['KCenters']
 # Code
 #-----------------------------------------------------------------------------
 
+
 class _KCenters(ClusterMixin, TransformerMixin):
     """K-Centers clustering
 

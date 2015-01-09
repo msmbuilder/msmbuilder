@@ -168,7 +168,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
             if self.landmark_strategy == 'random':
                 land_indices = check_random_state(self.random_state).randint(len(X), size=self.n_landmarks)
             else:
-                land_indices = np.arange(len(X))[::(len(X)//self.n_landmarks)][:self.n_landmarks]
+                land_indices = np.arange(len(X))[::(len(X) // self.n_landmarks)][:self.n_landmarks]
             distances = memory.cache(pdist)(X[land_indices], self.metric)
 
         tree = memory.cache(linkage)(distances, method=self.linkage)

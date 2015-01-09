@@ -13,6 +13,7 @@ import numpy as np
 import mdtraj as md
 from ..utils import check_iter_of_sequences
 
+
 class MultiSequenceClusterMixin(object):
 
     # The API for the scikit-learn Cluster object is, in fit(), that
@@ -157,4 +158,3 @@ class MultiSequenceClusterMixin(object):
     def fit_transform(self, sequences, y=None):
         """Alias for fit_predict"""
         return self.fit_predict(sequences, y)
-

@@ -29,6 +29,7 @@ __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
            'MiniBatchKMedoids', 'MultiSequenceClusterMixin']
 
+
 def _replace_labels(doc):
     """Really hacky find-and-replace method that modifies one of the sklearn
     docstrings to change the semantics of labels_ for the subclasses"""
@@ -41,10 +42,9 @@ def _replace_labels(doc):
         if 'labels' in line and not labelstart and foundattributes:
             labelstart = len('\n'.join(lines[:i]))
         if labelstart and line.strip() == '' and not labelend:
-            labelend = len('\n'.join(lines[:i+1]))
+            labelend = len('\n'.join(lines[:i + 1]))
 
-
-    replace  = '''\n    `labels_` : list of arrays, each of shape [sequence_length, ]
+    replace = '''\n    `labels_` : list of arrays, each of shape [sequence_length, ]
         The label of each point is an integer in [0, n_clusters).
     '''
 
@@ -54,6 +54,7 @@ def _replace_labels(doc):
 # New "multisequence" versions of all of the clustering algorithims in sklearn
 #-----------------------------------------------------------------------------
 
+
 class KMeans(MultiSequenceClusterMixin, cluster.KMeans, BaseEstimator):
     __doc__ = _replace_labels(cluster.KMeans.__doc__)
 
@@ -61,18 +62,22 @@ class KMeans(MultiSequenceClusterMixin, cluster.KMeans, BaseEstimator):
 class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans, BaseEstimator):
     __doc__ = _replace_labels(cluster.MiniBatchKMeans.__doc__)
 
+
 class AffinityPropagation(MultiSequenceClusterMixin, cluster.AffinityPropagation, BaseEstimator):
     __doc__ = _replace_labels(cluster.AffinityPropagation.__doc__)
+
 
 class MeanShift(MultiSequenceClusterMixin, cluster.MeanShift, BaseEstimator):
     __doc__ = _replace_labels(cluster.MeanShift.__doc__)
 
+
 class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering, BaseEstimator):
     __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
+
 
 class Ward(MultiSequenceClusterMixin, cluster.Ward, BaseEstimator):
     __doc__ = _replace_labels(cluster.Ward.__doc__)
 
+
 class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
     __doc__ = _replace_labels(mixture.GMM.__doc__)
-
