@@ -376,7 +376,6 @@ class NumpydocClassCommand(Command):
         return '\n'.join(lines)
 
 
-
 class App(object):
     subcommand_dest = 'subcommand'
 
@@ -395,8 +394,8 @@ class App(object):
         if not argv[0] in cmdnames:
             import difflib
             lower2native = {s.lower(): s for s in cmdnames}
-            didyoumean = difflib.get_close_matches(argv[0].lower(),
-                lower2native.keys(), n=1, cutoff=0)[0]
+            didyoumean = difflib.get_close_matches(
+                argv[0].lower(), lower2native.keys(), n=1, cutoff=0)[0]
             self.parser.error("invalid choice: '%s'. did you mean '%s'?" % (
                 argv[0], lower2native[didyoumean]))
             sys.exit(1)
@@ -422,12 +421,12 @@ class App(object):
         # do this, you need to increase the "action_max_length" argument which
         # puts more whitespace between the end of the action name and the start
         # of the helptext.
+        fmt_class = lambda prog: MyHelpFormatter(
+            prog, indent_increment=1, width=120, action_max_length=22)
         parser = argparse.ArgumentParser(
-            description=self.description, formatter_class=lambda prog: MyHelpFormatter(prog,
-            indent_increment=1, width=120, action_max_length=22))
+            description=self.description, formatter_class=fmt_class)
 
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
-
 
         def _key(klass):
             #return getattr(klass, '_group', klass)
@@ -507,6 +506,7 @@ def exttype(suffix):
         first, last = os.path.splitext(s)
         return first + suffix
     return inner
+
 
 def stripquotestype(s):
     return s.strip('\'"')
