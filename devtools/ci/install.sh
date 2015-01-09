@@ -13,5 +13,5 @@ export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
 conda config --add channels http://conda.binstar.org/omnia
-conda install --yes conda-build
+conda install --yes conda-build pip
 
