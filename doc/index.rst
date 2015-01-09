@@ -1,7 +1,7 @@
 .. _msmbuilder:
 
 MSMBuilder -- Statistical models for Biomolecular Dynamics
-========================================================
+==========================================================
 
 MSMBuilder is a python package which implements a series of statistical
 models for high-dimensional time-series -- the particular focus of the
@@ -38,6 +38,7 @@ licensed under the GNU LGPL (v2.1 or later).
 
     background
     installation
+    changelog
     examples/index
     featurization
     cluster

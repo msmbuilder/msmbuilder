@@ -52,8 +52,8 @@ except ImportError:
     sys.exit(1)
 
 # #########################
-VERSION = '3.0.0-beta'
-ISRELEASED = False
+VERSION = '3.0.0'
+ISRELEASED = True
 __version__ = VERSION
 # #########################
 
