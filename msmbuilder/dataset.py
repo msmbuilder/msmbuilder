@@ -131,14 +131,13 @@ class _BaseDataset(Sequence):
             os.makedirs(path)
             self._write_provenance()
 
-    def create_derived(self, out_path,  comments='', fmt=None):
+    def create_derived(self, out_path, comments='', fmt=None):
         if fmt is None:
             out_dataset = self.__class__(out_path, mode='w', verbose=self.verbose)
         else:
             out_dataset = dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
         out_dataset._write_provenance(previous=self.provenance, comments=comments)
         return out_dataset
-
 
     def apply(self, fn):
         for key in self.keys():
@@ -381,7 +380,7 @@ class MDTrajDataset(_BaseDataset):
                         atom_indices=self.atom_indices)
         else:
             t = md.load(self.filename(i), stride=self.stride,
-                           atom_indices=self.atom_indices, top=self._topology)
+                        atom_indices=self.atom_indices, top=self._topology)
         return t
 
     def filename(self, i):
