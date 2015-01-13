@@ -113,8 +113,8 @@ class GaussianSolventFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = GaussianSolventFeaturizer
 
-    def _solvent_atom_indices_type(self, fn):
+    def _solvent_indices_type(self, fn):
         return np.loadtxt(fn, dtype=int, ndmin=1)
 
-    def _solute_atom_indices_type(self, fn):
+    def _solute_indices_type(self, fn):
         return np.loadtxt(fn, dtype=int, ndmin=1)
