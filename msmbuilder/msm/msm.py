@@ -657,8 +657,9 @@ Timescales:
             for i in range(self.n_states_):
                 ui = self.countsmat_[:, i]
                 wi = np.sum(ui)
-                covariance = wi*np.diag(ui) - np.outer(ui, ui)
-                sigma2[k] += dLambda_dT[i].dot(covariance).dot(dLambda_dT[i]) / (wi**2*(wi+1))
+                cov = wi*np.diag(ui) - np.outer(ui, ui)
+                quad_form = dLambda_dT[i].dot(cov).dot(dLambda_dT[i])
+                sigma2[k] += quad_form / (wi**2*(wi+1))
         return np.sqrt(sigma2)
 
     def uncertainty_timescales(self):
