@@ -10,8 +10,12 @@ from msmbuilder.msm.core import _solve_msm_eigensystem
 
 
 def test_0():
-    random = np.random.RandomState(0)
-    h = 1e-7
+    # Verify that the partial derivatives of the ith eigenvalue of the
+    # transition matrix with respect to the entries of the transition matrix
+    # is given by the outer product of the left and right eigenvectors
+    # corresponding to that eigenvalue.
+    # \frac{\partial \lambda_k}{\partial T_{ij}} = U_{i,k} V_{j,k}
+
     X = load_doublewell(random_state=0)['trajectories']
     Y = NDGrid(n_bins_per_feature=10).fit_transform(X)
     model = MarkovStateModel(verbose=False).fit(Y)
@@ -19,18 +23,27 @@ def test_0():
 
     u, lv, rv = _solve_msm_eigensystem(model.transmat_, n)
 
+    # first, compute forward difference numerical derivatives
+    h = 1e-7
+    dLambda_dP_numeric = np.zeros((n, n, n))
+    # dLambda_dP_numeric[eigenvalue_index, i, j]
+    for i in range(n):
+        for j in range(n):
+            # perturb the (i,j) entry of transmat
+            H = np.zeros((n, n))
+            H[i, j] = h
+            u_perturbed = sorted(np.real(eigvals(model.transmat_ + H)), reverse=True)
+
+            # compute the forward different approx. derivative of each
+            # of the eigenvalues
+            for k in range(n):
+                # sort the eigenvalues of the perturbed matrix in descending
+                # order, to be consistent w/ _solve_msm_eigensystem
+                dLambda_dP_numeric[k, i, j] = (u_perturbed[k] - u[k]) / h
+
     for k in range(n):
-        dLambda_dP_numeric = np.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                H = np.zeros((n, n))
-                H[i, j] = h
-                w = -np.sort(-eigvals(model.transmat_ + H))
-                dLambda_dP_numeric[i, j] = np.real((w[k] - model.eigenvalues_[k]) / h)
-
-
         analytic = np.outer(lv[:, k], rv[:, k])
-        np.testing.assert_almost_equal(dLambda_dP_numeric, analytic, decimal=5)
+        np.testing.assert_almost_equal(dLambda_dP_numeric[k], analytic, decimal=5)
 
 def test_1():
     X = load_doublewell(random_state=0)['trajectories']
