@@ -45,6 +45,7 @@ def test_0():
         analytic = np.outer(lv[:, k], rv[:, k])
         np.testing.assert_almost_equal(dLambda_dP_numeric[k], analytic, decimal=5)
 
+
 def test_1():
     X = load_doublewell(random_state=0)['trajectories']
     for i in range(10):

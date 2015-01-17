@@ -643,6 +643,8 @@ Timescales:
            the distribution of eigenvalues and eigenvectors in Markovian state
            models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
         """
+        if self.reversible_type is None:
+            raise NotImplementedError('reversible_type must be "mle" or "transpose"')
 
         n_timescales = min(self.n_timescales, self.n_states_ - 1)
         if n_timescales is None:
@@ -675,14 +677,14 @@ Timescales:
            the distribution of eigenvalues and eigenvectors in Markovian state
            models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
         """
+        if self.reversible_type is None:
+            raise NotImplementedError('reversible_type must be "mle" or "transpose"')
 
-        n_timescales = min(self.n_timescales, self.n_states_ - 1)
-        if n_timescales is None:
-            n_timescales = self.n_states_ - 1
         u, lv, rv = self._get_eigensystem()
 
-        sigma2 = np.zeros(n_timescales + 1)
-        sigma2_eigs = self.uncertainty_eigenvalues()
-        for k in range(n_timescales + 1):
-            sigma2[k] = sigma2_eigs[k] / (u[k] * np.log(u[k])**2)
-        return sigma2[1:]
+        sigma_eigs = self.uncertainty_eigenvalues()
+        sigma_ts = np.zeros_like(sigma_eigs)
+
+        for k in range(len(sigma_eigs)-1):
+            sigma_ts[k] = sigma_eigs[k] / (u[k] * np.log(u[k])**2)
+        return sigma_ts[1:]   # drop the first eigenvalue
