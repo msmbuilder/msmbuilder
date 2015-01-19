@@ -23,6 +23,7 @@ __all__ = ['load_muller', 'MullerPotential']
 ###############################################################################
 
 # DO NOT CHANGE THESE CONSTANTS WITHOUT UPDATING VERSION ATTRIBUTE
+# AND THE DOCSTRING
 MULLER_PARAMETERS = dict(
     MIN_X=-1.5, MIN_Y=-0.2,
     MAX_X=1.2, MAX_Y=2,
@@ -33,28 +34,6 @@ MULLER_PARAMETERS = dict(
     DT=0.1,
     DIFFUSION_CONST=1e-2,
     VERSION=1)
-
-MULLER_DESCRIPTION = r"""
-    This dataset consists of {N_TRAJECTORIES} trajectories simulated with
-    Brownian dynamics on the Muller potential, a two-dimensional, three-well
-    potential energy surface. The potential is defined in [1]. The dynamics
-    are governed by the stochastic differential equation::
-
-        dx_t/dt = -\nabla V(x)/(kT) + \sqrt{{2D}} * R(t)
-
-    where R(t) is a standard normal white-noise process, and D={DIFFUSION_CONST}.
-    The dynamics are discretized with an euler integrator with timsetep dt={DT},
-    and kT={KT} Each trajectory is simulated for {N_STEPS}, and coordinates are
-    are saved every {THIN} steps. The starting points for the trajectories are
-    sampled from the uniform distribution over the rectangular box between
-    x=({MIN_X}, {MAX_X}) and y=(({MIN_Y}, {MAX_Y}).
-
-    References
-    ----------
-    .. [1] Muller, Klaus, and Leo D. Brown. "Location of saddle points and minimum
-       energypaths by a constrained simplex optimization procedure." Theoretica
-       chimica acta 53.1 (1979): 75-93.
-""".format(**MULLER_PARAMETERS)
 
 
 ###############################################################################
@@ -78,7 +57,28 @@ class MullerPotential(_NWell):
         trajectories will not be cached.
 
     Notes
-    -----"""
+    -----
+    This dataset consists of 10 trajectories simulated with Brownian dynamics
+    on the Muller potential, a two-dimensional, three-well potential energy
+    surface. The potential is defined in [1]. The dynamics are governed by the
+    stochastic differential equation::
+
+        dx_t/dt = -\nabla V(x)/(kT) + \sqrt{2D} * R(t)
+
+    where R(t) is a standard normal white-noise process, and D=1e-2. The
+    dynamics are discretized with an euler integrator with timsetep dt=0.1,
+    and kT=1.5e4 Each trajectory is simulated for 1000000 steps, and
+    coordinates are are saved every 100 steps. The starting points for the
+    trajectories are sampled from the uniform distribution over the rectangular
+    box between x=(-1.5, 1.2) and y=(-0.2, 2.0).
+
+    References
+    ----------
+    .. [1] Muller, Klaus, and Leo D. Brown. "Location of saddle points and minimum
+       energypaths by a constrained simplex optimization procedure." Theoretica
+       chimica acta 53.1 (1979): 75-93.
+    """
+
     target_name = "muller"
     version = MULLER_PARAMETERS['VERSION']
 
@@ -123,5 +123,4 @@ class MullerPotential(_NWell):
 def load_muller(data_home=None, random_state=None):
     return MullerPotential(data_home, random_state).get()
 
-MullerPotential.__doc__ += MULLER_DESCRIPTION
 load_muller.__doc__ = MullerPotential.__doc__
