@@ -7,6 +7,7 @@ from .brownian1d import doublewell_eigs, quadwell_eigs
 from .alanine_dipeptide import fetch_alanine_dipeptide, AlanineDipeptide
 from .met_enkephalin import fetch_met_enkephalin, MetEnkephalin
 from .fs_peptide import fetch_fs_peptide, FsPeptide
+from .muller import MullerPotential, load_muller
 
 __all__ = [
     'get_data_home',
@@ -22,5 +23,7 @@ __all__ = [
     'MetEnkephalin',
     'FsPeptide',
     'DoubleWell',
-    'QuadWell'
+    'QuadWell',
+    'Muller',
+    'load_muller',
 ]

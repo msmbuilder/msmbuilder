@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import
 
 from ..cmdline import NumpydocClassCommand
 from ..example_datasets import (AlanineDipeptide, DoubleWell, QuadWell, FsPeptide,
-                                MetEnkephalin)
+                                MetEnkephalin, MullerPotential)
 
 
 class DatasetCommand(NumpydocClassCommand):
@@ -29,13 +29,22 @@ class _NWellDatasetCommand(DatasetCommand):
 class DoubleWellDatasetCommand(_NWellDatasetCommand):
     _concrete = True
     klass = DoubleWell
-    description = 'Generate example double well potential dataset.'
+    description = ('Generate example double well potential dataset.\n\n' +
+                    DoubleWell.description())
 
 
 class QuadWellDatasetCommand(_NWellDatasetCommand):
     _concrete = True
     klass = QuadWell
-    description = 'Generate example quad-well potential dataset.'
+    description = ('Generate example quad-well potential dataset.\n\n' +
+                   QuadWell.description())
+
+
+class MullerPotentialDatasetCommand(_NWellDatasetCommand):
+    _concrete = True
+    klass = MullerPotential
+    description = ('Generate example Muller potential dataset.\n\n'
+                   + MullerPotential.description())
 
 
 class FsPeptideDatasetCommand(DatasetCommand):
