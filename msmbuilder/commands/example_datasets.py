@@ -29,7 +29,7 @@ class _NWellDatasetCommand(DatasetCommand):
 class DoubleWellDatasetCommand(_NWellDatasetCommand):
     _concrete = True
     klass = DoubleWell
-    description = ('Generate example double well potential dataset.' +
+    description = ('Generate example double well potential dataset.\n\n' +
                     DoubleWell.description())
 
 

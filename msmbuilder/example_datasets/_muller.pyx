@@ -14,7 +14,8 @@ cdef double *MULLER_YY = [0, 0.5, 1.5, 1]
 
 def propagate(int n_steps=5000, x0=[-0.5, 0.5], int thin=1,
               double kT=1.5e4, double dt=0.1, double D=0.010,
-              random_state=None):
+              random_state=None, double min_x=-np.inf, double max_x=np.inf,
+              double min_y=-np.inf, double max_y=np.inf):
     random = check_random_state(random_state)
     cdef int i, j
     cdef int save_index = 0
@@ -32,6 +33,15 @@ def propagate(int n_steps=5000, x0=[-0.5, 0.5], int thin=1,
             # Brownian update
             x = x - dt * grad[0] + DT_SQRT_2D * r[i, 0]
             y = y - dt * grad[1] + DT_SQRT_2D * r[i, 1]
+
+            if x > max_x:
+                x = 2 * max_x - x
+            if x < min_x:
+                x = 2 * min_x - x
+            if y > max_y:
+                y = 2 * max_y - y
+            if y < min_y:
+                y = 2 * min_y - y
 
             if i % thin == 0:
                 saved_x[save_index, 0] = x

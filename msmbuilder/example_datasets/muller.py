@@ -95,7 +95,9 @@ class MullerPotential(_NWell):
         return tp.map(lambda x0:
             propagate(
                 n_steps=M['N_STEPS'], x0=x0, thin=M['THIN'], kT=M['KT'],
-                dt=M['DT'], D=M['DIFFUSION_CONST'], random_state=random), x0)
+                dt=M['DT'], D=M['DIFFUSION_CONST'], random_state=random,
+                min_x=M['MIN_X'], max_x=M['MAX_X'], min_y=M['MIN_Y'],
+                max_y=M['MAX_Y']), x0)
 
     def potential(self, x, y):
         return muller_potential(x, y)
