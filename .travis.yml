@@ -7,6 +7,9 @@ branches:
 install:
   - source devtools/ci/install.sh
   - export PYTHONUNBUFFERED=true
+  # start Virtual X, so default matplotlib backend works
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
 
 script:
   # this builds the binary, unpacks it, and runs the tests
