@@ -55,6 +55,7 @@ class _NWell(Dataset):
     """
 
     target_name = ""  # define in subclass
+    version = 1       # override in subclass if parameters are updated
 
     def __init__(self, data_home=None, random_state=None):
         self.data_home = get_data_home(data_home)
@@ -74,7 +75,8 @@ class _NWell(Dataset):
             if not isinstance(self.random_state, numbers.Integral):
                 raise TypeError('random_state must be an int')
             path = join(self.data_dir,
-                        'version-1_random-state-%d.pkl' % self.random_state)
+                        'version-%d_random-state-%d.pkl' % (
+                        self.version, self.random_state))
             self.cache_path = path
             if exists(path):
                 return verboseload(path)

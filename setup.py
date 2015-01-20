@@ -105,6 +105,11 @@ DEF OPENMP = {openmp}
 
 extensions = []
 extensions.append(
+    Extension('msmbuilder.example_datasets._muller',
+              sources=[pjoin('msmbuilder', 'example_datasets', '_muller.pyx')],
+              include_dirs=[np.get_include()]))
+
+extensions.append(
     Extension('msmbuilder.msm._markovstatemodel',
               sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),
                        pjoin(MSMDIR, 'src/transmat_mle_prinz.c')],
