@@ -678,7 +678,9 @@ Timescales:
            the distribution of eigenvalues and eigenvectors in Markovian state
            models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
         """
-        u, lv, rv = self._get_eigensystem()
-        sigma_eigs = self.uncertainty_eigenvalues()
+        # drop the first eigenvalue
+        u = self.eigenvalues_[1:]
+        sigma_eigs = self.uncertainty_eigenvalues()[1:]
+
         sigma_ts = sigma_eigs / (u * np.log(u)**2)
-        return sigma_ts[1:]  # drop the first eigenvalue
+        return sigma_ts
