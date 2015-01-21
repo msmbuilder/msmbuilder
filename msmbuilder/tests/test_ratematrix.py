@@ -301,13 +301,11 @@ def test_score_2():
     assignments = cluster.fit_transform(ds)
     test_indices = [5, 0, 4, 1, 2]
     train_indices = [3, 6, 7, 8, 9]
-    model = ContinuousTimeMSM(lag_time=3, ftol=1e-8, n_timescales=1, sliding_window=True)
-    # model = MarkovStateModel(lag_time=3, verbose=False, n_timescales=2)
 
+    model = ContinuousTimeMSM(lag_time=3, ftol=1e-8, n_timescales=1)
     model.fit([assignments[i] for i in train_indices])
-    print(model.score_)
-    print(model.score([assignments[i] for i in test_indices]))
+    test = model.score([assignments[i] for i in test_indices])
+    train = model.score_
+    assert 0 >= test >= -1
+    assert 0 >= train >= -1
 
-    #
-    # model.fit([assignments[i] for i in test_indices])
-    # print(model.score([assignments[i] for i in test_indices]))
