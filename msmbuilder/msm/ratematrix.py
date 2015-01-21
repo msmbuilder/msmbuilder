@@ -14,7 +14,7 @@ from ..base import BaseEstimator
 from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import (_MappingTransformMixin, _transition_counts, _dict_compose
+from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
                    _normalize_eigensystem, _strongly_connected_subgraph)
 
 
