@@ -15,7 +15,7 @@ from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _transition_counts,
-                   _normalize_eigensystem)
+                   _normalize_eigensystem, _dict_compose)
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
@@ -303,7 +303,13 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         if guess is None or guess.shape != countsmat.shape:
             transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
 
-            K = np.real(scipy.linalg.logm(transmat))
+            try:
+                K = np.real(scipy.linalg.logm(transmat))
+            except:
+                print(transmat)
+                print()
+                print(countsmat)
+                raise
             S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
         else:
             n = guess.shape[0]
@@ -331,7 +337,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         """Training score of the model, computed as the generalized matrix,
         Rayleigh quotient, the sum of the first `n_components` eigenvalues
         """
-        return self.eigenvalues_.sum()
+        return np.exp(self.eigenvalues_).sum()
 
     def score(self, sequences, y=None):
         """Score the model on new data using the generalized matrix Rayleigh
@@ -365,15 +371,10 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         m2.fit(sequences)
 
         if self.mapping_ != m2.mapping_:
-            #V = self._map_eigenvectors(V, m2.mapping_)
-            # we need to map this model's eigenvectors
-            # into the m2 space
-            raise NotImplementedError()
+            V = self._map_eigenvectors(V, m2.mapping_)
 
-        # How well do they diagonalize S and C, which are
-        # computed from the new test data?
         S = np.diag(m2.populations_)
-        C = S.dot(m2.ratemat_)
+        C = S.dot(m2.transmat_)
 
         try:
             trace = np.trace(V.T.dot(C.dot(V)).dot(np.linalg.inv(V.T.dot(S.dot(V)))))
@@ -381,6 +382,15 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             trace = np.nan
 
         return trace
+
+    def _map_eigenvectors(self, V, other_mapping):
+        self_inverse_mapping = {v: k for k, v in self.mapping_.items()}
+        transform_mapping = _dict_compose(self_inverse_mapping, other_mapping)
+        source_indices, dest_indices = zip(*transform_mapping.items())
+
+        mapped_V = np.zeros((len(other_mapping), V.shape[1]))
+        mapped_V[dest_indices, :] = np.take(V, source_indices, axis=0)
+        return mapped_V
 
     def _solve_eigensystem(self):
         n = self.n_states_
