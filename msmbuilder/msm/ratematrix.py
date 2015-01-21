@@ -14,8 +14,8 @@ from ..base import BaseEstimator
 from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import (_MappingTransformMixin, _transition_counts,
-                   _normalize_eigensystem)
+from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
+                   _normalize_eigensystem, _strongly_connected_subgraph)
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
@@ -42,6 +42,13 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         will be given nonzero probability.
     n_timescales : int, optional
         Number of implied timescales to calculate.
+    ergodic_cutoff : int, default=1
+        Only the maximal strongly ergodic subgraph of the data is used to build
+        an MSM. Ergodicity is determined by ensuring that each state is
+        accessible from each other state via one or more paths involving edges
+        with a number of observed directed counts greater than or equal to
+        ``ergodic_cutoff``. Not that by setting ``ergodic_cutoff`` to 0, this
+        trimming is effectively turned off.
     use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
     ftol : float, default=1e-6
@@ -104,11 +111,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, n_timescales=None,
-                 use_sparse=True, ftol=1e-6, sliding_window=True,
+                 ergodic_cutoff=1, use_sparse=True, ftol=1e-6, sliding_window=True,
                  guess_ratemat=None, verbose=False):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.n_timescales = n_timescales
+        self.ergodic_cutoff = ergodic_cutoff
         self.verbose = verbose
         self.use_sparse = use_sparse
         self.ftol = ftol
@@ -137,8 +145,18 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         lag_time = int(self.lag_time)
         if lag_time < 1:
             raise ValueError('lag_time must be >= 1')
-        countsmat, mapping = _transition_counts(
+        raw_counts, mapping = _transition_counts(
             sequences, int(lag_time), self.sliding_window)
+
+        if self.ergodic_cutoff >= 1:
+            # step 2. restrict the counts to the maximal strongly ergodic
+            # subgraph
+            countsmat, mapping2 = _strongly_connected_subgraph(
+                lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
+            mapping = _dict_compose(mapping, mapping2)
+        else:
+            # no ergodic trimming.
+            countsmat = raw_counts
 
         n_states = countsmat.shape[0]
         result, inds = self._optimize(countsmat + self.prior_counts)
@@ -365,13 +383,8 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         m2.fit(sequences)
 
         if self.mapping_ != m2.mapping_:
-            #V = self._map_eigenvectors(V, m2.mapping_)
-            # we need to map this model's eigenvectors
-            # into the m2 space
-            raise NotImplementedError()
+            V = self._map_eigenvectors(V, m2.mapping_)
 
-        # How well do they diagonalize S and C, which are
-        # computed from the new test data?
         S = np.diag(m2.populations_)
         C = S.dot(m2.ratemat_)
 
@@ -381,6 +394,15 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             trace = np.nan
 
         return trace
+
+    def _map_eigenvectors(self, V, other_mapping):
+        self_inverse_mapping = {v: k for k, v in self.mapping_.items()}
+        transform_mapping = _dict_compose(self_inverse_mapping, other_mapping)
+        source_indices, dest_indices = zip(*transform_mapping.items())
+
+        mapped_V = np.zeros((len(other_mapping), V.shape[1]))
+        mapped_V[dest_indices, :] = np.take(V, source_indices, axis=0)
+        return mapped_V
 
     def _solve_eigensystem(self):
         n = self.n_states_

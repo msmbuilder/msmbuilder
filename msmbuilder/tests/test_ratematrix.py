@@ -13,6 +13,7 @@ except ImportError:
 
 from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
+from msmbuilder.example_datasets import MullerPotential
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
 random = np.random.RandomState(0)
@@ -279,7 +280,6 @@ def test_score_1():
     np.testing.assert_approx_equal(model.score(seqs), model.score_)
 
 
-
 def test_optimize_1():
     n = 100
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
@@ -291,8 +291,21 @@ def test_optimize_1():
     x = x-x[0]
     cross = np.min(np.where(n==n[-1])[0])
 
-    #import matplotlib.pyplot as pp
-    #pp.plot(x[cross], y[cross], 'kx')
-    #pp.axvline(x[cross], c='k')
-    #pp.plot(x, y)
-    #pp.show()
+
+def test_score_2():
+    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    ds = MullerPotential(random_state=0).get()['trajectories']
+    cluster = NDGrid(n_bins_per_feature=6,
+          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+    assignments = cluster.fit_transform(ds)
+    test_indices = [5, 0, 4, 1, 2]
+    train_indices = [3, 6, 7, 8, 9]
+
+    model = ContinuousTimeMSM(lag_time=3, ftol=1e-8, n_timescales=1)
+    model.fit([assignments[i] for i in train_indices])
+    test = model.score([assignments[i] for i in test_indices])
+    train = model.score_
+    assert 0 >= test >= -1
+    assert 0 >= train >= -1
+
