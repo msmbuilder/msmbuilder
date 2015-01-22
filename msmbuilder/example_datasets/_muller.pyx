@@ -61,35 +61,35 @@ def muller_potential(x, y, beta=1):
 
 
 cdef double _muller_potential(double x, double y, double beta=1) nogil:
-    cdef npy_intp j;
-    cdef double value = 0;
+    cdef npy_intp j
+    cdef double value = 0
 
     for j in range(4):
         value += MULLER_AA[j] * exp(
             MULLER_aa[j] * (x - MULLER_XX[j])**2
             + MULLER_bb[j] * (x - MULLER_XX[j]) * (y - MULLER_YY[j])
-            + MULLER_cc[j] * (y - MULLER_YY[j])**2);
-    return beta * value;
+            + MULLER_cc[j] * (y - MULLER_YY[j])**2)
+    return beta * value
 
 
 cdef void _muller_grad(double x, double y, double beta, double grad[2]) nogil:
-    cdef int j;
-    cdef double value = 0;
-    cdef double term;
-    grad[0] = 0;
-    grad[1] = 0;
+    cdef int j
+    cdef double value = 0
+    cdef double term
+    grad[0] = 0
+    grad[1] = 0
 
     for j in range(4):
         # this is the potential term
         term = MULLER_AA[j] * exp(
             MULLER_aa[j] * (x - MULLER_XX[j])**2
             + MULLER_bb[j] * (x - MULLER_XX[j]) * (y - MULLER_YY[j])
-            + MULLER_cc[j] * (y - MULLER_YY[j])**2);
+            + MULLER_cc[j] * (y - MULLER_YY[j])**2)
 
         grad[0] += (2 * MULLER_aa[j] * (x - MULLER_XX[j])
-                + MULLER_bb[j] * (y - MULLER_YY[j])) * term;
+                + MULLER_bb[j] * (y - MULLER_YY[j])) * term
         grad[1] += (MULLER_bb[j] * (x - MULLER_XX[j])
-                + 2 * MULLER_cc[j] * (y - MULLER_YY[j])) * term;
+                + 2 * MULLER_cc[j] * (y - MULLER_YY[j])) * term
 
-    grad[0] *= beta;
-    grad[1] *= beta;
+    grad[0] *= beta
+    grad[1] *= beta
