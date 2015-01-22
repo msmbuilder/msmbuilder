@@ -17,7 +17,7 @@ requirements:
   build:
     - python
     - setuptools
-    - cython    
+    - cython
     - numpy
     - mdtraj
   run:
@@ -38,13 +38,14 @@ test:
     - nose
     - munkres
     - numdifftools
+    - matplotlib
   imports:
     - msmbuilder
   commands:
     - msmb -h
     - nosetests msmbuilder -v
-  
-  
+
+
 about:
   home: https://github.com/msmbuilder/msmbuilder
   license: LGPLv2.1+
