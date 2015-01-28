@@ -83,6 +83,8 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
 
 
 def _guess_format(path):
+    """Guess the format of a dataset based on its filename / filenames.
+    """
     if isinstance(path, (list, tuple)):
         fmt = _guess_format(path[0])
         err = "Only the union of 'dir-npy' and 'hdf5' formats is supported"
@@ -177,6 +179,8 @@ class _BaseDataset(Sequence):
             yield self.get(key)
 
     def keys(self):
+        # keys()[i], get(i) and set(i, x) should all follow
+        # the same ordering convention for the indices / items.
         raise NotImplementedError('implemeneted in subclass')
 
     def get(self, i):
@@ -306,7 +310,8 @@ class HDF5Dataset(_BaseDataset):
         return self._handle.get_node('/', self._ITEM_FORMAT % i)[:]
 
     def keys(self):
-        for node in self._handle.iter_nodes('/'):
+        nodes = self._handle.list_nodes('/')
+        for node in sorted(nodes, key=lambda x: _keynat(x.name)):
             match = self._ITEM_RE.match(node.name)
             if match:
                 yield int(match.group(1))
