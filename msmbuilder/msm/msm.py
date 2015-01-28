@@ -627,3 +627,60 @@ Timescales:
             selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
 
         return np.array(selected_pairs_by_state)
+
+    def uncertainty_eigenvalues(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the model eigenvalues.
+
+        Returns
+        -------
+        sigma_eigs : np.array, shape=(n_timescales+1,)
+            The estimated symptotic standard deviation in the eigenvalues.
+
+        References
+        ----------
+        .. [1] Hinrichs, Nina Singhal, and Vijay S. Pande. "Calculation of
+           the distribution of eigenvalues and eigenvectors in Markovian state
+           models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
+        """
+        if self.reversible_type is None:
+            raise NotImplementedError('reversible_type must be "mle" or "transpose"')
+
+        n_timescales = min(self.n_timescales, self.n_states_ - 1)
+        if n_timescales is None:
+            n_timescales = self.n_states_ - 1
+        u, lv, rv = self._get_eigensystem()
+
+        sigma2 = np.zeros(n_timescales + 1)
+        for k in range(n_timescales + 1):
+            dLambda_dT = np.outer(lv[:, k], rv[:, k])
+            for i in range(self.n_states_):
+                ui = self.countsmat_[:, i]
+                wi = np.sum(ui)
+                cov = wi*np.diag(ui) - np.outer(ui, ui)
+                quad_form = dLambda_dT[i].dot(cov).dot(dLambda_dT[i])
+                sigma2[k] += quad_form / (wi**2*(wi+1))
+        return np.sqrt(sigma2)
+
+    def uncertainty_timescales(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the model implied timescales.
+
+        Returns
+        -------
+        sigma_timescales : np.array, shape=(n_timescales,)
+            The estimated symptotic standard deviation in the implied
+            timescales.
+
+        References
+        ----------
+        .. [1] Hinrichs, Nina Singhal, and Vijay S. Pande. "Calculation of
+           the distribution of eigenvalues and eigenvectors in Markovian state
+           models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
+        """
+        # drop the first eigenvalue
+        u = self.eigenvalues_[1:]
+        sigma_eigs = self.uncertainty_eigenvalues()[1:]
+
+        sigma_ts = sigma_eigs / (u * np.log(u)**2)
+        return sigma_ts

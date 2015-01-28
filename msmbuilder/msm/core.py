@@ -17,8 +17,8 @@ from ..utils import list_of_1d
 
 __all__ = [
     '_MappingTransformMixin', '_dict_compose', '_strongly_connected_subgraph',
-    '_transition_counts',
-    '_solve_msm_eigensystem', '_solve_ratemat_eigensystem',
+    '_transition_counts', '_solve_ratemat_eigensystem', '_normalize_eigensystem',
+    '_solve_msm_eigensystem',
 ]
 
 
@@ -356,7 +356,7 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
 
     counts = np.zeros((n_states, n_states), dtype=float)
     _transitions = []
-    
+
     for y in sequences:
         y = np.asarray(y)
         from_states = y[: -lag_time: 1]

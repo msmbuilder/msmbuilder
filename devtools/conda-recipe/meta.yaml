@@ -20,7 +20,6 @@ requirements:
     - cython
     - numpy
     - mdtraj
-
   run:
     - python
     - setuptools
@@ -40,7 +39,7 @@ test:
     - nose
     - munkres
     - numdifftools
-    - pyhmc
+    - matplotlib
     - statsmodels
   imports:
     - msmbuilder
