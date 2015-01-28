@@ -15,7 +15,8 @@ from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
-                   _normalize_eigensystem, _strongly_connected_subgraph)
+                   _normalize_eigensystem, _solve_ratemat_eigensystem,
+                   _strongly_connected_subgraph)
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
@@ -54,7 +55,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     ftol : float, default=1e-6
         Iteration stops when the relative increase in the log-likelihood is less
         than this cutoff.
-    sliding_window : bool, optional
+    sliding_window : bool, default=True
         Count transitions using a window of length ``lag_time``, which is slid
         along the sequences 1 unit at a time, yielding transitions which contain
         more data but cannot be assumed to be statistically independent. Otherwise,
@@ -176,8 +177,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.populations_ = exptheta[-n_states:] / exptheta[-n_states:].sum()
         self.information_ = None
 
+        n_timescales = self.n_timescales
+        if n_timescales is None:
+            n_timescales = self.n_states_ - 1
+        k = n_timescales + 1
         self.eigenvalues_, self.left_eigenvectors_, self.right_eigenvectors_ = \
-            self._solve_eigensystem()
+            _solve_ratemat_eigensystem(self.theta_, k, self.n_states_, self.inds_)
         self.timescales_ = -1 / self.eigenvalues_[1:]
 
         return self

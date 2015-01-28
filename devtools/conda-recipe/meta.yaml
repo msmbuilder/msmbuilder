@@ -31,6 +31,7 @@ requirements:
     - scikit-learn
     - numpydoc
     - pytables
+    - pyhmc
 
 
 test:
@@ -39,6 +40,7 @@ test:
     - munkres
     - numdifftools
     - matplotlib
+    - statsmodels
   imports:
     - msmbuilder
   commands:

@@ -55,7 +55,7 @@ from ._metzner_mcmc_slow import metzner_mcmc_slow
 
 
 class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
-    """Bayesian Markov state model
+    """Bayesian reversible Markov state model.
 
     Variant of ``MarkovStateModel`` which estimates a distribution over
     transition matrices instead of a single transition matrix using
@@ -306,14 +306,14 @@ sampler          : {sampler}
 Number of states : {n_states}
 
 Timescales:
-    mean : [{mean_ts}]  units 
+    mean : [{mean_ts}]  units
     stdev: [{std_ts}]  units""".format(lag_time=self.lag_time, reversible=self.reversible,
                              ergodic_cutoff=self.ergodic_cutoff, prior_counts=self.prior_counts,
                              n_samples=self.n_samples, n_steps=self.n_steps,
                              n_chains=self.n_chains, n_timescales=self.n_timescales,
                              sampler=self.sampler,
                              n_states=self.n_states_,
-                             mean_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.mean(0)]), 
+                             mean_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.mean(0)]),
                              std_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.std(0)]))
 
     @property
