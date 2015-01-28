@@ -6,7 +6,7 @@ from six.moves import cPickle
 
 import numpy as np
 from nose.tools import assert_raises
-from msmbuilder.dataset import dataset
+from msmbuilder.dataset import dataset, _keynat, NumpyDirDataset
 from mdtraj.testing import get_fn
 from sklearn.externals.joblib import Parallel, delayed
 
@@ -212,6 +212,7 @@ def test_union_2():
         mds_out = mds.create_derived('derived', fmt='dir-npy')
         assert len(mds_out.provenance.split('\n')) > 0
 
+
 def test_union_3():
     with tempdir():
         # This doesn't work with py2.6
@@ -224,3 +225,15 @@ def test_union_3():
 
         with assert_raises(ValueError):
             mds = dataset(['ds1', 'ds2'])
+
+def test_order_1():
+    with tempdir():
+        with dataset('ds1.h5', 'w', 'hdf5') as ds1:
+            for i in range(20):
+                ds1[i] = np.random.randn(10)
+            assert list(ds1.keys()) == list(range(20))
+
+        with dataset('ds1/', 'w', 'dir-npy') as ds1:
+            for i in range(20):
+                ds1[i] = np.random.randn(10)
+            assert list(ds1.keys()) == list(range(20))
