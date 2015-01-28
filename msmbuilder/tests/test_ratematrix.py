@@ -306,6 +306,32 @@ def test_score_2():
     model.fit([assignments[i] for i in train_indices])
     test = model.score([assignments[i] for i in test_indices])
     train = model.score_
-    assert 0 >= test >= -1
-    assert 0 >= train >= -1
+    print('train', train, 'test', test)
+    assert 1 <= test < 2
+    assert 1 <= train < 2
 
+
+def test_score_3():
+    import warnings
+    warnings.simplefilter('ignore')
+    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+
+    cluster = NDGrid(n_bins_per_feature=6,
+          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+
+    ds = MullerPotential(random_state=0).get()['trajectories']
+    assignments = cluster.fit_transform(ds)
+
+    train_indices = [9, 4, 3, 6, 2]
+    test_indices = [8, 0, 5, 7, 1]
+
+    model = ContinuousTimeMSM(lag_time=3, ftol=1e-10, n_timescales=1, sliding_window=False, ergodic_cutoff=1)
+    train_data = [assignments[i] for i in train_indices]
+    test_data = [assignments[i] for i in test_indices]
+
+    model.fit(train_data)
+    train = model.score_
+    test = model.score(test_data)
+    # test = model.score(train_data)
+    print(train, test)
