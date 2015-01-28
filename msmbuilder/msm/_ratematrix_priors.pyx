@@ -64,7 +64,7 @@ cpdef ldirichlet_softmax(const double[::1] theta, const double[::1] alpha,
 
 def lexponential(const double[::1] theta, const double[::1] beta,
                  double[::1] grad=None):
-    r"""Log probability of the expnential distribution. Reparameterized
+    r"""Log probability of the exponential distribution. Reparameterized
     in terms of the log of ``x``::
 
         x = \exp(theta)

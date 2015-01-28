@@ -20,7 +20,7 @@ from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
-    """Reversible first order Master equation model
+    """Reversible first order master equation model
 
     This model fits a reversible continuous-time Markov model for labeled
     sequence data.
@@ -55,7 +55,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     ftol : float, default=1e-6
         Iteration stops when the relative increase in the log-likelihood is less
         than this cutoff.
-    sliding_window : bool, optional
+    sliding_window : bool, default=True
         Count transitions using a window of length ``lag_time``, which is slid
         along the sequences 1 unit at a time, yielding transitions which contain
         more data but cannot be assumed to be statistically independent. Otherwise,
