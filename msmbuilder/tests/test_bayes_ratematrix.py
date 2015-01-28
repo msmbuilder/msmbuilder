@@ -6,7 +6,7 @@ from unittest.case import SkipTest
 
 from msmbuilder.cluster import NDGrid
 from msmbuilder.example_datasets import load_quadwell
-from msmbuilder.msm import ContinuousTimeMSM, HMCContinuousTimeMSM
+from msmbuilder.msm import ContinuousTimeMSM, BayesianContinuousTimeMSM
 from msmbuilder.msm._ratematrix import loglikelihood, ldirichlet_softmax
 from msmbuilder.msm._ratematrix import lexponential
 
@@ -120,6 +120,6 @@ def test_5():
         seqs = grid.fit_transform(load_quadwell(random_state=0)['trajectories'])
 
         # model1 = ContinuousTimeMSM(use_sparse=True).fit(seqs)
-        model2 = HMCContinuousTimeMSM(n_samples=100).fit(seqs)
+        model2 = BayesianContinuousTimeMSM(n_samples=100).fit(seqs)
 
         print(model2.summarize())

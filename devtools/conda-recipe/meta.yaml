@@ -25,7 +25,7 @@ requirements:
     - python
     - setuptools
     - numpy
-    - scipy <=0.14
+    - scipy
     - pandas
     - six
     - mdtraj
