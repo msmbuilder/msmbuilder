@@ -52,9 +52,11 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         trimming is effectively turned off.
     use_sparse : bool, default=True
         Attempt to find a sparse rate matrix.
-    ftol : float, default=1e-6
+    ftol : float, default=1e-10
         Iteration stops when the relative increase in the log-likelihood is less
-        than this cutoff.
+        than this cutoff. Changing this cutoff can trade off between solution
+        quality and runtime. For a 'quick' solution try ~1e-6, and for a vey
+        high precision, go to ~1e-12 or so.
     sliding_window : bool, default=True
         Count transitions using a window of length ``lag_time``, which is slid
         along the sequences 1 unit at a time, yielding transitions which contain
@@ -112,7 +114,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     MarkovStateModel : discrete-time analog
     """
     def __init__(self, lag_time=1, prior_counts=0, n_timescales=None,
-                 ergodic_cutoff=1, use_sparse=True, ftol=1e-6, sliding_window=True,
+                 ergodic_cutoff=1, use_sparse=True, ftol=1e-10, sliding_window=True,
                  guess_ratemat=None, verbose=False):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
