@@ -21,7 +21,7 @@ from ..utils import experimental
 from ..base import BaseEstimator
 
 
-class HMCContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
+class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     """Bayesian reversible first-order Master equation model.
 
     This model is a Bayesian variant of ``ContinuousTimeMSM`` which is sampled
@@ -95,7 +95,7 @@ class HMCContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self._all_right_eigenvectors = None
         self._is_dirty = False
 
-    @experimental('HMCContinuousTimeMSM')
+    @experimental('BayesianContinuousTimeMSM')
     def fit(self, sequences, y=None):
         model = ContinuousTimeMSM(
             lag_time=self.lag_time, prior_counts=0,
