@@ -6,10 +6,7 @@ import scipy.spatial.distance
 from msmbuilder.libdistance import assign_nearest, pdist, dist, sumdist
 from msmbuilder.example_datasets import AlanineDipeptide
 
-
-seed = np.random.randint(2**31-1)
-print('seed', seed, file=sys.stderr)
-random = np.random.RandomState(seed)
+random = np.random.RandomState()
 VECTOR_METRICS = ("euclidean", "sqeuclidean", "cityblock", "chebyshev",
                   "canberra", "braycurtis", "hamming", "jaccard", "cityblock")
 
@@ -19,7 +16,7 @@ def setup():
     X_double = random.randn(10, 2)
     Y_double = random.randn(3, 2)
     X_float = random.randn(10, 2).astype(np.float32)
-    Y_float = np.random.randn(3, 2).astype(np.float32)
+    Y_float = random.randn(3, 2).astype(np.float32)
     X_rmsd = AlanineDipeptide().get().trajectories[0][0:10]
     Y_rmsd = AlanineDipeptide().get().trajectories[0][30:33]
     X_rmsd.center_coordinates()
