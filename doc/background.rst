@@ -5,7 +5,8 @@ Background and Motivation
 
 Conformation Dynamics with MSMBuilder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-`This slide deck <http://htmlpreview.github.io/?https://rawgit.com/kyleabeauchamp/MixtapeTalk/master/index.html>`_,
+https://github.com/rmcgibbo/slidedeck/issues/31
+`This slide deck <http://cdn.rawgit.com/kyleabeauchamp/MixtapeTalk/master/index.html>`_,
 by Kyle A. Beauchamp, gives an introduction to the MSMBuilder (formerly Mixtape) package and the design of its Python API. The code for the slides
 can be found
 `here <https://github.com/kyleabeauchamp/MixtapeTalk>`_.
