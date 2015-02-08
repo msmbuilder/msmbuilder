@@ -62,11 +62,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         along the sequences 1 unit at a time, yielding transitions which contain
         more data but cannot be assumed to be statistically independent. Otherwise,
         the sequences are simply subsampled at an interval of ``lag_time``.
-    guess_ratemat : array of shape=(n_states_, n_states), optional
-        Guess for the rate matrix. This can be used to warm-start the optimizer.
-        Sometimes the optimizer is poorly behaved when the lag time is large,
-        so it can be helpful to seed it from a model estimated using a shorter
-        lag time.
     verbose : bool, default=False
         Verbosity level
 
@@ -115,7 +110,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     """
     def __init__(self, lag_time=1, prior_counts=0, n_timescales=None,
                  ergodic_cutoff=1, use_sparse=True, ftol=1e-10, sliding_window=True,
-                 guess_ratemat=None, verbose=False):
+                 verbose=False):
         self.lag_time = lag_time
         self.prior_counts = prior_counts
         self.n_timescales = n_timescales
@@ -124,7 +119,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.use_sparse = use_sparse
         self.ftol = ftol
         self.sliding_window = sliding_window
-        self.guess_ratemat = guess_ratemat
 
         self.inds_ = None
         self.theta_ = None
@@ -222,7 +216,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             start = time.time()
             f, g = _ratematrix.loglikelihood(
                 theta, countsmat, n, inds, lag_time)
-            print(f)
             loglikelihoods.append((f, start, len(theta)))
             return -f, -g
 
@@ -325,7 +318,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         """
         transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
         K = _ratematrix.logm(transmat, pi, self.lag_time)
-        K = np.maximum(K, 1e-10)
         S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
 
         sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)

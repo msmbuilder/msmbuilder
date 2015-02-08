@@ -359,5 +359,5 @@ def test_fit_3():
 
     ds = MullerPotential(random_state=0).get()['trajectories']
     assignments = cluster.fit_transform(ds)
-    model = ContinuousTimeMSM(lag_time=10)
-    model.fit(train_data)
+    model = ContinuousTimeMSM(lag_time=100, ftol=0.0001)
+    model.fit(assignments)
