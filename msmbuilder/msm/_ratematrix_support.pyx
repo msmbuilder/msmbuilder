@@ -1,7 +1,40 @@
 # This file is designed to be included by _ratematrix.pyx
 
-cpdef eig_K(const double[:, ::1] A, npy_intp n, double[::1] pi=None,
-                    which='K'):
+cpdef logm(const double[:, ::1] A, double[::1] pi, double t=1.0):
+    r"""Compute the principle logarithm of a reversible matrix.
+
+    If :math:`A = exp(tK)`, this expression solves for K given A and t.
+
+    If :math:`A = V diag(\lambda) U^T`, the matrix log is defined as
+    :math:`log(A) = V \log(diag((\lambda)) U^T`, where log(diag(\lambda))
+    is computed by applying the scalar log to each entry on the diagonal.
+    Negative eigenvalues of A are simply truncated to zero.
+    """
+    cdef npy_intp i
+    cdef npy_intp n = len(pi)
+    cdef double[:, ::1] temp, out
+
+    if not (A.shape[0] == A.shape[1] == n):
+        raise ValueError()
+    temp = np.zeros((n, n))
+    out = np.zeros((n, n))
+
+    w, U, V = eig_K(A, len(A), pi)
+    for i in range(n):
+        if w[i] > 0:
+            w[i] = log(w[i]) / t
+        else:
+            w[i] = 0
+
+    for i in range(n):
+        for j in range(n):
+            temp[i, j] = V[i,j] * w[j]
+
+    cdgemm_NT(temp, U, out)
+    return out
+
+
+cpdef eig_K(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
     r"""eig_K(A, n, pi=None, which='K')
 
     Diagonalize the rate matrix, K, from either the matrix K or the symmetric

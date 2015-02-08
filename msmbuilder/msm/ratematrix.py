@@ -222,7 +222,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             start = time.time()
             f, g = _ratematrix.loglikelihood(
                 theta, countsmat, n, inds, lag_time)
-
+            print(f)
             loglikelihoods.append((f, start, len(theta)))
             return -f, -g
 
@@ -323,18 +323,10 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     def _initial_guess(self, countsmat):
         """Generate an initial guess for \theta.
         """
-        guess = self.guess_ratemat
-
-        if guess is None or guess.shape != countsmat.shape:
-            transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
-
-            K = np.real(scipy.linalg.logm(transmat))
-            S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
-        else:
-            n = guess.shape[0]
-            u, lv, _ = map(np.asarray, _ratematrix.eig_K(guess, n, which='K'))
-            pi = lv[:, np.argmax(u)]
-            S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), guess)
+        transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
+        K = _ratematrix.logm(transmat, pi, self.lag_time)
+        K = np.maximum(K, 1e-10)
+        S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
 
         sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)
         theta0 = np.concatenate((np.maximum(-19, np.log(sflat)), np.log(pi)))
