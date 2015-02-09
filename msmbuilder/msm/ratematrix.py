@@ -317,7 +317,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         """Generate an initial guess for \theta.
         """
         transmat, pi = _transmat_mle_prinz(countsmat + self.prior_counts)
-        K = _ratematrix.logm(transmat, pi, self.lag_time)
+        K = np.real(scipy.linalg.logm(transmat)) / self.lag_time
         S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
 
         sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 1e-10)

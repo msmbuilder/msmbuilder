@@ -16,7 +16,6 @@ from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
 from msmbuilder.example_datasets import MullerPotential
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
-from msmbuilder.msm._markovstatemodel import _transmat_mle_prinz
 random = np.random.RandomState(0)
 
 
@@ -33,17 +32,6 @@ def sparse_exptheta(n):
     exp_sp = exptheta[np.nonzero(exptheta)]
     inds_sp = np.nonzero(exptheta)[0]
     return exp_d, exp_sp, inds_sp
-
-
-def test_logm():
-    C = random.randint(5, size=(5,5)).astype(np.double)
-    C += 20 * np.eye(*C.shape)
-    T, pi = _transmat_mle_prinz(C)
-
-    K1 = np.asarray(_ratematrix.logm(T, pi))
-    K2 = scipy.linalg.logm(T)
-
-    np.testing.assert_array_almost_equal(K1, K2)
 
 
 def test_build_ratemat_1():
@@ -344,20 +332,4 @@ def test_score_3():
     model.fit(train_data)
     train = model.score_
     test = model.score(test_data)
-    # test = model.score(train_data)
     print(train, test)
-
-
-def test_fit_3():
-    import warnings
-    warnings.simplefilter('ignore')
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
-
-    cluster = NDGrid(n_bins_per_feature=6,
-          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
-          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
-
-    ds = MullerPotential(random_state=0).get()['trajectories']
-    assignments = cluster.fit_transform(ds)
-    model = ContinuousTimeMSM(lag_time=100, ftol=0.0001)
-    model.fit(assignments)
