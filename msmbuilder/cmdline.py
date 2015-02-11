@@ -49,6 +49,8 @@ import textwrap
 import argparse
 import inspect
 import itertools
+from . import version
+
 try:
     import numpydoc.docscrape
 except ImportError:
@@ -390,7 +392,13 @@ class App(object):
 
         # give a special "did you mean?" message if an invalid subcommand is
         # invoked
-        cmdnames = [e.dest for e in self.parser._subparsers._actions[1]._choices_actions] + ['-h', '--help']
+        cmdnames = []
+        for act in self.parser._subparsers._actions:
+            if hasattr(act, 'option_strings'):
+                cmdnames.extend(act.option_strings)
+            else:
+                cmdnames.extend((e.dest for e in act._choices_actions))
+
         if not argv[0] in cmdnames:
             import difflib
             lower2native = {s.lower(): s for s in cmdnames}
@@ -425,6 +433,9 @@ class App(object):
             prog, indent_increment=1, width=120, action_max_length=22)
         parser = argparse.ArgumentParser(
             description=self.description, formatter_class=fmt_class)
+        parser.add_argument('-v', '--version',
+            help="show program's version number and exit", action = 'version',
+            version='msmbuilder %s' % version.full_version)
 
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
 
