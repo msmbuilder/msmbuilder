@@ -394,10 +394,10 @@ class App(object):
         # invoked
         cmdnames = []
         for act in self.parser._subparsers._actions:
-            if hasattr(act, 'option_strings'):
-                cmdnames.extend(act.option_strings)
-            else:
+            if hasattr(act, '_choices_actions'):
                 cmdnames.extend((e.dest for e in act._choices_actions))
+            else:
+                cmdnames.extend(act.option_strings)
 
         if not argv[0] in cmdnames:
             import difflib
