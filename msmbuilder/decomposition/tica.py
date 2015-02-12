@@ -362,7 +362,7 @@ class tICA(BaseEstimator, TransformerMixin):
         X = np.asarray(array2d(X), dtype=np.float64)
         self._initialize(X.shape[1])
 
-        # We don't need t scream and shout here. Just ignore this data.
+        # We don't need to scream and shout here. Just ignore this data.
         if not len(X) > self.lag_time:
             warnings.warn("length of data (%d) is too short for the lag time (%d)" % (len(X), self.lag_time))
             return
