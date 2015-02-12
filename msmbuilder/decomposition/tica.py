@@ -14,6 +14,7 @@ from ..base import BaseEstimator
 from ..utils import check_iter_of_sequences
 from sklearn.base import TransformerMixin
 from sklearn.utils import array2d
+import warnings
 
 __all__ = ['tICA']
 
@@ -363,6 +364,7 @@ class tICA(BaseEstimator, TransformerMixin):
 
         # We don't need t scream and shout here. Just ignore this data.
         if not len(X) > self.lag_time:
+            warnings.warn("length of data (%d) is too short for the lag time (%d)" % (len(X), self.lag_time))
             return
 
         self.n_observations_ += X.shape[0]
