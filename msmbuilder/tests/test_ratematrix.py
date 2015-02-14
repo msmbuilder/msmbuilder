@@ -3,6 +3,7 @@ import time
 import sys
 import numpy as np
 import scipy.linalg
+from numpy.testing.decorators import skipif
 from scipy.optimize import check_grad, approx_fprime
 try:
     import numdifftools as nd
@@ -19,93 +20,69 @@ from msmbuilder.cluster import NDGrid
 random = np.random.RandomState(0)
 
 
-def dense_exptheta(n):
-    return np.exp(random.randn(int(n*(n-1)/2 + n)))
-
-
-def sparse_exptheta(n):
-    exptheta = np.exp(random.randn(int(n*(n-1)/2 + n)))
-    zero_out = random.randint(low=0, high=n*(n-1)/2, size=2)
-    exptheta[zero_out] = 0
-
-    exp_d = exptheta
-    exp_sp = exptheta[np.nonzero(exptheta)]
-    inds_sp = np.nonzero(exptheta)[0]
-    return exp_d, exp_sp, inds_sp
+def example_theta(n):
+    return random.uniform(0, 1, size=int(n*(n-1)/2 + n))
 
 
 def test_build_ratemat_1():
-    # test build_ratemat in sparse mode vs. dense mode
+    # test build_ratemat
     n = 4
-    exptheta = dense_exptheta(n)
-    u = np.arange(n*(n-1)/2 + n).astype(np.intp)
-    K1 = np.zeros((n, n))
-    K2 = np.zeros((n, n))
+    theta = example_theta(n)
+    K = np.zeros((n, n))
+    _ratematrix.build_ratemat(theta, n, K)
 
-    _ratematrix.build_ratemat(exptheta, n, u, K1)
-    _ratematrix.build_ratemat(exptheta, n, None, K2)
-    np.testing.assert_array_equal(K1, K2)
-
-
-def test_build_ratemat_2():
-    # test build_ratemat in sparse mode vs. dense mode
-    n = 4
-    exp_d, exp_sp, inds_sp = sparse_exptheta(n)
-
-    K1 = np.zeros((n, n))
-    K2 = np.zeros((n, n))
-
-    _ratematrix.build_ratemat(exp_sp, n, inds_sp, K1)
-    _ratematrix.build_ratemat(exp_d, n, None, K2)
-
-    np.testing.assert_array_equal(K1, K2)
+    # diagonal entries are negative
+    assert np.all(np.diag(K) < 0)
+    # off diagonal entries are non-negative
+    assert np.all(np.extract(1-np.eye(n), K) >= 0)
+    # row-sums are 0
+    np.testing.assert_array_almost_equal(np.sum(K, axis=1), 0)
 
 
 def test_dK_dtheta_1():
-    # test function `dK_dtheta` against the numerical gradient of `build_ratemat`
-    # using dense parameterization
+    # test function `dK_dtheta_A` against the numerical gradient of
+    # `build_ratemat
     n = 4
-    A = random.randn(4, 4)
-    exptheta = dense_exptheta(n)
+    theta = example_theta(n)
 
-    def g(i):
-        h = 1e-7
-        e = np.zeros_like(exptheta)
-        e[i] = h
-        K1 = np.zeros((n, n))
-        K2 = np.zeros((n, n))
-        _ratematrix.build_ratemat(exptheta, n, None, K1)
-        _ratematrix.build_ratemat(np.exp(np.log(exptheta) + e), n, None, K2)
-        return np.sum(np.multiply(A, (K2 - K1) / h)), (K2 - K1) / h
+    def func(x, i, j):
+        # (i,j) entry of the rate matrix
+        K = np.zeros((n, n))
+        _ratematrix.build_ratemat(x, n, K)
+        return K[i, j]
 
-    for u in range(len(exptheta)):
+    def grad(x, i, j):
+        # gradient of the (i,j) entry of the rate matrix w.r.t. theta
         dKu = np.zeros((n, n))
-        s_dKu_A = _ratematrix.dK_dtheta_A(exptheta, n, u, None, A, dKu)
-        s_ndKA_u, ndKu = g(u)
-        np.testing.assert_array_almost_equal(s_ndKA_u, s_dKu_A)
-        np.testing.assert_array_almost_equal(dKu, ndKu)
+        g = np.zeros(len(x))
+        for u in range(len(x)):
+            _ratematrix.dK_dtheta_A(x, n, u, None, dKu)
+            g[u] = dKu[i, j]
+        return g
+
+    for i in range(n):
+        for j in range(n):
+            assert check_grad(func, grad, theta, i, j) < 1e-7
 
 
 def test_dK_dtheta_2():
-    # test function `dK_dtheta` against the numerical gradient of `build_ratemat`
-    # using sparse parameterization
+    # test function `dK_dtheta_A` to make sure that the part that hadamards
+    # the matrix against A is correct.
     n = 4
     A = random.randn(4, 4)
-    _, exp_sp, inds_sp = sparse_exptheta(n)
+    theta = example_theta(n)
 
-    def g(i):
-        h = 1e-7
-        e = np.zeros_like(exp_sp)
-        e[i] = h
-        K1 = np.zeros((n, n))
-        K2 = np.zeros((n, n))
-        _ratematrix.build_ratemat(exp_sp, n, inds_sp, K1)
-        _ratematrix.build_ratemat(np.exp(np.log(exp_sp) + e), n, inds_sp, K2)
-        return np.sum(np.multiply(A, (K2 - K1) / h))
+    for u in range(len(theta)):
+        dKu = np.zeros((n, n))
+        _ratematrix.dK_dtheta_A(theta, n, u, None, dKu)
+        value1 = (dKu * A).sum()
 
-    for u in range(len(exp_sp)):
-        s_dKu_A = _ratematrix.dK_dtheta_A(exp_sp, n, u, inds_sp, A)
-        np.testing.assert_array_almost_equal(g(u), s_dKu_A)
+        dKu = np.zeros((n, n))
+        value2 = _ratematrix.dK_dtheta_A(theta, n, u, A, dKu)
+        value3 = _ratematrix.dK_dtheta_A(theta, n, u, A)
+
+        np.testing.assert_approx_equal(value1, value2)
+        np.testing.assert_approx_equal(value1, value3)
 
 
 def test_grad_logl_1():
@@ -113,49 +90,27 @@ def test_grad_logl_1():
     n = 4
     t = 1
     C = random.randint(10, size=(n, n)).astype(float)
-    theta0 = np.log(dense_exptheta(n))
+    theta0 = example_theta(n)
 
     def func(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=None, t=t)[0]
+        return _ratematrix.loglikelihood(theta, C, t=t)[0]
 
     def grad(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=None, t=t)[1]
-
-    assert check_grad(func, grad, theta0) < 1e-4
-
-
-def test_grad_logl_2():
-    # test the gradient of the `loglikelihood` against a numerical gradient
-    # using the sparse parameterization
-    n = 4
-    C = random.randint(10, size=(n, n)).astype(float)
-    _, exptheta_sp, inds_sp = sparse_exptheta(n)
-    theta0 = np.log(exptheta_sp)
-
-    def func(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[0]
-
-    def grad(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[1]
+        return _ratematrix.loglikelihood(theta, C, t=t)[1]
 
     assert check_grad(func, grad, theta0) < 1e-4
 
 
 def test_dw_1():
+    # test the gradient of the eigenvalues of K
     n = 5
     t = 1.0
-    theta0 = np.log(dense_exptheta(n))
-
-    h = 1e-7
-    def bump(u):
-        e = np.zeros_like(theta0)
-        e[u] = h
-        return e
+    theta0 = example_theta(n)
 
     def grad(theta, i):
         # gradient of the ith eigenvalue of K with respect to theta
         K = np.zeros((n, n))
-        _ratematrix.build_ratemat(np.exp(theta), n, None, K)
+        _ratematrix.build_ratemat(theta, n, K)
         w, V = scipy.linalg.eig(K)
         order = np.argsort(np.real(w))
 
@@ -166,7 +121,7 @@ def test_dw_1():
 
         for u in range(len(theta)):
             dKu = np.zeros((n, n))
-            _ratematrix.dK_dtheta_A(np.exp(theta), n, u, None, None, dKu)
+            _ratematrix.dK_dtheta_A(theta, n, u, None, dKu)
             out = np.zeros(n)
             temp = np.zeros(n)
             _ratematrix.dw_du(dKu, U, V, n, temp, out)
@@ -176,7 +131,7 @@ def test_dw_1():
     def func(theta, i):
         # ith eigenvalue of K
         K = np.zeros((n, n))
-        _ratematrix.build_ratemat(np.exp(theta), n, None, K)
+        _ratematrix.build_ratemat(theta, n, K)
         w = np.real(scipy.linalg.eigvals(K))
         w = np.sort(w)
         return w[i]
@@ -188,42 +143,37 @@ def test_dw_1():
 
 
 def test_hessian_1():
-    n = 5
-    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    n = 3
+    seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
 
-    model = ContinuousTimeMSM(use_sparse=False).fit(seqs)
+    model = ContinuousTimeMSM().fit(seqs)
     theta = model.theta_
     C = model.countsmat_
 
-    hessian1 = _ratematrix.hessian(theta, C, n)
-    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C, n)[1])
+    hessian1 = _ratematrix.hessian(theta, C)
+    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])
     hessian2 = Hfun(theta)
 
     # not sure what the cutoff here should be (see plot_test_hessian)
-    assert np.linalg.norm(hessian1-hessian2) < 1
+    assert np.linalg.norm(hessian1-hessian2) < 1e-6
 
 
-def _plot_test_hessian():
-    # plot the difference between the numerical hessian and the analytic
-    # approximate hessian (opens Matplotlib window)
-    n = 5
-    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+@skipif(True, 'Zeros in the count matrix -> known failure')
+def test_hessian_2():
+    n = 3
+    seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,2,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
 
-    model = ContinuousTimeMSM(use_sparse=False).fit(seqs)
+    model = ContinuousTimeMSM().fit(seqs)
     theta = model.theta_
     C = model.countsmat_
 
-    hessian1 = _ratematrix.hessian(theta, C, n)
-    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C, n)[1])
+    hessian1 = _ratematrix.hessian(theta, C)
+    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])
     hessian2 = Hfun(theta)
 
-    import matplotlib.pyplot as pp
-    pp.scatter(hessian1.flat, hessian2.flat, marker='x')
-    pp.plot(pp.xlim(), pp.xlim(), 'k')
-    print('Plotting...', file=sys.stderr)
-    pp.show()
+    # not sure what the cutoff here should be (see plot_test_hessian)
+    assert np.linalg.norm(hessian1-hessian2) < 1e-6
+
 
 
 def test_hessian():
@@ -284,7 +234,7 @@ def test_optimize_1():
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
-    model = ContinuousTimeMSM(use_sparse=True, verbose=True).fit(seqs)
+    model = ContinuousTimeMSM(verbose=True).fit(seqs)
 
     y, x, n = model.loglikelihoods_.T
     x = x-x[0]
@@ -301,7 +251,7 @@ def test_score_2():
     test_indices = [5, 0, 4, 1, 2]
     train_indices = [3, 6, 7, 8, 9]
 
-    model = ContinuousTimeMSM(lag_time=3, ftol=1e-8, n_timescales=1)
+    model = ContinuousTimeMSM(lag_time=3, n_timescales=1)
     model.fit([assignments[i] for i in train_indices])
     test = model.score([assignments[i] for i in test_indices])
     train = model.score_
@@ -325,7 +275,7 @@ def test_score_3():
     train_indices = [9, 4, 3, 6, 2]
     test_indices = [8, 0, 5, 7, 1]
 
-    model = ContinuousTimeMSM(lag_time=3, ftol=1e-10, n_timescales=1, sliding_window=False, ergodic_cutoff=1)
+    model = ContinuousTimeMSM(lag_time=3, n_timescales=1, sliding_window=False, ergodic_cutoff=1)
     train_data = [assignments[i] for i in train_indices]
     test_data = [assignments[i] for i in test_indices]
 
