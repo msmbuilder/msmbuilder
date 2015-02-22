@@ -7,7 +7,7 @@ Conformation Dynamics with MSMBuilder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 https://github.com/rmcgibbo/slidedeck/issues/31
 `This slide deck <http://cdn.rawgit.com/kyleabeauchamp/MixtapeTalk/master/index.html>`_,
-by Kyle A. Beauchamp, gives an introduction to the MSMBuilder (formerly Mixtape) package and the design of its Python API. The code for the slides
+by Kyle A. Beauchamp, gives an introduction to the MSMBuilder (formerly called Mixtape) package and the design of its Python API. The code for the slides
 can be found
 `here <https://github.com/kyleabeauchamp/MixtapeTalk>`_.
 
@@ -23,8 +23,8 @@ Workflow
 ~~~~~~~~
 
 1. Set up a system for molecular dynamics, and run one or more simulations for as long as you can on as many CPUs or GPUs as you have access to.
-  - There are a lot of great software packages for running MD, e.g `OpenMM <https://simtk.org/home/openmm>`_, `Gromacs <http://www.gromacs.org/>`_, `Amber <http://ambermd.org/>`_, `CHARMM <http://www.charmm.org/>`_, and many others. Mixtape is not one of them.
-2. Analyze your simulations with Mixtape.
+  - There are a lot of great software packages for running MD, e.g `OpenMM <https://simtk.org/home/openmm>`_, `Gromacs <http://www.gromacs.org/>`_, `Amber <http://ambermd.org/>`_, `CHARMM <http://www.charmm.org/>`_, and many others. MSMBuilder is not one of them.
+2. Analyze your simulations with MSMBuilder.
   - Build estimators for the long-timescale dynamical processes
   - Perform model selection using cross-validation with the `generalized matrix Rayleigh quotient <http://arxiv.org/abs/1407.8083>`_.
 3. Profit.
