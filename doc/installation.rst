@@ -3,14 +3,19 @@
 Installation
 ============
 
-Basic Installation
-------------------
+Installation
+------------
 
-.. code-block:: python
+The preferred installation mechanism for ``msmbuilder`` is with ``conda``.
 
-    git clone https://github.com/msmbuilder/msmbuilder
-    cd msmbuilder
-    python setup.py install
+.. code-block:: bash
+
+    $ conda install -c https://conda.binstar.org/omnia msmbuilder
+
+
+If you don't have conda, or are new to scientific python, we recommend that
+you download the `Anaconda scientific python
+distribution <https://store.continuum.io/cshop/anaconda/>`_.
 
 
 Dependencies
@@ -24,9 +29,9 @@ MSMBuilder is a python package that heavily leans on other components of the
 scientific python ecosystem. To use msmbuilder, the following libraries and
 software will need to be installed.
 
-    Linux, or Mac OS X
-        We develop mainly on 64-bit Linux and Mac machines. Windows is not
-        well supported.
+    Linux, Mac OS X, or Windows
+        We develop mainly on 64-bit Linux and Mac machines. Windows _is_ supported,
+        but may be a little rough around the edges.
 
     `Python <http://python.org>`_ >= 2.6
         The development package (``python-dev`` or ``python-devel``
@@ -62,6 +67,7 @@ Optional packages:
     `Git <http://git-scm.com>`_
         To download the source code
 
+
 Frequently Asked Questions
 ==========================
 
@@ -72,3 +78,18 @@ We've received a couple `reports <https://github.com/msmbuilder/msmbuilder/issue
 of incorrect code generation on earlier versions of cython with python3.4. Try upgrading
 to the latest verion of cython, and reinstalling. If that doesn't work, open an issue
 on the github `issue tracker <https://github.com/msmbuilder/msmbuilder/issues>`_.
+
+Do I need Anaconda python? Can't I use the python that comes with my operating like ``/usr/bin/python``?
+---------------------------------------------------------------------------------------------------------
+
+You can have multiple ``python`` installations on your computer which do not
+interact with one another at all. The system python interpreter is used by
+your operating system for some of its own programs, but is not the best choice
+for data analysis or science.
+
+We strongly recommend that you install Anaconda or Miniconda python distribution
+and that you have the ``conda`` package manager available.
+
+If you're interested in some of the details about packaging and scientific
+python, see `this blog post by Travis Oliphant
+<http://technicaldiscovery.blogspot.com/2013/12/why-i-promote-conda.html>`_.
