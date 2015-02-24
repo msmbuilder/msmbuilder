@@ -158,25 +158,49 @@ def test_hessian_1():
     assert np.linalg.norm(hessian1-hessian2) < 1e-6
 
 
-@skipif(True, 'Zeros in the count matrix -> known failure')
+# @skipif(True, 'Zeros in the count matrix -> known failure')
 def test_hessian_2():
     n = 3
     seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,2,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
 
     model = ContinuousTimeMSM().fit(seqs)
+    print(model.timescales_)
+    print(model.uncertainty_timescales())
     theta = model.theta_
     C = model.countsmat_
+    print(C)
+
+    C_flat = (C+C.T)[np.triu_indices_from(C, k=1)]
+    print(C_flat)
+    active = [0, 2, 3, 4, 5]
+    print('theta', theta, '\n')
+
 
     hessian1 = _ratematrix.hessian(theta, C)
-    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])
-    hessian2 = Hfun(theta)
+    hessian2 = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])(theta)
+    hessian3 = nd.Hessian(lambda x: _ratematrix.loglikelihood(x, C)[0])(theta)
+
+    np.set_printoptions(precision=3)
+
+    H1 = hessian1[np.ix_(active, active)]
+    H2 = hessian2[np.ix_(active, active)]
+    H3 = hessian2[np.ix_(active, active)]
+
+    print(H1, '\n')
+    print(H2, '\n')
+    print(H3)
+
+    print(np.linalg.norm(H1-H2))
+
+    # print(hessian1.shape)
+    # print(hessian1-hessian2)
 
     # not sure what the cutoff here should be (see plot_test_hessian)
     assert np.linalg.norm(hessian1-hessian2) < 1e-6
 
 
 
-def test_hessian():
+def test_hessian_3():
     grid = NDGrid(n_bins_per_feature=10, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     seqs = [seqs[i] for i in range(10)]
