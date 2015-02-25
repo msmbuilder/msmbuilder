@@ -26,7 +26,7 @@ from __future__ import print_function
 import numpy as np
 from numpy import (zeros, allclose, real, ascontiguousarray, asfortranarray)
 import scipy.linalg
-from numpy cimport npy_intp, npy_bool
+from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset, strcmp
 
@@ -293,7 +293,8 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1, npy_intp[::1] 
     counts : array of shape = (n, n)
         The matrix of observed transition counts.
     inds : array of ints or None
-        If supplied, only compute a block of the Hessian at the specified indices.
+        If supplied, only compute a block of the Hessian at the specified
+        indices.
     t : double
         The lag time.
 
