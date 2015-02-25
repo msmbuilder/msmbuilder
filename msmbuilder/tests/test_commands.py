@@ -166,6 +166,14 @@ def test_transform_command_1():
               "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
               "--metric rmsd".format(data_home=get_data_home()))
 
+def test_transform_command_2():
+    def test_transform_command_1():
+        with tempdir():
+            shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory_0.dcd "
+                  "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
+                  "--metric rmsd "
+                  "--stride 2".format(data_home=get_data_home()))
+
 def test_help():
     shell('msmb -h')
 
