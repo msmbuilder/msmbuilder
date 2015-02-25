@@ -101,7 +101,7 @@ class TrajectoryClusterCommand(FitTransformCommand):
         type=stripquotestype)
     md = argument_group('mdtraj input', description='If using metric="rmsd", '
         'additional options required for loading trajectories')
-    md.add_argument('--stride', default=1, help='Load only every stride-th frame')
+    md.add_argument('--stride', default=1, help='Load only every stride-th frame', type=int)
     md.add_argument('--top', default='', help='Path to topology file matching the trajectories')
     md.add_argument('--atom_indices', help='''Path to an index file
         containing the zero-based indices of the atoms to use for
