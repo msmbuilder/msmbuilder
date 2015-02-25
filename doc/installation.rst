@@ -93,3 +93,17 @@ and that you have the ``conda`` package manager available.
 If you're interested in some of the details about packaging and scientific
 python, see `this blog post by Travis Oliphant
 <http://technicaldiscovery.blogspot.com/2013/12/why-i-promote-conda.html>`_.
+
+How do I get (quickly) started on Windows?
+------------------------------------------
+
+As mentioned above, our Windows support is rough around the edges. 
+However, as of MSMBuilder 3.0, we have conda packages for 
+(only!) win32 + py34.  Therefore, one path to get up and running is:
+
+1.  Download and Install Continuum Anaconda 32 bit py34 (Note: we don't currently have packages for 64 bit or py27!)
+2.  Run Anaconda Command Prompt
+3.  cd Scripts
+4.  conda install -c https://conda.binstar.org/omnia msmbuilder
+5.  Close the command prompt
+6.  Run Anaconda ipython3.4 qtconsole from the start menu--you should be ready to roll!
