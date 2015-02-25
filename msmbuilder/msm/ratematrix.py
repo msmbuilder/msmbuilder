@@ -270,10 +270,15 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         """
         lag_time = float(self.lag_time)
 
-        hessian = _ratematrix.hessian(
-            self.theta_, self.countsmat_, t=lag_time)
+        # only the "active set" of variables not at the bounds of the
+        # feasible set.
+        inds = np.where(self.theta_ != 0)[0]
 
-        self.information_ = scipy.linalg.pinv(-hessian)
+        hessian = _ratematrix.hessian(
+            self.theta_, self.countsmat_, t=lag_time, inds=inds)
+
+        self.information_ = np.zeros((len(self.theta_), len(self.theta_)))
+        self.information_[np.ix_(inds, inds)] = scipy.linalg.pinv(-hessian)
 
     @property
     def score_(self):

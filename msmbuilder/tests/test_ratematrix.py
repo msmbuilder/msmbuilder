@@ -157,6 +157,8 @@ def test_hessian_1():
     # not sure what the cutoff here should be (see plot_test_hessian)
     assert np.linalg.norm(hessian1-hessian2) < 1e-6
 
+    print(_ratematrix.sigma_pi(-scipy.linalg.pinv(hessian1), theta, n))
+
 
 # @skipif(True, 'Zeros in the count matrix -> known failure')
 def test_hessian_2():
@@ -172,36 +174,55 @@ def test_hessian_2():
 
     C_flat = (C+C.T)[np.triu_indices_from(C, k=1)]
     print(C_flat)
-    active = [0, 2, 3, 4, 5]
     print('theta', theta, '\n')
+    inds = np.where(theta!=0)[0]
 
-
-    hessian1 = _ratematrix.hessian(theta, C)
+    hessian1 = _ratematrix.hessian(theta, C, inds=inds)
     hessian2 = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])(theta)
     hessian3 = nd.Hessian(lambda x: _ratematrix.loglikelihood(x, C)[0])(theta)
 
     np.set_printoptions(precision=3)
 
-    H1 = hessian1[np.ix_(active, active)]
-    H2 = hessian2[np.ix_(active, active)]
-    H3 = hessian2[np.ix_(active, active)]
+    #H1 = hessian1[np.ix_(active, active)]
+    #H2 = hessian2[np.ix_(active, active)]
+    #H3 = hessian2[np.ix_(active, active)]
 
-    print(H1, '\n')
-    print(H2, '\n')
-    print(H3)
+    print(hessian1, '\n')
+    print(hessian2, '\n')
+    #print(hessian3)
+    print('\n')
 
-    print(np.linalg.norm(H1-H2))
 
-    # print(hessian1.shape)
-    # print(hessian1-hessian2)
+    info1 = np.zeros((len(theta), len(theta)))
+    info2 = np.zeros((len(theta), len(theta)))
+    info1[np.ix_(inds, inds)] = scipy.linalg.pinv(-hessian1)
+    info2[np.ix_(inds, inds)] = scipy.linalg.pinv(-hessian2[np.ix_(inds, inds)])
 
-    # not sure what the cutoff here should be (see plot_test_hessian)
-    assert np.linalg.norm(hessian1-hessian2) < 1e-6
+    print('Inverse Hessian')
+    print(info1)
+    print(info2)
+    #print(scipy.linalg.pinv(hessian2))
+    #print(scipy.linalg.pinv(hessian1)[np.ix_(last, last)])
+    #print(scipy.linalg.pinv(hessian2)[np.ix_(last, last)])
+
+    print(_ratematrix.sigma_pi(info1, theta, n))
+    print(_ratematrix.sigma_pi(info2, theta, n))
+
+    #print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian2), theta, n))
+    #print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian3), theta, n))
+
+    # print(np.linalg.norm(H1-H2))
+    #
+    # # print(hessian1.shape)
+    # # print(hessian1-hessian2)
+    #
+    # # not sure what the cutoff here should be (see plot_test_hessian)
+    # assert np.linalg.norm(hessian1-hessian2) < 1e-6
 
 
 
 def test_hessian_3():
-    grid = NDGrid(n_bins_per_feature=10, min=-np.pi, max=np.pi)
+    grid = NDGrid(n_bins_per_feature=4, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     seqs = [seqs[i] for i in range(10)]
 
@@ -210,9 +231,10 @@ def test_hessian_3():
     model.fit(seqs)
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
-    print('MSM timescales\n', msm.fit(seqs).timescales_)
+    #print('MSM timescales\n', msm.fit(seqs).timescales_)
     print('Uncertainty K\n', model.uncertainty_K())
-    print('Uncertainty pi\n', model.uncertainty_pi())
+    print('Uncertainty eigs\n', model.uncertainty_eigenvalues())
+
 
 
 def test_fit_1():

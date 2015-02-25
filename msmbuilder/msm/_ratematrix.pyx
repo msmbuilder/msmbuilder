@@ -99,8 +99,7 @@ cpdef int build_ratemat(const double[::1] theta, npy_intp n, double[:, ::1] out,
 
 
 cpdef double dK_dtheta_A(const double[::1] theta, npy_intp n, npy_intp u,
-                         const double[:, ::1] A, double[:, ::1] out=None,
-                         npy_bool logtheta=False) nogil:
+                         const double[:, ::1] A, double[:, ::1] out=None) nogil:
     r"""dK_dtheta_A(theta, n, u, A, out=None)
 
     Compute the sum of the Hadamard (element-wise) product of the
@@ -156,10 +155,6 @@ cpdef double dK_dtheta_A(const double[::1] theta, npy_intp n, npy_intp u,
         pi_j = exp(theta[n_triu+j])
         dK_ij = sqrt(pi_j / pi_i)
         dK_ji = sqrt(pi_i / pi_j)
-
-        if logtheta:
-            dK_ij *= s_ij
-            dK_ji *= s_ij
 
         if A is not None:
             sum_elem_product = (
@@ -283,7 +278,7 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, double t
     return logl, ascontiguousarray(grad)
 
 
-def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
+def hessian(double[::1] theta, double[:, ::1] counts, double t=1, npy_intp[::1] inds=None):
     r"""hessian(theta, counts, t=1)
 
     Estimate of the hessian of the log-likelihood with respect to \theta.
@@ -326,11 +321,15 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
     cdef npy_intp size = theta.shape[0]
     cdef npy_intp u, uu, v, vv, i, j
     cdef double hessian_uv
-    cdef double[::1] grad, pi, expwt, transtheta
+    cdef double[::1] grad, pi, expwt
     cdef double[:, ::1] K, T, Q, dKu,  Au, temp1, temp2
-    cdef npy_intp[::1] inds
 
-    hessian = zeros((size, size))
+    if inds is None:
+        inds = np.arange(size)
+        hessian = zeros((size, size))
+    else:
+        hessian = zeros((len(inds), len(inds)))
+
     pi = zeros(n)
     expwt = zeros(n)
     S = zeros((n, n))
@@ -357,13 +356,6 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
     for i in range(n):
         for j in range(n):
             Q[i,j] = -rowsums[i] / T[i, j]
-
-
-    inds = np.concatenate((np.where(np.asarray(theta)[:n_triu] > 0)[0],
-                           np.arange(n_triu, n_triu+n)))
-    #for i in range(n_triu):
-    #    transtheta[i] = log(theta)
-
 
     for uu in range(len(inds)):
         u = inds[uu]
@@ -491,7 +483,7 @@ def sigma_pi(const double[:, :] covar_theta, const double[::1] theta, npy_intp n
 
     # z = sum(pi)
     for i in range(n):
-        pi_i = exp(theta[size-n+i])
+        pi_i = exp(theta[n_triu+i])
         z += pi_i
         pi[i] = pi_i
 
@@ -502,7 +494,7 @@ def sigma_pi(const double[:, :] covar_theta, const double[::1] theta, npy_intp n
     # so that we can use BLAS
     for i in range(n):
         for j in range(n):
-            C_block[i,j] = covar_theta[size-n+i, size-n+j]
+            C_block[i,j] = covar_theta[n_triu+i, n_triu+j]
 
     # build the Jacobian, \frac{d\pi}{d\theta}
     for i in range(n):
@@ -661,10 +653,11 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
         w_pow_m4[i] = w[i]**(-4)
 
     for u in range(size):
-        dK_dtheta_A(theta, n, u, dKu)
+        dK_dtheta_A(theta, n, u, None, dKu)
         dw_du(dKu, U, V, n, temp, dw_u)
+
         for v in range(size):
-            dK_dtheta_A(theta, n, v, dKv)
+            dK_dtheta_A(theta, n, v, None, dKv)
             dw_du(dKv, U, V, n, temp, dw_v)
 
             for i in range(n):
@@ -674,4 +667,5 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
     sigma = zeros(n-1)
     for i in range(n-1):
         sigma[i] = sqrt(var_T[1+i])
+
     return np.asarray(sigma)
