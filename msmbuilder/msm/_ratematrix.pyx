@@ -26,7 +26,7 @@ from __future__ import print_function
 import numpy as np
 from numpy import (zeros, allclose, real, ascontiguousarray, asfortranarray)
 import scipy.linalg
-from numpy cimport npy_intp
+from numpy cimport npy_intp, npy_bool
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset, strcmp
 
@@ -99,7 +99,8 @@ cpdef int build_ratemat(const double[::1] theta, npy_intp n, double[:, ::1] out,
 
 
 cpdef double dK_dtheta_A(const double[::1] theta, npy_intp n, npy_intp u,
-                         const double[:, ::1] A, double[:, ::1] out=None) nogil:
+                         const double[:, ::1] A, double[:, ::1] out=None,
+                         npy_bool logtheta=False) nogil:
     r"""dK_dtheta_A(theta, n, u, A, out=None)
 
     Compute the sum of the Hadamard (element-wise) product of the
@@ -155,6 +156,10 @@ cpdef double dK_dtheta_A(const double[::1] theta, npy_intp n, npy_intp u,
         pi_j = exp(theta[n_triu+j])
         dK_ij = sqrt(pi_j / pi_i)
         dK_ji = sqrt(pi_i / pi_j)
+
+        if logtheta:
+            dK_ij *= s_ij
+            dK_ji *= s_ij
 
         if A is not None:
             sum_elem_product = (
@@ -292,6 +297,8 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
         distribution.
     counts : array of shape = (n, n)
         The matrix of observed transition counts.
+    inds : array of ints or None
+        If supplied, only compute a block of the Hessian at the specified indices.
     t : double
         The lag time.
 
@@ -317,10 +324,11 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
         raise ValueError('theta must have shape n*(n+1)/2+n')
 
     cdef npy_intp size = theta.shape[0]
-    cdef npy_intp u, v, i, j
+    cdef npy_intp u, uu, v, vv, i, j
     cdef double hessian_uv
-    cdef double[::1] grad, pi, expwt
+    cdef double[::1] grad, pi, expwt, transtheta
     cdef double[:, ::1] K, T, Q, dKu,  Au, temp1, temp2
+    cdef npy_intp[::1] inds
 
     hessian = zeros((size, size))
     pi = zeros(n)
@@ -333,6 +341,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
     temp1 = zeros((n, n))
     temp2 = zeros((n, n))
     rowsums = np.sum(counts, axis=1)
+    transtheta = zeros(size)
 
     for i in range(n):
         pi[i] = exp(theta[n_triu+i])
@@ -349,7 +358,16 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
         for j in range(n):
             Q[i,j] = -rowsums[i] / T[i, j]
 
-    for u in range(size):
+
+    inds = np.concatenate((np.where(np.asarray(theta)[:n_triu] > 0)[0],
+                           np.arange(n_triu, n_triu+n)))
+    #for i in range(n_triu):
+    #    transtheta[i] = log(theta)
+
+
+    for uu in range(len(inds)):
+        u = inds[uu]
+
         dK_dtheta_A(theta, n, u, None, dKu)
         # Gu = U.T * dKu * V
         cdgemm_TN(U, dKu, temp1)
@@ -370,10 +388,12 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1):
         cdgemm_NN(U, temp2, temp1)
         cdgemm_NT(temp1, V, Au)
 
-        for v in range(u, size):
+        for vv in range(uu, len(inds)):
+            v = inds[vv]
+
             hessian_uv = dK_dtheta_A(theta, n, v, Au)
-            hessian[u, v] = hessian_uv
-            hessian[v, u] = hessian_uv
+            hessian[uu, vv] = hessian_uv
+            hessian[vv, uu] = hessian_uv
 
     return np.asarray(hessian)
 
