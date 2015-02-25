@@ -64,11 +64,9 @@ cpdef ldirichlet_softmax(const double[::1] theta, const double[::1] alpha,
 
 def lexponential(const double[::1] theta, const double[::1] beta,
                  double[::1] grad=None):
-    r"""Log probability of the exponential distribution. Reparameterized
-    in terms of the log of ``x``::
+    r"""Log probability of the exponential distribution ::
 
-        x = \exp(theta)
-        f(x; \beta) = \frac{1}{\beta} \exp(-\frac{x}{\beta})
+        f(\theta; \beta) = \frac{1}{\beta} \exp(-\frac{\theta}{\beta})
 
     Parameters
     ----------
@@ -96,14 +94,11 @@ def lexponential(const double[::1] theta, const double[::1] beta,
     if grad is not None and theta.shape[0] != grad.shape[0]:
         raise ValueError('len(theta) != len(grad)')
 
-    exptheta = zeros(n)
-
     for i in range(n):
-        exptheta[i] = exp(theta[i])
-        logp -= log(beta[i]) + exptheta[i] / beta[i]
+        logp -= log(beta[i]) + theta[i] / beta[i]
 
     if grad is not None:
         for i in range(n):
-            grad[i] -= exptheta[i] / beta[i]
+            grad[i] -= 1 / beta[i]
 
     return logp

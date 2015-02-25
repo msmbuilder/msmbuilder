@@ -71,9 +71,3 @@ class ContinuousTimeMSMCommand(FitCommand):
     klass = ContinuousTimeMSM
     _concrete = True
     _group = 'MSM'
-
-
-class BayesianContinuousTimeMSM(FitCommand):
-    klass = BayesianContinuousTimeMSM
-    _concrete = True
-    _group = 'MSM'
