@@ -154,7 +154,10 @@ def load_chunks(chunk_fns, top, stride, discard_first=True):
         if discard_first:
             t = t[1:]
         trajectories.append(t)
-    return trajectories[0].join(trajectories[1:])
+    out = trajectories[0]
+    if len(trajectories) > 1:
+        out = out.join(trajectories[1:])
+    return out
 
 
 def print_datetime(file=sys.stdout):
