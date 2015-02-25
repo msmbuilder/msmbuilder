@@ -47,7 +47,7 @@ software will need to be installed.
     `scikit-learn <http://sklearn.org>`_ >= 0.14.0
         Many of the models in msmbuilder build off base classes in scikit-learn.
 
-    `MDTraj <http://mdtraj.org>`_ >= 0.8.0
+    `MDTraj <http://mdtraj.org>`_ >= 1.2.0
         MDTraj is a library for handing molecular dynamics trajectories.
 
     `Pandas <http://pandas.pydata.org>`_ >= 0.9.0
