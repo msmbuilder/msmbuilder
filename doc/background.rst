@@ -5,7 +5,7 @@ Background and Motivation
 
 Conformation Dynamics with MSMBuilder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-`This slide deck <http://rawgit.com/kyleabeauchamp/MSMBuilderTalk/master/index.html>`_,
+`This slide deck <http://rawgit.com/kyleabeauchamp/MSMBuilderTalk/master/index.html>`_
 gives an introduction to the MSMBuilder package and the design of its Python API. The code for the slides
 can be copied from the file `slides.md` found 
 `here <https://github.com/kyleabeauchamp/MSMBuilderTalk>`_.
