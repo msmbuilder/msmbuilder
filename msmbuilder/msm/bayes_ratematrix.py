@@ -30,8 +30,8 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
     .. warning::
 
-        This model is currently  experimental, and may undergo significant
-        changes or bugfixes in upcoming releases.
+        This model is currently experimental. It is *not* recommended for
+        use in production calculations.
 
     Parameters
     ----------
@@ -51,9 +51,6 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         Scale parameter for exponential prior on the symmetric rate matrix.
     n_timescales : int, optional
         Number of implied timescales to calculate.
-    use_sparse : bool, default=True
-        Constrain the rate matrix to the sparsity pattern induced by the MLE
-        during sampling.
     sliding_window : bool, optional
         Count transitions using a window of length ``lag_time``, which is slid
         along the sequences 1 unit at a time, yielding transitions which contain
@@ -76,9 +73,9 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     TODO(@rmcgibbo)
     """
 
-    def __init__(self, lag_time=1,  n_samples=2000, n_steps=25, epsilon=0.1,
+    def __init__(self, lag_time=1,  n_samples=2000, n_steps=25, epsilon=5e-4,
                  prior_alpha=1, prior_beta=1, n_timescales=None,
-                 use_sparse=True, sliding_window=True, verbose=False):
+                 sliding_window=True, verbose=False):
         self.lag_time = lag_time
         self.n_samples = n_samples
         self.n_steps = n_steps
@@ -86,7 +83,6 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.prior_alpha = prior_alpha
         self.prior_beta = prior_beta
         self.n_timescales = n_timescales
-        self.use_sparse = use_sparse
         self.sliding_window = sliding_window
         self.verbose = verbose
 
@@ -98,14 +94,12 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     @experimental('BayesianContinuousTimeMSM')
     def fit(self, sequences, y=None):
         model = ContinuousTimeMSM(
-            lag_time=self.lag_time, prior_counts=0,
-            n_timescales=self.n_timescales, use_sparse=self.use_sparse,
+            lag_time=self.lag_time, n_timescales=self.n_timescales,
             sliding_window=self.sliding_window, verbose=self.verbose)
         model.fit(sequences)
         self.countsmat_ = model.countsmat_
         self.n_states_ = model.n_states_
         self.theta0_ = model.theta_
-        self.inds_ = model.inds_
 
         all_theta, diag, walltime = self.sample()
         self.all_theta_ = all_theta
@@ -125,7 +119,7 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         def func(theta):
             logp, grad = _log_posterior(theta, self.countsmat_,
-                alpha=alpha, beta=beta, n=self.n_states_, inds=self.inds_)
+                alpha=alpha, beta=beta, n=self.n_states_)
             return logp, grad
 
         epsilon = self.epsilon / len(self.theta0_)
@@ -140,6 +134,7 @@ class BayesianContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     def summarize(self):
         counts_nz = np.count_nonzero(self.countsmat_)
         cnz = self.countsmat_[np.nonzero(self.countsmat_)]
+
         correlation_times = integrated_autocorr2(self.all_timescales_[:, :5])
 
         fmt = lambda x: ', '.join(['{:.2f}'.format(xx) for xx in x])
@@ -194,7 +189,7 @@ Approximate number of independent samples:
         # for i, transmat in self.all_transmats_:
         for i in range(len(self.all_theta_)):
             u, lv, rv = _solve_ratemat_eigensystem(
-                self.all_theta_[i], k, self.n_states_, inds=self.inds_)
+                self.all_theta_[i], k, self.n_states_)
             self._all_eigenvalues[i] = u
             self._all_left_eigenvectors[i] = lv
             self._all_right_eigenvectors[i] = rv
@@ -255,7 +250,7 @@ Approximate number of independent samples:
         return lvs[:, :, 0]
 
 
-def _log_posterior(theta, counts, alpha, beta, n, inds=None):
+def _log_posterior(theta, counts, alpha, beta, n):
     """Log of the posterior probability and gradient
 
     Parameters
@@ -271,7 +266,7 @@ def _log_posterior(theta, counts, alpha, beta, n, inds=None):
         matrix.
     """
     # likelihood + grad
-    logp1, grad = loglikelihood(theta, counts, n=n, inds=inds)
+    logp1, grad = loglikelihood(theta, counts)
     # exponential prior on s_{ij}
     logp2 = lexponential(theta[:-n], beta, grad=grad[:-n])
     # dirichlet prior on \pi

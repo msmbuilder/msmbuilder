@@ -9,6 +9,7 @@ from msmbuilder.example_datasets import load_quadwell
 from msmbuilder.msm import ContinuousTimeMSM, BayesianContinuousTimeMSM
 from msmbuilder.msm._ratematrix import loglikelihood, ldirichlet_softmax
 from msmbuilder.msm._ratematrix import lexponential
+from msmbuilder.msm.bayes_ratematrix import _log_posterior
 
 
 def test_1():
@@ -89,23 +90,13 @@ def test_4():
     ]).astype(float)
 
     def log_posterior(theta):
-        # likelihood + grad
-        logp1, grad = loglikelihood(theta, counts, n=n, inds=None)
-
-        # exponential prior on s_{ij}
-        logp2 = lexponential(theta[:-n], beta, grad=grad[:-n])
-
-        # dirichlet prior on \pi
-        logp3 = ldirichlet_softmax(theta[-n:], alpha=alpha, grad=grad[-n:])
-
-        logp = logp1 + logp2 + logp3
-        return logp, grad
+        return _log_posterior(theta, counts, alpha, beta, n)
 
     # theta = np.random.randn(n_params)
     # log_posterior(theta)
     n_trials = 100
     random = np.random.RandomState(0)
-    x0 = random.randn(n_trials, n_params)
+    x0 = random.rand(n_trials, n_params)
     for i in range(n_trials):
         value = scipy.optimize.check_grad(
             lambda x: log_posterior(x)[0],
@@ -115,11 +106,9 @@ def test_4():
 
 
 def test_5():
-    for n in [5, 10]:
-        grid = NDGrid(n_bins_per_feature=n)
-        seqs = grid.fit_transform(load_quadwell(random_state=0)['trajectories'])
+    grid = NDGrid(n_bins_per_feature=2)
+    seqs = grid.fit_transform(load_quadwell(random_state=0)['trajectories'])
 
-        # model1 = ContinuousTimeMSM(use_sparse=True).fit(seqs)
-        model2 = BayesianContinuousTimeMSM(n_samples=100).fit(seqs)
+    model2 = BayesianContinuousTimeMSM(n_samples=100).fit(seqs)
 
-        print(model2.summarize())
+    print(model2.summarize())

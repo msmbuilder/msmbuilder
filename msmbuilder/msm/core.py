@@ -112,7 +112,7 @@ class _MappingTransformMixin(TransformerMixin):
         return result
 
 
-def _solve_ratemat_eigensystem(theta, k, n, inds=None):
+def _solve_ratemat_eigensystem(theta, k, n):
     """Find the dominant eigenpairs of a reversible rate matrix (master
     equation)
 
@@ -124,8 +124,6 @@ def _solve_ratemat_eigensystem(theta, k, n, inds=None):
         The number of eigenpairs to find
     n : int
         The number of states
-    inds : array, optional (default=None)
-        Sparse linearized triu indices theta.
 
     Notes
     -----
@@ -149,9 +147,11 @@ def _solve_ratemat_eigensystem(theta, k, n, inds=None):
         The normalized right eigenvectors (:math:`\psi`) of the rate matrix.
     """
     S = np.zeros((n, n))
-    exptheta = np.exp(theta)
-    _ratematrix.build_ratemat(exptheta, n, inds, S, which='S')
-    u, lv, rv = map(np.asarray, _ratematrix.eig_K(S, n, exptheta[-n:], 'S'))
+    pi = np.exp(theta[-n:])
+    pi = pi / pi.sum()
+
+    _ratematrix.build_ratemat(theta, n, S, which='S')
+    u, lv, rv = map(np.asarray, _ratematrix.eig_K(S, n, pi, 'S'))
     order = np.argsort(-u)
     u = u[order[:k]]
     lv = lv[:, order[:k]]
