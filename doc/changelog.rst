@@ -1,6 +1,13 @@
 Changelog
 =========
 
+v3.1 (Feb 27, 2015)
+-------------------
+- Numerous improvements to ``ContinuousTimeMSM`` optimization
+- Switch ``ContinuousTimeMSM.score`` to transmat-style GMRQ
+- New example dataset with Muller potential
+- Assorted bug fixes in the command line layer
+
 v3.0.1 (January 9, 2015)
 ------------------------
 - Fix missing file on PyPI.
