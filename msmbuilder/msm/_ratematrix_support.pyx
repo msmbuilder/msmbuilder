@@ -98,7 +98,7 @@ cdef int hadamard_inplace(const double[:, ::1] A, const double[:, ::1] B) nogil:
         for j in range(A.shape[1]):
             A[i, j] = A[i, j] * B[i, j]
 
-    return 1;
+    return 1
 
 
 cdef int transmat(const double[::1] expwt, const double[:, ::1] U,
@@ -107,9 +107,10 @@ cdef int transmat(const double[::1] expwt, const double[:, ::1] U,
     """Compute the transition matrix, expm(Kt), from the eigen-decomposition
     of K
 
-    On exit, T is written into the
+    On exit, T is written into the variable `T`. temp is an n x n workspace.
     """
     cdef npy_intp i, j
+    cdef double rowsum
     # T = np.dot(np.dot(V, np.diag(expwt)), U.T)
     for i in range(n):
         for j in range(n):
@@ -157,6 +158,7 @@ cdef dT_dtheta(const double[::1] w, const double[:, ::1] U, const double[:, ::1]
     Returns
     -------
     """
+    cdef double rowsum
     cdef npy_intp i, j
     cdef double[::1] expwt
     cdef double[:, ::1] X, temp1, temp2, dLdK
@@ -171,10 +173,21 @@ cdef dT_dtheta(const double[::1] w, const double[:, ::1] U, const double[:, ::1]
 
         transmat(expwt, U, V, n, temp1, T)
 
+        # When the rate matrix is not irreducible, T contains zeros,
+        # which messes things up
+        for i in range(n):
+            rowsum = 0
+            for j in range(n):
+                if T[i, j] <= 0.0:
+                    T[i, j] = 1e-20
+                rowsum += T[i, j]
+            for j in range(n):
+                T[i, j] = T[i, j] / rowsum
+
         # dLdK[i,j] = counts[i,j] / T[i,j]
         for i in range(n):
             for j in range(n):
-                if counts[i, j] > 0:
+                if counts[i, j] > 0 and T[j, j] > 0:
                     dLdK[i, j] = counts[i, j] / T[i, j]
 
         # out = U \left(V^T dLdK U \circ X(\lambda, t))\right) V^T

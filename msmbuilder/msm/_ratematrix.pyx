@@ -39,7 +39,7 @@ include "_ratematrix_priors.pyx"
 
 cpdef int build_ratemat(const double[::1] theta, npy_intp n, double[:, ::1] out,
                         const char* which=b'K'):
-    r"""build_ratemat(theta, n, inds, out, which='K')
+    r"""build_ratemat(theta, n, out, which='K')
 
     Build the reversible rate matrix K or symmetric rate matrix, S,
     from the free parameters, `\theta`
@@ -257,7 +257,7 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, double t
     if not np.all(np.isfinite(S)):
         # these parameters don't seem good...
         # tell the optimizer to stear clear!
-        return -np.inf, ascontiguousarray(grad)
+        return np.nan, ascontiguousarray(grad)
 
     pi = zeros(n)
     for i in range(n):
