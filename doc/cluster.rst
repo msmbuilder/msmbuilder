@@ -74,7 +74,8 @@ Example
     dataset = []
     for trajectory_file in ['trj0.xtc', 'trj1.xtc']:
         t = md.load(trajectory_file, top='topology.pdb')
-        dataset.append(md.compute_phi(t))
+        indices, phi = md.compute_phi(t)
+        dataset.append(phi)
 
     from msmbuilder.cluster import KMeans
     cluster = KMeans(n_clusters=10)
