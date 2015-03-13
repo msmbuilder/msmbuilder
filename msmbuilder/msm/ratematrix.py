@@ -114,8 +114,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         self.left_eigenvectors_ = None
         self.right_eigenvectors_ = None
 
-    @experimental('ContinuousTimeMSM')
-    def fit(self, sequences, y=None):
+    def _build_counts(self, sequences):
         sequences = list_of_1d(sequences)
         lag_time = int(self.lag_time)
         if lag_time < 1:
@@ -133,22 +132,31 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
             # no ergodic trimming.
             countsmat = raw_counts
 
-        n_states = countsmat.shape[0]
-        result = self._optimize(countsmat)
+        self.n_states_ = countsmat.shape[0]
+        self.countsmat_ = countsmat
+        self.mapping_ = mapping
 
-        K = np.zeros((n_states, n_states))
-        _ratematrix.build_ratemat(result.x, n_states, K, which='K')
+        return countsmat
+
+    @experimental('ContinuousTimeMSM')
+    def fit(self, sequences, y=None):
+        self._build_counts(sequences)
+        self._fit()
+
+    def _fit(self):
+        result, loglikelihoods = self._optimize()
+
+        K = np.zeros((self.n_states_, self.n_states_))
+        _ratematrix.build_ratemat(result.x, self.n_states_, K, which='K')
 
         self.theta_ = result.x
         self.ratemat_ = K
         self.transmat_ = scipy.linalg.expm(self.ratemat_)
-        self.countsmat_ = countsmat
-        self.n_states_ = n_states
         self.optimizer_state_ = result
-        self.mapping_ = mapping
-        pi = np.exp(result.x[-n_states:])
+        pi = np.exp(result.x[-self.n_states_:])
         self.populations_ = pi / pi.sum()
         self.information_ = None
+        self.loglikelihoods_ = loglikelihoods
 
         n_timescales = self.n_timescales
         if n_timescales is None:
@@ -175,20 +183,29 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
 
         return out.getvalue()
 
-    def _optimize(self, countsmat):
+    def _optimize(self):
+        countsmat = self.countsmat_
         n = countsmat.shape[0]
+        nc2 = int(n*(n-1)/2)
         theta0 = self._initial_guess(countsmat)
         lag_time = float(self.lag_time)
         loglikelihoods = []
 
         options = {
             'iprint': 0 if self.verbose else -1,
+            'eps': 1e-12,
+            'ftol': 1e-12,
+            'gtol': 1e-10,
         }
 
         def objective(theta):
-            start = time.time()
             f, g = _ratematrix.loglikelihood(theta, countsmat, lag_time)
-            loglikelihoods.append((f, start, len(theta)))
+            loglikelihood.append(f)
+
+            if not np.isfinite(f):
+                f = np.nan
+
+            loglikelihoods.append(f)
             return -f, -g
 
         # this bound prevents the stationary probability for any state
@@ -196,13 +213,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
         # rate matrix involves terms like pi_i / pi_j, which get iffy
         # numerically as the populations go too close to zero. We also
         # prevent the S_ijs from being less than 0.
-        bounds = [(0, None)]*int(n*(n-1)/2) + [(-20, None)]*n
+        bounds = [(0, None)]*nc2 + [(-20, None)]*n
         result = scipy.optimize.minimize(
             fun=objective, x0=theta0, method='L-BFGS-B', jac=True,
             bounds=bounds, options=options)
 
-        self.loglikelihoods_ = np.array(loglikelihoods)
-        return result
+        return result, loglikelihoods
 
     def uncertainty_K(self):
         """Estimate of the element-wise asymptotic standard deviation
@@ -257,11 +273,15 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     def _initial_guess(self, countsmat):
         """Generate an initial guess for \theta.
         """
+
+        if self.theta_ is not None:
+            return self.theta_
+
         transmat, pi = _transmat_mle_prinz(countsmat)
         K = np.real(scipy.linalg.logm(transmat)) / self.lag_time
         S = np.multiply(np.sqrt(np.outer(pi, 1/pi)), K)
 
-        sflat = S[np.triu_indices_from(countsmat, k=1)]
+        sflat = np.maximum(S[np.triu_indices_from(countsmat, k=1)], 0)
         theta0 = np.concatenate((sflat, np.log(pi)))
         return theta0
 
