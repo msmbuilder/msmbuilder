@@ -420,14 +420,9 @@ class MDTrajDataset(_BaseDataset):
             atom_indices=self.atom_indices, stride=self.stride)
 
 
-def _dim_match(arr):
-    if arr.ndim == 1:
-        return arr[:, np.newaxis]
-    return arr
-
-
 class UnionDataset(_BaseDataset):
-    def __init__(self, paths, mode, fmt='dir-npy', verbose=False):
+    def __init__(self, paths, mode='r', fmt='dir-npy',
+                 normalize_variance=False, verbose=False):
         # Check mode
         if mode != 'r':
             raise ValueError("Union datasets are read only")
@@ -441,6 +436,7 @@ class UnionDataset(_BaseDataset):
 
         # Save parameters
         self.verbose = verbose
+        self.normalize_variance = normalize_variance
         self.datasets = [dataset(path, mode, fmt, verbose)
                          for path in paths]
 
@@ -463,7 +459,18 @@ class UnionDataset(_BaseDataset):
         return self.datasets[0].keys()
 
     def get(self, i):
-        return np.concatenate([_dim_match(ds.get(i))
+        def _dim_match(arr):
+            if arr.ndim == 1:
+                return arr[:, np.newaxis]
+            return arr
+
+        def _norm(ds):
+            if self.normalize_variance:
+                return ds.get(i) / np.std(ds)
+            else:
+                return ds.get(i)
+
+        return np.concatenate([_dim_match(_norm(ds))
                                for ds in self.datasets], axis=1)
 
     def close(self):
