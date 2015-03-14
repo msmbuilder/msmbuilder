@@ -459,24 +459,34 @@ class UnionDataset(_BaseDataset):
 
         # Save parameters
         self.verbose = verbose
-        self.normalize_variance = normalize_variance
         self.datasets = [dataset(path, mode, fmt, verbose)
                          for path in paths]
 
         # Sanity check
         self._check_same_length()
 
+        # Optionally compute normalization
+        if normalize_variance:
+            self.norms = self._get_normalizations()
+        else:
+            self.norms = np.ones(len(self.datasets))
+        assert len(self.norms) == len(self.datasets)
+
+
     def _check_same_length(self):
         """Check that the datasets are the same length"""
-        lens = []
-        for ds in self.datasets:
-            lens.append(
-                sum(1 for _ in ds.keys())
-            )
+        lens = [len(ds) for ds in self.datasets]
         if len(set(lens)) > 1:
             err = "Each dataset must be the same length. You gave: {}"
             err = err.format(lens)
             raise ValueError(err)
+
+    def _get_normalizations(self):
+        norms = []
+        for ds in self.datasets:
+            ds_all = np.concatenate(ds[:])
+            norms += [np.std(ds_all)]
+        return np.asarray(norms)
 
     def keys(self):
         return self.datasets[0].keys()
@@ -487,14 +497,9 @@ class UnionDataset(_BaseDataset):
                 return arr[:, np.newaxis]
             return arr
 
-        def _norm(ds):
-            if self.normalize_variance:
-                return ds.get(i) / np.std(ds)
-            else:
-                return ds.get(i)
-
-        return np.concatenate([_dim_match(_norm(ds))
-                               for ds in self.datasets], axis=1)
+        return np.concatenate(
+            [_dim_match(ds.get(i)) / norm
+             for ds, norm in zip(self.datasets, self.norms)], axis=1)
 
     def close(self):
         for ds in self.datasets:
