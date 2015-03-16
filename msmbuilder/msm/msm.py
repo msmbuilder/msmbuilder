@@ -21,7 +21,7 @@ from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _dict_compose,
                    _strongly_connected_subgraph, _transition_counts,
-                   _solve_msm_eigensystem)
+                   _solve_msm_eigensystem, _SampleMSMMixin)
 
 __all__ = ['MarkovStateModel']
 
@@ -29,7 +29,7 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
+class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     """Reversible Markov State Model
 
     This model fits a first-order Markov model to a dataset of integer-valued
@@ -293,55 +293,6 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
             result.append(value)
 
         return result
-
-    def sample(self, state=None, n_steps=100, random_state=None):
-        r"""Generate a random sequence of states by propagating the model
-
-        Parameters
-        ----------
-        state : {None, ndarray, label}
-            Specify the starting state for the chain.
-
-            ``None``
-                Choose the initial state by randomly drawing from the model's
-                stationary distribution.
-            ``array-like``
-                If ``state`` is a 1D array with length equal to ``n_states_``,
-                then it is is interpreted as an initial multinomial
-                distribution from which to draw the chain's initial state.
-                Note that the indexing semantics of this array must match the
-                _internal_ indexing of this model.
-            otherwise
-                Otherwise, ``state`` is interpreted as a particular
-                deterministic state label from which to begin the trajectory.
-        n_steps : int
-            Lengths of the resulting trajectory
-        random_state : int or RandomState instance or None (default)
-            Pseudo Random Number generator seed control. If None, use the
-            numpy.random singleton.
-
-        Returns
-        -------
-        sequence : array of length n_steps
-            A randomly sampled label sequence
-        """
-        random = check_random_state(random_state)
-        r = random.rand(1 + n_steps)
-
-        if state is None:
-            initial = np.sum(np.cumsum(self.populations_) < r[0])
-        elif hasattr(state, '__len__') and len(state) == self.n_states_:
-            initial = np.sum(np.cumsum(state) < r[0])
-        else:
-            initial = self.mapping_[state]
-
-        cstr = np.cumsum(self.transmat_, axis=1)
-
-        chain = [initial]
-        for i in range(1, n_steps):
-            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
-
-        return self.inverse_transform([chain])[0]
 
     def score_ll(self, sequences):
         r"""log of the likelihood of sequences with respect to the model

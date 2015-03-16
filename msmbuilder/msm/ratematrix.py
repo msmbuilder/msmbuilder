@@ -15,10 +15,10 @@ from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
-                   _solve_ratemat_eigensystem, _strongly_connected_subgraph)
+                   _solve_ratemat_eigensystem, _strongly_connected_subgraph, _SampleMSMMixin)
 
 
-class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
+class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     """Reversible first order master equation model
 
     This model fits a reversible continuous-time Markov model for labeled
