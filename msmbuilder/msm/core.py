@@ -10,6 +10,7 @@ import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
 
 from sklearn.base import TransformerMixin
+from sklearn.utils import check_random_state
 
 from . import _ratematrix
 from ..utils import list_of_1d
