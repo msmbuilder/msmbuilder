@@ -200,7 +200,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
 
         def objective(theta):
             f, g = _ratematrix.loglikelihood(theta, countsmat, lag_time)
-            loglikelihoods.append(f)
 
             if not np.isfinite(f):
                 f = np.nan

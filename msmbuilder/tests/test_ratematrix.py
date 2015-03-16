@@ -282,9 +282,9 @@ def test_optimize_1():
 
     model = ContinuousTimeMSM(verbose=True).fit(seqs)
 
-    y, x, n = model.loglikelihoods_.T
-    x = x-x[0]
-    cross = np.min(np.where(n==n[-1])[0])
+    #y, x, n = model.loglikelihoods_.T
+    #x = x-x[0]
+    #cross = np.min(np.where(n==n[-1])[0])
 
 
 def test_score_2():
