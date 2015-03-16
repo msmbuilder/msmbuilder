@@ -197,7 +197,7 @@ def test_11():
     # test sample
     model = MarkovStateModel()
     model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
-    sample = model.sample(n_steps=1000, random_state=0)
+    sample = model.sample_discrete(n_steps=1000, random_state=0)
     assert isinstance(sample, np.ndarray)
     assert len(sample) == 1000
 

@@ -294,6 +294,10 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
 
         return result
 
+    def sample(self, state=None, n_steps=100, random_state=None):
+        warnings.warn("msm.sample() has been renamed as msm.sample_discrete() and will be removed in MSMBuilder3.4")
+        return self.sample_discrete(state=None, n_steps=100, random_state=None)
+
     def score_ll(self, sequences):
         r"""log of the likelihood of sequences with respect to the model
 

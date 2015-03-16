@@ -114,8 +114,9 @@ class _MappingTransformMixin(TransformerMixin):
 
 class _SampleMSMMixin(object):
     """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""
-    def sample(self, state=None, n_steps=100, random_state=None):
+    def sample_discrete(self, state=None, n_steps=100, random_state=None):
         r"""Generate a random sequence of states by propagating the model
+        using discrete time steps given by the model lagtime.
 
         Parameters
         ----------
