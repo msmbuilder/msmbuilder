@@ -142,6 +142,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin):
     def fit(self, sequences, y=None):
         self._build_counts(sequences)
         self._fit()
+        return self
 
     def _fit(self):
         result, loglikelihoods = self._optimize()
