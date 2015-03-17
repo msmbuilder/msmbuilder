@@ -10,6 +10,7 @@ import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
 
 from sklearn.base import TransformerMixin
+from sklearn.utils import check_random_state
 
 from . import _ratematrix
 from ..utils import list_of_1d
@@ -110,6 +111,95 @@ class _MappingTransformMixin(TransformerMixin):
 
             result.append(f(y))
         return result
+
+class _SampleMSMMixin(object):
+    """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""
+    def sample_discrete(self, state=None, n_steps=100, random_state=None):
+        r"""Generate a random sequence of states by propagating the model
+        using discrete time steps given by the model lagtime.
+
+        Parameters
+        ----------
+        state : {None, ndarray, label}
+            Specify the starting state for the chain.
+
+            ``None``
+                Choose the initial state by randomly drawing from the model's
+                stationary distribution.
+            ``array-like``
+                If ``state`` is a 1D array with length equal to ``n_states_``,
+                then it is is interpreted as an initial multinomial
+                distribution from which to draw the chain's initial state.
+                Note that the indexing semantics of this array must match the
+                _internal_ indexing of this model.
+            otherwise
+                Otherwise, ``state`` is interpreted as a particular
+                deterministic state label from which to begin the trajectory.
+        n_steps : int
+            Lengths of the resulting trajectory
+        random_state : int or RandomState instance or None (default)
+            Pseudo Random Number generator seed control. If None, use the
+            numpy.random singleton.
+
+        Returns
+        -------
+        sequence : array of length n_steps
+            A randomly sampled label sequence
+        """
+        random = check_random_state(random_state)
+        r = random.rand(1 + n_steps)
+
+        if state is None:
+            initial = np.sum(np.cumsum(self.populations_) < r[0])
+        elif hasattr(state, '__len__') and len(state) == self.n_states_:
+            initial = np.sum(np.cumsum(state) < r[0])
+        else:
+            initial = self.mapping_[state]
+
+        cstr = np.cumsum(self.transmat_, axis=1)
+
+        chain = [initial]
+        for i in range(1, n_steps):
+            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
+
+        return self.inverse_transform([chain])[0]
+
+    def draw_samples(self, sequences, n_samples, random_state=None):
+        """Sample conformations from each state.
+
+        Parameters
+        ----------
+        sequences : list
+            List of state label sequences, each of which
+            has shape (n_samples_i), where n_samples_i is the length of
+            the ith trajectory.
+        n_samples : int
+            How many samples to return from each state
+
+        Returns
+        -------
+        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
+            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
+            pairs from the specified state.
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+
+        """
+        n_states = max(map(lambda x: max(x), sequences)) + 1
+        n_states_2 = len(np.unique(np.concatenate(sequences)))
+        assert n_states == n_states_2, "Must have non-empty, zero-indexed, consecutive states: found %d states and %d unique states." % (n_states, n_states_2)
+
+        random = check_random_state(random_state)
+
+        selected_pairs_by_state = []
+        for state in range(n_states):
+            all_frames = [np.where(a == state)[0] for a in sequences]
+            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
+            selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
+
+        return np.array(selected_pairs_by_state)
 
 
 def _solve_ratemat_eigensystem(theta, k, n):

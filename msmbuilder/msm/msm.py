@@ -21,7 +21,7 @@ from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _dict_compose,
                    _strongly_connected_subgraph, _transition_counts,
-                   _solve_msm_eigensystem)
+                   _solve_msm_eigensystem, _SampleMSMMixin)
 
 __all__ = ['MarkovStateModel']
 
@@ -29,7 +29,7 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
+class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     """Reversible Markov State Model
 
     This model fits a first-order Markov model to a dataset of integer-valued
@@ -295,53 +295,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return result
 
     def sample(self, state=None, n_steps=100, random_state=None):
-        r"""Generate a random sequence of states by propagating the model
-
-        Parameters
-        ----------
-        state : {None, ndarray, label}
-            Specify the starting state for the chain.
-
-            ``None``
-                Choose the initial state by randomly drawing from the model's
-                stationary distribution.
-            ``array-like``
-                If ``state`` is a 1D array with length equal to ``n_states_``,
-                then it is is interpreted as an initial multinomial
-                distribution from which to draw the chain's initial state.
-                Note that the indexing semantics of this array must match the
-                _internal_ indexing of this model.
-            otherwise
-                Otherwise, ``state`` is interpreted as a particular
-                deterministic state label from which to begin the trajectory.
-        n_steps : int
-            Lengths of the resulting trajectory
-        random_state : int or RandomState instance or None (default)
-            Pseudo Random Number generator seed control. If None, use the
-            numpy.random singleton.
-
-        Returns
-        -------
-        sequence : array of length n_steps
-            A randomly sampled label sequence
-        """
-        random = check_random_state(random_state)
-        r = random.rand(1 + n_steps)
-
-        if state is None:
-            initial = np.sum(np.cumsum(self.populations_) < r[0])
-        elif hasattr(state, '__len__') and len(state) == self.n_states_:
-            initial = np.sum(np.cumsum(state) < r[0])
-        else:
-            initial = self.mapping_[state]
-
-        cstr = np.cumsum(self.transmat_, axis=1)
-
-        chain = [initial]
-        for i in range(1, n_steps):
-            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
-
-        return self.inverse_transform([chain])[0]
+        warnings.warn("msm.sample() has been renamed as msm.sample_discrete() and will be removed in MSMBuilder3.4")
+        return self.sample_discrete(state=None, n_steps=100, random_state=None)
 
     def score_ll(self, sequences):
         r"""log of the likelihood of sequences with respect to the model
@@ -590,43 +545,6 @@ Timescales:
     def state_labels_(self):
         return [k for k, v in sorted(self.mapping_.items(),
                                      key=operator.itemgetter(1))]
-
-    def draw_samples(self, sequences, n_samples, random_state=None):
-        """Sample conformations from each state.
-
-        Parameters
-        ----------
-        sequences : list
-            List of 2-dimensional array observation sequences, each of which
-            has shape (n_samples_i, n_features), where n_samples_i
-            is the length of the i_th observation.
-        n_samples : int
-            How many samples to return from each state
-
-        Returns
-        -------
-        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
-            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
-            pairs from the specified state.
-
-        See Also
-        --------
-        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
-
-        """
-        n_states = max(map(lambda x: max(x), sequences)) + 1
-        n_states_2 = len(np.unique(np.concatenate(sequences)))
-        assert n_states == n_states_2, "Must have non-empty, zero-indexed, consecutive states: found %d states and %d unique states." % (n_states, n_states_2)
-
-        random = check_random_state(random_state)
-
-        selected_pairs_by_state = []
-        for state in range(n_states):
-            all_frames = [np.where(a == state)[0] for a in sequences]
-            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
-            selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
-
-        return np.array(selected_pairs_by_state)
 
     def uncertainty_eigenvalues(self):
         """Estimate of the element-wise asymptotic standard deviation
