@@ -98,17 +98,22 @@ cpdef int build_ratemat(const double[::1] theta, npy_intp n, double[:, ::1] out,
     return 0
 
 
-cpdef double dK_dtheta_A(const double[::1] theta, npy_intp n, npy_intp u,
-                         const double[:, ::1] A, double[:, ::1] out=None) nogil:
-    r"""dK_dtheta_A(theta, n, u, A, out=None)
+cpdef double dK_dtheta_ij(const double[::1] theta, npy_intp n, npy_intp u,
+                          double[:, ::1] A=None, double[:, ::1] out=None) nogil:
+    r"""dK_dtheta_ij(theta, n, u, A=None, out=None)
 
-    Compute the sum of the Hadamard (element-wise) product of the
-    derivative of (the rate matrix, `K`, with respect to the free
-    parameters,`\theta`, dK_ij / dtheta_u) and another matrix, A.
+    Compute :math:`dK_ij / dtheta_u` over all `i`, `j` for fixed `u`.
 
-    Since dK/dtheta_u is a sparse matrix with a known sparsity structure, it's
-    more efficient to just do sum as we construct it, and never
-    save the matrix elements directly.
+    Along with `dK_dtheta_u`, this function computes a slice of the 3-index
+    tensor :math:`dK_ij / dtheta_u`, the derivative of the rate matrix `K`
+    with respect to the free parameters,`\theta`. This function computes a 2D
+    slice of this tensor over all (i,j) for a fixed `u`.
+
+    Furthermore, this function _additionally_ makes it possible, using the
+    argument `A`, to compute the hadamard product of this slice with a given
+    matrix A directly.  Since dK/dtheta_u is a sparse matrix with a known
+    sparsity structure, it's more efficient to just do the hadamard as we
+    construct it, and never save the matrix elements directly.
 
     Parameters
     ----------
@@ -210,6 +215,100 @@ cpdef double dK_dtheta_A(const double[::1] theta, npy_intp n, npy_intp u,
     return sum_elem_product
 
 
+cpdef int dK_dtheta_u(const double[::1] theta, npy_intp n, npy_intp i,
+                      npy_intp j, double[:] out, double[:, :] A=None,
+                      double[:] out2=None) nogil:
+    r"""
+    Compute :math:`dK_ij / dtheta_u` over all `u` for fixed (`i`, `j`).
+
+    Along with `dK_dtheta_ij`, this function computes a slice of the 3-index
+    tensor :math:`dK_ij / dtheta_u`, the derivative of the rate matrix `K`
+    with respect to the free parameters,`\theta`. This function computes a 1D
+    slice of this tensor over `u` for a fixed `i`, `j`, a gradient vector.
+
+    Furthermore, this function _additionally_ makes it possible, using the
+    argument `A`, to compute the vector-matrix product of this gradient vector
+    with a given matrix A directly. Since the gradient is a sparse vector with
+    a known sparsity structure, it's more efficient to just do the product as we
+    construct it, and never save the elements directly.
+
+    Parameters
+    ----------
+    theta : array
+        The free parameters, `\theta`. These values are the linearized elements
+        of the upper triangular portion of the symmetric rate matrix, S,
+        followed by the log equilibrium weights.
+    n : int
+        Dimension of the rate matrix, K, (number of states)
+    i, j : int
+        The fixed indices of the rate matrix, `K`.
+    out : [output], array of shape=(len(theta),)
+        The vector dK[i,j]/dtheta[u] for all u is written here on exit
+    A : array of shape(len(theta), len(theta)), optional
+        If not None, an arbitrary matrix
+    out2: [output], array of shape=(len(theta),)
+        If not None, a second output where the product of `out` with `A`
+        is written, ``out2 = np.dot(out, A)``.
+
+    """
+    cdef npy_intp n_triu = n*(n-1)/2
+    cdef npy_intp u, jj, size
+    cdef double dK_i, dK_ij, dK_ji, pi_i, pi_j, pi_jj, val, sqrt_pi_j_over_i
+    cdef double s_ij = 0
+    size = n_triu + n
+    cdef int compute_out2 = (A is not None and out2 is not None)
+
+    if DEBUG:
+        assert theta.shape[0] == size
+        assert out.shape[0] == size
+        assert out2 is None or out2.shape[0] == size
+
+    # For u in 0...n_triu-1
+    u = ij_to_k(i, j, n)
+    pi_i = exp(theta[n_triu+i])
+    pi_j = exp(theta[n_triu+j])
+
+    if i != j:
+        s_ij = theta[u]
+        sqrt_pi_j_over_i = sqrt(pi_j / pi_i)
+        out[u] += sqrt_pi_j_over_i
+        if compute_out2:
+            cdaxpy(sqrt_pi_j_over_i, x=A[u, :], y=out2)
+
+        # for u in n_triu...size-1
+        if s_ij != 0:
+            val = 0.5 * s_ij * sqrt_pi_j_over_i
+            out[n_triu + i] -= val
+            out[n_triu + j] += val
+            if compute_out2:
+                cdaxpy(-val, x=A[n_triu + i, :], y=out2)
+                cdaxpy(val, x=A[n_triu + j, :], y=out2)
+
+    else:
+        for jj in range(n):
+            if jj == i:
+                continue
+
+            u = ij_to_k(i, jj, n)
+            s_ij = theta[u]
+
+            pi_jj = exp(theta[n_triu+jj])
+            sqrt_pi_j_over_i = sqrt(pi_jj / pi_i)
+
+            out[u] -= sqrt_pi_j_over_i
+            if compute_out2:
+                cdaxpy(-sqrt_pi_j_over_i, x=A[u, :], y=out2)
+
+            if s_ij != 0:
+                val = 0.5 * s_ij * sqrt_pi_j_over_i
+                out[n_triu + i] += val
+                out[n_triu + jj] -= val
+                if compute_out2:
+                    cdaxpy(val, x=A[n_triu + i, :], y=out2)
+                    cdaxpy(-val, x=A[n_triu + jj, :], y=out2)
+
+    return 0
+
 def loglikelihood(const double[::1] theta, const double[:, ::1] counts, double t=1):
     r"""loglikelihood(theta, counts, n, t=1)
 
@@ -268,7 +367,7 @@ def loglikelihood(const double[::1] theta, const double[:, ::1] counts, double t
 
     with nogil:
         for u in range(size):
-            grad[u] = dK_dtheta_A(theta, n, u, dT)
+            grad[u] = dK_dtheta_ij(theta, n, u, A=dT)
 
         for i in range(n):
             for j in range(n):
@@ -361,7 +460,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1, npy_intp[::1] 
     for uu in range(len(inds)):
         u = inds[uu]
 
-        dK_dtheta_A(theta, n, u, None, dKu)
+        dK_dtheta_ij(theta, n, u, None, out=dKu)
         # Gu = U.T * dKu * V
         cdgemm_TN(U, dKu, temp1)
         cdgemm_NN(temp1, V, temp2)
@@ -384,7 +483,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1, npy_intp[::1] 
         for vv in range(uu, len(inds)):
             v = inds[vv]
 
-            hessian_uv = dK_dtheta_A(theta, n, v, Au)
+            hessian_uv = dK_dtheta_ij(theta, n, v, A=Au)
             hessian[uu, vv] = hessian_uv
             hessian[vv, uu] = hessian_uv
 
@@ -418,31 +517,30 @@ def sigma_K(const double[:, ::1] covar_theta, const double[::1] theta, npy_intp 
     cdef npy_intp n_triu = n*(n-1)/2
     cdef npy_intp u, v, i, j
     cdef double var_K_ij
-    cdef double[::1] temp, sigma_K
-    cdef double[:, ::1] dKus
-    cdef double[:, :, ::1] dKu
+    cdef double[::1] temp, dKij
+    cdef double[:, ::1] sigma_K
     cdef npy_intp size = theta.shape[0]
     if theta.shape[0] != n_triu + n:
         raise ValueError('theta must have shape n*(n+1)/2+n')
     if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
         raise ValueError('covar_theta must be `size` x `size`')
 
-    sigma_K = zeros(n*n)
-    dKu = zeros((size, n, n))
-    dKus = zeros((n*n, size))
+    sigma_K = zeros((n, n))
+    dKij = zeros(size)
     temp = zeros(size)
 
-    for u in range(size):
-        dK_dtheta_A(theta, n, u, None, dKu[u, :, :])
+    for i in range(n):
+        for j in range(n):
+            # dK_dtheta_u(theta, n, i, j, out=dKij)
+            # cdgemv_N(covar_theta, dKij, temp)
 
-    dKus = np.asarray(np.asarray(dKu).reshape(size, n*n).T, order='C')
+            memset(&dKij[0], 0, size*sizeof(double))
+            memset(&temp[0], 0, size*sizeof(double))
+            dK_dtheta_u(theta, n, i, j, out=dKij, A=covar_theta, out2=temp)
+            cddot(dKij, temp, &var_K_ij)
+            sigma_K[i, j] = sqrt(var_K_ij)
 
-    for i in range(n*n):
-        cdgemv_N(covar_theta, dKus[i, :], temp)
-        cddot(dKus[i, :], temp, &var_K_ij)
-        sigma_K[i] = sqrt(var_K_ij)
-
-    return np.asarray(sigma_K).reshape(n, n)
+    return np.asarray(sigma_K)
 
 
 def sigma_pi(const double[:, :] covar_theta, const double[::1] theta, npy_intp n):
@@ -575,7 +673,7 @@ def sigma_eigenvalues(const double[:, ::1] covar_theta, const double[::1] theta,
     w = np.asarray(w)[order]
 
     for u in range(size):
-        dK_dtheta_A(theta, n, u, None, dKu)
+        dK_dtheta_ij(theta, n, u, A=None, out=dKu)
         dw_du(dKu, U, V, n, temp1, dlambda_dtheta[:, u])
 
     for i in range(n):
@@ -644,7 +742,7 @@ def sigma_timescales(const double[:, ::1] covar_theta, const double[::1] theta,
     w = np.asarray(w)[order]
 
     for u in range(size):
-        dK_dtheta_A(theta, n, u, None, dKu)
+        dK_dtheta_ij(theta, n, u, A=None, out=dKu)
         dw_du(dKu, U, V, n, temp1, dlambda_dtheta[:, u])
         for i in range(n):
             dtau_dtheta[i, u] = dlambda_dtheta[i, u] / (w[i]**2)

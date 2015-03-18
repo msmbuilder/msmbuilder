@@ -56,7 +56,7 @@ def test_dK_dtheta_1():
         dKu = np.zeros((n, n))
         g = np.zeros(len(x))
         for u in range(len(x)):
-            _ratematrix.dK_dtheta_A(x, n, u, None, dKu)
+            _ratematrix.dK_dtheta_ij(x, n, u, None, dKu)
             g[u] = dKu[i, j]
         return g
 
@@ -74,15 +74,90 @@ def test_dK_dtheta_2():
 
     for u in range(len(theta)):
         dKu = np.zeros((n, n))
-        _ratematrix.dK_dtheta_A(theta, n, u, None, dKu)
+        _ratematrix.dK_dtheta_ij(theta, n, u, None, dKu)
         value1 = (dKu * A).sum()
 
         dKu = np.zeros((n, n))
-        value2 = _ratematrix.dK_dtheta_A(theta, n, u, A, dKu)
-        value3 = _ratematrix.dK_dtheta_A(theta, n, u, A)
+        value2 = _ratematrix.dK_dtheta_ij(theta, n, u, A, dKu)
+        value3 = _ratematrix.dK_dtheta_ij(theta, n, u, A)
 
         np.testing.assert_approx_equal(value1, value2)
         np.testing.assert_approx_equal(value1, value3)
+
+
+def test_dK_dtheta_3():
+    # test dK_dtheta_ij vs dK_dtheta_u. both return slices of the same 3D
+    # tensor, so by repeated calls to both functions we can build the whole
+    # tensor using both approaches and check that they're equal.
+
+    for n in [3, 4]:
+        theta = example_theta(n)
+
+
+        dKuij1 = np.zeros((len(theta), n, n))
+        dKuij2 = np.zeros((len(theta), n, n))
+
+        for u in range(len(theta)):
+            _ratematrix.dK_dtheta_ij(theta, n, u, None, dKuij1[u])
+
+        for i in range(n):
+            for j in range(n):
+                _ratematrix.dK_dtheta_u(theta, n, i, j, out=dKuij2[:, i, j])
+
+        np.testing.assert_array_almost_equal(dKuij1, dKuij2)
+
+
+def test_dK_dtheta_4():
+    # check that the dot product part of dK_dtheta_u works
+    n = 4
+    theta = example_theta(n)
+    A = random.randn(len(theta), len(theta))
+
+    for i in range(n):
+        for j in range(n):
+            grad = np.zeros(len(theta))
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=grad)
+            gradprod1 = np.dot(grad, A)
+
+            gradprod2 = np.zeros(len(theta))
+            grad2 = np.zeros(len(theta))
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=grad2, A=A, out2=gradprod2)
+
+            np.testing.assert_almost_equal(grad, grad2)
+            np.testing.assert_almost_equal(gradprod1, gradprod2)
+            np.testing.assert_almost_equal(np.dot(grad2, A), gradprod2)
+
+
+
+
+def test_dK_dtheta_5():
+    n = 4
+    theta = np.array(
+        [  2.59193443e-02,  0.00000000e+00,  6.83797216e-07,   3.08837678e-03,
+           0.00000000e+00,  2.56956907e-02,  -1.48051536e+00,  -1.51759911e+00,
+          -1.34983215e+00, -1.22431771e+00])
+    size = len(theta)
+
+
+    dK1 = np.zeros((size, n, n))
+    dK2 = np.zeros((size, n, n))
+    dK3 = np.zeros((size, n, n))
+
+    for u in range(size):
+        _ratematrix.dK_dtheta_ij(theta, n, u, A=None, out=dK1[u, :, :])
+    for i in range(n):
+        for j in range(n):
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=dK2[:, i, j])
+    for i in range(n):
+        for j in range(n):
+            dKij = np.zeros(size)
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=dKij)
+            dK3[:, i, j] = dKij
+
+    np.testing.assert_almost_equal(dK1, dK2)
+    np.testing.assert_almost_equal(dK1, dK3)
+    np.testing.assert_almost_equal(dK2, dK3)
+
 
 
 def test_grad_logl_1():
@@ -121,7 +196,7 @@ def test_dw_1():
 
         for u in range(len(theta)):
             dKu = np.zeros((n, n))
-            _ratematrix.dK_dtheta_A(theta, n, u, None, dKu)
+            _ratematrix.dK_dtheta_ij(theta, n, u, None, dKu)
             out = np.zeros(n)
             temp = np.zeros(n)
             _ratematrix.dw_du(dKu, U, V, n, temp, out)
@@ -275,11 +350,15 @@ def test_score_1():
     np.testing.assert_approx_equal(model.score(seqs), model.score_)
 
 
-def test_optimize_1():
-    n = 100
-    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
-    model = ContinuousTimeMSM(verbose=True).fit(seqs)
+# def test_optimize_1():
+#     n = 50
+#     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
+#     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+#     model = ContinuousTimeMSM(verbose=False).fit(seqs)
+#
+#     start = time.time()
+#     sigma_K = model.uncertainty_K()
+#     print('50 states: uncertainty_K speed', time.time()-start)
 
 
 def test_uncertainties_backward():
@@ -305,6 +384,12 @@ def test_uncertainties_backward():
          [  3.52062861e-04, 3.73305510e-04, 1.24093936e-04, 0.00000000e+00],
          [  0.00000000e+00, 1.04708186e-04, 3.45098923e-04, 3.28820213e-04],
          [  1.25455972e-06, 0.00000000e+00, 2.90118599e-04, 2.90122944e-04]])
+    yield lambda: np.testing.assert_array_almost_equal(
+        model.ratemat_,
+        [[ -2.54439564e-02, 2.54431791e-02,  0.00000000e+00,  7.77248586e-07],
+         [  2.64044208e-02,-2.97630373e-02,  3.35861646e-03,  0.00000000e+00],
+         [  0.00000000e+00, 2.83988103e-03, -3.01998380e-02,  2.73599570e-02],
+         [  6.01581838e-07, 0.00000000e+00,  2.41326592e-02, -2.41332608e-02]])
 
 
 def test_score_2():
