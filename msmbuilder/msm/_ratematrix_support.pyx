@@ -118,8 +118,8 @@ cdef int transmat(const double[::1] expwt, const double[:, ::1] U,
     cdgemm_NT(temp, U, T)
 
 
-cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] V,
-            const double[:, ::1] U, npy_intp n, double[::1] temp,
+cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] U,
+            const double[:, ::1] V, npy_intp n, double[::1] temp,
             double[::1] out) nogil:
     r"""Calculate the derivative of the eigenvalues, w, of a matrix, K(\theta),
     with respect to \theta_u.
@@ -145,8 +145,8 @@ cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] V,
     """
     cdef npy_intp i
     for i in range(n):
-        cdgemv_N(dKu, U[:, i], temp)
-        cddot(temp, V[:, i], &out[i])
+        cdgemv_N(dKu, V[:, i], temp)
+        cddot(temp, U[:, i], &out[i])
 
 
 

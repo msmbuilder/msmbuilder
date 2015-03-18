@@ -279,12 +279,32 @@ def test_optimize_1():
     n = 100
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
-
     model = ContinuousTimeMSM(verbose=True).fit(seqs)
 
-    #y, x, n = model.loglikelihoods_.T
-    #x = x-x[0]
-    #cross = np.min(np.where(n==n[-1])[0])
+
+def test_uncertainties_backward():
+    n = 4
+    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
+    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+
+    model = ContinuousTimeMSM(verbose=False).fit(seqs)
+    sigma_ts = model.uncertainty_timescales()
+    sigma_lambda = model.uncertainty_eigenvalues()
+    sigma_pi = model.uncertainty_pi()
+    sigma_K = model.uncertainty_K()
+
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_ts, [9.13698928, 0.12415533, 0.11713719])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_lambda, [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_pi, [0.00741467, 0.00647945, 0.00626743, 0.00777847])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_K,
+        [[  3.39252419e-04, 3.39246173e-04, 0.00000000e+00, 1.62090239e-06],
+         [  3.52062861e-04, 3.73305510e-04, 1.24093936e-04, 0.00000000e+00],
+         [  0.00000000e+00, 1.04708186e-04, 3.45098923e-04, 3.28820213e-04],
+         [  1.25455972e-06, 0.00000000e+00, 2.90118599e-04, 2.90122944e-04]])
 
 
 def test_score_2():
