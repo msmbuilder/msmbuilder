@@ -350,15 +350,16 @@ def test_score_1():
     np.testing.assert_approx_equal(model.score(seqs), model.score_)
 
 
-def test_optimize_1():
-    n = 50
-    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
-    model = ContinuousTimeMSM(verbose=False).fit(seqs)
+# def test_optimize_1():
+#     n = 50
+#     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
+#     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+#     model = ContinuousTimeMSM(verbose=False).fit(seqs)
+#
+#     start = time.time()
+#     sigma_K = model.uncertainty_K()
+#     print('50 states: uncertainty_K speed', time.time()-start)
 
-    start = time.time()
-    sigma_K = model.uncertainty_K()
-    print('50 states: uncertainty_K speed', time.time()-start)
 
 def test_uncertainties_backward():
     n = 4
