@@ -418,8 +418,8 @@ def sigma_K(const double[:, ::1] covar_theta, const double[::1] theta, npy_intp 
     cdef npy_intp n_triu = n*(n-1)/2
     cdef npy_intp u, v, i, j
     cdef double var_K_ij
-    cdef double[::1] temp
-    cdef double[:, ::1] var_K, dKus
+    cdef double[::1] temp, sigma_K
+    cdef double[:, ::1] dKus
     cdef double[:, :, ::1] dKu
     cdef npy_intp size = theta.shape[0]
     if theta.shape[0] != n_triu + n:
