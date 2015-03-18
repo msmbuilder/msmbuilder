@@ -48,10 +48,13 @@ ctypedef int dgemv_t(char *transa, int *m, int *n, d *alpha, d *a,
                      int *lda, d *x, int *incx, d *beta, d *y, int *incy) nogil
 ctypedef d ddot_t(int *n, d *dx, int *incx, d *dy, int *incy) nogil
 ctypedef d dnrm2_t(int *n, d *x, int *incx) nogil
+ctypedef int daxpy_t(int *n, d *alpha, d *x, int *incx, d *y, int *incy) nogil
+
 cdef dgemm_t *FORTRAN_DGEMM = <dgemm_t*>f2py_pointer(blas.dgemm._cpointer)
 cdef dgemv_t *FORTRAN_DGEMV = <dgemv_t*>f2py_pointer(blas.dgemv._cpointer)
 cdef ddot_t  *FORTRAN_DDOT  = <ddot_t*> f2py_pointer(blas.ddot._cpointer)
 cdef dnrm2_t *FORTRAN_DNRM2 = <dnrm2_t*>f2py_pointer(blas.dnrm2._cpointer)
+cdef daxpy_t *FORTRAN_DAXPY = <daxpy_t*>f2py_pointer(blas.daxpy._cpointer)
 
 
 @cython.boundscheck(False)
@@ -145,4 +148,13 @@ cdef int cdnrm2(double[:] x, double* result) nogil:
     cdef int n = x.shape[0]
     cdef int incx = x.strides[0] / sizeof(double)
     result[0] = FORTRAN_DNRM2(&n, &x[0], &incx)
+    return 0
+
+
+@cython.boundscheck(False)
+cdef int cdaxpy(double alpha, double[:] x, double[:] y) nogil:
+    cdef int n = x.shape[0]
+    cdef int incx = x.strides[0] / sizeof(double)
+    cdef int incy = y.strides[0] / sizeof(double)
+    FORTRAN_DAXPY(&n, &alpha, &x[0], &incx, &y[0], &incy)
     return 0
