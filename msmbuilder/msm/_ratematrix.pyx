@@ -391,7 +391,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1, npy_intp[::1] 
     return np.asarray(hessian)
 
 
-def sigma_K(const double[:, :] covar_theta, const double[::1] theta, npy_intp n):
+def sigma_K(const double[:, ::1] covar_theta, const double[::1] theta, npy_intp n):
     r"""sigma_K(covar_theta, theta, n)
 
     Estimate the asymptotic standard deviation (uncertainty in the rate
@@ -417,30 +417,32 @@ def sigma_K(const double[:, :] covar_theta, const double[::1] theta, npy_intp n)
     """
     cdef npy_intp n_triu = n*(n-1)/2
     cdef npy_intp u, v, i, j
-    cdef double[:, ::1] var_K, dKu, dKv, K, eye
+    cdef double var_K_ij
+    cdef double[::1] temp
+    cdef double[:, ::1] var_K, dKus
+    cdef double[:, :, ::1] dKu
     cdef npy_intp size = theta.shape[0]
     if theta.shape[0] != n_triu + n:
         raise ValueError('theta must have shape n*(n+1)/2+n')
     if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
         raise ValueError('covar_theta must be `size` x `size`')
 
-    var_K = zeros((n, n))
-    dKu = zeros((n, n))
-    dKv = zeros((n, n))
-    K = zeros((n, n))
-    eye = np.eye(n)
+    sigma_K = zeros(n*n)
+    dKu = zeros((size, n, n))
+    dKus = zeros((n*n, size))
+    temp = zeros(size)
 
     for u in range(size):
-        dK_dtheta_A(theta, n, u, None, dKu)
-        for v in range(size):
-            dK_dtheta_A(theta, n, v, None, dKv)
-            # this could be optimized, since dKu and dKv are sparse and we
-            # know their pattern
-            for i in range(n):
-                for j in range(n):
-                    var_K[i,j] += covar_theta[u,v] * dKu[i,j] * dKv[i,j]
+        dK_dtheta_A(theta, n, u, None, dKu[u, :, :])
 
-    return np.asarray(np.sqrt(var_K))
+    dKus = np.asarray(np.asarray(dKu).reshape(size, n*n).T, order='C')
+
+    for i in range(n*n):
+        cdgemv_N(covar_theta, dKus[i, :], temp)
+        cddot(dKus[i, :], temp, &var_K_ij)
+        sigma_K[i] = sqrt(var_K_ij)
+
+    return np.asarray(sigma_K).reshape(n, n)
 
 
 def sigma_pi(const double[:, :] covar_theta, const double[::1] theta, npy_intp n):
@@ -515,7 +517,7 @@ def sigma_pi(const double[:, :] covar_theta, const double[::1] theta, npy_intp n
     return np.asarray(sigma_pi)
 
 
-def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
+def sigma_eigenvalues(const double[:, ::1] covar_theta, const double[::1] theta,
                      npy_intp n):
     r"""sigma_eigenvalues(covar_theta, theta, n)
 
@@ -542,24 +544,23 @@ def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
     """
     cdef npy_intp n_triu = n*(n-1)/2
     cdef npy_intp u, v, i
-    cdef double[::1] pi, var_w, w, dw_u, dw_v, temp, sigma
-    cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
+    cdef double var_w_i
+    cdef double[::1] pi, sigma_w, temp1, temp2
+    cdef double[:, ::1] S, U, V, dKu
+    cdef double[::1, :] dlambda_dtheta
     cdef npy_intp size = theta.shape[0]
     if theta.shape[0] != n_triu + n:
         raise ValueError('theta must have shape n*(n+1)/2+n')
     if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
         raise ValueError('covar_theta must be `size` x `size`')
 
-    var_w = zeros(n)
-    dKu = zeros((n, n))
-    dKv = zeros((n, n))
-    dw_u = zeros(n)
-    dw_v = zeros(n)
-    w_pow_m4 = zeros(n)
-    temp = zeros(n)
-    S = zeros((n, n))
-    eye = np.eye(n)
     pi = zeros(n)
+    S = zeros((n, n))
+    dKu = zeros((n, n))
+    temp1 = zeros(n)
+    temp2 = zeros(size)
+    sigma_w = zeros(n)
+    dlambda_dtheta = np.zeros((n, size), order='F')
 
     for i in range(n):
         pi[i] = exp(theta[n_triu+i])
@@ -575,24 +576,17 @@ def sigma_eigenvalues(const double[:, :] covar_theta, const double[::1] theta,
 
     for u in range(size):
         dK_dtheta_A(theta, n, u, None, dKu)
-        dw_du(dKu, U, V, n, temp, dw_u)
-        for v in range(size):
-            dK_dtheta_A(theta, n, v, None, dKv)
-            dw_du(dKv, U, V, n, temp, dw_v)
+        dw_du(dKu, U, V, n, temp1, dlambda_dtheta[:, u])
 
-            for i in range(n):
-                var_w[i] += dw_u[i] * dw_v[i] * covar_theta[u, v]
-
-    sigma = zeros(n)
     for i in range(n):
-        if var_w[i] <= 0:
-            sigma[i] = 0
-        else:
-            sigma[i] = sqrt(var_w[i])
-    return np.asarray(sigma)
+        cdgemv_N(covar_theta, dlambda_dtheta[i, :].copy(), temp2)
+        cddot(dlambda_dtheta[i, :], temp2, &var_w_i)
+        sigma_w[i] = sqrt(var_w_i)
+
+    return np.asarray(sigma_w)
 
 
-def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
+def sigma_timescales(const double[:, ::1] covar_theta, const double[::1] theta,
                      npy_intp n):
     r"""sigma_timescales(covar_theta, theta, n):
 
@@ -619,24 +613,24 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
     """
     cdef npy_intp n_triu = n*(n-1)/2
     cdef npy_intp u, v, i
-    cdef double[::1] pi, var_T, w, dw_u, dw_v, temp, w_pow_m4, sigma
-    cdef double[:, ::1] dKu, dKv, K, eye, AL, AR
+    cdef double var_tau_i, d_lambda_i_d_theta_u
+    cdef double[::1] pi, w, sigma_tau, dw_u, temp1, temp2
+    cdef double[:, ::1] S, U, V, dKu, dtau_dtheta
+    cdef double[::1, :] dlambda_dtheta
     cdef npy_intp size = theta.shape[0]
     if theta.shape[0] != n_triu + n:
         raise ValueError('theta must have shape n*(n+1)/2+n')
     if not covar_theta.shape[0] == size and covar_theta.shape[1] == size:
         raise ValueError('covar_theta must be `size` x `size`')
 
-    var_T = zeros(n)
     pi = zeros(n)
-    dKu = zeros((n, n))
-    dKv = zeros((n, n))
-    dw_u = zeros(n)
-    dw_v = zeros(n)
-    w_pow_m4 = zeros(n)
-    temp = zeros(n)
     S = zeros((n, n))
-    eye = np.eye(n)
+    dKu = zeros((n, n))
+    temp1 = zeros(n)
+    temp2 = zeros(size)
+    sigma_tau = zeros(n-1)
+    dlambda_dtheta = np.zeros((n, size), order='F')
+    dtau_dtheta = np.zeros((n, size))
 
     for i in range(n):
         pi[i] = exp(theta[n_triu+i])
@@ -645,28 +639,19 @@ def sigma_timescales(const double[:, :] covar_theta, const double[::1] theta,
     w, U, V = eig_K(S, n, pi, 'S')
 
     order = np.argsort(w)[::-1]
-
     U = ascontiguousarray(np.asarray(U)[:, order])
     V = ascontiguousarray(np.asarray(V)[:, order])
     w = np.asarray(w)[order]
 
-    for i in range(n):
-        w_pow_m4[i] = w[i]**(-4)
-
     for u in range(size):
         dK_dtheta_A(theta, n, u, None, dKu)
-        dw_du(dKu, U, V, n, temp, dw_u)
+        dw_du(dKu, U, V, n, temp1, dlambda_dtheta[:, u])
+        for i in range(n):
+            dtau_dtheta[i, u] = dlambda_dtheta[i, u] / (w[i]**2)
 
-        for v in range(size):
-            dK_dtheta_A(theta, n, v, None, dKv)
-            dw_du(dKv, U, V, n, temp, dw_v)
+    for i in range(1, n):
+        cdgemv_N(covar_theta, dtau_dtheta[i], temp2)
+        cddot(dtau_dtheta[i], temp2, &var_tau_i)
+        sigma_tau[i-1] = sqrt(var_tau_i)
 
-            for i in range(n):
-                var_T[i] += w_pow_m4[i] * dw_u[i] * dw_v[i] * covar_theta[u, v]
-
-    # skip the stationary eigenvector
-    sigma = zeros(n-1)
-    for i in range(n-1):
-        sigma[i] = sqrt(var_T[1+i])
-
-    return np.asarray(sigma)
+    return np.asarray(sigma_tau)
