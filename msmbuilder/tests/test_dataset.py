@@ -226,6 +226,7 @@ def test_union_3():
         with assert_raises(ValueError):
             mds = dataset(['ds1', 'ds2'])
 
+
 def test_order_1():
     with tempdir():
         with dataset('ds1.h5', 'w', 'hdf5') as ds1:
@@ -237,3 +238,28 @@ def test_order_1():
             for i in range(20):
                 ds1[i] = np.random.randn(10)
             assert list(ds1.keys()) == list(range(20))
+
+
+def test_append_dirnpy():
+    path = tempfile.mkdtemp()
+    shutil.rmtree(path)
+    try:
+        with dataset(path, 'w', 'dir-npy') as ds:
+            ds[0] = np.random.randn(10, 2)
+        with dataset(path, 'a', 'dir-npy') as ds:
+            ds[1] = np.random.randn(10, 2)
+        with dataset(path, 'a', 'dir-npy') as ds:
+            ds[2] = np.random.randn(10, 2)
+        with dataset(path, 'a', 'dir-npy') as ds:
+            # Overwrite
+            ds[2] = np.random.randn(10, 2)
+
+        np.testing.assert_array_equal(ds[:][0], ds[0])
+        np.testing.assert_array_equal(ds[:][1], ds[1])
+        np.testing.assert_array_equal(ds[:][2], ds[2])
+
+        np.testing.assert_array_equal(ds[1:][0], ds[1])
+        np.testing.assert_array_equal(ds[1:][1], ds[2])
+
+    finally:
+        shutil.rmtree(path)
