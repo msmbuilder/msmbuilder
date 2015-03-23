@@ -4,8 +4,8 @@
 # All rights reserved.
 
 from __future__ import print_function, division, absolute_import
-from sklearn import decomposition
 import numpy as np
+import collections
 
 from ..base import BaseEstimator
 from ..utils import check_iter_of_sequences
@@ -50,6 +50,11 @@ class MultiSequenceDecompositionMixin(BaseEstimator):
 
     def _concat(self, sequences):
         self.__lengths = [len(s) for s in sequences]
+
+        # Indexing will fail on generic iterators
+        if not isinstance(sequences, collections.Sequence):
+            sequences = list(sequences)
+
         if len(sequences) > 0 and isinstance(sequences[0], np.ndarray):
             concat = np.concatenate(sequences)
         else:
