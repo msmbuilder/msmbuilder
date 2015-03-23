@@ -240,7 +240,7 @@ class NumpyDirDataset(_BaseDataset):
             raise IndexError(e)
 
     def set(self, i, x):
-        if 'w' not in self.mode:
+        if self.mode not in 'wa':
             raise IOError('Dataset not opened for writing')
         filename = join(self.path, self._ITEM_FORMAT % i)
         if self.verbose:
