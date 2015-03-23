@@ -263,3 +263,24 @@ def test_append_dirnpy():
 
     finally:
         shutil.rmtree(path)
+
+
+def test_items():
+    with tempdir():
+        ds = dataset('ds.h5', 'w', 'hdf5')
+
+        ds[0] = np.random.randn(10, 1)
+        ds[1] = np.random.randn(10, 2)
+        ds[5] = np.random.randn(10, 3)
+
+        # NOTE!
+        # ds[:] does not work for non-contiguous keys.
+
+        keys = [0, 1, 5]
+
+        for i, (k, v) in enumerate(ds.items()):
+            assert k == keys[i]
+            np.testing.assert_array_equal(ds[k], v)
+
+        ds.close()
+
