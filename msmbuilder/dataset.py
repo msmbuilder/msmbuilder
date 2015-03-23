@@ -131,7 +131,11 @@ class _BaseDataset(Sequence):
         if mode in 'wa':
             if mode == 'w' and exists(path):
                 raise ValueError('File exists: %s' % path)
-            os.makedirs(path, exist_ok=True)
+            #os.makedirs(path, exist_ok=True) # (py3 only)
+            try:
+                os.makedirs(path)
+            except OSError:
+                pass
             self._write_provenance()
 
     def create_derived(self, out_path, comments='', fmt=None):
