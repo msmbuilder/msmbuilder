@@ -40,8 +40,9 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
     ----------
     path : str
         The path to the dataset on the filesystem
-    mode : {'r', 'w'}
-        Open a dataset for reading or writing
+    mode : {'r', 'w', 'a'}
+        Open a dataset for reading, writing, or appending. Note that
+        some formats only support a subset of these modes.
     fmt : {'dir-npy', 'hdf5', 'mdtraj'}
         The format of the data on disk
 
@@ -66,8 +67,8 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
 
     if mode == 'r' and fmt is None:
         fmt = _guess_format(path)
-    elif mode == 'w' and fmt is None:
-        raise ValueError('mode="w", but no fmt. fmt=%s' % fmt)
+    elif mode in 'wa' and fmt is None:
+        raise ValueError('mode="%s", but no fmt. fmt=%s' % (mode, fmt))
 
     if fmt == 'dir-npy':
         return NumpyDirDataset(path, mode=mode, verbose=verbose)
@@ -125,12 +126,12 @@ class _BaseDataset(Sequence):
         self.mode = mode
         self.verbose = verbose
 
-        if mode not in ('r', 'w'):
-            raise ValueError('mode must be one of "r", "w"')
-        if mode == 'w':
-            if exists(path):
+        if mode not in ('r', 'w', 'a'):
+            raise ValueError('mode must be one of "r", "w", "a"')
+        if mode in 'wa':
+            if mode == 'w' and exists(path):
                 raise ValueError('File exists: %s' % path)
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
             self._write_provenance()
 
     def create_derived(self, out_path, comments='', fmt=None):
@@ -162,7 +163,7 @@ class _BaseDataset(Sequence):
     def provenance(self):
         raise NotImplementedError('implemented in subclass')
 
-    def _write_provenance(self, previous, comments=''):
+    def _write_provenance(self, previous=None, comments=''):
         raise NotImplementedError('implemented in subclass')
 
     def __len__(self):
@@ -208,7 +209,7 @@ class NumpyDirDataset(_BaseDataset):
     Parameters
     ----------
     path : str
-    mode : {'r', 'w'}
+    mode : {'r', 'w', 'a'}
 
     Examples
     --------
@@ -277,7 +278,6 @@ class HDF5Dataset(_BaseDataset):
             if exists(path):
                 raise ValueError('File exists: %s' % path)
 
-        filters = tables.Filters(complevel=0)
         self._handle = tables.open_file(path, mode=mode,
                                         filters=_PYTABLES_DISABLE_COMPRESSION)
         self.path = path
