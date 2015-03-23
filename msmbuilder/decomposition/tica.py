@@ -14,6 +14,7 @@ from ..base import BaseEstimator
 from ..utils import check_iter_of_sequences
 from sklearn.base import TransformerMixin
 from sklearn.utils import array2d
+import warnings
 
 __all__ = ['tICA']
 
@@ -360,9 +361,11 @@ class tICA(BaseEstimator, TransformerMixin):
     def _fit(self, X):
         X = np.asarray(array2d(X), dtype=np.float64)
         self._initialize(X.shape[1])
+
+        # We don't need to scream and shout here. Just ignore this data.
         if not len(X) > self.lag_time:
-            raise ValueError('First dimension must be longer than '
-                'lag_time=%d. X has shape (%d, %d)' % ((self.lag_time,) + X.shape))
+            warnings.warn("length of data (%d) is too short for the lag time (%d)" % (len(X), self.lag_time))
+            return
 
         self.n_observations_ += X.shape[0]
         self.n_sequences_ += 1
