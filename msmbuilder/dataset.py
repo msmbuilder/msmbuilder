@@ -210,6 +210,8 @@ class NumpyDirDataset(_BaseDataset):
     ----------
     path : str
     mode : {'r', 'w', 'a'}
+        Read, write, or append. If mode is set to 'a' or 'w',
+        duplicate keys will be overwritten.
 
     Examples
     --------

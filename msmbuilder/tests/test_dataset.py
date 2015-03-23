@@ -250,6 +250,9 @@ def test_append_dirnpy():
             ds[1] = np.random.randn(10, 2)
         with dataset(path, 'a', 'dir-npy') as ds:
             ds[2] = np.random.randn(10, 2)
+        with dataset(path, 'a', 'dir-npy') as ds:
+            # Overwrite
+            ds[2] = np.random.randn(10, 2)
 
         np.testing.assert_array_equal(ds[:][0], ds[0])
         np.testing.assert_array_equal(ds[:][1], ds[1])
