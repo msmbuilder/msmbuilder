@@ -188,6 +188,10 @@ class _BaseDataset(Sequence):
         # the same ordering convention for the indices / items.
         raise NotImplementedError('implemeneted in subclass')
 
+    def items(self):
+        for key in self.keys():
+            yield (key, self.get(key))
+
     def get(self, i):
         raise NotImplementedError('implemeneted in subclass')
 
