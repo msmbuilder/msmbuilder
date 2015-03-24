@@ -195,4 +195,5 @@ class MiniBatchKMedoids(MultiSequenceClusterMixin, _MiniBatchKMedoids, BaseEstim
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
+        self.cluster_ids_ = self._split_indices(self.cluster_ids_)
         return self

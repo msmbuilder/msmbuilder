@@ -153,4 +153,5 @@ class KMedoids(MultiSequenceClusterMixin, _KMedoids, BaseEstimator):
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
+        self.cluster_ids_ = self._split_indices(self.cluster_ids_)
         return self

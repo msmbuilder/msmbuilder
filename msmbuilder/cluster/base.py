@@ -76,6 +76,17 @@ class MultiSequenceClusterMixin(object):
     def _split(self, concat):
         return [concat[cl - l: cl] for (cl, l) in zip(np.cumsum(self.__lengths), self.__lengths)]
 
+    def _split_indices(self, concat_inds):
+        """Take indices in 'concatenated space' and return as pairs
+        of (traj_i, frame_i)
+        """
+        clengths = np.append([0], np.cumsum(self.__lengths))
+        mapping = np.zeros((clengths[-1], 2), dtype=int)
+        for traj_i, (start, end) in enumerate(zip(clengths[:-1], clengths[1:])):
+            mapping[start:end, 0] = traj_i
+            mapping[start:end, 1] = np.arange(end - start)
+        return mapping[concat_inds]
+
     def predict(self, sequences, y=None):
         """Predict the closest cluster each sample in each sequence in
         sequences belongs to.
