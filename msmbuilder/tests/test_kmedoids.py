@@ -94,9 +94,13 @@ def test_multitraj_cluster_ids_1():
     assert ((id1[0] == 0 and id2[0] == 1)
             or (id1[0] == 1 and id2[0] == 0))
 
-    # check frame_i
-    assert ((0 <= id1[1] < 40 and 0 <= id2[1] < 20)
-            or (0 <= id1[1] < 20 and 0 <= id2[1] < 40))
+    # check coordinates
+    indexed_cluster_centers = np.asarray([
+        trajs[traj_i][frame_i]
+        for traj_i, frame_i in km.cluster_ids_
+    ])
+    np.testing.assert_array_equal(km.cluster_centers_, indexed_cluster_centers)
+
 
 def test_multitraj_cluster_ids_2():
     # Do with MiniBatchKMedoids
@@ -112,8 +116,11 @@ def test_multitraj_cluster_ids_2():
     assert ((id1[0] == 0 and id2[0] == 1)
             or (id1[0] == 1 and id2[0] == 0))
 
-    # check frame_i
-    # check frame_i
-    assert ((0 <= id1[1] < 40 and 0 <= id2[1] < 20)
-            or (0 <= id1[1] < 20 and 0 <= id2[1] < 40))
+    # Check coordinates
+    indexed_cluster_centers = np.asarray([
+        trajs[traj_i][frame_i]
+        for traj_i, frame_i in km.cluster_ids_
+    ])
+    np.testing.assert_array_equal(km.cluster_centers_, indexed_cluster_centers)
+
 
