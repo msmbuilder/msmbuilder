@@ -2,10 +2,12 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 from numpy.testing import assert_raises
-from scipy.spatial.distance import pdist, squareform, euclidean
-from msmbuilder.cluster._kmedoids import kmedoids, contigify_ids
+from scipy.spatial.distance import euclidean
+from msmbuilder.cluster._kmedoids import contigify_ids
 from msmbuilder.cluster.kmedoids import _KMedoids
 from msmbuilder.cluster.minibatchkmedoids import _MiniBatchKMedoids
+from msmbuilder.cluster.kmedoids import KMedoids
+from msmbuilder.cluster.minibatchkmedoids import MiniBatchKMedoids
 from msmbuilder import libdistance
 
 
@@ -77,3 +79,39 @@ def test_index():
             if (i != j):
                 assert euclidean(X[i], X[j]) == pdist[q(i,j)]
 
+
+def test_multitraj_cluster_ids_1():
+    # cluster_ids_ should be of the form (traj_i, frame_i)
+
+    random = np.random.RandomState()
+    trajs = [random.randn(40, 2),
+             random.randn(40, 2) + 5]
+    km = KMedoids(n_clusters=2)
+    km.fit(trajs)
+    id1, id2 = km.cluster_ids_
+
+    # check traj_i
+    assert ((id1[0] == 0 and id2[0] == 1)
+            or (id1[0] == 1 and id2[0] == 0))
+
+    # check frame_i
+    assert 0 <= id1[1] < 40
+    assert 0 <= id2[1] < 40
+
+def test_multitraj_cluster_ids_2():
+    # Do with MiniBatchKMedoids
+
+    random = np.random.RandomState()
+    trajs = [random.randn(40, 2),
+             random.randn(40, 2) + 5]
+    km = MiniBatchKMedoids(n_clusters=2)
+    km.fit(trajs)
+    id1, id2 = km.cluster_ids_
+
+    # check traj_i
+    assert ((id1[0] == 0 and id2[0] == 1)
+            or (id1[0] == 1 and id2[0] == 0))
+
+    # check frame_i
+    assert 0 <= id1[1] < 40
+    assert 0 <= id2[1] < 40
