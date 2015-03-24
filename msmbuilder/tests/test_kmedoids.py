@@ -85,7 +85,7 @@ def test_multitraj_cluster_ids_1():
 
     random = np.random.RandomState()
     trajs = [random.randn(40, 2),
-             random.randn(40, 2) + 5]
+             random.randn(20, 2) + 5]
     km = KMedoids(n_clusters=2)
     km.fit(trajs)
     id1, id2 = km.cluster_ids_
@@ -95,14 +95,14 @@ def test_multitraj_cluster_ids_1():
             or (id1[0] == 1 and id2[0] == 0))
 
     # check frame_i
-    assert 0 <= id1[1] < 40
-    assert 0 <= id2[1] < 40
+    assert ((0 <= id1[1] < 40 and 0 <= id2[1] < 20)
+            or (0 <= id1[1] < 20 and 0 <= id2[1] < 40))
 
 def test_multitraj_cluster_ids_2():
     # Do with MiniBatchKMedoids
 
     random = np.random.RandomState()
-    trajs = [random.randn(40, 2),
+    trajs = [random.randn(20, 2),
              random.randn(40, 2) + 5]
     km = MiniBatchKMedoids(n_clusters=2)
     km.fit(trajs)
@@ -113,5 +113,7 @@ def test_multitraj_cluster_ids_2():
             or (id1[0] == 1 and id2[0] == 0))
 
     # check frame_i
-    assert 0 <= id1[1] < 40
-    assert 0 <= id2[1] < 40
+    # check frame_i
+    assert ((0 <= id1[1] < 40 and 0 <= id2[1] < 20)
+            or (0 <= id1[1] < 20 and 0 <= id2[1] < 40))
+
