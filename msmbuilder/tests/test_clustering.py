@@ -40,7 +40,7 @@ def test_regular_spatial():
         assert not np.all(scipy.spatial.distance.pdist(X) > model.d_min)
         assert np.all(scipy.spatial.distance.pdist(model.cluster_centers_) > model.d_min)
 
-        assert len(model.cluster_center_indices_) == len(model.cluster_centers_)
+        assert np.all(np.shape(model.cluster_center_indices_) == (len(model.cluster_center_indices_), 2))
 
 
 def test_kcenters_rmsd():
