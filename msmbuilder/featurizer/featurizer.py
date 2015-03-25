@@ -158,10 +158,16 @@ class SuperposeFeaturizer(Featurizer):
     reference_traj : md.Trajectory
         The reference conformation to superpose each frame with respect to
         (only the first frame in reference_traj is used)
+    superpose_atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        If not None, these atom_indices are used for the superposition
     """
 
-    def __init__(self, atom_indices, reference_traj):
+    def __init__(self, atom_indices, reference_traj, superpose_atom_indices=None):
         self.atom_indices = atom_indices
+        if superpose_atom_indices is None:
+            self.superpose_atom_indices = atom_indices
+        else:
+            self.superpose_atom_indices = superpose_atom_indices
         self.reference_traj = reference_traj
         self.n_features = len(self.atom_indices)
 
@@ -186,7 +192,7 @@ class SuperposeFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
+        traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
