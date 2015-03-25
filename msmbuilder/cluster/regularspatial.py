@@ -53,6 +53,8 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
 
     Attributes
     ----------
+    cluster_center_indices_: array, [n_clusters]
+        Indices of the positions chosen as cluster centers
     cluster_centers_ : array, [n_clusters, n_features]
         Coordinates of cluster centers
     n_clusters_ : int
@@ -64,16 +66,18 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         self.metric = metric
 
     def fit(self, X, y=None):
-        cluster_ids = [0]
+        self.cluster_center_indices_ = [0]
         for i in range(1, len(X)):
-            # distance from X[i] to each X with indices in cluster_ids
+            # distance from X[i] to each X with indices in
+            # self.cluster_center_indices_
             d = libdistance.dist(
-                X, X[i], metric=self.metric, X_indices=np.array(cluster_ids))
+                X, X[i], metric=self.metric,
+                X_indices=np.array(self.cluster_center_indices_))
             if np.all(d > self.d_min):
-                cluster_ids.append(i)
+                self.cluster_center_indices_.append(i)
 
-        self.cluster_centers_ = X[np.array(cluster_ids)]
-        self.n_clusters_ = len(cluster_ids)
+        self.cluster_centers_ = X[np.array(self.cluster_center_indices_)]
+        self.n_clusters_ = len(self.cluster_center_indices_)
         return self
 
     def predict(self, X):
