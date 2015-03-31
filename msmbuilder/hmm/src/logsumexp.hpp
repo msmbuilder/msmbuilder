@@ -26,13 +26,13 @@ static inline REAL realmax(REAL v1, REAL v2) {
     return (((v1) > (v2)) ? (v1) : (v2));
 }
 
-float logsumexp2(float v1, float v2) {
+static float logsumexp2(float v1, float v2) {
     float max = (((v1) > (v2)) ? (v1) : (v2));
     return log(exp(v1-max) + exp(v2-max)) + max;
 }
 
 
-double logsumexp(const double* __restrict buf, int N) {
+static double logsumexp(const double* __restrict buf, int N) {
     int i;
     double sum = 0;
     double max = buf[0];
@@ -48,7 +48,7 @@ double logsumexp(const double* __restrict buf, int N) {
 }
 
 
-float logsumexp(const float* __restrict buf, int N) {
+static float logsumexp(const float* __restrict buf, int N) {
     int nu = (( N >> 2 ) << 2 );
     const float* StX = buf + nu;
     float sum = 0;
@@ -109,7 +109,7 @@ float logsumexp(const float* __restrict buf, int N) {
 }
 
 
-float _mm_logsumexp(__m128* buf, int N) {
+static float _mm_logsumexp(__m128* buf, int N) {
     int i;
     float sum = 0;
     float mymax = 0;
