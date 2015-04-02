@@ -578,7 +578,7 @@ class RawPositionsFeaturizer(Featurizer):
             p_traj.superpose(self.ref_traj, parallel=False)
 
         # Get the positions and reshape.
-        value = traj.xyz.reshape(len(traj), -1)
+        value = p_traj.xyz.reshape(len(p_traj), -1)
         return value
 
 
