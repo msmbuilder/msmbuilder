@@ -10,11 +10,10 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.linalg
-from ..base import BaseEstimator
-from ..utils import check_iter_of_sequences
-from sklearn.base import TransformerMixin
-from sklearn.utils import array2d
 import warnings
+from ..base import BaseEstimator
+from ..utils import check_iter_of_sequences, array2d
+from sklearn.base import TransformerMixin
 
 __all__ = ['tICA']
 

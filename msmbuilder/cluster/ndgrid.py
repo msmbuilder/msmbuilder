@@ -10,10 +10,10 @@
 from __future__ import absolute_import, print_function, division
 import numbers
 import numpy as np
-from sklearn.utils import array2d
 from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 from ..base import BaseEstimator
+from ..utils import array2d
 
 __all__ = ['NDGrid']
 EPS = 1e-10
