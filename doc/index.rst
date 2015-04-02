@@ -38,7 +38,6 @@ licensed under the GNU LGPL (v2.1 or later).
 
     background
     installation
-    changelog
     examples/index
     featurization
     cluster
@@ -52,6 +51,7 @@ licensed under the GNU LGPL (v2.1 or later).
     apipatterns
     plugins
     faq
+    changelog    
 
 .. raw:: html
 
