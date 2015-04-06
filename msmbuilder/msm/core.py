@@ -376,7 +376,8 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     return trimmed_counts, mapping
 
 
-def _transition_counts(sequences, lag_time=1, sliding_window=True):
+def _transition_counts(sequences, lag_time=1, sliding_window=True,
+                       scale_by_lagtime=True):
     """Count the number of directed transitions in a collection of sequences
     in a discrete space.
 
@@ -388,6 +389,15 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
         other orderable objects.
     lag_time : int
         The time (index) delay for the counts.
+    sliding_window : bool
+        Count transitions using a window of length ``lag_time``, which is slid
+        along the sequences 1 unit at a time, yielding transitions which contain
+        more data but cannot be assumed to be statistically independent. Otherwise,
+        the sequences are simply subsampled at an interval of ``lag_time``.
+        we count x[0] -> x[lag], x[lag] -> x[2*lag], x[2*lag] -> x[3*lag], etc.
+        With sliding window, we count x[0]->x[lag], x[1]->x[lag+1], x[2]->x[lag+2]
+    scale_by_lagtime : bool
+        Multiply the counts by ``1/lag_time`` at the end.
 
     Returns
     -------
