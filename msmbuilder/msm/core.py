@@ -483,7 +483,9 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True,
         shape=(n_states, n_states))
     counts = counts + np.asarray(C.todense())
 
-    return counts / float(lag_time), mapping
+    if scale_by_lagtime:
+        counts /= float(lag_time)
+    return counts, mapping
 
 
 def _dict_compose(dict1, dict2):
