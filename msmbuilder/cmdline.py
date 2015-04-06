@@ -255,8 +255,11 @@ class NumpydocClassCommand(Command):
     klass.__init__)
     """
 
-    # subclasses should override this
+    # subclasses MUST override this
     klass = None
+
+    # subclasses MAY override this
+    example = None
 
     def __init__(self, args):
         # create the instance of `klass`
@@ -374,6 +377,12 @@ class NumpydocClassCommand(Command):
                 lines.append('%s:' % name)
                 for l in textwrap.wrap(' '.join(other[1])):
                     lines.append('    %s' % l)
+
+        if cls.example is not None:
+            lines.extend(('', 'Example Command', '---------------'))
+            for l in cls.example.splitlines():
+                if l.startswith('    '):
+                    lines.append(l[4:])
 
         return '\n'.join(lines)
 
