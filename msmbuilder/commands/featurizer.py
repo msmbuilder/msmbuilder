@@ -64,6 +64,10 @@ class FeaturizerCommand(NumpydocClassCommand):
 class DihedralFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = DihedralFeaturizer
+    example = '''
+    $ msmb DihedralFeaturizer --trj './trajectories/*.h5' \\
+        --out dihedrals-withchi --types phi psi chi1
+    '''
 
 
 class AtomPairsFeaturizerCommand(FeaturizerCommand):
