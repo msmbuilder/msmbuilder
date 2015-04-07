@@ -273,7 +273,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         References
         ----------
         .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
-        Generation and validation." J. Chem. Phys. 134.17 (2011): 174105.
+           Generation and validation." J. Chem. Phys. 134.17 (2011): 174105.
         """
 
         result = []
@@ -426,8 +426,8 @@ Timescales:
         References
         ----------
         .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
-           of slow dynamical modes in molecular kinetics"
-           http://arxiv.org/abs/1407.8083 (2014)
+           of slow dynamical modes in molecular kinetics" J. Chem. Phys. 142,
+           124105 (2015)
         """
         # eigenvectors from the model we're scoring, `self`
         V = self.right_eigenvectors_

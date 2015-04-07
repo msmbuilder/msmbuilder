@@ -399,8 +399,8 @@ class tICA(BaseEstimator, TransformerMixin):
         References
         ----------
         .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
-           of slow dynamical modes in molecular kinetics"
-           http://arxiv.org/abs/1407.8083 (2014)
+           of slow dynamical modes in molecular kinetics" J. Chem. Phys. 142,
+           124105 (2015)
         """
 
         assert self._initialized
