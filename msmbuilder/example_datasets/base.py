@@ -8,6 +8,7 @@
 # Adapted for msmbuilder from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/datasets/base.py
 
 import shutil
+import time
 from os import environ
 from os.path import join
 from os.path import exists
