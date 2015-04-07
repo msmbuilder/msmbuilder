@@ -13,6 +13,8 @@ from os.path import join
 from os.path import exists
 from os.path import expanduser
 from os import makedirs
+from functools import wraps
+from six.moves.urllib.error import HTTPError
 
 
 class Dataset(object):
@@ -66,3 +68,23 @@ def clear_data_home(data_home=None):
     """Delete all the content of the data home cache."""
     data_home = get_data_home(data_home)
     shutil.rmtree(data_home)
+
+
+def retry(max_retries=1):
+    """ Retry a function `max_retries` times. """
+    def retry_func(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            num_retries = 0
+            while num_retries <= max_retries:
+                try:
+                    ret = func(*args, **kwargs)
+                    break
+                except HTTPError:
+                    if num_retries == max_retries:
+                        raise
+                    num_retries += 1
+                    time.sleep(5)
+            return ret
+        return wrapper
+    return retry_func
