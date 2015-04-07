@@ -11,7 +11,7 @@ each state, the forward committor is the probability that a walker
 starting at that state will visit the sink state before the source
 state.
 
-These are the canonical references for TPT. Note that TPT
+These are some canonical references for TPT. Note that TPT
 is really a specialization of ideas very familiar to the
 mathematical study of Markov chains, and there are many
 books, manuscripts in the mathematical literature that
@@ -28,6 +28,9 @@ References
        flux and folding pathways in network models of
        coarse-grained protein dynamics. J. Chem. Phys.
        130, 205102 (2009).
+.. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+       pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+       19011-19016.
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
@@ -65,6 +68,9 @@ def committors(sources, sinks, msm):
            flux and folding pathways in network models of
            coarse-grained protein dynamics. J. Chem. Phys.
            130, 205102 (2009).
+    .. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+           pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+           19011-19016.
     """
 
     sources = np.array(sources, dtype=int).reshape((-1, 1))
@@ -135,7 +141,7 @@ def conditional_committors(source, sink, waypoint, msm):
 
     Notes
     -----
-    Employs dense linear algebra, memory use scales as N^2, 
+    Employs dense linear algebra, memory use scales as N^2,
     and cycle use scales as N^3
 
     References

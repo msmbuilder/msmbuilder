@@ -19,6 +19,9 @@ References
        flux and folding pathways in network models of
        coarse-grained protein dynamics. J. Chem. Phys.
        130, 205102 (2009).
+.. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+       pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+       19011-19016.
 """
 
 from __future__ import absolute_import
