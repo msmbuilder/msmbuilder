@@ -15,6 +15,7 @@ import getpass
 import itertools
 from datetime import datetime
 from collections import Sequence
+import warnings
 
 import tables
 import mdtraj as md
@@ -87,6 +88,24 @@ def _guess_format(path):
     """Guess the format of a dataset based on its filename / filenames.
     """
     if isinstance(path, (list, tuple)):
+        # Is concatenating features "horizontally" the most obvious
+        # behavior here? I don't think so. Passing a list to dataset()
+        # should probably include the additional paths as additional
+        # trajectories. E.g.
+        #   `ds = dataset(['traj1.dcd, traj2.dcd'], top='struct.pdb')`
+        #   `ds = dataset(['tica1/', 'tica2/'])
+        #
+        # In the second case, it is not as straightforward what the
+        # expected behavior is, but for the first we should def. be
+        # concatenating "vertically" rather than "horizontally" - mph
+
+        warnings.warn("Prior to MSMB 3.2, passing a list of paths would" +
+                      " result in features being 'union-ed'." +
+                      " This behavior is deprecated as of v3.2 and will" +
+                      " be changed for v3.3." +
+                      " To retain the current functionality, specify" +
+                      " fmt='dir-npy-union' or fmt='hdf5-union' explicitly.")
+
         fmt = _guess_format(path[0])
         err = "Only the union of 'dir-npy' and 'hdf5' formats is supported"
         assert fmt in ['dir-npy', 'hdf5'], err
