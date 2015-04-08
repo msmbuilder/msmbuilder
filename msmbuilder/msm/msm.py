@@ -151,22 +151,25 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         NaN or None.
         """
         sequences = list_of_1d(sequences)
-        # step 1. count the number of transitions
         if int(self.lag_time) <= 0:
             raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(
-            sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
         if self.ergodic_cutoff >= 1:
-            # step 2. restrict the counts to the maximal strongly ergodic
-            # subgraph
-            self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                self.lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
+            counts, mapping = _transition_counts(
+                sequences, int(self.lag_time), sliding_window=self.sliding_window,
+                scale_by_lagtime=False)
+
+            counts, mapping2 = _strongly_connected_subgraph(counts,
+                self.ergodic_cutoff, self.verbose)
+
             self.mapping_ = _dict_compose(mapping, mapping2)
+            self.countsmat_ = counts / float(self.lag_time)
+
         else:
             # no ergodic trimming.
-            self.countsmat_ = raw_counts
-            self.mapping_ = mapping
+            self.countsmat_, self.mapping_ = _transition_counts(
+                sequences, int(self.lag_time), sliding_window=self.sliding_window,
+                scale_by_lagtime=True)
 
         self.n_states_ = self.countsmat_.shape[0]
 
