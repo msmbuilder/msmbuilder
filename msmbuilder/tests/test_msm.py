@@ -17,7 +17,7 @@ from msmbuilder.msm.core import _transition_counts
 from msmbuilder.msm import MarkovStateModel
 
 
-def test_1():
+def test_counts_1():
     # test counts matrix without trimming
     model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
 
@@ -26,13 +26,29 @@ def test_1():
     eq(model.mapping_, {1: 0})
 
 
-def test_2():
+def test_counts_2():
     # test counts matrix with trimming
     model = MarkovStateModel(reversible_type=None, ergodic_cutoff=1)
 
     model.fit([[1, 1, 1, 1, 1, 1, 1, 1, 1, 2]])
     eq(model.mapping_, {1: 0})
     eq(model.countsmat_, np.array([[8]]))
+
+
+def test_counts_3():
+    # test counts matrix scaling
+    seq = [1] * 4 + [2] * 4 + [1] * 4
+
+    model1 = MarkovStateModel(reversible_type=None, lag_time=2,
+                              sliding_window=True).fit([seq])
+    model2 = MarkovStateModel(reversible_type=None, lag_time=2,
+                              sliding_window=False).fit([seq])
+    model3 = MarkovStateModel(reversible_type=None, lag_time=2,
+                              ergodic_cutoff='off').fit([seq])
+
+    eq(model1.countsmat_, model2.countsmat_)
+    eq(model1.countsmat_, model3.countsmat_)
+    eq(model2.countsmat_, model3.countsmat_)
 
 
 def test_3():
