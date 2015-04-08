@@ -389,7 +389,7 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
     lag_time : int
         The time (index) delay for the counts.
     sliding_window : bool
-        When lag_time > 1, considering *all*
+        When lag_time > 1, consider *all*
         ``N = lag_time`` strided sequences starting from index
          0, 1, 2, ..., ``lag_time - 1``. The total, raw counts will
          be divided by ``N``. When this is False, only start from index 0.
