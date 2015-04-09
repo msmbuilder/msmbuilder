@@ -478,11 +478,13 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
         shape=(n_states, n_states))
     counts = counts + np.asarray(C.todense())
 
-    # The following condition isn't strictly necessary: if sliding window
-    # is false, this function is called recursively at the beginning with
-    # strided trajectories and lag_time = 1. Dividing by 1 is nothing.
-    if sliding_window:
-        counts /= float(lag_time)
+    # If sliding window is False, this function will be called recursively
+    # with strided trajectories and lag_time = 1, which gives the desired
+    # number of counts. If sliding window is True, the counts are divided
+    # by the "number of windows" (i.e. the lag_time). Count magnitudes
+    # will be comparable between sliding-window and non-sliding-window cases.
+    # If lag_time = 1, sliding_window makes no difference.
+    counts /= float(lag_time)
 
     return counts, mapping
 
