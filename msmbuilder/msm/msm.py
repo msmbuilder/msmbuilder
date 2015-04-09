@@ -54,7 +54,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         solved by numerical optimization, and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
-    ergodic_cutoff : float, {'on', 'off'}, default='on'
+    ergodic_cutoff : float or {'on', 'off'}, default='on'
         Only the maximal strongly ergodic subgraph of the data is used to build
         an MSM. Ergodicity is determined by ensuring that each state is
         accessible from each other state via one or more paths involving edges
