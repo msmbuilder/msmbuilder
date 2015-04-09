@@ -59,7 +59,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         an MSM. Ergodicity is determined by ensuring that each state is
         accessible from each other state via one or more paths involving edges
         with a number of observed directed counts greater than or equal to
-        ``ergodic_cutoff``. Not that by setting ``ergodic_cutoff`` to 0 or
+        ``ergodic_cutoff``. By setting ``ergodic_cutoff`` to 0 or
         'off', this trimming is turned off. Setting it to 'on' sets the
         cutoff to the minimal possible count value.
     prior_counts : float, optional
