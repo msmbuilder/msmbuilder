@@ -3,7 +3,9 @@ import numpy as np
 from mdtraj.testing import eq
 import sklearn.pipeline
 from msmbuilder.decomposition import tICA
-from msmbuilder.utils import Subsampler
+from msmbuilder.utils import Subsampler, dump, load
+from sklearn.externals.joblib import dump as jl_dump
+from .test_commands import tempdir
 
 random = np.random.RandomState(2)
 
@@ -64,3 +66,18 @@ def test_subsampler_tica():
     eq(tica_0.n_features, tica_1.n_features)  # Obviously true
     eq(tica_0.n_observations_, tica_1.n_observations_)
     eq(tica_0.eigenvalues_, tica_1.eigenvalues_)  # The eigenvalues should be the same.  NOT the timescales, as tica_1 has timescales calculated in a different time unit
+
+def test_dump_load():
+    data = dict(name="Fancy_name", arr=np.random.rand(10,5))
+    with tempdir():
+        dump(data, 'filename')
+        data2 = load('filename')
+    eq(data, data2)
+
+def test_load_legacy():
+    # Used to save joblib files
+    data = dict(name="Fancy_name", arr=np.random.rand(10,5))
+    with tempdir():
+        jl_dump(data, 'filename', compress=1)
+        data2 = load('filename')
+    eq(data, data2)
