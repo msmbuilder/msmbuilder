@@ -60,7 +60,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         accessible from each other state via one or more paths involving edges
         with a number of observed directed counts greater than or equal to
         ``ergodic_cutoff``. Not that by setting ``ergodic_cutoff`` to 0 or
-        'off', this trimming is turned off.
+        'off', this trimming is turned off. Setting it to 'on' sets the
+        cutoff to the minimal possible count value.
     prior_counts : float, optional
         Add a number of "pseudo counts" to each entry in the counts matrix
         after ergodic trimming.  When prior_counts == 0 (default), the assigned
