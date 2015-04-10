@@ -60,6 +60,12 @@ class MarkovStateModelCommand(FitCommand):
     _concrete = True
     _group = 'MSM'
 
+    def _ergodic_cutoff_type(self, erg):
+        if erg.lower() in ['on', 'off']:
+            return erg
+        else:
+            return float(erg)
+
 
 class BayesianMarkovStateModelCommand(FitCommand):
     klass = BayesianMarkovStateModel

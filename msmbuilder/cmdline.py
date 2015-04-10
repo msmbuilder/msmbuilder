@@ -270,7 +270,7 @@ class NumpydocClassCommand(Command):
         for k, v in args.__dict__.items():
             # these are all of the specified options from the command line
             # some of them correspond to __init__ args for self.klass, and
-            # others are "extra" arguments that wern't part of klass
+            # others are "extra" arguments that weren't part of klass
 
             if k in init_args:
                 # put the ones for klass.__init__ in a dict
@@ -343,11 +343,19 @@ class NumpydocClassCommand(Command):
                 if 'bool' in typemap[arg]:
                     kwargs['action'] = FlagAction
 
-                basic_types = {'str': str, 'float': float, 'int': int}
-                for basic_type in basic_types:
-                    if basic_type in typemap[arg]:
-                        kwargs['type'] = basic_types[basic_type]
-                        break
+                if hasattr(cls, '_{}_type'.format(arg)):
+                    # If the docstring *contains* the word float or int,
+                    # parsing will fail for things not of that type
+                    # even if a custom loader will eventually be used.
+                    # Let's check for custom loaders here and set the type
+                    # to str.
+                    kwargs['type'] = str
+                else:
+                    basic_types = {'str': str, 'float': float, 'int': int}
+                    for basic_type in basic_types:
+                        if basic_type in typemap[arg]:
+                            kwargs['type'] = basic_types[basic_type]
+                            break
 
             group.add_argument('--{}'.format(arg), **kwargs)
 

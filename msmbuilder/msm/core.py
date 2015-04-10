@@ -388,6 +388,11 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
         other orderable objects.
     lag_time : int
         The time (index) delay for the counts.
+    sliding_window : bool
+        When lag_time > 1, consider *all*
+        ``N = lag_time`` strided sequences starting from index
+         0, 1, 2, ..., ``lag_time - 1``. The total, raw counts will
+         be divided by ``N``. When this is False, only start from index 0.
 
     Returns
     -------
@@ -425,7 +430,7 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
     be counted. The mapping return value will not include the NaN or None.
     """
     if (not sliding_window) and lag_time > 1:
-        return  _transition_counts([X[::lag_time] for X in sequences], lag_time=1)
+        return _transition_counts([X[::lag_time] for X in sequences], lag_time=1)
 
     classes = np.unique(np.concatenate(sequences))
     contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
@@ -473,7 +478,15 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
         shape=(n_states, n_states))
     counts = counts + np.asarray(C.todense())
 
-    return counts / float(lag_time), mapping
+    # If sliding window is False, this function will be called recursively
+    # with strided trajectories and lag_time = 1, which gives the desired
+    # number of counts. If sliding window is True, the counts are divided
+    # by the "number of windows" (i.e. the lag_time). Count magnitudes
+    # will be comparable between sliding-window and non-sliding-window cases.
+    # If lag_time = 1, sliding_window makes no difference.
+    counts /= float(lag_time)
+
+    return counts, mapping
 
 
 def _dict_compose(dict1, dict2):

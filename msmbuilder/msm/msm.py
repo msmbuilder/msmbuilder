@@ -54,24 +54,26 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         solved by numerical optimization, and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
-    ergodic_cutoff : int, default=1
+    ergodic_cutoff : float or {'on', 'off'}, default='on'
         Only the maximal strongly ergodic subgraph of the data is used to build
         an MSM. Ergodicity is determined by ensuring that each state is
         accessible from each other state via one or more paths involving edges
         with a number of observed directed counts greater than or equal to
-        ``ergodic_cutoff``. Not that by setting ``ergodic_cutoff`` to 0, this
-        trimming is effectively turned off.
+        ``ergodic_cutoff``. By setting ``ergodic_cutoff`` to 0 or
+        'off', this trimming is turned off. Setting it to 'on' sets the
+        cutoff to the minimal possible count value.
     prior_counts : float, optional
-        Add a number of "pseudo counts" to each entry in the counts matrix.
-        When prior_counts == 0 (default), the assigned transition
-        probability between two states with no observed transitions will be
-        zero, whereas when prior_counts > 0, even this unobserved transitions
-        will be given nonzero probability.
+        Add a number of "pseudo counts" to each entry in the counts matrix
+        after ergodic trimming.  When prior_counts == 0 (default), the assigned
+        transition probability between two states with no observed transitions
+        will be zero, whereas when prior_counts > 0, even this unobserved
+        transitions will be given nonzero probability.
     sliding_window : bool, optional
         Count transitions using a window of length ``lag_time``, which is slid
-        along the sequences 1 unit at a time, yielding transitions which contain
-        more data but cannot be assumed to be statistically independent. Otherwise,
-        the sequences are simply subsampled at an interval of ``lag_time``.
+        along the sequences 1 unit at a time, yielding transitions which
+        contain more data but cannot be assumed to be statistically
+        independent. Otherwise, the sequences are simply subsampled at an
+        interval of ``lag_time``.
     verbose : bool
         Enable verbose printout
 
@@ -106,15 +108,22 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     """
 
     def __init__(self, lag_time=1, n_timescales=10, reversible_type='mle',
-                 ergodic_cutoff=1, prior_counts=0, sliding_window=True,
+                 ergodic_cutoff='on', prior_counts=0, sliding_window=True,
                  verbose=True):
         self.reversible_type = reversible_type
-        self.ergodic_cutoff = ergodic_cutoff
         self.lag_time = lag_time
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
         self.sliding_window = sliding_window
         self.verbose = verbose
+        if isinstance(ergodic_cutoff, str) and ergodic_cutoff.lower() == 'on':
+            if sliding_window:
+                ergodic_cutoff = 1.0/lag_time
+            else:
+                ergodic_cutoff = 1.0
+        elif isinstance(ergodic_cutoff, str) and ergodic_cutoff.lower() == 'off':
+            ergodic_cutoff = 0.0
+        self.ergodic_cutoff = ergodic_cutoff
 
         # Keep track of whether to recalculate eigensystem
         self._is_dirty = True
@@ -157,11 +166,11 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         raw_counts, mapping = _transition_counts(
             sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
-        if self.ergodic_cutoff >= 1:
+        if self.ergodic_cutoff > 0:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                self.lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
+                raw_counts, self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             # no ergodic trimming.
@@ -191,11 +200,9 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         return self
 
     def _fit_mle(self, counts):
-        if self.ergodic_cutoff < 1:
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("always")
-                warnings.warn("reversible_type='mle' and ergodic_cutoff < 1 "
-                              "are not generally compatible")
+        if self.ergodic_cutoff <= 0 and self.prior_counts == 0:
+            warnings.warn("reversible_type='mle' and ergodic_cutoff <= 0 "
+                          "are not generally compatible")
 
         transmat, populations = _transmat_mle_prinz(
             counts + self.prior_counts)
