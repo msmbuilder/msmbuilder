@@ -25,7 +25,10 @@ class FeaturizerCommand(NumpydocClassCommand):
         help='''Chunk size for loading trajectories using mdtraj.iterload''',
         default=10000, type=int)
     out = argument(
-        '--out', required=True, help='Output path', type=exttype('/'))
+        '--out', required=True, help="""Output path for featurized data.
+        NOTE: THIS ARGUMENT WILL BE SWAPPED WITH --transformed IN MSMB 
+        3.3!!!
+        """, type=exttype('/'))
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
