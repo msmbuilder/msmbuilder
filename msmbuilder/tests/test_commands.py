@@ -127,7 +127,7 @@ def test_superpose_featurizer():
     with tempdir():
         shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
         shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out distances --atom_indices all.txt"
+              " --transformed distances --atom_indices all.txt"
               " --reference_traj {data_home}/alanine_dipeptide/ala2.pdb"
               " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
                   data_home=get_data_home()))
@@ -141,7 +141,7 @@ def test_atom_pairs_featurizer():
     with tempdir():
         shell('msmb AtomIndices -o all.txt --all -d -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
         shell("msmb AtomPairsFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out pairs --pair_indices all.txt"
+              " --transformed pairs --pair_indices all.txt"
               " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
                   data_home=get_data_home()))
         ds = dataset('pairs')

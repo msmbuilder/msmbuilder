@@ -6,6 +6,7 @@ import numpy as np
 import mdtraj as md
 
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
+from ..utils import verbosedump
 from ..cmdline import NumpydocClassCommand, argument, exttype, stripquotestype
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
