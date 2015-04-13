@@ -11,6 +11,9 @@ v3.2 (April 13, 2015)
 - Compatibility with sklearn 0.16
 - `utils.dump` saves using the pickle protocol. `utils.load` is backwards
   compatible.
+- The command line flag for featurizers `--out` is deprecated. Use
+  `--transformed` instead. This is consistent with other command-line
+  commands.
 - Bug fixes
 
 v3.1 (Feb 27, 2015)
