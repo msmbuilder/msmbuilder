@@ -1,6 +1,18 @@
 Changelog
 =========
 
+v3.2 (April 13, 2015)
+---------------------
+
+- `tICA` ignores too-short trajectories durring fitting instead of raising
+  an exception
+- New methods for sampling from MSM models
+- Datasets can be opened in "append" mode
+- Compatibility with sklearn 0.16
+- `utils.dump` saves using the pickle protocol. `utils.load` is backwards
+  compatible.
+- Bug fixes
+
 v3.1 (Feb 27, 2015)
 -------------------
 
