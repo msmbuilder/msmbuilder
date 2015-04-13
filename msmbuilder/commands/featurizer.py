@@ -24,14 +24,20 @@ class FeaturizerCommand(NumpydocClassCommand):
         '--chunk',
         help='''Chunk size for loading trajectories using mdtraj.iterload''',
         default=10000, type=int)
+    transformed = argument(
+        '--transformed', required=True, help='Output path for transformed data', type=exttype('/'))
     out = argument(
-        '--out', required=True, help='Output path', type=exttype('/'))
+        '-o', '--out', help='''Path to save featurizer instance using
+        the pickle protocol''',
+        default='', type=exttype('.pkl'))
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
 
 
     def start(self):
+        if os.path.exists(self.transformed):
+            self.error('File exists: %s' % self.transformed)
         if os.path.exists(self.out):
             self.error('File exists: %s' % self.out)
 
@@ -42,7 +48,7 @@ class FeaturizerCommand(NumpydocClassCommand):
             top = None
 
         input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=False)
-        out_dataset = input_dataset.create_derived(self.out, fmt='dir-npy')
+        out_dataset = input_dataset.create_derived(self.transformed, fmt='dir-npy')
 
         pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()],
                            maxval=len(input_dataset)).start()
@@ -53,12 +59,21 @@ class FeaturizerCommand(NumpydocClassCommand):
             out_dataset[key] = np.concatenate(trajectory)
             out_dataset.close()
 
-        print("\nSaving transformed dataset to '%s'" % self.out)
+        print("\nSaving transformed dataset to '%s'" % self.transformed)
         print("To load this dataset interactive inside an IPython")
         print("shell or notebook, run\n")
         print("  $ ipython")
         print("  >>> from msmbuilder.dataset import dataset")
-        print("  >>> ds = dataset('%s')\n" % self.out)
+        print("  >>> ds = dataset('%s')\n" % self.transformed)
+
+        if self.out is not '':
+            verbosedump(self.instance, self.out)
+            print("To load this %s object interactively inside an IPython\n"
+                  "shell or notebook, run: \n" % self.klass.__name__)
+            print("  $ ipython")
+            print("  >>> from msmbuilder.utils import load")
+            print("  >>> model = load('%s')\n" % self.out)
+
 
 
 class DihedralFeaturizerCommand(FeaturizerCommand):
