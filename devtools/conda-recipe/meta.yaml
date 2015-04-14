@@ -1,6 +1,6 @@
 package:
   name: msmbuilder-dev
-  version: !!str 3.0.0
+  version: !!str 3.3.0.dev0
 
 #source:
 #  fn: master.zip
