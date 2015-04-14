@@ -11,7 +11,7 @@ import subprocess
 import numpy as np
 import mdtraj as md
 from mdtraj.testing import eq
-from mdtraj.testing import get_fn as get_mdtraj_fn
+from mdtraj.testing import get_fn as get_mdtraj_fn, skipif
 
 from msmbuilder.utils import load
 from msmbuilder.dataset import dataset
@@ -136,6 +136,7 @@ def test_superpose_featurizer():
         assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
+@skipif(True)  # So we deprecated --out in 3.3 and replaced it with --transformed, but then in 3.4 we are re-using the --out for pickled models.
 def test_superpose_featurizer_deprecated():
     with tempdir():
         shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
