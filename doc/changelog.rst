@@ -1,7 +1,7 @@
 Changelog
 =========
 
-v3.2 (April 13, 2015)
+v3.2 (April 14, 2015)
 ---------------------
 
 - `tICA` ignores too-short trajectories durring fitting instead of raising
