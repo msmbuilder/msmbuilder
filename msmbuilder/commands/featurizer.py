@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 import os
-import sys
+import warnings
 
 import numpy as np
 import mdtraj as md
@@ -25,16 +25,17 @@ class FeaturizerCommand(NumpydocClassCommand):
         '--chunk',
         help='''Chunk size for loading trajectories using mdtraj.iterload''',
         default=10000, type=int)
-    transformed = argument(
-        '--transformed', required=True, help='Output path for transformed data', type=exttype('/'))
     out = argument(
         '-o', '--out', help='''Path to save featurizer instance using
         the pickle protocol''',
         default='', type=exttype('.pkl'))
+    transformed = argument(
+        '--transformed',
+        help="Output path for transformed data",
+        type=exttype('/'))
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
-
 
     def start(self):
         if os.path.exists(self.transformed):
@@ -76,13 +77,12 @@ class FeaturizerCommand(NumpydocClassCommand):
             print("  >>> model = load('%s')\n" % self.out)
 
 
-
 class DihedralFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = DihedralFeaturizer
     example = '''
-    $ msmb DihedralFeaturizer --trj './trajectories/*.h5' \\
-        --out dihedrals-withchi --types phi psi chi1
+    $ msmb DihedralFeaturizer --trjs './trajectories/*.h5' \\
+        --transformed dihedrals-withchi --types phi psi chi1
     '''
 
 
