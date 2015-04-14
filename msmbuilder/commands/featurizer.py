@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 import os
-import sys
+import warnings
 
 import numpy as np
 import mdtraj as md
@@ -25,15 +25,30 @@ class FeaturizerCommand(NumpydocClassCommand):
         help='''Chunk size for loading trajectories using mdtraj.iterload''',
         default=10000, type=int)
     out = argument(
-        '--out', required=True, help='Output path', type=exttype('/'))
+        '--out',
+        help='DEPRECATED: Output path. Please use --transformed',
+        type=exttype('/'))
+    transformed = argument(
+        '--transformed',
+        help="Output path for transformed data",
+        type=exttype('/'))
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
 
+    def _deprecation_logic(self):
+        """Control deprecation of --out"""
+        if self.out is None and self.transformed is None:
+            self.error("Please specify --transformed")
+        if self.transformed is None:
+            warnings.warn("--out is deprecated. Please use --transformed")
+            self.transformed = self.out
 
     def start(self):
-        if os.path.exists(self.out):
-            self.error('File exists: %s' % self.out)
+        self._deprecation_logic()
+
+        if os.path.exists(self.transformed):
+            self.error('File exists: %s' % self.transformed)
 
         print(self.instance)
         if os.path.exists(os.path.expanduser(self.top)):
@@ -42,7 +57,7 @@ class FeaturizerCommand(NumpydocClassCommand):
             top = None
 
         input_dataset = MDTrajDataset(self.trjs, topology=top, stride=self.stride, verbose=False)
-        out_dataset = input_dataset.create_derived(self.out, fmt='dir-npy')
+        out_dataset = input_dataset.create_derived(self.transformed, fmt='dir-npy')
 
         pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()],
                            maxval=len(input_dataset)).start()
@@ -53,12 +68,12 @@ class FeaturizerCommand(NumpydocClassCommand):
             out_dataset[key] = np.concatenate(trajectory)
             out_dataset.close()
 
-        print("\nSaving transformed dataset to '%s'" % self.out)
+        print("\nSaving transformed dataset to '%s'" % self.transformed)
         print("To load this dataset interactive inside an IPython")
         print("shell or notebook, run\n")
         print("  $ ipython")
         print("  >>> from msmbuilder.dataset import dataset")
-        print("  >>> ds = dataset('%s')\n" % self.out)
+        print("  >>> ds = dataset('%s')\n" % self.transformed)
 
 
 class DihedralFeaturizerCommand(FeaturizerCommand):
@@ -66,7 +81,7 @@ class DihedralFeaturizerCommand(FeaturizerCommand):
     klass = DihedralFeaturizer
     example = '''
     $ msmb DihedralFeaturizer --trj './trajectories/*.h5' \\
-        --out dihedrals-withchi --types phi psi chi1
+        --transformed dihedrals-withchi --types phi psi chi1
     '''
 
 
