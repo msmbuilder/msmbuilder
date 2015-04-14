@@ -20,7 +20,7 @@ if not version.release:
 versions = json.load(urlopen(URL))
 
 # new release so all the others are now old
-for i in xrange(len(versions)):
+for i in range(len(versions)):
     versions[i]['latest'] = False
 
 versions.append({
