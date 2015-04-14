@@ -80,7 +80,7 @@ class DihedralFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = DihedralFeaturizer
     example = '''
-    $ msmb DihedralFeaturizer --trj './trajectories/*.h5' \\
+    $ msmb DihedralFeaturizer --trjs './trajectories/*.h5' \\
         --transformed dihedrals-withchi --types phi psi chi1
     '''
 
