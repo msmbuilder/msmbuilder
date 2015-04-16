@@ -163,7 +163,7 @@ class tICA(BaseEstimator, TransformerMixin):
 
         # just check to make sure we've actually seen some data
         if self.n_observations_ == 0:
-            raise RuntimeError('must fit the model before using it')
+            raise RuntimeError('The model must be fit() before use.')
 
         if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
             raise RuntimeError('offset correlation matrix is not symmetric')
@@ -260,6 +260,11 @@ class tICA(BaseEstimator, TransformerMixin):
         check_iter_of_sequences(sequences, max_iter=3)  # we might be lazy-loading
         for X in sequences:
             self._fit(X)
+
+        if self.n_sequences_ == 0:
+            raise ValueError('All sequences were shorter than '
+                             'the lag time, %d' % self.lag_time)
+
         return self
 
     def partial_fit(self, X):
