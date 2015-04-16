@@ -261,7 +261,7 @@ class tICA(BaseEstimator, TransformerMixin):
         for X in sequences:
             self._fit(X)
 
-        if self.n_sequences == 0:
+        if self.n_sequences_ == 0:
             raise ValueError('All sequences were shorter than '
                              'the lag time, %d' % self.lag_time)
 
