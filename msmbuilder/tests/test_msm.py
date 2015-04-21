@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import os
+import tempfile
 
 import mdtraj as md
 import pandas as pd
@@ -62,11 +63,14 @@ def test_3():
 
     # test pickleable
     try:
-        dump(model, 'test-msm-temp.npy', compress=1)
-        model2 = load('test-msm-temp.npy')
+        dir = tempfile.mkdtemp()
+        fn = os.path.join(dir, 'test-msm-temp.npy')
+        dump(model, fn, compress=1)
+        model2 = load(fn)
         eq(model2.timescales_, model.timescales_)
     finally:
-        os.unlink('test-msm-temp.npy')
+        os.unlink(fn)
+        os.rmdir(dir)
 
 
 def test_4():
