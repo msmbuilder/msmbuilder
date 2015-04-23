@@ -62,7 +62,7 @@ def load(filename):
             raise IOError(
                 "Unable to load {} using the pickle or joblib protocol.\n"
                 "Pickle: {}\n"
-                "Joblib: {}".format(e1, e2)
+                "Joblib: {}".format(filename, e1, e2)
             )
 
 
