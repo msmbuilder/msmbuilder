@@ -230,7 +230,9 @@ def test_hessian_1():
     hessian2 = Hfun(theta)
 
     # not sure what the cutoff here should be (see plot_test_hessian)
-    assert np.linalg.norm(hessian1-hessian2) < 1e-6
+    diff = np.linalg.norm(hessian1-hessian2)
+    print("hessian difference: %f" % diff)
+    assert diff < 1e-4
 
     print(_ratematrix.sigma_pi(-scipy.linalg.pinv(hessian1), theta, n))
 
