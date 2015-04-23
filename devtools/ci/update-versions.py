@@ -9,7 +9,8 @@ from six.moves.urllib.request import urlopen
 if not any(d.project_name == 's3cmd' for d in pip.get_installed_distributions()):
     raise ImportError('The s3cmd pacakge is required. try $ pip install s3cmd')
 
-URL = 'http://www.msmbuilder.org/versions.json'
+
+URL = 'http://www.msmbuilder.org'
 BUCKET_NAME = 'msmbuilder.org'
 
 if not version.release:
@@ -17,7 +18,7 @@ if not version.release:
     exit(0)
 
 
-versions = json.load(urlopen(URL))
+versions = json.load(urlopen(URL + '/versions.json'))
 
 # new release so all the others are now old
 for i in range(len(versions)):
@@ -25,6 +26,7 @@ for i in range(len(versions)):
 
 versions.append({
     'version': version.short_version,
+    'url': URL + '/' + str(version.short_version),
     'latest': True})
 
 # The secret key is available as a secure environment variable
