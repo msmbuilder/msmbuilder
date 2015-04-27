@@ -42,6 +42,10 @@ def validate_timeseries(means, vars, transmat, model, valuetol=1e-3, transmattol
     """Validate that the model we identified matches the one used to create the timeseries."""
     numStates = len(means)
     assert len(model.means_) == numStates
+    assert (model.transmat_ >= 0.0).all()
+    assert (model.transmat_ <= 1.0).all()
+    totalProbability = sum(model.transmat_.T)
+    assert (abs(totalProbability-1.0) < 1e-5).all()
     
     # The states may have come out in a different order, so we need to test all possible permutations.
     
