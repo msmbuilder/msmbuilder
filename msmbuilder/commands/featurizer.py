@@ -32,7 +32,7 @@ class FeaturizerCommand(NumpydocClassCommand):
     transformed = argument(
         '--transformed',
         help="Output path for transformed data",
-        type=exttype('/'))
+        type=exttype('/'), required=True)
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
