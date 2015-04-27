@@ -77,9 +77,7 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
             raise ValueError('All sequences must have %d features' % self.n_features)
         self.stats = {}
         self._init(sequences)
-        if dtype == np.int32:
-            self._fit_int(sequences)
-        elif dtype == np.float32:
+        if dtype == np.float32:
             self._fit_float(sequences)
         elif dtype == np.float64:
             self._fit_double(sequences)
@@ -108,28 +106,6 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
                     small_dataset).cluster_centers_
             self._vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         self._populations_ = np.ones(self.n_states) / self.n_states
-
-    def _fit_int(self, sequences):
-        cdef vector[Trajectory] trajectoryVec
-        cdef np.ndarray[int, ndim=2] array
-        cdef np.ndarray[double, ndim=1] startprob
-        cdef np.ndarray[double, ndim=2] transmat
-        cdef np.ndarray[double, ndim=2] means
-        cdef np.ndarray[double, ndim=2] vars
-        startprob = self.startprob
-        transmat = self._transmat_
-        means = self._means_.astype(np.float64)
-        vars = self._vars_.astype(np.float64)
-        for s in sequences:
-            array = s
-            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
-        cdef GaussianHMMFitter[int] *fitter = new GaussianHMMFitter[int](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
-        fitter.set_transmat(<double*> &transmat[0,0])
-        fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
-        try:
-            fitter.fit(trajectoryVec, self.thresh)
-        finally:
-            del fitter
         
     def _fit_float(self, sequences):
         cdef vector[Trajectory] trajectoryVec
@@ -260,24 +236,6 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         var_denom = max(vars_weight - 1, 0) + denom
         self._vars_ = (vars_prior + var_num) / var_denom
     
-    cdef _record_stats_int(self, GaussianHMMFitter[int]* fitter):
-        cdef np.ndarray[double, ndim=2] transition_counts
-        cdef np.ndarray[double, ndim=2] obs
-        cdef np.ndarray[double, ndim=2] obs2
-        cdef np.ndarray[double, ndim=1] post
-        transition_counts = np.empty((self.n_states, self.n_states))
-        obs = np.empty((self.n_states, self.n_features))
-        obs2 = np.empty((self.n_states, self.n_features))
-        post = np.empty(self.n_states)
-        fitter.get_transition_counts(<double*> &transition_counts[0,0])
-        fitter.get_obs(<double*> &obs[0,0])
-        fitter.get_obs2(<double*> &obs2[0,0])
-        fitter.get_post(<double*> &post[0])
-        self.stats['trans'] = transition_counts
-        self.stats['obs'] = obs
-        self.stats['obs**2'] = obs2
-        self.stats['post'] = post
-    
     cdef _record_stats_float(self, GaussianHMMFitter[float]* fitter):
         cdef np.ndarray[double, ndim=2] transition_counts
         cdef np.ndarray[double, ndim=2] obs
@@ -313,19 +271,6 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         self.stats['obs'] = obs
         self.stats['obs**2'] = obs2
         self.stats['post'] = post
-
-
-cdef public void _do_mstep_int(GaussianHMM hmm, GaussianHMMFitter[int]* fitter):
-    cdef np.ndarray[double, ndim=2] transmat
-    cdef np.ndarray[double, ndim=2] means
-    cdef np.ndarray[double, ndim=2] vars
-    hmm._record_stats_int(fitter)
-    hmm._do_mstep()
-    transmat = hmm._transmat_
-    means = hmm._means_.astype(np.float64)
-    vars = hmm._vars_.astype(np.float64)
-    fitter.set_transmat(<double*> &transmat[0,0])
-    fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
 
 cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitter):
     cdef np.ndarray[double, ndim=2] transmat

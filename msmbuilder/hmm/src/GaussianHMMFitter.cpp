@@ -100,12 +100,6 @@ void GaussianHMMFitter<T>::get_obs2(double* output) {
 }
 
 template <>
-void GaussianHMMFitter<int>::do_mstep() {
-    GaussianHMMObject* hmm = (GaussianHMMObject*) owner;
-    _do_mstep_int(hmm, this);
-}
-
-template <>
 void GaussianHMMFitter<float>::do_mstep() {
     GaussianHMMObject* hmm = (GaussianHMMObject*) owner;
     _do_mstep_float(hmm, this);
@@ -117,6 +111,5 @@ void GaussianHMMFitter<double>::do_mstep() {
     _do_mstep_double(hmm, this);
 }
 
-template class GaussianHMMFitter<int>;
 template class GaussianHMMFitter<float>;
 template class GaussianHMMFitter<double>;
