@@ -4,6 +4,9 @@ import numpy as np
 from msmbuilder.hmm import GaussianFusionHMM
 from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import SuperposeFeaturizer
+from sklearn.hmm import GaussianHMM
+from itertools import permutations
+import warnings
 
 
 def test_1():
@@ -23,3 +26,69 @@ def test_1():
 
     assert len(hmm.timescales_ == 3)
     assert np.any(hmm.timescales_ > 50)
+
+def create_timeseries(means, vars, transmat):
+    """Construct a random timeseries based on a specified Markov model."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        model = GaussianHMM(n_components=len(means))
+        model.means_ = means
+        model.covars_ = vars
+        model.transmat_ = transmat
+        X, Y = model.sample(10000)
+    return X
+
+def validate_timeseries(means, vars, transmat, model, valuetol=1e-3, transmattol=1e-3):
+    """Validate that the model we identified matches the one used to create the timeseries."""
+    numStates = len(means)
+    assert len(model.means_) == numStates
+    
+    # The states may have come out in a different order, so we need to test all possible permutations.
+    
+    for order in permutations(range(len(means))):
+        match = True
+        for i in range(numStates):
+            if abs(means[i]-model.means_[order[i]]) > valuetol:
+                match = False
+                break
+            if abs(vars[i]-model.vars_[order[i]]) > valuetol:
+                match = False
+                break
+            for j in range(numStates):
+                if abs(transmat[i,j]-model.transmat_[order[i],order[j]]) > transmattol:
+                    match = False
+                    break
+        if match:
+            # It matches.
+            return
+    
+    # No permutation matched.
+    assert False
+
+def test_2():
+    transmat = np.array([[0.7, 0.3], [0.4, 0.6]])
+    means = np.array([[0.0], [5.0]])
+    vars = np.array([[1.0], [1.0]])
+    X = create_timeseries(means, vars, transmat)
+    
+    # For each value of various options, create a 2 state HMM and see if it is correct.
+    
+    for init_algo in ('kmeans', 'GMM'):
+        for reversible_type in ('mle', 'transpose'):
+            model = GaussianFusionHMM(n_states=2, n_features=X.shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
+            model.fit([X])
+            validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
+
+def test_3():
+    transmat = np.array([[0.2, 0.3, 0.5], [0.4, 0.4, 0.2], [0.8, 0.2, 0.0]])
+    means = np.array([[0.0], [10.0], [5.0]])
+    vars = np.array([[1.0], [2.0], [0.3]])
+    X = create_timeseries(means, vars, transmat)
+    
+    # For each value of various options, create a 3 state HMM and see if it is correct.
+    
+    for init_algo in ('kmeans', 'GMM'):
+        for reversible_type in ('mle', 'transpose'):
+            model = GaussianFusionHMM(n_states=3, n_features=X.shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
+            model.fit([X])
+            validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
