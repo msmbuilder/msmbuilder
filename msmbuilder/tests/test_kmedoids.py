@@ -77,7 +77,8 @@ def test_index():
     for i in range(n):
         for j in range(n):
             if (i != j):
-                assert euclidean(X[i], X[j]) == pdist[q(i,j)]
+                print ("%d %d %f %f" % (i, j, euclidean(X[i], X[j]), pdist[q(i,j)]))
+                assert abs(euclidean(X[i], X[j]) - pdist[q(i,j)]) < 1e-6
 
 
 def test_multitraj_cluster_ids_1():
@@ -122,5 +123,3 @@ def test_multitraj_cluster_ids_2():
         for traj_i, frame_i in km.cluster_ids_
     ])
     np.testing.assert_array_equal(km.cluster_centers_, indexed_cluster_centers)
-
-
