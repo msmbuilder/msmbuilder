@@ -3,10 +3,13 @@ cimport numpy as np
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
+import time
 import warnings
 from sklearn import cluster, mixture
+from sklearn.utils import check_random_state
 from mdtraj.utils import ensure_type
-from ..utils import check_iter_of_sequences
+from .discrete_approx import discrete_approx_mvn, NotSatisfiableError
+from ..utils import check_iter_of_sequences, printoptions
 from ..msm._markovstatemodel import _transmat_mle_prinz
 
 cdef extern from "Trajectory.h" namespace "Mixtape":
@@ -19,36 +22,116 @@ cdef extern from "GaussianHMMFitter.h" namespace "Mixtape":
         void set_transmat(double*)
         void set_means_and_variances(double*, double*)
         void fit(const vector[Trajectory], double)
+        int get_fit_iterations()
         void get_transition_counts(double*)
         void get_obs(double*)
         void get_obs2(double*)
         void get_post(double*)
+        void get_log_probability(double*)
 
 cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
-    cdef int n_states, n_features, n_iter
+    """Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
+
+    This model estimates Hidden Markov model for a vector dataset which is
+    contained to be reversible (satisfy detailed balance) with Gaussian
+    emission distributions. This model is similar to a ``MarkovStateModel``
+    without a "hard" assignments of conformations to clusters. Optionally, it
+    can apply L1-regularization to the positions of the Gaussians. See [1] for
+    details.
+
+    Parameters
+    ----------
+    n_states : int
+        The number of components (states) in the model
+    n_init : int
+        Number of time the EM algorithm will be run with different
+        random seeds. The final results will be the best output of
+        n_init consecutive runs in terms of log likelihood.
+    n_iter : int
+        The maximum number of iterations of expectation-maximization to
+        run during each fitting round.
+    n_lqa_iter : int
+        The number of iterations of the local quadratic approximation fixed
+        point equations to solve when computing the new means with a nonzero
+        L1 fusion penalty.
+    thresh : float
+        Convergence threshold for the log-likelihood during expectation
+        maximization. When the increase in the log-likelihood is less
+        than thresh between subsequent rounds of E-M, fitting will finish.
+    fusion_prior : float
+        The strength of the L1 fusion prior.
+    reversible_type : str
+        Method by which the reversibility of the transition matrix
+        is enforced. 'mle' uses a maximum likelihood method that is
+        solved by numerical optimization (BFGS), and 'transpose'
+        uses a more restrictive (but less computationally complex)
+        direct symmetrization of the expected number of counts.
+    vars_prior : float, optional
+        A prior used on the variance. This can be useful in the undersampled
+        regime where states may be collapsing onto a single point, but
+        is generally not needed.
+    vars_weight : float, optional
+        Weight of the vars prior
+    random_state : int, optional
+        Random state, used during sampling.
+    timing : bool, default=False
+        Print detailed timing information about the fitting process.
+    n_hotstart : {int, 'all'}
+        Number of sequences to use when hotstarting the EM.
+        Default='all'
+    n_jobs : int
+        If hotstarting with kmeans, the number of jobs to use for parallelization
+    init_algo : str
+        Use this algorithm to hotstart the means and covariances.  Must
+        be one of "kmeans" or "GMM"
+
+    References
+    ----------
+    .. [1] McGibbon, Robert T. et al., "Understanding Protein Dynamics with
+       L1-Regularized Reversible Hidden Markov Models" Proc. 31st Intl.
+       Conf. on Machine Learning (ICML). 2014.
+
+    Attributes
+    ----------
+    means_ :
+    vars_ :
+    transmat_ :
+    populations_ :
+    fit_logprob_ :
+    """
+
+    cdef int n_states, n_features, n_init, n_iter
     cdef float thresh
+    cdef random_state, n_jobs, timing, n_hotstart
     cdef startprob
     cdef stats
-    cdef reversible_type, n_lqa_iter, fusion_prior, transmat_prior, vars_prior, vars_weight, init_algo
-    cdef _means_, _vars_, _transmat_, _populations_
+    cdef reversible_type, n_lqa_iter, fusion_prior, vars_prior, vars_weight, init_algo
+    cdef _means_, _vars_, _transmat_, _populations_, _fit_logprob_, _fit_time_
 
-    def __init__(self, n_states, n_features, n_iter=10, thresh=1e-2):
+    def __init__(self, n_states, n_features, n_init=10, n_iter=10,
+                 n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
+                 reversible_type='mle', vars_prior=1e-3,
+                 vars_weight=1, random_state=None, precision='mixed', n_jobs=1,
+                 timing=False, n_hotstart='all', init_algo='kmeans'):
         self.n_states = int(n_states)
         self.n_features = int(n_features)
+        self.n_init = int(n_init)
         self.n_iter = int(n_iter)
+        self.n_lqa_iter = int(n_lqa_iter)
+        self.fusion_prior = float(fusion_prior)
         self.thresh = float(thresh)
+        self.reversible_type = reversible_type
+        self.vars_prior = float(vars_prior)
+        self.vars_weight = float(vars_weight)
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+        self.timing = timing
+        self.n_hotstart = n_hotstart
+        self.init_algo = init_algo
         self.startprob = np.tile(1.0/n_states, n_states)
         self._transmat_ = np.empty((n_states, n_states))
         self._transmat_.fill(1.0/n_states)
         self.stats = {}
-        
-        self.reversible_type = 'mle'
-        self.n_lqa_iter = 10
-        self.fusion_prior = 1e-2
-        self.transmat_prior = 1.0
-        self.vars_prior = 1e-3
-        self.vars_weight = 1
-        self.init_algo = "kmeans"
 
     @property
     def means_(self):
@@ -66,6 +149,219 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     def populations_(self):
         return self._populations_
     
+    @property
+    def fit_logprob_(self):
+        return self._fit_logprob_
+
+    @property
+    def timescales_(self):
+        """The implied relaxation timescales of the hidden Markov transition
+        matrix
+
+        By diagonalizing the transition matrix, its propagation of an arbitrary
+        initial probability vector can be written as a sum of the eigenvectors
+        of the transition weighted by per-eigenvector term that decays
+        exponentially with time. Each of these eigenvectors describes a
+        "dynamical mode" of the transition matrix and has a characteristic
+        timescale, which gives the timescale on which that mode decays towards
+        equilibrium. These timescales are given by :math:`-1/log(u_i)` where
+        :math:`u_i` are the eigenvalues of the transition matrix. In a
+        reversible HMM with N states, the number of timescales is at most N-1.
+        (The -1 comes from the fact that the stationary distribution of the chain
+        is associated with an eigenvalue of 1, and an infinite characteristic
+        timescale). The number of timescales can be less than N-1 for every
+        eigenvalue of the transition matrix that is negative (which is
+        allowable by detailed balance).
+
+        Returns
+        -------
+        timescales : array, shape=[n_timescales]
+            The characteristic timescales of the transition matrix. If the model
+            has not been fit or does not have a transition matrix, the return
+            value will be None.
+        """
+        if self._transmat_ is None:
+            return None
+        try:
+            eigvals = np.linalg.eigvals(self._transmat_)
+
+            # sort the eigenvalues in descending order (i.e. sort + reverse),
+            # then discard the very first (largest) eigenvalue, which is the
+            # stationary one.
+            eigvals = np.sort(eigvals)[::-1][1:]
+
+            # retain only eigenvalues > 0. These are the ones that correspond
+            # to implied timescales. Eigenvalues below zero are possible (the
+            # detailed balance constraint guarentees that the eigenvalues are
+            # in -1 < l <= 1, but not that they strictly positive). But
+            # eigevalues below zero do not have a real interpretation as
+            # "implied timescales" because they correspond to sort of
+            # damped oscillatory decays.
+
+            eigvals = eigvals[eigvals > 0]
+            return -1.0 / np.log(eigvals)
+        except np.linalg.LinAlgError:
+            # this can happen if the transition matrix contains Nans
+            # or Infs, and possibly for other reasons like convergence
+            return np.nan * np.ones(self.n_states - 1)
+
+    def draw_centroids(self, sequences):
+        """Find conformations most representative of model means.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+
+        Returns
+        -------
+        centroid_pairs_by_state : np.ndarray, dtype=int, shape = (n_states, 1, 2)
+            centroid_pairs_by_state[state, 0] = (trj, frame) gives the
+            trajectory and frame index associated with the
+            mean of `state`
+        mean_approx : np.ndarray, dtype=float, shape = (n_states, 1, n_features)
+            mean_approx[state, 0] gives the features at the representative
+            point for `state`
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        GaussianFusionHMM.draw_samples : Draw samples from GHMM
+        """
+
+        logprob = [mixture.log_multivariate_normal_density(
+            x, self._means_, self._vars_, covariance_type='diag'
+        ) for x in sequences]
+
+        argm = np.array([lp.argmax(0) for lp in logprob])
+        probm = np.array([lp.max(0) for lp in logprob])
+
+        trj_ind = probm.argmax(0)
+        frame_ind = argm[trj_ind, np.arange(self.n_states)]
+
+        mean_approx = np.array([sequences[trj_ind_i][frame_ind_i]
+                                for trj_ind_i, frame_ind_i
+                                in zip(trj_ind, frame_ind)])
+
+        centroid_pairs_by_state = np.array(list(zip(trj_ind, frame_ind)))
+
+        # Change from 2D to 3D for consistency with `sample_states()`
+        return (centroid_pairs_by_state[:, np.newaxis, :],
+                mean_approx[:, np.newaxis, :])
+
+
+    def draw_samples(self, sequences, n_samples, scheme="even", match_vars=False):
+        """Sample conformations from each state.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        n_samples : int
+            How many samples to return from each state
+        scheme : str, optional, default='even'
+            Must be one of ['even', "maxent"].
+        match_vars : bool, default=False
+            Flag for matching variances in maxent discrete approximation
+
+        Returns
+        -------
+        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
+            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
+            pairs from the specified state.
+        sample_features : np.ndarray, dtype=float, shape = (n_states, n_samples, n_features)
+            sample_features[state, sample] gives the features for the given `sample` of
+            `state`
+
+        Notes
+        -----
+        With scheme='even', this function assigns frames to states crisply
+        then samples from the uniform distribution on the frames belonging
+        to each state. With scheme='maxent', this scheme uses a maximum
+        entropy method to determine a discrete distribution on samples
+        whose mean (and possibly variance) matches the GHMM means.
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        GaussianFusionHMM.draw_centroids : Draw centers from GHMM
+
+        ToDo
+        ----
+        This function could be separated into several MixIns for
+        models with crisp and fuzzy state assignments.  Then we could have
+        an optional argument that specifies which way to do the sampling
+        from states--e.g. use either the base class function or a
+        different one.
+        """
+
+        random = check_random_state(self.random_state)
+
+        if scheme == 'even':
+            logprob = [
+                mixture.log_multivariate_normal_density(
+                    x, self._means_, self._vars_, covariance_type='diag'
+                ) for x in sequences]
+            ass = [lp.argmax(1) for lp in logprob]
+
+            selected_pairs_by_state = []
+            for state in range(self.n_states):
+                all_frames = [np.where(a == state)[0] for a in ass]
+                pairs = [(trj, frame) for (trj, frames)
+                         in enumerate(all_frames) for frame in frames]
+                selected_pairs_by_state.append(
+                    [pairs[random.choice(len(pairs))]
+                     for i in range(n_samples)]
+                )
+
+        elif scheme == "maxent":
+            X_concat = np.concatenate(sequences)
+            all_pairs = np.array([(trj, frame) for trj, X
+                                  in enumerate(sequences)
+                                  for frame in range(X.shape[0])])
+            selected_pairs_by_state = []
+            for k in range(self.n_states):
+                print('computing weights for k=%d...' % k)
+                try:
+                    weights = discrete_approx_mvn(X_concat, self._means_[k],
+                                                  self._vars_[k], match_vars)
+                except NotSatisfiableError:
+                    err = ''.join([
+                        'Satisfiability failure. Could not match the means & ',
+                        'variances w/ discrete distribution. Try removing the ',
+                        'constraint on the variances with --no-match-vars?',
+                    ])
+                    self.error(err)
+
+                weights /= weights.sum()
+                frames = random.choice(len(all_pairs), n_samples, p=weights)
+                selected_pairs_by_state.append(all_pairs[frames])
+
+        else:
+            raise(ValueError("scheme must be one of ['even', 'maxent'])"))
+
+        return np.array(selected_pairs_by_state)
+
+    def summarize(self):
+        with printoptions(precision=4, suppress=True):
+            return """Gaussian HMM
+------------
+n_states : {n_states}
+logprob: {logprob}
+fit_time: {fit_time:.3f}s
+
+populations: {populations}
+transmat:
+{transmat}
+timescales: {timescales}
+    """.format(n_states=self.n_states, logprob=self._fit_logprob_[-1],
+               populations=str(self._populations_), transmat=str(self._transmat_),
+               timescales=self.timescales_, fit_time=self._fit_time_)
+    
     def fit(self, sequences):
         if len(sequences) == 0:
             raise ValueError('sequences is empty')
@@ -75,25 +371,61 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
             raise ValueError('All sequences must have the same data type')
         if any(s.shape[1] != self.n_features for s in sequences):
             raise ValueError('All sequences must have %d features' % self.n_features)
+        best_fit = {'params': {}, 'loglikelihood': -np.inf}
+        start_time = time.time()
         self.stats = {}
-        self._init(sequences)
-        if dtype == np.float32:
-            self._fit_float(sequences)
-        elif dtype == np.float64:
-            self._fit_double(sequences)
-        else:
-            raise ValueError('Unsupported data type: '+str(dtype))
+        total_iters = 0
+        for run in range(self.n_init):
+            self._init(sequences)
+            if dtype == np.float32:
+                self._fit_float(sequences)
+            elif dtype == np.float64:
+                self._fit_double(sequences)
+            else:
+                raise ValueError('Unsupported data type: '+str(dtype))
+            total_iters += len(self.stats['log_probability'])
+
+            # If this is better than our other runs, keep it
+            if self.stats['log_probability'][-1] > best_fit['loglikelihood']:
+                best_fit['loglikelihood'] = self.stats['log_probability'][-1]
+                best_fit['params'] = {'means': self.means_,
+                                      'vars': self.vars_,
+                                      'populations': self.populations_,
+                                      'transmat': self.transmat_,
+                                      'fit_logprob': self.stats['log_probability']}
+
+        # Set the final values
+        self._means_ = best_fit['params']['means']
+        self._vars_ = best_fit['params']['vars']
+        self._transmat_ = best_fit['params']['transmat']
+        self._populations_ = best_fit['params']['populations']
+        self._fit_logprob_ = best_fit['params']['fit_logprob']
+        self._fit_time_ = time.time() - start_time
+
+        if self.timing:
+            # Only print the timing variables if people really want them
+            s_per_sample_per_em = (self._fit_time_) / (sum(len(s) for s in sequences) * total_iters)
+            print('GaussianFusionHMM EM Fitting')
+            print('----------------------------')
+            print('n_features: %d' % (self.n_features))
+            print('TOTAL EM Iters: %s' % total_iters)
+            print('Speed:    %.3f +/- %.3f us/(sample * em-iter)' % (
+                np.mean(s_per_sample_per_em * 10 ** 6),
+                np.std(s_per_sample_per_em * 10 ** 6)))
+        return self
 
     def _init(self, sequences):
         """Find initial means(hot start)"""
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s', warn_on_cast=False)
                      for s in sequences]
-        #self._impl._sequences = sequences
 
-        small_dataset = np.vstack(sequences)
+        if self.n_hotstart == 'all':
+            small_dataset = np.vstack(sequences)
+        else:
+            small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
 
         if self.init_algo == "GMM":
-            mix = mixture.GMM(self.n_states, n_init=1, random_state=None)
+            mix = mixture.GMM(self.n_states, n_init=1, random_state=self.random_state)
             mix.fit(small_dataset)
             self._means_ = mix.means_
             self._vars_ = mix.covars_
@@ -102,7 +434,7 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
                 warnings.simplefilter("ignore")
                 self._means_ = cluster.KMeans(
                     n_clusters=self.n_states, n_init=1, init='random',
-                    n_jobs=1, random_state=None).fit(
+                    n_jobs=self.n_jobs, random_state=self.random_state).fit(
                     small_dataset).cluster_centers_
             self._vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         self._populations_ = np.ones(self.n_states) / self.n_states
@@ -160,14 +492,15 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
 
     def _do_mstep(self):
         stats = self.stats
+        transmat_prior = 1.0
         if self.reversible_type == 'mle':
             counts = np.maximum(
-                np.nan_to_num(stats['trans']) + self.transmat_prior - 1.0,
+                np.nan_to_num(stats['trans']) + transmat_prior - 1.0,
                     1e-20).astype(np.float64)
             self._transmat_, self._populations_ = _transmat_mle_prinz(counts)
         elif self.reversible_type == 'transpose':
             revcounts = np.maximum(
-                self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
+                transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
             populations = np.sum(revcounts, axis=0)
             self._populations_ = populations / np.sum(populations)
             self._transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
@@ -241,36 +574,44 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         cdef np.ndarray[double, ndim=2] obs
         cdef np.ndarray[double, ndim=2] obs2
         cdef np.ndarray[double, ndim=1] post
+        cdef np.ndarray[double, ndim=1] log_probability
         transition_counts = np.empty((self.n_states, self.n_states))
         obs = np.empty((self.n_states, self.n_features))
         obs2 = np.empty((self.n_states, self.n_features))
         post = np.empty(self.n_states)
+        log_probability = np.empty(fitter.get_fit_iterations())
         fitter.get_transition_counts(<double*> &transition_counts[0,0])
         fitter.get_obs(<double*> &obs[0,0])
         fitter.get_obs2(<double*> &obs2[0,0])
         fitter.get_post(<double*> &post[0])
+        fitter.get_log_probability(<double*> &log_probability[0])
         self.stats['trans'] = transition_counts
         self.stats['obs'] = obs
         self.stats['obs**2'] = obs2
         self.stats['post'] = post
+        self.stats['log_probability'] = log_probability
     
     cdef _record_stats_double(self, GaussianHMMFitter[double]* fitter):
         cdef np.ndarray[double, ndim=2] transition_counts
         cdef np.ndarray[double, ndim=2] obs
         cdef np.ndarray[double, ndim=2] obs2
         cdef np.ndarray[double, ndim=1] post
+        cdef np.ndarray[double, ndim=1] log_probability
         transition_counts = np.empty((self.n_states, self.n_states))
         obs = np.empty((self.n_states, self.n_features))
         obs2 = np.empty((self.n_states, self.n_features))
         post = np.empty(self.n_states)
+        log_probability = np.empty(fitter.get_fit_iterations())
         fitter.get_transition_counts(<double*> &transition_counts[0,0])
         fitter.get_obs(<double*> &obs[0,0])
         fitter.get_obs2(<double*> &obs2[0,0])
         fitter.get_post(<double*> &post[0])
+        fitter.get_log_probability(<double*> &log_probability[0])
         self.stats['trans'] = transition_counts
         self.stats['obs'] = obs
         self.stats['obs**2'] = obs2
         self.stats['post'] = post
+        self.stats['log_probability'] = log_probability
 
 cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitter):
     cdef np.ndarray[double, ndim=2] transmat

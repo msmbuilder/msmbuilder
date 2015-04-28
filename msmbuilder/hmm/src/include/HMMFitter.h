@@ -42,7 +42,7 @@ public:
     
     void fit(const std::vector<Trajectory> trajectories, double convergence_threshold) {
         std::vector<std::vector<double> > frame_log_probability, fwdlattice, bwdlattice, posteriors;
-        std::vector<double> iter_log_probability;
+        iter_log_probability.clear();
         for (int i = 0; i < n_iter; i++) {
             // Expectation step
             initialize_sufficient_statistics();
@@ -81,15 +81,24 @@ public:
             for (int j = 0; j < n_states; j++)
                 output[i*n_states+j] = transition_counts[i][j];
     }
-    
+
     void get_post(double* output) {
         for (int i = 0; i < this->n_states; i++)
             output[i] = post[i];
     }
+    
+    void get_log_probability(double* output) {
+        for (int i = 0; i < (int) iter_log_probability.size(); i++)
+            output[i] = iter_log_probability[i];
+    }
+    
+    int get_fit_iterations() {
+        return iter_log_probability.size();
+    }
 protected:
     int n_states, n_features, n_iter;
     const double* log_startprob;
-    std::vector<double> log_transmat;
+    std::vector<double> log_transmat, iter_log_probability;
     std::vector<std::vector<double> > transition_counts;
     std::vector<double> post;
     
