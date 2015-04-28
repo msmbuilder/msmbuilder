@@ -731,3 +731,27 @@ class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
 
         return X_i_stacked
+
+
+class Slicer(Featurizer):
+    """Extracts slices from data along the feature dimension.
+    """
+
+    def __init__(self, index):
+        self.index = index
+
+    def partial_transform(self, X):
+        """Featurize an MD trajectory into a vector space.
+
+        Parameters
+        ----------
+        X : np.ndarray, shape=(n_samples, n_features)
+            A sample to slice.
+
+        Returns
+        -------
+        X2 : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of X
+        """
+        return X[:, self.index]
+
