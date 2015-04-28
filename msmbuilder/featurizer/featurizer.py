@@ -780,20 +780,3 @@ class FirstSlicer(Slicer):
     @property
     def index(self):
         return np.arange(self.first)
-    
-    def partial_transform(self, X):
-        """Slice a single input array along to select a subset of features.
-
-        Parameters
-        ----------
-        X : np.ndarray, shape=(n_samples, n_features)
-            A sample to slice.
-
-        Returns
-        -------
-        X2 : np.ndarray shape=(n_samples, n_feature_subset)
-            Slice of X
-        """
-        return X[:, self.index]
-
-
