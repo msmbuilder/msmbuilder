@@ -741,21 +741,46 @@ class Slicer(Featurizer):
     index : list of integers, optional, default=None
         These indices are the feature indices that will be selected
         by the Slicer.transform() function.  
-    first : int, optional, default=None
-        Select the first N features.  This is essentially a shortcut for
-        `index=arange(first)`.  
-    
-    Notes
-    -----
-    Exactly ONE of {index, first} must be specified.  
+
     """
 
-    def __init__(self, index=None, first=None):
-        if index:
-            self.index = index
-        if first:
-            self.index = np.arange(first)
+    def __init__(self, index=None):
+        self.index = index
 
+    def partial_transform(self, X):
+        """Slice a single input array along to select a subset of features.
+
+        Parameters
+        ----------
+        X : np.ndarray, shape=(n_samples, n_features)
+            A sample to slice.
+
+        Returns
+        -------
+        X2 : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of X
+        """
+        return X[:, self.index]
+
+
+class FirstSlicer(Slicer):
+    """Extracts slices (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    first : int, optional, default=None
+        Select the first N features.  This is essentially a shortcut for
+        `Slicer(index=arange(first))`
+
+    """
+
+    def __init__(self, first=None):
+        self.first = first
+    
+    @property
+    def index(self):
+        return np.arange(self.first)
+    
     def partial_transform(self, X):
         """Slice a single input array along to select a subset of features.
 

@@ -91,7 +91,7 @@ def test_slicer():
     eq(len(Y), len(X))
     eq(Y[0].shape, (50, 2))
     
-    slicer = msmbuilder.featurizer.Slicer(first=2)
+    slicer = msmbuilder.featurizer.FirstSlicer(first=2)
 
     Y2 = slicer.transform(X)
     eq(len(Y2), len(X))
