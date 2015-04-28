@@ -96,4 +96,6 @@ def test_slicer():
     Y2 = slicer.transform(X)
     eq(len(Y2), len(X))
     eq(Y2[0].shape, (50, 2))
-    eq(Y, Y2)
+    
+    eq(Y[0], Y2[0])
+    eq(Y[1], Y2[1])
