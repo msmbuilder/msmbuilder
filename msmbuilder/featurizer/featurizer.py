@@ -731,3 +731,52 @@ class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
 
         return X_i_stacked
+
+
+class Slicer(Featurizer):
+    """Extracts slices (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    index : list of integers, optional, default=None
+        These indices are the feature indices that will be selected
+        by the Slicer.transform() function.  
+
+    """
+
+    def __init__(self, index=None):
+        self.index = index
+
+    def partial_transform(self, X):
+        """Slice a single input array along to select a subset of features.
+
+        Parameters
+        ----------
+        X : np.ndarray, shape=(n_samples, n_features)
+            A sample to slice.
+
+        Returns
+        -------
+        X2 : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of X
+        """
+        return X[:, self.index]
+
+
+class FirstSlicer(Slicer):
+    """Extracts slices (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    first : int, optional, default=None
+        Select the first N features.  This is essentially a shortcut for
+        `Slicer(index=arange(first))`
+
+    """
+
+    def __init__(self, first=None):
+        self.first = first
+    
+    @property
+    def index(self):
+        return np.arange(self.first)
