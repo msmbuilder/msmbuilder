@@ -735,10 +735,24 @@ class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
 
 class Slicer(Featurizer):
     """Extracts slices from data along the feature dimension.
+
+    Parameters
+    ----------
+    index : list of int
+        Which feature indices to keep
+    first : int
+        Keep these first indices
     """
 
-    def __init__(self, index):
-        self.index = index
+    def __init__(self, index=None, first=None):
+        if first and index:
+            raise(ValueError("Cannot input both first and index"))
+        if not (first or index):
+            raise(ValueError("Must input one of first or index."))
+        if index:
+            self.index = index
+        if first:
+            self.index = np.arange(first)
 
     def partial_transform(self, X):
         """Featurize an MD trajectory into a vector space.
