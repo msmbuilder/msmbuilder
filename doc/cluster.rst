@@ -46,7 +46,7 @@ Algorithms
     KCenters
     KMeans
     KMedoids
-    MinibatchKMedoids
+    MiniBatchKMedoids
     RegularSpatial
     LandmarkAgglomerative
 
