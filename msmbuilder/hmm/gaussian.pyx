@@ -22,6 +22,7 @@ cdef extern from "GaussianHMMFitter.h" namespace "Mixtape":
         void set_transmat(double*)
         void set_means_and_variances(double*, double*)
         void fit(const vector[Trajectory], double)
+        double score_trajectories(const vector[Trajectory])
         int get_fit_iterations()
         void get_transition_counts(double*)
         void get_obs(double*)
@@ -363,14 +364,8 @@ timescales: {timescales}
                timescales=self.timescales_, fit_time=self._fit_time_)
     
     def fit(self, sequences):
-        if len(sequences) == 0:
-            raise ValueError('sequences is empty')
-        check_iter_of_sequences(sequences)
+        self._validate_sequences(sequences)
         dtype = sequences[0].dtype
-        if any(s.dtype != dtype for s in sequences):
-            raise ValueError('All sequences must have the same data type')
-        if any(s.shape[1] != self.n_features for s in sequences):
-            raise ValueError('All sequences must have %d features' % self.n_features)
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
         start_time = time.time()
         self.stats = {}
@@ -414,6 +409,32 @@ timescales: {timescales}
                 np.std(s_per_sample_per_em * 10 ** 6)))
         return self
 
+    def _validate_sequences(self, sequences):
+        if len(sequences) == 0:
+           raise ValueError('sequences is empty')
+        check_iter_of_sequences(sequences)
+        dtype = sequences[0].dtype
+        if any(s.dtype != dtype for s in sequences):
+            raise ValueError('All sequences must have the same data type')
+        if any(s.shape[1] != self.n_features for s in sequences):
+            raise ValueError('All sequences must have %d features' % self.n_features)
+    
+    cdef vector[Trajectory] _convert_sequences_to_vector_float(self, sequences):
+        cdef vector[Trajectory] trajectoryVec
+        cdef np.ndarray[float, ndim=2] array
+        for s in sequences:
+            array = s
+            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
+        return trajectoryVec
+    
+    cdef vector[Trajectory] _convert_sequences_to_vector_double(self, sequences):
+        cdef vector[Trajectory] trajectoryVec
+        cdef np.ndarray[double, ndim=2] array
+        for s in sequences:
+            array = s
+            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
+        return trajectoryVec
+
     def _init(self, sequences):
         """Find initial means(hot start)"""
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s', warn_on_cast=False)
@@ -441,18 +462,15 @@ timescales: {timescales}
         
     def _fit_float(self, sequences):
         cdef vector[Trajectory] trajectoryVec
-        cdef np.ndarray[float, ndim=2] array
         cdef np.ndarray[double, ndim=1] startprob
         cdef np.ndarray[double, ndim=2] transmat
         cdef np.ndarray[double, ndim=2] means
         cdef np.ndarray[double, ndim=2] vars
+        trajectoryVec = self._convert_sequences_to_vector_float(sequences)
         startprob = self.startprob
         transmat = self._transmat_
         means = self._means_.astype(np.float64)
         vars = self._vars_.astype(np.float64)
-        for s in sequences:
-            array = s
-            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
         cdef GaussianHMMFitter[float] *fitter = new GaussianHMMFitter[float](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
         fitter.set_transmat(<double*> &transmat[0,0])
         fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
@@ -463,18 +481,15 @@ timescales: {timescales}
         
     def _fit_double(self, sequences):
         cdef vector[Trajectory] trajectoryVec
-        cdef np.ndarray[double, ndim=2] array
         cdef np.ndarray[double, ndim=1] startprob
         cdef np.ndarray[double, ndim=2] transmat
         cdef np.ndarray[double, ndim=2] means
         cdef np.ndarray[double, ndim=2] vars
+        trajectoryVec = self._convert_sequences_to_vector_double(sequences)
         startprob = self.startprob
         transmat = self._transmat_
         means = self._means_.astype(np.float64)
         vars = self._vars_.astype(np.float64)
-        for s in sequences:
-            array = s
-            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
         cdef GaussianHMMFitter[double] *fitter = new GaussianHMMFitter[double](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
         fitter.set_transmat(<double*> &transmat[0,0])
         fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
@@ -568,6 +583,63 @@ timescales: {timescales}
                    + self._means_ ** 2 * denom)
         var_denom = max(vars_weight - 1, 0) + denom
         self._vars_ = (vars_prior + var_num) / var_denom
+    
+    def score(self, sequences):
+        """Log-likelihood of sequences under the model
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        """
+        self._validate_sequences(sequences)
+        dtype = sequences[0].dtype
+        if dtype == np.float32:
+            return self._score_float(sequences)
+        elif dtype == np.float64:
+            return self._score_double(sequences)
+        else:
+            raise ValueError('Unsupported data type: '+str(dtype))
+
+    cdef _score_float(self, sequences):
+        cdef vector[Trajectory] trajectoryVec
+        cdef np.ndarray[double, ndim=1] startprob
+        cdef np.ndarray[double, ndim=2] transmat
+        cdef np.ndarray[double, ndim=2] means
+        cdef np.ndarray[double, ndim=2] vars
+        trajectoryVec = self._convert_sequences_to_vector_float(sequences)
+        startprob = self.startprob
+        transmat = self._transmat_
+        means = self._means_.astype(np.float64)
+        vars = self._vars_.astype(np.float64)
+        cdef GaussianHMMFitter[float] *fitter = new GaussianHMMFitter[float](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
+        fitter.set_transmat(<double*> &transmat[0,0])
+        fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
+        try:
+            return fitter.score_trajectories(trajectoryVec)
+        finally:
+            del fitter
+    
+    cdef _score_double(self, sequences):
+        cdef vector[Trajectory] trajectoryVec
+        cdef np.ndarray[double, ndim=1] startprob
+        cdef np.ndarray[double, ndim=2] transmat
+        cdef np.ndarray[double, ndim=2] means
+        cdef np.ndarray[double, ndim=2] vars
+        trajectoryVec = self._convert_sequences_to_vector_double(sequences)
+        startprob = self.startprob
+        transmat = self._transmat_
+        means = self._means_.astype(np.float64)
+        vars = self._vars_.astype(np.float64)
+        cdef GaussianHMMFitter[double] *fitter = new GaussianHMMFitter[double](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
+        fitter.set_transmat(<double*> &transmat[0,0])
+        fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
+        try:
+            return fitter.score_trajectories(trajectoryVec)
+        finally:
+            del fitter
     
     cdef _record_stats_float(self, GaussianHMMFitter[float]* fitter):
         cdef np.ndarray[double, ndim=2] transition_counts

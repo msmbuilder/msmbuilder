@@ -76,6 +76,20 @@ public:
         }
     }
     
+    double score_trajectories(const std::vector<Trajectory> trajectories) const {
+        std::vector<std::vector<double> > frame_log_probability, fwdlattice;
+        double log_probability = 0.0;
+        for (int j = 0; j < (int) trajectories.size(); j++) {
+            const Trajectory& trajectory = trajectories[j];
+            frame_log_probability.resize(trajectory.frames(), std::vector<double>(n_states));
+            fwdlattice.resize(trajectory.frames(), std::vector<double>(n_states));
+            compute_log_likelihood(trajectory, frame_log_probability);
+            do_forward_pass(frame_log_probability, fwdlattice);
+            log_probability += logsumexp(&fwdlattice[trajectory.frames()-1][0], n_states);
+        }
+        return log_probability;
+    }
+    
     void get_transition_counts(double* output) {
         for (int i = 0; i < n_states; i++)
             for (int j = 0; j < n_states; j++)
@@ -103,7 +117,7 @@ protected:
     std::vector<double> post;
     
     void do_forward_pass(const std::vector<std::vector<double> >& frame_log_probability,
-                         std::vector<std::vector<double> >& fwdlattice) {
+                         std::vector<std::vector<double> >& fwdlattice) const {
         for (int i = 0; i < n_states; i++)
             fwdlattice[0][i] = log_startprob[i] + frame_log_probability[0][i];
         std::vector<double> work_buffer(n_states);
@@ -117,7 +131,7 @@ protected:
     }
     
     void do_backward_pass(const std::vector<std::vector<double> >& frame_log_probability,
-                          std::vector<std::vector<double> >& bwdlattice) {
+                          std::vector<std::vector<double> >& bwdlattice) const {
         int sequence_length = bwdlattice.size();
         for (int i = 0; i < n_states; i++)
             bwdlattice[sequence_length-1][i] = 0;
@@ -133,7 +147,7 @@ protected:
     
     void compute_posteriors(const std::vector<std::vector<double> >& fwdlattice,
                             const std::vector<std::vector<double> >& bwdlattice,
-                            std::vector<std::vector<double> >& posteriors) {
+                            std::vector<std::vector<double> >& posteriors) const {
         std::vector<double> gamma(n_states);
         for (int t = 0; t < (int) fwdlattice.size(); t++) {
             for (int i = 0; i < n_states; i++)
@@ -147,7 +161,7 @@ protected:
     void compute_transition_counts(const std::vector<std::vector<double> >& frame_log_probability,
                                      const std::vector<std::vector<double> >& fwdlattice,
                                      const std::vector<std::vector<double> >& bwdlattice,
-                                     std::vector<std::vector<double> >& transition_counts) {
+                                     std::vector<std::vector<double> >& transition_counts) const {
         int sequence_length = fwdlattice.size();
         std::vector<double> work_buffer(sequence_length);
         double logprob = logsumexp(&fwdlattice[sequence_length-1][0], n_states);
