@@ -7,13 +7,25 @@
 #include <cmath>
 #include <vector>
 
-#include <cstdio>
-
 namespace Mixtape {
 
+/**
+ * This class fits Hidden Markov Models to trajectories.  It is an abstract class that defines the features common to
+ * all types of HMMs.  Subclasses specialize it for particular types of HMMs.
+ *
+ * The template argument is the type of data contained in the trajectories.
+ */
 template <class T>
 class HMMFitter {
 public:
+    /**
+     * Create a new HMMFitter.
+     *
+     * @param n_states       the number of states in the model
+     * @param n_features     the number of features in the model
+     * @param n_iter         the maximum number of iterations of the EM algorithm to perform
+     * @param log_startprob  the log of the initial probability for each state
+     */
     HMMFitter(int n_states, int n_features, int n_iter, const double* log_startprob) :
             n_states(n_states), n_features(n_features), n_iter(n_iter), log_startprob(log_startprob), log_transmat(n_states*n_states),
             transition_counts(n_states, std::vector<double>(n_states, 0)), post(n_states, 0) {
@@ -22,25 +34,44 @@ public:
     virtual ~HMMFitter() {
     }
     
+    /** Set the transition matrix. */
     void set_transmat(const double* transmat) {
         for (int i = 0; i < n_states*n_states; i++) {
             log_transmat[i] = std::log(transmat[i]);
         }
     }
 
+    /**
+     * Initialize the sufficient statistics are the start of an iteration.  Subclasses must implement this.
+     */
     virtual void initialize_sufficient_statistics() = 0;
 
+    /**
+     * Compute the log likelihood of each state in each frame of a trajectory.  Subclasses must implement this.
+     */
     virtual void compute_log_likelihood(const Trajectory& trajectory,
                                         std::vector<std::vector<double> >& frame_log_probability) const = 0;
 
+    /**
+     * Accumulate the sufficient statistics computed during an iteration.  Subclasses must implement this.
+     */
     virtual void accumulate_sufficient_statistics(const Trajectory& trajectory,
                                                   const std::vector<std::vector<double> >& frame_log_probability,
                                                   const std::vector<std::vector<double> >& posteriors,
                                                   const std::vector<std::vector<double> >& fwdlattice,
                                                   const std::vector<std::vector<double> >& bwdlattice) = 0;
 
+    /**
+     * Perform the M step of an iteration.  Subclasses must implement this.
+     */
     virtual void do_mstep() = 0;
     
+    /**
+     * Fit the model to a set of Trajectories.
+     *
+     * @param trajectories           the set of Trajectories to fit it to
+     * @param convergence_threshold  iteration will stop when the log probability changes by less than this amount
+     */
     void fit(const std::vector<Trajectory>& trajectories, double convergence_threshold) {
         std::vector<std::vector<double> > frame_log_probability, fwdlattice, bwdlattice, posteriors;
         iter_log_probability.clear();
@@ -77,6 +108,11 @@ public:
         }
     }
     
+    /**
+     * Compute the log probability of a set of Trajectories given this model.
+     * 
+     * @param trajectories           the set of Trajectories to score
+     */
     double score_trajectories(const std::vector<Trajectory>& trajectories) const {
         std::vector<std::vector<double> > frame_log_probability, fwdlattice;
         double log_probability = 0.0;
@@ -91,6 +127,13 @@ public:
         return log_probability;
     }
     
+    /**
+     * Use the Viterbi algorithm to compute the most likely sequence of states to have produced a given Trajectory.
+     * 
+     * @param trajectory        the Trajectory for which to predict the sequence of states
+     * @param state_sequence    the state indices are stored into this array
+     * @returns the log probability of the predicted state sequence according to the model
+     */
     double predict_state_sequence(const Trajectory& trajectory, int* state_sequence) const {
         std::vector<std::vector<double> > frame_log_probability(trajectory.frames(), std::vector<double>(n_states));
         compute_log_likelihood(trajectory, frame_log_probability);

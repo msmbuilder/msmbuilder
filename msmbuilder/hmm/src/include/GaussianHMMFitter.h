@@ -5,6 +5,9 @@
 
 namespace Mixtape {
 
+/**
+ * This subclass of HMMFitter computes Gaussian HMMs.
+ */
 template <class T>
 class GaussianHMMFitter : public HMMFitter<T> {
 public:

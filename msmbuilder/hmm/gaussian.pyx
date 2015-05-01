@@ -350,6 +350,7 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         return np.array(selected_pairs_by_state)
 
     def summarize(self):
+        """Get a string summarizing the model."""
         with printoptions(precision=4, suppress=True):
             return """Gaussian HMM
 ------------
@@ -366,6 +367,15 @@ timescales: {timescales}
                timescales=self.timescales_, fit_time=self._fit_time_)
     
     def fit(self, sequences):
+        """Estimate model parameters.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+        """
         self._validate_sequences(sequences)
         dtype = sequences[0].dtype
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
@@ -412,6 +422,7 @@ timescales: {timescales}
         return self
 
     def _validate_sequences(self, sequences):
+        """Make sure the sequences supplied by the user are valid."""
         if len(sequences) == 0:
            raise ValueError('sequences is empty')
         check_iter_of_sequences(sequences)
@@ -422,6 +433,7 @@ timescales: {timescales}
             raise ValueError('All sequences must have %d features' % self.n_features)
     
     cdef vector[Trajectory] _convert_sequences_to_vector_float(self, sequences):
+        """Convert the sequences supplied by the user into the form needed by the C++ code."""
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[float, ndim=2] array
         for s in sequences:
@@ -430,6 +442,7 @@ timescales: {timescales}
         return trajectoryVec
     
     cdef vector[Trajectory] _convert_sequences_to_vector_double(self, sequences):
+        """Convert the sequences supplied by the user into the form needed by the C++ code."""
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[double, ndim=2] array
         for s in sequences:
@@ -438,7 +451,7 @@ timescales: {timescales}
         return trajectoryVec
 
     def _init(self, sequences):
-        """Find initial means(hot start)"""
+        """Find initial means (hot start)"""
         sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s', warn_on_cast=False)
                      for s in sequences]
 
@@ -730,6 +743,7 @@ timescales: {timescales}
             del fitter
     
     cdef _record_stats_float(self, GaussianHMMFitter[float]* fitter):
+        """Copy various statistics from the C++ class to this one."""
         cdef np.ndarray[double, ndim=2] transition_counts
         cdef np.ndarray[double, ndim=2] obs
         cdef np.ndarray[double, ndim=2] obs2
@@ -752,6 +766,7 @@ timescales: {timescales}
         self.stats['log_probability'] = log_probability
     
     cdef _record_stats_double(self, GaussianHMMFitter[double]* fitter):
+        """Copy various statistics from the C++ class to this one."""
         cdef np.ndarray[double, ndim=2] transition_counts
         cdef np.ndarray[double, ndim=2] obs
         cdef np.ndarray[double, ndim=2] obs2
@@ -774,6 +789,7 @@ timescales: {timescales}
         self.stats['log_probability'] = log_probability
 
 cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitter):
+    """This function exists to let the C++ code call back into Cython."""
     cdef np.ndarray[double, ndim=2] transmat
     cdef np.ndarray[double, ndim=2] means
     cdef np.ndarray[double, ndim=2] vars
@@ -786,6 +802,7 @@ cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitt
     fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
 
 cdef public void _do_mstep_double(GaussianHMM hmm, GaussianHMMFitter[double]* fitter):
+    """This function exists to let the C++ code call back into Cython."""
     cdef np.ndarray[double, ndim=2] transmat
     cdef np.ndarray[double, ndim=2] means
     cdef np.ndarray[double, ndim=2] vars
