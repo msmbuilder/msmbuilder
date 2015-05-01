@@ -35,7 +35,7 @@ def create_timeseries(means, vars, transmat):
         model.means_ = means
         model.covars_ = vars
         model.transmat_ = transmat
-        X, Y = model.sample(10000)
+        X, Y = model.sample(1000)
     return X
 
 def validate_timeseries(means, vars, transmat, model, valuetol=1e-3, transmattol=1e-3):
@@ -73,31 +73,28 @@ def test_2():
     transmat = np.array([[0.7, 0.3], [0.4, 0.6]])
     means = np.array([[0.0], [5.0]])
     vars = np.array([[1.0], [1.0]])
-    X = create_timeseries(means, vars, transmat)
+    X = [create_timeseries(means, vars, transmat) for i in range(10)]
     
     # For each value of various options, create a 2 state HMM and see if it is correct.
     
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
-            model = GaussianFusionHMM(n_states=2, n_features=X.shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
-            model.fit([X])
+            model = GaussianFusionHMM(n_states=2, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
+            model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
-            assert abs(model.fit_logprob_[-1]-model.score([X])) < 0.1
+            assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
 
 def test_3():
     transmat = np.array([[0.2, 0.3, 0.5], [0.4, 0.4, 0.2], [0.8, 0.2, 0.0]])
     means = np.array([[0.0], [10.0], [5.0]])
     vars = np.array([[1.0], [2.0], [0.3]])
-    X = create_timeseries(means, vars, transmat)
+    X = [create_timeseries(means, vars, transmat) for i in range(20)]
     
     # For each value of various options, create a 3 state HMM and see if it is correct.
     
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
-            model = GaussianFusionHMM(n_states=3, n_features=X.shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
-            model.fit([X])
-            validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
-            assert abs(model.fit_logprob_[-1]-model.score([X])) < 0.1
-
-test_3()
-
+            model = GaussianFusionHMM(n_states=3, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
+            model.fit(X)
+            validate_timeseries(means, vars, transmat, model, 0.1, 0.08)
+            assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5

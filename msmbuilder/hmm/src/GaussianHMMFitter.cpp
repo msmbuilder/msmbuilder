@@ -79,8 +79,8 @@ void GaussianHMMFitter<T>::accumulate_sufficient_statistics(const Trajectory& tr
             }
     for (int i = 0; i < this->n_states; i++) {
         for (int j = 0; j < this->n_features; j++) {
-            obs[i*this->n_features+j] = traj_obs[i*this->n_features+j];
-            obs2[i*this->n_features+j] = traj_obs2[i*this->n_features+j];
+            obs[i*this->n_features+j] += traj_obs[i*this->n_features+j];
+            obs2[i*this->n_features+j] += traj_obs2[i*this->n_features+j];
         }
     }
 }
