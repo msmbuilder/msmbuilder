@@ -15,14 +15,16 @@ from ..msm._markovstatemodel import _transmat_mle_prinz
 cdef extern from "Trajectory.h" namespace "Mixtape":
     cdef cppclass Trajectory:
         Trajectory(char*, int, int, int, int) except +
+        Trajectory()
 
 cdef extern from "GaussianHMMFitter.h" namespace "Mixtape":
     cdef cppclass GaussianHMMFitter[T]:
         GaussianHMMFitter(GaussianHMM, int, int, int, double*) except +
         void set_transmat(double*)
         void set_means_and_variances(double*, double*)
-        void fit(const vector[Trajectory], double)
-        double score_trajectories(const vector[Trajectory])
+        void fit(const vector[Trajectory]&, double)
+        double score_trajectories(vector[Trajectory]&)
+        double predict_state_sequence(Trajectory& trajectory, int* state_sequence)
         int get_fit_iterations()
         void get_transition_counts(double*)
         void get_obs(double*)
@@ -638,6 +640,92 @@ timescales: {timescales}
         fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
         try:
             return fitter.score_trajectories(trajectoryVec)
+        finally:
+            del fitter
+    
+    def predict(self, sequences):
+        """Find most likely hidden-state sequence corresponding to
+        each data timeseries.
+
+        Uses the Viterbi algorithm.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+
+        Returns
+        -------
+        viterbi_logprob : float
+            Log probability of the maximum likelihood path through the HMM.
+
+        hidden_sequences : list of np.ndarrays[dtype=int, shape=n_samples_i]
+            Index of the most likely states for each observation.
+        """
+        self._validate_sequences(sequences)
+        dtype = sequences[0].dtype
+        if dtype == np.float32:
+            return self._predict_float(sequences)
+        elif dtype == np.float64:
+            return self._predict_double(sequences)
+        else:
+            raise ValueError('Unsupported data type: '+str(dtype))
+    
+    cdef _predict_float(self, sequences):
+        cdef Trajectory trajectory
+        cdef np.ndarray[np.int32_t, ndim=1] state_sequence
+        cdef np.ndarray[float, ndim=2] array
+        cdef np.ndarray[double, ndim=1] startprob
+        cdef np.ndarray[double, ndim=2] transmat
+        cdef np.ndarray[double, ndim=2] means
+        cdef np.ndarray[double, ndim=2] vars
+        startprob = self.startprob
+        transmat = self._transmat_
+        means = self._means_.astype(np.float64)
+        vars = self._vars_.astype(np.float64)
+        cdef GaussianHMMFitter[float] *fitter = new GaussianHMMFitter[float](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
+        fitter.set_transmat(<double*> &transmat[0,0])
+        fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
+        try:
+            logprob = 0.0
+            viterbi_sequences = []
+            for s in sequences:
+                array = s
+                trajectory = Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1])
+                state_sequence = np.empty(len(s), dtype=np.int32)
+                logprob += fitter.predict_state_sequence(trajectory, <int*> &state_sequence[0])
+                viterbi_sequences.append(state_sequence)
+            return (logprob, viterbi_sequences)
+        finally:
+            del fitter
+    
+    cdef _predict_double(self, sequences):
+        cdef Trajectory trajectory
+        cdef np.ndarray[np.int32_t, ndim=1] state_sequence
+        cdef np.ndarray[double, ndim=2] array
+        cdef np.ndarray[double, ndim=1] startprob
+        cdef np.ndarray[double, ndim=2] transmat
+        cdef np.ndarray[double, ndim=2] means
+        cdef np.ndarray[double, ndim=2] vars
+        startprob = self.startprob
+        transmat = self._transmat_
+        means = self._means_.astype(np.float64)
+        vars = self._vars_.astype(np.float64)
+        cdef GaussianHMMFitter[double] *fitter = new GaussianHMMFitter[double](self, self.n_states, self.n_features, self.n_iter, <double*> &startprob[0])
+        fitter.set_transmat(<double*> &transmat[0,0])
+        fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
+        try:
+            logprob = 0.0
+            viterbi_sequences = []
+            for s in sequences:
+                array = s
+                trajectory = Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1])
+                state_sequence = np.empty(len(s), dtype=np.int32)
+                logprob += fitter.predict_state_sequence(trajectory, <int*> &state_sequence[0])
+                viterbi_sequences.append(state_sequence)
+            return (logprob, viterbi_sequences)
         finally:
             del fitter
     

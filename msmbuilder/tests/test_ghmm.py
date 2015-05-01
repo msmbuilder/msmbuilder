@@ -82,6 +82,7 @@ def test_2():
             model = GaussianFusionHMM(n_states=2, n_features=X.shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
             model.fit([X])
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
+            assert abs(model.fit_logprob_[-1]-model.score([X])) < 0.1
 
 def test_3():
     transmat = np.array([[0.2, 0.3, 0.5], [0.4, 0.4, 0.2], [0.8, 0.2, 0.0]])
@@ -96,3 +97,7 @@ def test_3():
             model = GaussianFusionHMM(n_states=3, n_features=X.shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
             model.fit([X])
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
+            assert abs(model.fit_logprob_[-1]-model.score([X])) < 0.1
+
+test_3()
+

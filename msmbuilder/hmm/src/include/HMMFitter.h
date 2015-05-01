@@ -3,6 +3,7 @@
 
 #include "Trajectory.h"
 #include "logsumexp.hpp"
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -40,7 +41,7 @@ public:
 
     virtual void do_mstep() = 0;
     
-    void fit(const std::vector<Trajectory> trajectories, double convergence_threshold) {
+    void fit(const std::vector<Trajectory>& trajectories, double convergence_threshold) {
         std::vector<std::vector<double> > frame_log_probability, fwdlattice, bwdlattice, posteriors;
         iter_log_probability.clear();
         for (int i = 0; i < n_iter; i++) {
@@ -76,7 +77,7 @@ public:
         }
     }
     
-    double score_trajectories(const std::vector<Trajectory> trajectories) const {
+    double score_trajectories(const std::vector<Trajectory>& trajectories) const {
         std::vector<std::vector<double> > frame_log_probability, fwdlattice;
         double log_probability = 0.0;
         for (int j = 0; j < (int) trajectories.size(); j++) {
@@ -88,6 +89,47 @@ public:
             log_probability += logsumexp(&fwdlattice[trajectory.frames()-1][0], n_states);
         }
         return log_probability;
+    }
+    
+    double predict_state_sequence(const Trajectory& trajectory, int* state_sequence) const {
+        std::vector<std::vector<double> > frame_log_probability(trajectory.frames(), std::vector<double>(n_states));
+        compute_log_likelihood(trajectory, frame_log_probability);
+        std::vector<std::vector<double> > viterbi_lattice(trajectory.frames(), std::vector<double>(n_states));
+        std::vector<std::vector<double> > work_buffer(n_states, std::vector<double>(n_states));
+        
+        // Initialization.
+        
+        for (int i = 0; i < n_states; i++)
+            viterbi_lattice[0][i] = log_startprob[i]+frame_log_probability[0][i];
+        
+        // Induction.
+        
+        for (int t = 1; t < trajectory.frames(); t++) {
+            for (int i = 0; i < n_states; i++)
+                for (int j = 0; j < n_states; j++)
+                    work_buffer[i][j] = viterbi_lattice[t-1][j]+log_transmat[j*n_states+i]; // ???
+            for (int i = 0; i < n_states; i++)
+                viterbi_lattice[t][i] = *std::max_element(work_buffer[i].begin(), work_buffer[i].end()) + frame_log_probability[t][i];
+        }
+        
+        // Observation traceback.
+        
+        int max_pos = 0;
+        for (int i = 1; i < n_states; i++)
+            if (viterbi_lattice.back()[i] > viterbi_lattice.back()[max_pos])
+                max_pos = i;
+        state_sequence[trajectory.frames()-1] = max_pos;
+        double logprob = viterbi_lattice.back()[max_pos];
+        for (int t = trajectory.frames()-2; t >= 0; t--) {
+            max_pos = 0;
+            for (int i = 1; i < n_states; i++) {
+                double value = viterbi_lattice[t][i]+log_transmat[i*n_states+state_sequence[t+1]];
+                if (viterbi_lattice[t][i]+log_transmat[i*n_states+state_sequence[t+1]] > viterbi_lattice[t][max_pos]+log_transmat[max_pos*n_states+state_sequence[t+1]])
+                    max_pos = i;
+            }
+            state_sequence[t] = max_pos;
+        }
+        return logprob;
     }
     
     void get_transition_counts(double* output) {
