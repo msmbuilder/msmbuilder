@@ -32,7 +32,7 @@ cdef extern from "GaussianHMMFitter.h" namespace "Mixtape":
         void get_post(double*)
         void get_log_probability(double*)
 
-cdef public class GaussianFusionHMM[object GaussianHMMObject, type GaussianHMMType]:
+cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     """Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
 
     This model estimates Hidden Markov model for a vector dataset which is
@@ -231,7 +231,7 @@ cdef public class GaussianFusionHMM[object GaussianHMMObject, type GaussianHMMTy
         See Also
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
-        GaussianFusionHMM.draw_samples : Draw samples from GHMM
+        GaussianHMM.draw_samples : Draw samples from GHMM
         """
 
         logprob = [mixture.log_multivariate_normal_density(
@@ -291,7 +291,7 @@ cdef public class GaussianFusionHMM[object GaussianHMMObject, type GaussianHMMTy
         See Also
         --------
         utils.map_drawn_samples : Extract conformations from MD trajectories by index.
-        GaussianFusionHMM.draw_centroids : Draw centers from GHMM
+        GaussianHMM.draw_centroids : Draw centers from GHMM
 
         ToDo
         ----
@@ -412,8 +412,8 @@ timescales: {timescales}
         if self.timing:
             # Only print the timing variables if people really want them
             s_per_sample_per_em = (self._fit_time_) / (sum(len(s) for s in sequences) * total_iters)
-            print('GaussianFusionHMM EM Fitting')
-            print('----------------------------')
+            print('GaussianHMM EM Fitting')
+            print('----------------------')
             print('n_features: %d' % (self.n_features))
             print('TOTAL EM Iters: %s' % total_iters)
             print('Speed:    %.3f +/- %.3f us/(sample * em-iter)' % (
@@ -788,7 +788,7 @@ timescales: {timescales}
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
 
-cdef public void _do_mstep_float(GaussianFusionHMM hmm, GaussianHMMFitter[float]* fitter):
+cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitter):
     """This function exists to let the C++ code call back into Cython."""
     cdef np.ndarray[double, ndim=2] transmat
     cdef np.ndarray[double, ndim=2] means
@@ -801,7 +801,7 @@ cdef public void _do_mstep_float(GaussianFusionHMM hmm, GaussianHMMFitter[float]
     fitter.set_transmat(<double*> &transmat[0,0])
     fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
 
-cdef public void _do_mstep_double(GaussianFusionHMM hmm, GaussianHMMFitter[double]* fitter):
+cdef public void _do_mstep_double(GaussianHMM hmm, GaussianHMMFitter[double]* fitter):
     """This function exists to let the C++ code call back into Cython."""
     cdef np.ndarray[double, ndim=2] transmat
     cdef np.ndarray[double, ndim=2] means
