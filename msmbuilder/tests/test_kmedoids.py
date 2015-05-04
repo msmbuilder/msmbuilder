@@ -2,10 +2,12 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 from numpy.testing import assert_raises
-from scipy.spatial.distance import pdist, squareform, euclidean
-from msmbuilder.cluster._kmedoids import kmedoids, contigify_ids
+from scipy.spatial.distance import euclidean
+from msmbuilder.cluster._kmedoids import contigify_ids
 from msmbuilder.cluster.kmedoids import _KMedoids
 from msmbuilder.cluster.minibatchkmedoids import _MiniBatchKMedoids
+from msmbuilder.cluster.kmedoids import KMedoids
+from msmbuilder.cluster.minibatchkmedoids import MiniBatchKMedoids
 from msmbuilder import libdistance
 
 
@@ -75,5 +77,49 @@ def test_index():
     for i in range(n):
         for j in range(n):
             if (i != j):
-                assert euclidean(X[i], X[j]) == pdist[q(i,j)]
+                print ("%d %d %f %f" % (i, j, euclidean(X[i], X[j]), pdist[q(i,j)]))
+                assert abs(euclidean(X[i], X[j]) - pdist[q(i,j)]) < 1e-6
 
+
+def test_multitraj_cluster_ids_1():
+    # cluster_ids_ should be of the form (traj_i, frame_i)
+
+    random = np.random.RandomState()
+    trajs = [random.randn(40, 2),
+             random.randn(20, 2) + 5]
+    km = KMedoids(n_clusters=2)
+    km.fit(trajs)
+    id1, id2 = km.cluster_ids_
+
+    # check traj_i
+    assert ((id1[0] == 0 and id2[0] == 1)
+            or (id1[0] == 1 and id2[0] == 0))
+
+    # check coordinates
+    indexed_cluster_centers = np.asarray([
+        trajs[traj_i][frame_i]
+        for traj_i, frame_i in km.cluster_ids_
+    ])
+    np.testing.assert_array_equal(km.cluster_centers_, indexed_cluster_centers)
+
+
+def test_multitraj_cluster_ids_2():
+    # Do with MiniBatchKMedoids
+
+    random = np.random.RandomState()
+    trajs = [random.randn(20, 2),
+             random.randn(40, 2) + 5]
+    km = MiniBatchKMedoids(n_clusters=2)
+    km.fit(trajs)
+    id1, id2 = km.cluster_ids_
+
+    # check traj_i
+    assert ((id1[0] == 0 and id2[0] == 1)
+            or (id1[0] == 1 and id2[0] == 0))
+
+    # Check coordinates
+    indexed_cluster_centers = np.asarray([
+        trajs[traj_i][frame_i]
+        for traj_i, frame_i in km.cluster_ids_
+    ])
+    np.testing.assert_array_equal(km.cluster_centers_, indexed_cluster_centers)

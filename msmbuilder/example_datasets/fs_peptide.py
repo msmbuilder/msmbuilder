@@ -15,17 +15,11 @@ from os.path import exists
 from os.path import join
 from os.path import basename
 from zipfile import ZipFile
-
-try:
-    # Python 2
-    from urllib2 import urlopen
-except ImportError:
-    # Python 3+
-    from urllib.request import urlopen
+from six.moves.urllib.request import urlopen
 
 import mdtraj as md
 from .base import Bunch, Dataset
-from .base import get_data_home
+from .base import get_data_home, retry
 
 DATA_URL = "http://downloads.figshare.com/article/public/1030363"
 TARGET_DIRECTORY = "fs_peptide"
@@ -61,6 +55,7 @@ class FsPeptide(Dataset):
         self.data_dir = join(self.data_home, TARGET_DIRECTORY)
         self.cached = False
 
+    @retry(3)
     def cache(self):
         if not exists(self.data_home):
             makedirs(self.data_home)

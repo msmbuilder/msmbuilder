@@ -127,7 +127,7 @@ def test_superpose_featurizer():
     with tempdir():
         shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
         shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out distances --atom_indices all.txt"
+              " --transformed distances --atom_indices all.txt"
               " --reference_traj {data_home}/alanine_dipeptide/ala2.pdb"
               " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
                   data_home=get_data_home()))
@@ -136,12 +136,24 @@ def test_superpose_featurizer():
         assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
+def test_superpose_featurizer_deprecated():
+    with tempdir():
+        shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
+        shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
+              " --out distances --atom_indices all.txt"
+              " --reference_traj {data_home}/alanine_dipeptide/ala2.pdb"
+              " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
+            data_home=get_data_home()))
+        ds = dataset('distances')
+        assert len(ds) == 10
+        assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
+        print(ds.provenance)
 
 def test_atom_pairs_featurizer():
     with tempdir():
         shell('msmb AtomIndices -o all.txt --all -d -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
         shell("msmb AtomPairsFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out pairs --pair_indices all.txt"
+              " --transformed pairs --pair_indices all.txt"
               " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
                   data_home=get_data_home()))
         ds = dataset('pairs')
@@ -161,6 +173,18 @@ def test_transform_command_1():
 
         eq(dataset('transformed.h5')[0], load('model.pkl').labels_[0])
 
+    with tempdir():
+        shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory_0.dcd "
+              "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
+              "--metric rmsd".format(data_home=get_data_home()))
+
+def test_transform_command_2():
+    def test_transform_command_1():
+        with tempdir():
+            shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory_0.dcd "
+                  "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
+                  "--metric rmsd "
+                  "--stride 2".format(data_home=get_data_home()))
 
 def test_help():
     shell('msmb -h')

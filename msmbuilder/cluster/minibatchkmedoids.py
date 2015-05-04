@@ -94,9 +94,9 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
         random_state = check_random_state(self.random_state)
 
         cluster_ids_ = random_state.random_integers(
-            low=0, high=n_samples-1, size=self.n_clusters)
+            low=0, high=n_samples - 1, size=self.n_clusters)
         labels_ = random_state.random_integers(
-            low=0, high=self.n_clusters-1, size=n_samples)
+            low=0, high=self.n_clusters - 1, size=n_samples)
 
         n_iters_no_improvement = 0
         for kk in range(n_iter):
@@ -120,7 +120,7 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
 
             # Copy back the new cluster_ids_ for the centers
             minibatch_cluster_ids = np.array(
-                sorted(m.items(), key=itemgetter(1)))[:,0]
+                sorted(m.items(), key=itemgetter(1)))[:, 0]
             cluster_ids_ = minibatch_indices[minibatch_cluster_ids]
 
             # Copy back the new labels for the elements
@@ -195,4 +195,5 @@ class MiniBatchKMedoids(MultiSequenceClusterMixin, _MiniBatchKMedoids, BaseEstim
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
+        self.cluster_ids_ = self._split_indices(self.cluster_ids_)
         return self

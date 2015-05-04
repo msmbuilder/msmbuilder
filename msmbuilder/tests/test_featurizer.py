@@ -81,3 +81,21 @@ def test_that_all_featurizers_run():
     
     X_all = featurizer.transform(trajectories)
     eq(X_all[0].shape[1], 1 * featurizer.n_featurizers)
+
+def test_slicer():
+    X = [np.random.normal(size=(50, 5), loc=np.arange(5))] + [np.random.normal(size=(10, 5), loc=np.arange(5))]
+
+    slicer = msmbuilder.featurizer.Slicer(index=[0, 1])
+
+    Y = slicer.transform(X)
+    eq(len(Y), len(X))
+    eq(Y[0].shape, (50, 2))
+    
+    slicer = msmbuilder.featurizer.FirstSlicer(first=2)
+
+    Y2 = slicer.transform(X)
+    eq(len(Y2), len(X))
+    eq(Y2[0].shape, (50, 2))
+    
+    eq(Y[0], Y2[0])
+    eq(Y[1], Y2[1])

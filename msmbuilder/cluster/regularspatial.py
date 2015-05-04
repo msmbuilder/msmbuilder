@@ -53,6 +53,9 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
 
     Attributes
     ----------
+    cluster_center_indices_: array, [n_clusters]
+        Indices of the positions chosen as cluster centers. Each entry is a
+        (trajectory_index, frame_index) pair.
     cluster_centers_ : array, [n_clusters, n_features]
         Coordinates of cluster centers
     n_clusters_ : int
@@ -72,6 +75,7 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
             if np.all(d > self.d_min):
                 cluster_ids.append(i)
 
+        self.cluster_center_indices_ = cluster_ids
         self.cluster_centers_ = X[np.array(cluster_ids)]
         self.n_clusters_ = len(cluster_ids)
         return self
@@ -121,6 +125,7 @@ class RegularSpatial(MultiSequenceClusterMixin, _RegularSpatial, BaseEstimator):
         self
         """
         MultiSequenceClusterMixin.fit(self, sequences)
+        self.cluster_center_indices_ = self._split_indices(self.cluster_center_indices_)
         return self
 
     def summarize(self):

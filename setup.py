@@ -52,7 +52,7 @@ except ImportError:
     sys.exit(1)
 
 # #########################
-VERSION = '3.0.0-beta'
+VERSION = '3.3.0.dev0'
 ISRELEASED = False
 __version__ = VERSION
 # #########################
@@ -104,6 +104,11 @@ DEF OPENMP = {openmp}
     '''.format(openmp=compiler.openmp_enabled, debug=DEBUG))
 
 extensions = []
+extensions.append(
+    Extension('msmbuilder.example_datasets._muller',
+              sources=[pjoin('msmbuilder', 'example_datasets', '_muller.pyx')],
+              include_dirs=[np.get_include()]))
+
 extensions.append(
     Extension('msmbuilder.msm._markovstatemodel',
               sources=[pjoin(MSMDIR, '_markovstatemodel.pyx'),

@@ -7,13 +7,18 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 import scipy.linalg
-from ..utils import list_of_1d
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
+
 from sklearn.base import TransformerMixin
+from sklearn.utils import check_random_state
+
+from . import _ratematrix
+from ..utils import list_of_1d
+
 
 __all__ = [
     '_MappingTransformMixin', '_dict_compose', '_strongly_connected_subgraph',
-    '_transition_counts',
+    '_transition_counts', '_solve_ratemat_eigensystem', '_normalize_eigensystem',
     '_solve_msm_eigensystem',
 ]
 
@@ -106,6 +111,143 @@ class _MappingTransformMixin(TransformerMixin):
 
             result.append(f(y))
         return result
+
+class _SampleMSMMixin(object):
+    """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""
+    def sample_discrete(self, state=None, n_steps=100, random_state=None):
+        r"""Generate a random sequence of states by propagating the model
+        using discrete time steps given by the model lagtime.
+
+        Parameters
+        ----------
+        state : {None, ndarray, label}
+            Specify the starting state for the chain.
+
+            ``None``
+                Choose the initial state by randomly drawing from the model's
+                stationary distribution.
+            ``array-like``
+                If ``state`` is a 1D array with length equal to ``n_states_``,
+                then it is is interpreted as an initial multinomial
+                distribution from which to draw the chain's initial state.
+                Note that the indexing semantics of this array must match the
+                _internal_ indexing of this model.
+            otherwise
+                Otherwise, ``state`` is interpreted as a particular
+                deterministic state label from which to begin the trajectory.
+        n_steps : int
+            Lengths of the resulting trajectory
+        random_state : int or RandomState instance or None (default)
+            Pseudo Random Number generator seed control. If None, use the
+            numpy.random singleton.
+
+        Returns
+        -------
+        sequence : array of length n_steps
+            A randomly sampled label sequence
+        """
+        random = check_random_state(random_state)
+        r = random.rand(1 + n_steps)
+
+        if state is None:
+            initial = np.sum(np.cumsum(self.populations_) < r[0])
+        elif hasattr(state, '__len__') and len(state) == self.n_states_:
+            initial = np.sum(np.cumsum(state) < r[0])
+        else:
+            initial = self.mapping_[state]
+
+        cstr = np.cumsum(self.transmat_, axis=1)
+
+        chain = [initial]
+        for i in range(1, n_steps):
+            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
+
+        return self.inverse_transform([chain])[0]
+
+    def draw_samples(self, sequences, n_samples, random_state=None):
+        """Sample conformations from each state.
+
+        Parameters
+        ----------
+        sequences : list
+            List of state label sequences, each of which
+            has shape (n_samples_i), where n_samples_i is the length of
+            the ith trajectory.
+        n_samples : int
+            How many samples to return from each state
+
+        Returns
+        -------
+        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
+            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
+            pairs from the specified state.
+
+        See Also
+        --------
+        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+
+        """
+        n_states = max(map(lambda x: max(x), sequences)) + 1
+        n_states_2 = len(np.unique(np.concatenate(sequences)))
+        assert n_states == n_states_2, "Must have non-empty, zero-indexed, consecutive states: found %d states and %d unique states." % (n_states, n_states_2)
+
+        random = check_random_state(random_state)
+
+        selected_pairs_by_state = []
+        for state in range(n_states):
+            all_frames = [np.where(a == state)[0] for a in sequences]
+            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
+            selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
+
+        return np.array(selected_pairs_by_state)
+
+
+def _solve_ratemat_eigensystem(theta, k, n):
+    """Find the dominant eigenpairs of a reversible rate matrix (master
+    equation)
+
+    Parameters
+    ----------
+    theta : ndarray, shape=(n_params,)
+        The free parameters of the rate matrix
+    k : int
+        The number of eigenpairs to find
+    n : int
+        The number of states
+
+    Notes
+    -----
+    Normalize the left (:math:`\phi`) and right (:math:``\psi``) eigenfunctions
+    according to the following criteria.
+      * The first left eigenvector, \phi_1, _is_ the stationary
+        distribution, and thus should be normalized to sum to 1.
+      * The left-right eigenpairs should be biorthonormal:
+        <\phi_i, \psi_j> = \delta_{ij}
+      * The left eigenvectors should satisfy
+        <\phi_i, \phi_i>_{\mu^{-1}} = 1
+      * The right eigenvectors should satisfy <\psi_i, \psi_i>_{\mu} = 1
+
+    Returns
+    -------
+    eigvals : np.ndarray, shape=(k,)
+        The largest `k` eigenvalues
+    lv : np.ndarray, shape=(n_states, k)
+        The normalized left eigenvectors (:math:`\phi`) of the rate matrix.
+    rv :  np.ndarray, shape=(n_states, k)
+        The normalized right eigenvectors (:math:`\psi`) of the rate matrix.
+    """
+    S = np.zeros((n, n))
+    pi = np.exp(theta[-n:])
+    pi = pi / pi.sum()
+
+    _ratematrix.build_ratemat(theta, n, S, which='S')
+    u, lv, rv = map(np.asarray, _ratematrix.eig_K(S, n, pi, 'S'))
+    order = np.argsort(-u)
+    u = u[order[:k]]
+    lv = lv[:, order[:k]]
+    rv = rv[:, order[:k]]
+
+    return _normalize_eigensystem(u, lv, rv)
 
 
 def _solve_msm_eigensystem(transmat, k):
@@ -234,7 +376,7 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     return trimmed_counts, mapping
 
 
-def _transition_counts(sequences, lag_time=1):
+def _transition_counts(sequences, lag_time=1, sliding_window=True):
     """Count the number of directed transitions in a collection of sequences
     in a discrete space.
 
@@ -246,6 +388,11 @@ def _transition_counts(sequences, lag_time=1):
         other orderable objects.
     lag_time : int
         The time (index) delay for the counts.
+    sliding_window : bool
+        When lag_time > 1, consider *all*
+        ``N = lag_time`` strided sequences starting from index
+         0, 1, 2, ..., ``lag_time - 1``. The total, raw counts will
+         be divided by ``N``. When this is False, only start from index 0.
 
     Returns
     -------
@@ -282,6 +429,9 @@ def _transition_counts(sequences, lag_time=1):
     transition counts from or to a sequence item which is NaN or None will not
     be counted. The mapping return value will not include the NaN or None.
     """
+    if (not sliding_window) and lag_time > 1:
+        return _transition_counts([X[::lag_time] for X in sequences], lag_time=1)
+
     classes = np.unique(np.concatenate(sequences))
     contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
     contains_none = any(c is None for c in classes)
@@ -300,6 +450,8 @@ def _transition_counts(sequences, lag_time=1):
                                otypes=[np.float])
 
     counts = np.zeros((n_states, n_states), dtype=float)
+    _transitions = []
+
     for y in sequences:
         y = np.asarray(y)
         from_states = y[: -lag_time: 1]
@@ -319,10 +471,20 @@ def _transition_counts(sequences, lag_time=1):
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
-        transitions = np.row_stack((from_states, to_states))
-        C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
-            shape=(n_states, n_states))
-        counts = counts + np.asarray(C.todense())
+        _transitions.append(np.row_stack((from_states, to_states)))
+
+    transitions = np.hstack(_transitions)
+    C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
+        shape=(n_states, n_states))
+    counts = counts + np.asarray(C.todense())
+
+    # If sliding window is False, this function will be called recursively
+    # with strided trajectories and lag_time = 1, which gives the desired
+    # number of counts. If sliding window is True, the counts are divided
+    # by the "number of windows" (i.e. the lag_time). Count magnitudes
+    # will be comparable between sliding-window and non-sliding-window cases.
+    # If lag_time = 1, sliding_window makes no difference.
+    counts /= float(lag_time)
 
     return counts, mapping
 

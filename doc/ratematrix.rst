@@ -3,12 +3,20 @@
 Continuous-time Markov State Model
 ==================================
 
+Algorithms
+----------
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
+
+    ContinuousTimeMSM
+
 Theory
 ------
 
 Consider an `n`-state time-homogeneous Markov process, :math:`X(t)` At time
 :math:`t`, the :math:`n`-vector :math:`P(t) = Pr[ X(t) = i ]` is probability that the system is in each of the :math:`n` states. These probabilities
-evolve forward in time, governed by an :math:`n \times n` transition rate matrix :math:`K` 
+evolve forward in time, governed by an :math:`n \times n` transition rate matrix :math:`K`
 
 .. math ::
     dP(t)/dt = P(t) \cdot K
@@ -36,9 +44,9 @@ Dense Parameterization
 ----------------------
 This code parameterizes :math:`K(\theta)` such that :math:`K` is constrained
 to satisfy `detailed balance <http://en.wikipedia.org/wiki/Detailed_balance>`_
-with respect to a stationary distribution, :math:`pi`. For an :math:`n`-state
+with respect to a stationary distribution, :math:`\pi`. For an :math:`n`-state
 model, :math:`\theta` is of length :math:`n(n-1)/2 + n`. The first
-:math:`n(n-1)/2` elements of :math:`theta` are the parameterize the symmetric
+:math:`n(n-1)/2` elements of :math:`\theta` are the parameterize the symmetric
 rate matrix, :math:`S`, and the remaining :math:`n` entries parameterize the
 stationary distribution. For :math:`n=4`, the function :math:`K(\theta)` is
 
@@ -90,13 +98,23 @@ off-diagonal elements of K are taken as candidates for truncation to zero. A
 new optimization using the sparse parameterization is performed with these elements constrained. If the log-likelihood of the sparse model is superior to
 the log likelihood of the dense model, it is retained.
 
-Algorithms
-----------
+
+
+Under the hood (expert functions)
+---------------------------------
+.. currentmodule:: msmbuilder.msm._ratematrix
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
 
-    ContinuousTimeMSM
+    build_ratemat
+    dK_dtheta_A
+    loglikelihood
+    hessian
+    sigma_K
+    sigma_pi
+    sigma_eigenvalues
+    sigma_timescales
+    eig_K
 
 References
 ----------

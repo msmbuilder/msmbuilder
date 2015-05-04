@@ -21,7 +21,7 @@ from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _dict_compose,
                    _strongly_connected_subgraph, _transition_counts,
-                   _solve_msm_eigensystem)
+                   _solve_msm_eigensystem, _SampleMSMMixin)
 
 __all__ = ['MarkovStateModel']
 
@@ -29,7 +29,7 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
+class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     """Reversible Markov State Model
 
     This model fits a first-order Markov model to a dataset of integer-valued
@@ -54,19 +54,26 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         solved by numerical optimization, and 'transpose'
         uses a more restrictive (but less computationally complex)
         direct symmetrization of the expected number of counts.
-    ergodic_cutoff : int, default=1
+    ergodic_cutoff : float or {'on', 'off'}, default='on'
         Only the maximal strongly ergodic subgraph of the data is used to build
         an MSM. Ergodicity is determined by ensuring that each state is
         accessible from each other state via one or more paths involving edges
         with a number of observed directed counts greater than or equal to
-        ``ergodic_cutoff``. Not that by setting ``ergodic_cutoff`` to 0, this
-        trimming is effectively turned off.
+        ``ergodic_cutoff``. By setting ``ergodic_cutoff`` to 0 or
+        'off', this trimming is turned off. Setting it to 'on' sets the
+        cutoff to the minimal possible count value.
     prior_counts : float, optional
-        Add a number of "pseudo counts" to each entry in the counts matrix.
-        When prior_counts == 0 (default), the assigned transition
-        probability between two states with no observed transitions will be
-        zero, whereas when prior_counts > 0, even this unobserved transitions
-        will be given nonzero probability.
+        Add a number of "pseudo counts" to each entry in the counts matrix
+        after ergodic trimming.  When prior_counts == 0 (default), the assigned
+        transition probability between two states with no observed transitions
+        will be zero, whereas when prior_counts > 0, even this unobserved
+        transitions will be given nonzero probability.
+    sliding_window : bool, optional
+        Count transitions using a window of length ``lag_time``, which is slid
+        along the sequences 1 unit at a time, yielding transitions which
+        contain more data but cannot be assumed to be statistically
+        independent. Otherwise, the sequences are simply subsampled at an
+        interval of ``lag_time``.
     verbose : bool
         Enable verbose printout
 
@@ -100,15 +107,23 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, lag_time=1, n_timescales=10,
-                 reversible_type='mle', ergodic_cutoff=1,
-                 prior_counts=0, verbose=True):
+    def __init__(self, lag_time=1, n_timescales=10, reversible_type='mle',
+                 ergodic_cutoff='on', prior_counts=0, sliding_window=True,
+                 verbose=True):
         self.reversible_type = reversible_type
-        self.ergodic_cutoff = ergodic_cutoff
         self.lag_time = lag_time
         self.n_timescales = n_timescales
         self.prior_counts = prior_counts
+        self.sliding_window = sliding_window
         self.verbose = verbose
+        if isinstance(ergodic_cutoff, str) and ergodic_cutoff.lower() == 'on':
+            if sliding_window:
+                ergodic_cutoff = 1.0/lag_time
+            else:
+                ergodic_cutoff = 1.0
+        elif isinstance(ergodic_cutoff, str) and ergodic_cutoff.lower() == 'off':
+            ergodic_cutoff = 0.0
+        self.ergodic_cutoff = ergodic_cutoff
 
         # Keep track of whether to recalculate eigensystem
         self._is_dirty = True
@@ -148,9 +163,10 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         # step 1. count the number of transitions
         if int(self.lag_time) <= 0:
             raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(sequences, int(self.lag_time))
+        raw_counts, mapping = _transition_counts(
+            sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
-        if self.ergodic_cutoff >= 1:
+        if self.ergodic_cutoff > 0:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
@@ -184,11 +200,9 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return self
 
     def _fit_mle(self, counts):
-        if self.ergodic_cutoff < 1:
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("always")
-                warnings.warn("reversible_type='mle' and ergodic_cutoff < 1 "
-                              "are not generally compatible")
+        if self.ergodic_cutoff <= 0 and self.prior_counts == 0:
+            warnings.warn("reversible_type='mle' and ergodic_cutoff <= 0 "
+                          "are not generally compatible")
 
         transmat, populations = _transmat_mle_prinz(
             counts + self.prior_counts)
@@ -266,7 +280,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         References
         ----------
         .. [1] Prinz, Jan-Hendrik, et al. "Markov models of molecular kinetics:
-        Generation and validation." J. Chem. Phys. 134.17 (2011): 174105.
+           Generation and validation." J. Chem. Phys. 134.17 (2011): 174105.
         """
 
         result = []
@@ -288,53 +302,9 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return result
 
     def sample(self, state=None, n_steps=100, random_state=None):
-        r"""Generate a random sequence of states by propagating the model
-
-        Parameters
-        ----------
-        state : {None, ndarray, label}
-            Specify the starting state for the chain.
-
-            ``None``
-                Choose the initial state by randomly drawing from the model's
-                stationary distribution.
-            ``array-like``
-                If ``state`` is a 1D array with length equal to ``n_states_``,
-                then it is is interpreted as an initial multinomial
-                distribution from which to draw the chain's initial state.
-                Note that the indexing semantics of this array must match the
-                _internal_ indexing of this model.
-            otherwise
-                Otherwise, ``state`` is interpreted as a particular
-                deterministic state label from which to begin the trajectory.
-        n_steps : int
-            Lengths of the resulting trajectory
-        random_state : int or RandomState instance or None (default)
-            Pseudo Random Number generator seed control. If None, use the
-            numpy.random singleton.
-
-        Returns
-        -------
-        sequence : array of length n_steps
-            A randomly sampled label sequence
-        """
-        random = check_random_state(random_state)
-        r = random.rand(1 + n_steps)
-
-        if state is None:
-            initial = np.sum(np.cumsum(self.populations_) < r[0])
-        elif hasattr(state, '__len__') and len(state) == self.n_states_:
-            initial = np.sum(np.cumsum(state) < r[0])
-        else:
-            initial = self.mapping_[state]
-
-        cstr = np.cumsum(self.transmat_, axis=1)
-
-        chain = [initial]
-        for i in range(1, n_steps):
-            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
-
-        return self.inverse_transform([chain])[0]
+        warnings.warn("msm.sample() has been renamed as msm.sample_discrete() and will be removed in MSMBuilder3.4")
+        return self.sample_discrete(state=state, n_steps=n_steps,
+                                    random_state=random_state)
 
     def score_ll(self, sequences):
         r"""log of the likelihood of sequences with respect to the model
@@ -435,6 +405,14 @@ Timescales:
             ts=', '.join(['{:.2f}'.format(t) for t in self.timescales_]),
             )
 
+    @property
+    def score_(self):
+        """Training score of the model, computed as the generalized matrix,
+        Rayleigh quotient, the sum of the first `n_components` eigenvalues
+        """
+        return self.eigenvalues_.sum()
+
+
     def score(self, sequences, y=None):
         """Score the model on new data using the generalized matrix Rayleigh quotient
 
@@ -456,8 +434,8 @@ Timescales:
         References
         ----------
         .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
-           of slow dynamical modes in molecular kinetics"
-           http://arxiv.org/abs/1407.8083 (2014)
+           of slow dynamical modes in molecular kinetics" J. Chem. Phys. 142,
+           124105 (2015)
         """
         # eigenvectors from the model we're scoring, `self`
         V = self.right_eigenvectors_
@@ -576,39 +554,59 @@ Timescales:
         return [k for k, v in sorted(self.mapping_.items(),
                                      key=operator.itemgetter(1))]
 
-    def draw_samples(self, sequences, n_samples, random_state=None):
-        """Sample conformations from each state.
-
-        Parameters
-        ----------
-        sequences : list
-            List of 2-dimensional array observation sequences, each of which
-            has shape (n_samples_i, n_features), where n_samples_i
-            is the length of the i_th observation.
-        n_samples : int
-            How many samples to return from each state
+    def uncertainty_eigenvalues(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the model eigenvalues.
 
         Returns
         -------
-        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
-            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
-            pairs from the specified state.
+        sigma_eigs : np.array, shape=(n_timescales+1,)
+            The estimated symptotic standard deviation in the eigenvalues.
 
-        See Also
-        --------
-        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
-
+        References
+        ----------
+        .. [1] Hinrichs, Nina Singhal, and Vijay S. Pande. "Calculation of
+           the distribution of eigenvalues and eigenvectors in Markovian state
+           models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
         """
-        n_states = max(map(lambda x: max(x), sequences)) + 1
-        n_states_2 = len(np.unique(np.concatenate(sequences)))
-        assert n_states == n_states_2, "Must have non-empty, zero-indexed, consecutive states: found %d states and %d unique states." % (n_states, n_states_2)
+        if self.reversible_type is None:
+            raise NotImplementedError('reversible_type must be "mle" or "transpose"')
 
-        random = check_random_state(random_state)
+        n_timescales = min(self.n_timescales, self.n_states_ - 1)
+        if n_timescales is None:
+            n_timescales = self.n_states_ - 1
+        u, lv, rv = self._get_eigensystem()
 
-        selected_pairs_by_state = []
-        for state in range(n_states):
-            all_frames = [np.where(a == state)[0] for a in sequences]
-            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
-            selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
+        sigma2 = np.zeros(n_timescales + 1)
+        for k in range(n_timescales + 1):
+            dLambda_dT = np.outer(lv[:, k], rv[:, k])
+            for i in range(self.n_states_):
+                ui = self.countsmat_[:, i]
+                wi = np.sum(ui)
+                cov = wi*np.diag(ui) - np.outer(ui, ui)
+                quad_form = dLambda_dT[i].dot(cov).dot(dLambda_dT[i])
+                sigma2[k] += quad_form / (wi**2*(wi+1))
+        return np.sqrt(sigma2)
 
-        return np.array(selected_pairs_by_state)
+    def uncertainty_timescales(self):
+        """Estimate of the element-wise asymptotic standard deviation
+        in the model implied timescales.
+
+        Returns
+        -------
+        sigma_timescales : np.array, shape=(n_timescales,)
+            The estimated symptotic standard deviation in the implied
+            timescales.
+
+        References
+        ----------
+        .. [1] Hinrichs, Nina Singhal, and Vijay S. Pande. "Calculation of
+           the distribution of eigenvalues and eigenvectors in Markovian state
+           models for molecular dynamics." J. Chem. Phys. 126.24 (2007): 244101.
+        """
+        # drop the first eigenvalue
+        u = self.eigenvalues_[1:]
+        sigma_eigs = self.uncertainty_eigenvalues()[1:]
+
+        sigma_ts = sigma_eigs / (u * np.log(u)**2)
+        return sigma_ts

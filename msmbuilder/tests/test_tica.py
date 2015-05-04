@@ -52,6 +52,7 @@ def test_score_1():
             tica.eigenvalues_.sum())
         X2 = np.random.randn(100, 5)
         assert tica.score([X2]) < tica.score([X])
+        assert_approx_equal(tica.score([X]), tica.score_)
 
 
 def test_score_2():

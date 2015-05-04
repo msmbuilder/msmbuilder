@@ -3,6 +3,7 @@ import time
 import sys
 import numpy as np
 import scipy.linalg
+from numpy.testing.decorators import skipif
 from scipy.optimize import check_grad, approx_fprime
 try:
     import numdifftools as nd
@@ -13,99 +14,150 @@ except ImportError:
 
 from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
+from msmbuilder.example_datasets import MullerPotential
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
 random = np.random.RandomState(0)
 
 
-
-def dense_exptheta(n):
-    return np.exp(random.randn(int(n*(n-1)/2 + n)))
-
-
-def sparse_exptheta(n):
-    exptheta = np.exp(random.randn(int(n*(n-1)/2 + n)))
-    zero_out = random.randint(low=0, high=n*(n-1)/2, size=2)
-    exptheta[zero_out] = 0
-
-    exp_d = exptheta
-    exp_sp = exptheta[np.nonzero(exptheta)]
-    inds_sp = np.nonzero(exptheta)[0]
-    return exp_d, exp_sp, inds_sp
+def example_theta(n):
+    return random.uniform(0, 1, size=int(n*(n-1)/2 + n))
 
 
 def test_build_ratemat_1():
-    # test build_ratemat in sparse mode vs. dense mode
+    # test build_ratemat
     n = 4
-    exptheta = dense_exptheta(n)
-    u = np.arange(n*(n-1)/2 + n).astype(np.intp)
-    K1 = np.zeros((n, n))
-    K2 = np.zeros((n, n))
+    theta = example_theta(n)
+    K = np.zeros((n, n))
+    _ratematrix.build_ratemat(theta, n, K)
 
-    _ratematrix.build_ratemat(exptheta, n, u, K1)
-    _ratematrix.build_ratemat(exptheta, n, None, K2)
-    np.testing.assert_array_equal(K1, K2)
-
-
-def test_build_ratemat_2():
-    # test build_ratemat in sparse mode vs. dense mode
-    n = 4
-    exp_d, exp_sp, inds_sp = sparse_exptheta(n)
-
-    K1 = np.zeros((n, n))
-    K2 = np.zeros((n, n))
-
-    _ratematrix.build_ratemat(exp_sp, n, inds_sp, K1)
-    _ratematrix.build_ratemat(exp_d, n, None, K2)
-
-    np.testing.assert_array_equal(K1, K2)
+    # diagonal entries are negative
+    assert np.all(np.diag(K) < 0)
+    # off diagonal entries are non-negative
+    assert np.all(np.extract(1-np.eye(n), K) >= 0)
+    # row-sums are 0
+    np.testing.assert_array_almost_equal(np.sum(K, axis=1), 0)
 
 
 def test_dK_dtheta_1():
-    # test function `dK_dtheta` against the numerical gradient of `build_ratemat`
-    # using dense parameterization
+    # test function `dK_dtheta_A` against the numerical gradient of
+    # `build_ratemat
     n = 4
-    A = random.randn(4, 4)
-    exptheta = dense_exptheta(n)
+    theta = example_theta(n)
 
-    def g(i):
-        h = 1e-7
-        e = np.zeros_like(exptheta)
-        e[i] = h
-        K1 = np.zeros((n, n))
-        K2 = np.zeros((n, n))
-        _ratematrix.build_ratemat(exptheta, n, None, K1)
-        _ratematrix.build_ratemat(np.exp(np.log(exptheta) + e), n, None, K2)
-        return np.sum(np.multiply(A, (K2 - K1) / h)), (K2 - K1) / h
+    def func(x, i, j):
+        # (i,j) entry of the rate matrix
+        K = np.zeros((n, n))
+        _ratematrix.build_ratemat(x, n, K)
+        return K[i, j]
 
-    for u in range(len(exptheta)):
+    def grad(x, i, j):
+        # gradient of the (i,j) entry of the rate matrix w.r.t. theta
         dKu = np.zeros((n, n))
-        s_dKu_A = _ratematrix.dK_dtheta_A(exptheta, n, u, None, A, dKu)
-        s_ndKA_u, ndKu = g(u)
-        np.testing.assert_array_almost_equal(s_ndKA_u, s_dKu_A)
-        np.testing.assert_array_almost_equal(dKu, ndKu)
+        g = np.zeros(len(x))
+        for u in range(len(x)):
+            _ratematrix.dK_dtheta_ij(x, n, u, None, dKu)
+            g[u] = dKu[i, j]
+        return g
+
+    for i in range(n):
+        for j in range(n):
+            assert check_grad(func, grad, theta, i, j) < 1e-7
 
 
 def test_dK_dtheta_2():
-    # test function `dK_dtheta` against the numerical gradient of `build_ratemat`
-    # using sparse parameterization
+    # test function `dK_dtheta_A` to make sure that the part that hadamards
+    # the matrix against A is correct.
     n = 4
     A = random.randn(4, 4)
-    _, exp_sp, inds_sp = sparse_exptheta(n)
+    theta = example_theta(n)
 
-    def g(i):
-        h = 1e-7
-        e = np.zeros_like(exp_sp)
-        e[i] = h
-        K1 = np.zeros((n, n))
-        K2 = np.zeros((n, n))
-        _ratematrix.build_ratemat(exp_sp, n, inds_sp, K1)
-        _ratematrix.build_ratemat(np.exp(np.log(exp_sp) + e), n, inds_sp, K2)
-        return np.sum(np.multiply(A, (K2 - K1) / h))
+    for u in range(len(theta)):
+        dKu = np.zeros((n, n))
+        _ratematrix.dK_dtheta_ij(theta, n, u, None, dKu)
+        value1 = (dKu * A).sum()
 
-    for u in range(len(exp_sp)):
-        s_dKu_A = _ratematrix.dK_dtheta_A(exp_sp, n, u, inds_sp, A)
-        np.testing.assert_array_almost_equal(g(u), s_dKu_A)
+        dKu = np.zeros((n, n))
+        value2 = _ratematrix.dK_dtheta_ij(theta, n, u, A, dKu)
+        value3 = _ratematrix.dK_dtheta_ij(theta, n, u, A)
+
+        np.testing.assert_approx_equal(value1, value2)
+        np.testing.assert_approx_equal(value1, value3)
+
+
+def test_dK_dtheta_3():
+    # test dK_dtheta_ij vs dK_dtheta_u. both return slices of the same 3D
+    # tensor, so by repeated calls to both functions we can build the whole
+    # tensor using both approaches and check that they're equal.
+
+    for n in [3, 4]:
+        theta = example_theta(n)
+
+
+        dKuij1 = np.zeros((len(theta), n, n))
+        dKuij2 = np.zeros((len(theta), n, n))
+
+        for u in range(len(theta)):
+            _ratematrix.dK_dtheta_ij(theta, n, u, None, dKuij1[u])
+
+        for i in range(n):
+            for j in range(n):
+                _ratematrix.dK_dtheta_u(theta, n, i, j, out=dKuij2[:, i, j])
+
+        np.testing.assert_array_almost_equal(dKuij1, dKuij2)
+
+
+def test_dK_dtheta_4():
+    # check that the dot product part of dK_dtheta_u works
+    n = 4
+    theta = example_theta(n)
+    A = random.randn(len(theta), len(theta))
+
+    for i in range(n):
+        for j in range(n):
+            grad = np.zeros(len(theta))
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=grad)
+            gradprod1 = np.dot(grad, A)
+
+            gradprod2 = np.zeros(len(theta))
+            grad2 = np.zeros(len(theta))
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=grad2, A=A, out2=gradprod2)
+
+            np.testing.assert_almost_equal(grad, grad2)
+            np.testing.assert_almost_equal(gradprod1, gradprod2)
+            np.testing.assert_almost_equal(np.dot(grad2, A), gradprod2)
+
+
+
+
+def test_dK_dtheta_5():
+    n = 4
+    theta = np.array(
+        [  2.59193443e-02,  0.00000000e+00,  6.83797216e-07,   3.08837678e-03,
+           0.00000000e+00,  2.56956907e-02,  -1.48051536e+00,  -1.51759911e+00,
+          -1.34983215e+00, -1.22431771e+00])
+    size = len(theta)
+
+
+    dK1 = np.zeros((size, n, n))
+    dK2 = np.zeros((size, n, n))
+    dK3 = np.zeros((size, n, n))
+
+    for u in range(size):
+        _ratematrix.dK_dtheta_ij(theta, n, u, A=None, out=dK1[u, :, :])
+    for i in range(n):
+        for j in range(n):
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=dK2[:, i, j])
+    for i in range(n):
+        for j in range(n):
+            dKij = np.zeros(size)
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=dKij)
+            dK3[:, i, j] = dKij
+
+    np.testing.assert_almost_equal(dK1, dK2)
+    np.testing.assert_almost_equal(dK1, dK3)
+    np.testing.assert_almost_equal(dK2, dK3)
+
 
 
 def test_grad_logl_1():
@@ -113,49 +165,27 @@ def test_grad_logl_1():
     n = 4
     t = 1
     C = random.randint(10, size=(n, n)).astype(float)
-    theta0 = np.log(dense_exptheta(n))
+    theta0 = example_theta(n)
 
     def func(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=None, t=t)[0]
+        return _ratematrix.loglikelihood(theta, C, t=t)[0]
 
     def grad(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=None, t=t)[1]
-
-    assert check_grad(func, grad, theta0) < 1e-4
-
-
-def test_grad_logl_2():
-    # test the gradient of the `loglikelihood` against a numerical gradient
-    # using the sparse parameterization
-    n = 4
-    C = random.randint(10, size=(n, n)).astype(float)
-    _, exptheta_sp, inds_sp = sparse_exptheta(n)
-    theta0 = np.log(exptheta_sp)
-
-    def func(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[0]
-
-    def grad(theta):
-        return _ratematrix.loglikelihood(theta, C, n, inds=inds_sp, t=1.1)[1]
+        return _ratematrix.loglikelihood(theta, C, t=t)[1]
 
     assert check_grad(func, grad, theta0) < 1e-4
 
 
 def test_dw_1():
+    # test the gradient of the eigenvalues of K
     n = 5
     t = 1.0
-    theta0 = np.log(dense_exptheta(n))
-
-    h = 1e-7
-    def bump(u):
-        e = np.zeros_like(theta0)
-        e[u] = h
-        return e
+    theta0 = example_theta(n)
 
     def grad(theta, i):
         # gradient of the ith eigenvalue of K with respect to theta
         K = np.zeros((n, n))
-        _ratematrix.build_ratemat(np.exp(theta), n, None, K)
+        _ratematrix.build_ratemat(theta, n, K)
         w, V = scipy.linalg.eig(K)
         order = np.argsort(np.real(w))
 
@@ -166,7 +196,7 @@ def test_dw_1():
 
         for u in range(len(theta)):
             dKu = np.zeros((n, n))
-            _ratematrix.dK_dtheta_A(np.exp(theta), n, u, None, None, dKu)
+            _ratematrix.dK_dtheta_ij(theta, n, u, None, dKu)
             out = np.zeros(n)
             temp = np.zeros(n)
             _ratematrix.dw_du(dKu, U, V, n, temp, out)
@@ -176,7 +206,7 @@ def test_dw_1():
     def func(theta, i):
         # ith eigenvalue of K
         K = np.zeros((n, n))
-        _ratematrix.build_ratemat(np.exp(theta), n, None, K)
+        _ratematrix.build_ratemat(theta, n, K)
         w = np.real(scipy.linalg.eigvals(K))
         w = np.sort(w)
         return w[i]
@@ -188,46 +218,88 @@ def test_dw_1():
 
 
 def test_hessian_1():
-    n = 5
-    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    n = 3
+    seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
 
-    model = ContinuousTimeMSM(use_sparse=False).fit(seqs)
+    model = ContinuousTimeMSM().fit(seqs)
     theta = model.theta_
     C = model.countsmat_
 
-    hessian1 = _ratematrix.hessian(theta, C, n)
-    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C, n)[1])
+    hessian1 = _ratematrix.hessian(theta, C)
+    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])
     hessian2 = Hfun(theta)
 
     # not sure what the cutoff here should be (see plot_test_hessian)
-    assert np.linalg.norm(hessian1-hessian2) < 1
+    diff = np.linalg.norm(hessian1-hessian2)
+    print("hessian difference: %f" % diff)
+    assert diff < 1e-4
+
+    print(_ratematrix.sigma_pi(-scipy.linalg.pinv(hessian1), theta, n))
 
 
-def _plot_test_hessian():
-    # plot the difference between the numerical hessian and the analytic
-    # approximate hessian (opens Matplotlib window)
-    n = 5
-    grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+# @skipif(True, 'Zeros in the count matrix -> known failure')
+def test_hessian_2():
+    n = 3
+    seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,2,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
 
-    model = ContinuousTimeMSM(use_sparse=False).fit(seqs)
+    model = ContinuousTimeMSM().fit(seqs)
+    print(model.timescales_)
+    print(model.uncertainty_timescales())
     theta = model.theta_
     C = model.countsmat_
+    print(C)
 
-    hessian1 = _ratematrix.hessian(theta, C, n)
-    Hfun = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C, n)[1])
-    hessian2 = Hfun(theta)
+    C_flat = (C+C.T)[np.triu_indices_from(C, k=1)]
+    print(C_flat)
+    print('theta', theta, '\n')
+    inds = np.where(theta!=0)[0]
 
-    import matplotlib.pyplot as pp
-    pp.scatter(hessian1.flat, hessian2.flat, marker='x')
-    pp.plot(pp.xlim(), pp.xlim(), 'k')
-    print('Plotting...', file=sys.stderr)
-    pp.show()
+    hessian1 = _ratematrix.hessian(theta, C, inds=inds)
+    hessian2 = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])(theta)
+    hessian3 = nd.Hessian(lambda x: _ratematrix.loglikelihood(x, C)[0])(theta)
+
+    np.set_printoptions(precision=3)
+
+    #H1 = hessian1[np.ix_(active, active)]
+    #H2 = hessian2[np.ix_(active, active)]
+    #H3 = hessian2[np.ix_(active, active)]
+
+    print(hessian1, '\n')
+    print(hessian2, '\n')
+    #print(hessian3)
+    print('\n')
 
 
-def test_hessian():
-    grid = NDGrid(n_bins_per_feature=10, min=-np.pi, max=np.pi)
+    info1 = np.zeros((len(theta), len(theta)))
+    info2 = np.zeros((len(theta), len(theta)))
+    info1[np.ix_(inds, inds)] = scipy.linalg.pinv(-hessian1)
+    info2[np.ix_(inds, inds)] = scipy.linalg.pinv(-hessian2[np.ix_(inds, inds)])
+
+    print('Inverse Hessian')
+    print(info1)
+    print(info2)
+    #print(scipy.linalg.pinv(hessian2))
+    #print(scipy.linalg.pinv(hessian1)[np.ix_(last, last)])
+    #print(scipy.linalg.pinv(hessian2)[np.ix_(last, last)])
+
+    print(_ratematrix.sigma_pi(info1, theta, n))
+    print(_ratematrix.sigma_pi(info2, theta, n))
+
+    #print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian2), theta, n))
+    #print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian3), theta, n))
+
+    # print(np.linalg.norm(H1-H2))
+    #
+    # # print(hessian1.shape)
+    # # print(hessian1-hessian2)
+    #
+    # # not sure what the cutoff here should be (see plot_test_hessian)
+    # assert np.linalg.norm(hessian1-hessian2) < 1e-6
+
+
+
+def test_hessian_3():
+    grid = NDGrid(n_bins_per_feature=4, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     seqs = [seqs[i] for i in range(10)]
 
@@ -236,9 +308,10 @@ def test_hessian():
     model.fit(seqs)
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
-    print('MSM timescales\n', msm.fit(seqs).timescales_)
+    #print('MSM timescales\n', msm.fit(seqs).timescales_)
     print('Uncertainty K\n', model.uncertainty_K())
-    print('Uncertainty pi\n', model.uncertainty_pi())
+    print('Uncertainty eigs\n', model.uncertainty_eigenvalues())
+
 
 
 def test_fit_1():
@@ -276,22 +349,90 @@ def test_score_1():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
     model = ContinuousTimeMSM(verbose=False, lag_time=10, n_timescales=3).fit(seqs)
-    model.score(seqs)
+    np.testing.assert_approx_equal(model.score(seqs), model.score_)
 
 
-def test_optimize_1():
-    n = 100
+# def test_optimize_1():
+#     n = 50
+#     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
+#     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+#     model = ContinuousTimeMSM(verbose=False).fit(seqs)
+#
+#     start = time.time()
+#     sigma_K = model.uncertainty_K()
+#     print('50 states: uncertainty_K speed', time.time()-start)
+
+
+def test_uncertainties_backward():
+    n = 4
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
-    model = ContinuousTimeMSM(use_sparse=True, verbose=True).fit(seqs)
+    model = ContinuousTimeMSM(verbose=False).fit(seqs)
+    sigma_ts = model.uncertainty_timescales()
+    sigma_lambda = model.uncertainty_eigenvalues()
+    sigma_pi = model.uncertainty_pi()
+    sigma_K = model.uncertainty_K()
 
-    y, x, n = model.loglikelihoods_.T
-    x = x-x[0]
-    cross = np.min(np.where(n==n[-1])[0])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_ts, [9.13698928, 0.12415533, 0.11713719])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_lambda, [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_pi, [0.00741467, 0.00647945, 0.00626743, 0.00777847])
+    yield lambda: np.testing.assert_array_almost_equal(
+        sigma_K,
+        [[  3.39252419e-04, 3.39246173e-04, 0.00000000e+00, 1.62090239e-06],
+         [  3.52062861e-04, 3.73305510e-04, 1.24093936e-04, 0.00000000e+00],
+         [  0.00000000e+00, 1.04708186e-04, 3.45098923e-04, 3.28820213e-04],
+         [  1.25455972e-06, 0.00000000e+00, 2.90118599e-04, 2.90122944e-04]])
+    yield lambda: np.testing.assert_array_almost_equal(
+        model.ratemat_,
+        [[ -2.54439564e-02, 2.54431791e-02,  0.00000000e+00,  7.77248586e-07],
+         [  2.64044208e-02,-2.97630373e-02,  3.35861646e-03,  0.00000000e+00],
+         [  0.00000000e+00, 2.83988103e-03, -3.01998380e-02,  2.73599570e-02],
+         [  6.01581838e-07, 0.00000000e+00,  2.41326592e-02, -2.41332608e-02]])
 
-    #import matplotlib.pyplot as pp
-    #pp.plot(x[cross], y[cross], 'kx')
-    #pp.axvline(x[cross], c='k')
-    #pp.plot(x, y)
-    #pp.show()
+
+def test_score_2():
+    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    ds = MullerPotential(random_state=0).get()['trajectories']
+    cluster = NDGrid(n_bins_per_feature=6,
+          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+    assignments = cluster.fit_transform(ds)
+    test_indices = [5, 0, 4, 1, 2]
+    train_indices = [3, 6, 7, 8, 9]
+
+    model = ContinuousTimeMSM(lag_time=3, n_timescales=1)
+    model.fit([assignments[i] for i in train_indices])
+    test = model.score([assignments[i] for i in test_indices])
+    train = model.score_
+    print('train', train, 'test', test)
+    assert 1 <= test < 2
+    assert 1 <= train < 2
+
+
+def test_score_3():
+    import warnings
+    warnings.simplefilter('ignore')
+    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+
+    cluster = NDGrid(n_bins_per_feature=6,
+          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+
+    ds = MullerPotential(random_state=0).get()['trajectories']
+    assignments = cluster.fit_transform(ds)
+
+    train_indices = [9, 4, 3, 6, 2]
+    test_indices = [8, 0, 5, 7, 1]
+
+    model = ContinuousTimeMSM(lag_time=3, n_timescales=1, sliding_window=False, ergodic_cutoff=1)
+    train_data = [assignments[i] for i in train_indices]
+    test_data = [assignments[i] for i in test_indices]
+
+    model.fit(train_data)
+    train = model.score_
+    test = model.score(test_data)
+    print(train, test)

@@ -10,10 +10,10 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import scipy.linalg
+import warnings
 from ..base import BaseEstimator
-from ..utils import check_iter_of_sequences
+from ..utils import check_iter_of_sequences, array2d
 from sklearn.base import TransformerMixin
-from sklearn.utils import array2d
 
 __all__ = ['tICA']
 
@@ -163,7 +163,7 @@ class tICA(BaseEstimator, TransformerMixin):
 
         # just check to make sure we've actually seen some data
         if self.n_observations_ == 0:
-            raise RuntimeError('must fit the model before using it')
+            raise RuntimeError('The model must be fit() before use.')
 
         if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
             raise RuntimeError('offset correlation matrix is not symmetric')
@@ -184,6 +184,14 @@ class tICA(BaseEstimator, TransformerMixin):
         self._eigenvectors_ = vecs
 
         self._is_dirty = False
+
+    @property
+    def score_(self):
+        """Training score of the model, computed as the generalized matrix,
+        Rayleigh quotient, the sum of the first `n_components` eigenvalues
+        """
+        self._solve()
+        return self._eigenvalues_[:self.n_components].sum()
 
     @property
     def eigenvectors_(self):
@@ -252,6 +260,11 @@ class tICA(BaseEstimator, TransformerMixin):
         check_iter_of_sequences(sequences, max_iter=3)  # we might be lazy-loading
         for X in sequences:
             self._fit(X)
+
+        if self.n_sequences_ == 0:
+            raise ValueError('All sequences were shorter than '
+                             'the lag time, %d' % self.lag_time)
+
         return self
 
     def partial_fit(self, X):
@@ -352,9 +365,11 @@ class tICA(BaseEstimator, TransformerMixin):
     def _fit(self, X):
         X = np.asarray(array2d(X), dtype=np.float64)
         self._initialize(X.shape[1])
+
+        # We don't need to scream and shout here. Just ignore this data.
         if not len(X) > self.lag_time:
-            raise ValueError('First dimension must be longer than '
-                'lag_time=%d. X has shape (%d, %d)' % ((self.lag_time,) + X.shape))
+            warnings.warn("length of data (%d) is too short for the lag time (%d)" % (len(X), self.lag_time))
+            return
 
         self.n_observations_ += X.shape[0]
         self.n_sequences_ += 1
@@ -389,8 +404,8 @@ class tICA(BaseEstimator, TransformerMixin):
         References
         ----------
         .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
-           of slow dynamical modes in molecular kinetics"
-           http://arxiv.org/abs/1407.8083 (2014)
+           of slow dynamical modes in molecular kinetics" J. Chem. Phys. 142,
+           124105 (2015)
         """
 
         assert self._initialized

@@ -5,7 +5,7 @@
 # All rights reserved.
 
 """
-Functions for enumerating paths through an MSM for a given 
+Functions for enumerating paths through an MSM for a given
 set of sink and source states.
 
 These are the canonical references for TPT. Note that TPT
@@ -14,7 +14,7 @@ mathematical study of Markov chains, and there are many
 books, manuscripts in the mathematical literature that
 cover the same concepts.
 
-In addition, the original paper from Dijkstra describing the 
+In addition, the original paper from Dijkstra describing the
 path finding algorithm we employ is listed below.
 
 References
@@ -30,6 +30,9 @@ References
        130, 205102 (2009).
 .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion with Graphs.
        Numeriche Mathematik 1, 269-271 (1959).
+.. [5] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+       pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+       19011-19016.
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
@@ -39,15 +42,15 @@ __all__ = ['paths', 'top_path']
 
 def top_path(sources, sinks, net_flux):
     """
-    Use the Dijkstra algorithm for finding the shortest path 
+    Use the Dijkstra algorithm for finding the shortest path
     connecting a set of source states from a set of sink states.
 
     Parameters
     ----------
     sources : array_like, int
-        One-dimensional list of nodes to define the source states. 
+        One-dimensional list of nodes to define the source states.
     sinks : array_like, int
-        One-dimensional list of nodes to define the sink states. 
+        One-dimensional list of nodes to define the sink states.
     net_flux : np.ndarray, shape = [n_states, n_states]
         Net flux of the MSM
 
@@ -78,6 +81,9 @@ def top_path(sources, sinks, net_flux):
            130, 205102 (2009).
     .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion with Graphs.
            Numeriche Mathematik 1, 269-271 (1959).
+    .. [5] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+           pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+           19011-19016.
     """
     sources = np.array(sources, dtype=np.int).reshape((-1,))
     sinks = np.array(sinks, dtype=np.int).reshape((-1,))
@@ -193,9 +199,9 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
     Parameters
     ----------
     sources : array_like, int
-        One-dimensional list of nodes to define the source states. 
+        One-dimensional list of nodes to define the source states.
     sinks : array_like, int
-        One-dimensional list of nodes to define the sink states. 
+        One-dimensional list of nodes to define the sink states.
     net_flux : np.ndarray
         Net flux of the MSM
     remove_path : str or callable, optional
@@ -264,6 +270,9 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
            130, 205102 (2009).
     .. [4] Dijkstra, E. W. A Note on Two Problems in Connexion with Graphs.
            Numeriche Mathematik 1, 269-271 (1959).
+    .. [5] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+           pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+           19011-19016.
     """
 
     if not callable(remove_path):

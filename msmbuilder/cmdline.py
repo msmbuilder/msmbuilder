@@ -49,18 +49,20 @@ import textwrap
 import argparse
 import inspect
 import itertools
+from . import version
+
 try:
     import numpydoc.docscrape
 except ImportError:
-    print('-'*35, file=sys.stderr)
+    print('-' * 35, file=sys.stderr)
     print('              ERROR', file=sys.stderr)
-    print('-'*35, file=sys.stderr)
+    print('-' * 35, file=sys.stderr)
     print('The package `numpydoc` is required.\n', file=sys.stderr)
     print('Try:', file=sys.stderr)
     print('  $ conda install numpydoc', file=sys.stderr)
     print('or', file=sys.stderr)
     print('  $ pip install numpydoc', file=sys.stderr)
-    print('-'*35, file=sys.stderr)
+    print('-' * 35, file=sys.stderr)
     raise
 
 # Work around a very odd bug in pytables, where it destroys arguments in
@@ -77,7 +79,6 @@ __all__ = ['argument', 'argument_group', 'Command', 'App', 'FlagAction',
 
 
 class MultipleIntAction(argparse.Action):
-
     """An argparse Action to be used as an alternative to `nargs='+', type=int`
     (instead, you use `nargs='+', action=MultipleIntAction`. This allows the user
     to specify either a space separated list of ints (ala the former solution)
@@ -125,7 +126,6 @@ class FlagAction(argparse.Action):
 
 
 class argument(object):
-
     """Wrapper for parser.add_argument"""
 
     def __init__(self, *args, **kwargs):
@@ -138,9 +138,7 @@ class argument(object):
         root.add_argument(*self.args, **self.kwargs)
 
 
-
 class argument_group(object):
-
     """Wrapper for parser.add_argument_group"""
 
     def __init__(self, *args, **kwargs):
@@ -182,7 +180,6 @@ class argument_group(object):
 
 
 class mutually_exclusive_group(object):
-
     """Wrapper parser.add_mutually_exclusive_group"""
 
     def __init__(self, *args, **kwargs):
@@ -210,8 +207,8 @@ class ClassProperty(property):
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
 
-class Command(with_metaclass(abc.ABCMeta, object)):
 
+class Command(with_metaclass(abc.ABCMeta, object)):
     # Set _concrete to true for all final classes in the heirarchy
     _concrete = False
 
@@ -258,8 +255,11 @@ class NumpydocClassCommand(Command):
     klass.__init__)
     """
 
-    # subclasses should override this
+    # subclasses MUST override this
     klass = None
+
+    # subclasses MAY override this
+    example = None
 
     def __init__(self, args):
         # create the instance of `klass`
@@ -270,7 +270,7 @@ class NumpydocClassCommand(Command):
         for k, v in args.__dict__.items():
             # these are all of the specified options from the command line
             # some of them correspond to __init__ args for self.klass, and
-            # others are "extra" arguments that wern't part of klass
+            # others are "extra" arguments that weren't part of klass
 
             if k in init_args:
                 # put the ones for klass.__init__ in a dict
@@ -327,7 +327,7 @@ class NumpydocClassCommand(Command):
             # get default value
             kwargs = {}
             try:
-                kwargs['default'] = defaults[i-len(args)]
+                kwargs['default'] = defaults[i - len(args)]
             except (IndexError, TypeError):
                 kwargs['required'] = True
 
@@ -343,11 +343,19 @@ class NumpydocClassCommand(Command):
                 if 'bool' in typemap[arg]:
                     kwargs['action'] = FlagAction
 
-                basic_types = {'str': str, 'float': float, 'int': int}
-                for basic_type in basic_types:
-                    if basic_type in typemap[arg]:
-                        kwargs['type'] = basic_types[basic_type]
-                        break
+                if hasattr(cls, '_{}_type'.format(arg)):
+                    # If the docstring *contains* the word float or int,
+                    # parsing will fail for things not of that type
+                    # even if a custom loader will eventually be used.
+                    # Let's check for custom loaders here and set the type
+                    # to str.
+                    kwargs['type'] = str
+                else:
+                    basic_types = {'str': str, 'float': float, 'int': int}
+                    for basic_type in basic_types:
+                        if basic_type in typemap[arg]:
+                            kwargs['type'] = basic_types[basic_type]
+                            break
 
             group.add_argument('--{}'.format(arg), **kwargs)
 
@@ -378,8 +386,13 @@ class NumpydocClassCommand(Command):
                 for l in textwrap.wrap(' '.join(other[1])):
                     lines.append('    %s' % l)
 
-        return '\n'.join(lines)
+        if cls.example is not None:
+            lines.extend(('', 'Example Command', '---------------'))
+            for l in cls.example.splitlines():
+                if l.startswith('    '):
+                    lines.append(l[4:])
 
+        return '\n'.join(lines)
 
 
 class App(object):
@@ -396,12 +409,18 @@ class App(object):
 
         # give a special "did you mean?" message if an invalid subcommand is
         # invoked
-        cmdnames = [e.dest for e in self.parser._subparsers._actions[1]._choices_actions] + ['-h', '--help']
+        cmdnames = []
+        for act in self.parser._subparsers._actions:
+            if hasattr(act, '_choices_actions'):
+                cmdnames.extend((e.dest for e in act._choices_actions))
+            else:
+                cmdnames.extend(act.option_strings)
+
         if not argv[0] in cmdnames:
             import difflib
             lower2native = {s.lower(): s for s in cmdnames}
-            didyoumean = difflib.get_close_matches(argv[0].lower(),
-                lower2native.keys(), n=1, cutoff=0)[0]
+            didyoumean = difflib.get_close_matches(
+                argv[0].lower(), lower2native.keys(), n=1, cutoff=0)[0]
             self.parser.error("invalid choice: '%s'. did you mean '%s'?" % (
                 argv[0], lower2native[didyoumean]))
             sys.exit(1)
@@ -427,12 +446,15 @@ class App(object):
         # do this, you need to increase the "action_max_length" argument which
         # puts more whitespace between the end of the action name and the start
         # of the helptext.
+        fmt_class = lambda prog: MyHelpFormatter(
+            prog, indent_increment=1, width=120, action_max_length=22)
         parser = argparse.ArgumentParser(
-            description=self.description, formatter_class=lambda prog: MyHelpFormatter(prog,
-            indent_increment=1, width=120, action_max_length=22))
+            description=self.description, formatter_class=fmt_class)
+        parser.add_argument('-v', '--version',
+            help="show program's version number and exit", action = 'version',
+            version='msmbuilder %s' % version.full_version)
 
         subparsers = parser.add_subparsers(dest=self.subcommand_dest, title="commands", metavar="")
-
 
         def _key(klass):
             #return getattr(klass, '_group', klass)
@@ -512,6 +534,7 @@ def exttype(suffix):
         first, last = os.path.splitext(s)
         return first + suffix
     return inner
+
 
 def stripquotestype(s):
     return s.strip('\'"')

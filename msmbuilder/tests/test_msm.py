@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import os
+import tempfile
 
 import mdtraj as md
 import pandas as pd
@@ -13,10 +14,11 @@ from six import PY3
 from msmbuilder.utils import map_drawn_samples
 from msmbuilder import cluster
 
+from msmbuilder.msm.core import _transition_counts
 from msmbuilder.msm import MarkovStateModel
 
 
-def test_1():
+def test_counts_1():
     # test counts matrix without trimming
     model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
 
@@ -25,13 +27,29 @@ def test_1():
     eq(model.mapping_, {1: 0})
 
 
-def test_2():
+def test_counts_2():
     # test counts matrix with trimming
     model = MarkovStateModel(reversible_type=None, ergodic_cutoff=1)
 
     model.fit([[1, 1, 1, 1, 1, 1, 1, 1, 1, 2]])
     eq(model.mapping_, {1: 0})
     eq(model.countsmat_, np.array([[8]]))
+
+
+def test_counts_3():
+    # test counts matrix scaling
+    seq = [1] * 4 + [2] * 4 + [1] * 4
+
+    model1 = MarkovStateModel(reversible_type=None, lag_time=2,
+                              sliding_window=True).fit([seq])
+    model2 = MarkovStateModel(reversible_type=None, lag_time=2,
+                              sliding_window=False).fit([seq])
+    model3 = MarkovStateModel(reversible_type=None, lag_time=2,
+                              ergodic_cutoff='off').fit([seq])
+
+    eq(model1.countsmat_, model2.countsmat_)
+    eq(model1.countsmat_, model3.countsmat_)
+    eq(model2.countsmat_, model3.countsmat_)
 
 
 def test_3():
@@ -45,11 +63,14 @@ def test_3():
 
     # test pickleable
     try:
-        dump(model, 'test-msm-temp.npy', compress=1)
-        model2 = load('test-msm-temp.npy')
+        dir = tempfile.mkdtemp()
+        fn = os.path.join(dir, 'test-msm-temp.npy')
+        dump(model, fn, compress=1)
+        model2 = load(fn)
         eq(model2.timescales_, model.timescales_)
     finally:
-        os.unlink('test-msm-temp.npy')
+        os.unlink(fn)
+        os.rmdir(dir)
 
 
 def test_4():
@@ -196,7 +217,7 @@ def test_11():
     # test sample
     model = MarkovStateModel()
     model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
-    sample = model.sample(n_steps=1000, random_state=0)
+    sample = model.sample_discrete(n_steps=1000, random_state=0)
     assert isinstance(sample, np.ndarray)
     assert len(sample) == 1000
 
@@ -334,3 +355,4 @@ def test_score_1():
         model.fit([sequence])
 
         assert_approx_equal(model.score([sequence]), model.eigenvalues_.sum())
+        assert_approx_equal(model.score([sequence]), model.score_)

@@ -15,6 +15,7 @@ import getpass
 import itertools
 from datetime import datetime
 from collections import Sequence
+import warnings
 
 import tables
 import mdtraj as md
@@ -29,10 +30,46 @@ __all__ = ['dataset']
 
 
 def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
+    """Open a dataset object
+
+    MSMBuilder supports several dataset 'formats' for storing
+    lists of sequences on disk.
+
+    This function can also be used as a context manager.
+
+    Parameters
+    ----------
+    path : str
+        The path to the dataset on the filesystem
+    mode : {'r', 'w', 'a'}
+        Open a dataset for reading, writing, or appending. Note that
+        some formats only support a subset of these modes.
+    fmt : {'dir-npy', 'hdf5', 'mdtraj'}
+        The format of the data on disk
+
+        ``dir-npy``
+            A directory of binary numpy files, one file per sequence
+
+        ``hdf5``
+            A single hdf5 file with each sequence as an array node
+
+        ``mdtraj``
+            A read-only set of trajectory files that can be loaded
+            with mdtraj
+
+        ``dir-npy-union`` or ``hdf5-union``
+            Several datasets of the respective type which will have
+            their features union-ed together.
+
+    verbose : bool
+        Whether to print information about the dataset
+
+    """
+
     if mode == 'r' and fmt is None:
         fmt = _guess_format(path)
-    elif mode == 'w' and fmt is None:
-        raise ValueError('mode="w", but no fmt. fmt=%s' % fmt)
+    elif mode in 'wa' and fmt is None:
+        raise ValueError('mode="%s", but no fmt. fmt=%s' % (mode, fmt))
 
     if fmt == 'dir-npy':
         return NumpyDirDataset(path, mode=mode, verbose=verbose)
@@ -40,20 +77,51 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
         return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'hdf5':
         return HDF5Dataset(path, mode=mode, verbose=verbose)
+    elif fmt.endswith("-union"):
+        sub_fmt = fmt[:-len('-union')]
+        return UnionDataset(path, fmt=sub_fmt, mode=mode, verbose=verbose)
     else:
         raise NotImplementedError("unknown fmt: %s" % fmt)
 
 
 def _guess_format(path):
-    if not isinstance(path, str):
-        return 'mdtraj'
+    """Guess the format of a dataset based on its filename / filenames.
+    """
+    if isinstance(path, (list, tuple)):
+        # Is concatenating features "horizontally" the most obvious
+        # behavior here? I don't think so. Passing a list to dataset()
+        # should probably include the additional paths as additional
+        # trajectories. E.g.
+        #   `ds = dataset(['traj1.dcd, traj2.dcd'], top='struct.pdb')`
+        #   `ds = dataset(['tica1/', 'tica2/'])
+        #
+        # In the second case, it is not as straightforward what the
+        # expected behavior is, but for the first we should def. be
+        # concatenating "vertically" rather than "horizontally" - mph
+
+        warnings.warn("Prior to MSMB 3.2, passing a list of paths would" +
+                      " result in features being 'union-ed'." +
+                      " This behavior is deprecated as of v3.2 and will" +
+                      " be changed for v3.3." +
+                      " To retain the current functionality, specify" +
+                      " fmt='dir-npy-union' or fmt='hdf5-union' explicitly.")
+
+        fmt = _guess_format(path[0])
+        err = "Only the union of 'dir-npy' and 'hdf5' formats is supported"
+        assert fmt in ['dir-npy', 'hdf5'], err
+        err = "All datasets must be the same format"
+        for p in path[1:]:
+            assert _guess_format(p) == fmt, err
+        return "{}-union".format(fmt)
 
     if os.path.isdir(path):
         return 'dir-npy'
 
     if path.endswith('.h5') or path.endswith('.hdf5'):
+        # TODO: Check for mdtraj .h5 file
         return 'hdf5'
 
+    # TODO: What about a list of trajectories, e.g. from command line nargs='+'
     return 'mdtraj'
 
 
@@ -77,22 +145,25 @@ class _BaseDataset(Sequence):
         self.mode = mode
         self.verbose = verbose
 
-        if mode not in ('r', 'w'):
-            raise ValueError('mode must be one of "r", "w"')
-        if mode == 'w':
-            if exists(path):
+        if mode not in ('r', 'w', 'a'):
+            raise ValueError('mode must be one of "r", "w", "a"')
+        if mode in 'wa':
+            if mode == 'w' and exists(path):
                 raise ValueError('File exists: %s' % path)
-            os.makedirs(path)
+            #os.makedirs(path, exist_ok=True) # (py3 only)
+            try:
+                os.makedirs(path)
+            except OSError:
+                pass
             self._write_provenance()
 
-    def create_derived(self, out_path,  comments='', fmt=None):
+    def create_derived(self, out_path, comments='', fmt=None):
         if fmt is None:
             out_dataset = self.__class__(out_path, mode='w', verbose=self.verbose)
         else:
-            out_dataset =  dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
+            out_dataset = dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
         out_dataset._write_provenance(previous=self.provenance, comments=comments)
         return out_dataset
-
 
     def apply(self, fn):
         for key in self.keys():
@@ -115,7 +186,7 @@ class _BaseDataset(Sequence):
     def provenance(self):
         raise NotImplementedError('implemented in subclass')
 
-    def _write_provenance(self, previous, comments=''):
+    def _write_provenance(self, previous=None, comments=''):
         raise NotImplementedError('implemented in subclass')
 
     def __len__(self):
@@ -132,7 +203,13 @@ class _BaseDataset(Sequence):
             yield self.get(key)
 
     def keys(self):
+        # keys()[i], get(i) and set(i, x) should all follow
+        # the same ordering convention for the indices / items.
         raise NotImplementedError('implemeneted in subclass')
+
+    def items(self):
+        for key in self.keys():
+            yield (key, self.get(key))
 
     def get(self, i):
         raise NotImplementedError('implemeneted in subclass')
@@ -159,7 +236,9 @@ class NumpyDirDataset(_BaseDataset):
     Parameters
     ----------
     path : str
-    mode : {'r', 'w'}
+    mode : {'r', 'w', 'a'}
+        Read, write, or append. If mode is set to 'a' or 'w',
+        duplicate keys will be overwritten.
 
     Examples
     --------
@@ -190,7 +269,7 @@ class NumpyDirDataset(_BaseDataset):
             raise IndexError(e)
 
     def set(self, i, x):
-        if 'w' not in self.mode:
+        if self.mode not in 'wa':
             raise IOError('Dataset not opened for writing')
         filename = join(self.path, self._ITEM_FORMAT % i)
         if self.verbose:
@@ -228,7 +307,6 @@ class HDF5Dataset(_BaseDataset):
             if exists(path):
                 raise ValueError('File exists: %s' % path)
 
-        filters = tables.Filters(complevel=0)
         self._handle = tables.open_file(path, mode=mode,
                                         filters=_PYTABLES_DISABLE_COMPRESSION)
         self.path = path
@@ -261,7 +339,8 @@ class HDF5Dataset(_BaseDataset):
         return self._handle.get_node('/', self._ITEM_FORMAT % i)[:]
 
     def keys(self):
-        for node in self._handle.iter_nodes('/'):
+        nodes = self._handle.list_nodes('/')
+        for node in sorted(nodes, key=lambda x: _keynat(x.name)):
             match = self._ITEM_RE.match(node.name)
             if match:
                 yield int(match.group(1))
@@ -335,7 +414,7 @@ class MDTrajDataset(_BaseDataset):
                         atom_indices=self.atom_indices)
         else:
             t = md.load(self.filename(i), stride=self.stride,
-                           atom_indices=self.atom_indices, top=self._topology)
+                        atom_indices=self.atom_indices, top=self._topology)
         return t
 
     def filename(self, i):
@@ -364,11 +443,69 @@ class MDTrajDataset(_BaseDataset):
             atom_indices=self.atom_indices, stride=self.stride)
 
 
+def _dim_match(arr):
+    if arr.ndim == 1:
+        return arr[:, np.newaxis]
+    return arr
+
+
+class UnionDataset(_BaseDataset):
+    def __init__(self, paths, mode, fmt='dir-npy', verbose=False):
+        # Check mode
+        if mode != 'r':
+            raise ValueError("Union datasets are read only")
+
+        # Check format
+        supported_subformats = ['dir-npy', 'hdf5']
+        if fmt not in supported_subformats:
+            err = "Format must be one of {}. You gave {}"
+            err = err.format(supported_subformats, fmt)
+            raise ValueError(err)
+
+        # Save parameters
+        self.verbose = verbose
+        self.datasets = [dataset(path, mode, fmt, verbose)
+                         for path in paths]
+
+        # Sanity check
+        self._check_same_length()
+
+    def _check_same_length(self):
+        """Check that the datasets are the same length"""
+        lens = []
+        for ds in self.datasets:
+            lens.append(
+                sum(1 for _ in ds.keys())
+            )
+        if len(set(lens)) > 1:
+            err = "Each dataset must be the same length. You gave: {}"
+            err = err.format(lens)
+            raise ValueError(err)
+
+    def keys(self):
+        return self.datasets[0].keys()
+
+    def get(self, i):
+        return np.concatenate([_dim_match(ds.get(i))
+                               for ds in self.datasets], axis=1)
+
+    def close(self):
+        for ds in self.datasets:
+            ds.close()
+
+    def flush(self):
+        for ds in self.datasets:
+            ds.close()
+
+    @property
+    def provenance(self):
+        return "\n\n".join(ds.provenance for ds in self.datasets)
+
 
 def _keynat(string):
-    '''A natural sort helper function for sort() and sorted()
+    """A natural sort helper function for sort() and sorted()
     without using regular expression.
-    '''
+    """
     r = []
     for c in string:
         if c.isdigit():

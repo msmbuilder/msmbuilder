@@ -158,10 +158,16 @@ class SuperposeFeaturizer(Featurizer):
     reference_traj : md.Trajectory
         The reference conformation to superpose each frame with respect to
         (only the first frame in reference_traj is used)
+    superpose_atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        If not None, these atom_indices are used for the superposition
     """
 
-    def __init__(self, atom_indices, reference_traj):
+    def __init__(self, atom_indices, reference_traj, superpose_atom_indices=None):
         self.atom_indices = atom_indices
+        if superpose_atom_indices is None:
+            self.superpose_atom_indices = atom_indices
+        else:
+            self.superpose_atom_indices = superpose_atom_indices
         self.reference_traj = reference_traj
         self.n_features = len(self.atom_indices)
 
@@ -186,7 +192,7 @@ class SuperposeFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        traj.superpose(self.reference_traj, atom_indices=self.atom_indices)
+        traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
@@ -443,9 +449,9 @@ class GaussianSolventFeaturizer(Featurizer):
 
     Parameters
     ----------
-    solute_indices : np.ndarray, shape=(n_solute,1)
+    solute_indices : np.ndarray, shape=(n_solute,)
         Indices of solute atoms
-    solvent_indices : np.ndarray, shape=(n_solvent, 1)
+    solvent_indices : np.ndarray, shape=(n_solvent,)
         Indices of solvent atoms
     sigma : float
         Sets the length scale for the gaussian kernel
@@ -460,8 +466,8 @@ class GaussianSolventFeaturizer(Featurizer):
     """
 
     def __init__(self, solute_indices, solvent_indices, sigma, periodic=False):
-        self.solute_indices = solute_indices[:, 0]
-        self.solvent_indices = solvent_indices[:, 0]
+        self.solute_indices = solute_indices
+        self.solvent_indices = solvent_indices
         self.sigma = sigma
         self.periodic = periodic
         self.n_features = len(self.solute_indices)
@@ -572,7 +578,7 @@ class RawPositionsFeaturizer(Featurizer):
             p_traj.superpose(self.ref_traj, parallel=False)
 
         # Get the positions and reshape.
-        value = traj.xyz.reshape(len(traj), -1)
+        value = p_traj.xyz.reshape(len(p_traj), -1)
         return value
 
 
@@ -725,3 +731,52 @@ class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
         X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
 
         return X_i_stacked
+
+
+class Slicer(Featurizer):
+    """Extracts slices (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    index : list of integers, optional, default=None
+        These indices are the feature indices that will be selected
+        by the Slicer.transform() function.  
+
+    """
+
+    def __init__(self, index=None):
+        self.index = index
+
+    def partial_transform(self, X):
+        """Slice a single input array along to select a subset of features.
+
+        Parameters
+        ----------
+        X : np.ndarray, shape=(n_samples, n_features)
+            A sample to slice.
+
+        Returns
+        -------
+        X2 : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of X
+        """
+        return X[:, self.index]
+
+
+class FirstSlicer(Slicer):
+    """Extracts slices (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    first : int, optional, default=None
+        Select the first N features.  This is essentially a shortcut for
+        `Slicer(index=arange(first))`
+
+    """
+
+    def __init__(self, first=None):
+        self.first = first
+    
+    @property
+    def index(self):
+        return np.arange(self.first)

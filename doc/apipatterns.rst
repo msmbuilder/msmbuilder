@@ -45,7 +45,24 @@ MD trajectories (:class:`~md.Trajectory`) as opposed to a list of arrays.
 
     This is different from sklearn. In sklearn, estimators take a **single**
     2D array as input in ``fit()``. Here we use a list of arrays or
-    trajectories.
+    trajectories.  However, for many models it's still quite easy to go
+    between sklearn-style input and msmbuilder-style input, as shown in
+    the following code block.
+
+.. code-block:: python
+
+    import msmbuilder.cluster
+    import sklearn.cluster
+
+    X_sklearn = np.random.normal(size=(100, 10))  # sklearn style input: (n_samples, n_features)
+    X_msmb = [X_sklearn]  # MSMBuilder style input: list of (n_samples, n_features)
+
+    clusterer_sklearn = sklearn.cluster.KMeans(n_clusters=5)
+    clusterer_sklearn.fit(X_sklearn)
+
+    clusterer_msmb = msmbuilder.cluster.KMeans(n_clusters=5)
+    clusterer_msmb.fit(X_msmb)
+
 
 
 Some models like :class:`~tica.tICA` which only require a single pass over the

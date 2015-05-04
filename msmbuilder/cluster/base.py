@@ -13,6 +13,7 @@ import numpy as np
 import mdtraj as md
 from ..utils import check_iter_of_sequences
 
+
 class MultiSequenceClusterMixin(object):
 
     # The API for the scikit-learn Cluster object is, in fit(), that
@@ -61,7 +62,9 @@ class MultiSequenceClusterMixin(object):
             # trajectories (which is the use case that I want to be sure to
             # support), but in general the python container protocol doesn't
             # give us a generic way to make sure we merged sequences
-            concat = sequences[0].join(sequences[1:])
+            concat = sequences[0]
+            if len(sequences) > 1:
+                concat = concat.join(sequences[1:])
             concat.center_coordinates()
         else:
             raise TypeError('sequences must be a list of numpy arrays '
@@ -72,6 +75,17 @@ class MultiSequenceClusterMixin(object):
 
     def _split(self, concat):
         return [concat[cl - l: cl] for (cl, l) in zip(np.cumsum(self.__lengths), self.__lengths)]
+
+    def _split_indices(self, concat_inds):
+        """Take indices in 'concatenated space' and return as pairs
+        of (traj_i, frame_i)
+        """
+        clengths = np.append([0], np.cumsum(self.__lengths))
+        mapping = np.zeros((clengths[-1], 2), dtype=int)
+        for traj_i, (start, end) in enumerate(zip(clengths[:-1], clengths[1:])):
+            mapping[start:end, 0] = traj_i
+            mapping[start:end, 1] = np.arange(end - start)
+        return mapping[concat_inds]
 
     def predict(self, sequences, y=None):
         """Predict the closest cluster each sample in each sequence in
@@ -157,4 +171,3 @@ class MultiSequenceClusterMixin(object):
     def fit_transform(self, sequences, y=None):
         """Alias for fit_predict"""
         return self.fit_predict(sequences, y)
-

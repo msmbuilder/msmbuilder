@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import mdtraj as md
 
-__all__ = ['list_of_1d', 'check_iter_of_sequences']
+__all__ = ['list_of_1d', 'check_iter_of_sequences', 'array2d']
 
 
 def list_of_1d(y):
@@ -53,3 +53,26 @@ def check_iter_of_sequences(sequences, allow_trajectory=False, ndim=2,
 
     if not value:
         raise ValueError('sequences must be a list of sequences')
+
+
+def array2d(X, dtype=None, order=None, copy=False, force_all_finite=True):
+    """Returns at least 2-d array with data from X"""
+    X_2d = np.asarray(np.atleast_2d(X), dtype=dtype, order=order)
+    if force_all_finite:
+        _assert_all_finite(X_2d)
+    if X is X_2d and copy:
+        X_2d = _safe_copy(X_2d)
+    return X_2d
+
+
+def _assert_all_finite(X):
+    """Like assert_all_finite, but only for ndarray."""
+    X = np.asanyarray(X)
+    if (X.dtype.char in np.typecodes['AllFloat'] and not np.isfinite(X.sum())
+            and not np.isfinite(X).all()):
+        raise ValueError("Input contains NaN, infinity"
+                         " or a value too large for %r." % X.dtype)
+
+def _safe_copy(X):
+    # Copy, but keep the order
+    return np.copy(X, order='K')

@@ -55,7 +55,7 @@ from ._metzner_mcmc_slow import metzner_mcmc_slow
 
 
 class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
-    """Bayesian Markov state model
+    """Bayesian reversible Markov state model.
 
     Variant of ``MarkovStateModel`` which estimates a distribution over
     transition matrices instead of a single transition matrix using
@@ -95,6 +95,11 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         probability between two states with no observed transitions will be
         zero, whereas when prior_counts > 0, even this unobserved transitions
         will be given nonzero probability.
+    sliding_window : bool, optional
+        Count transitions using a window of length ``lag_time``, which is slid
+        along the sequences 1 unit at a time, yielding transitions which contain
+        more data but cannot be assumed to be statistically independent. Otherwise,
+        the sequences are simply subsampled at an interval of ``lag_time``.
     random_state : int or RandomState instance or None (default)
         Pseudo Random Number generator seed control. If None, use the
         numpy.random singleton.
@@ -145,8 +150,8 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
     """
     def __init__(self, lag_time=1, n_samples=100, n_steps=0, n_chains=None,
                  n_timescales=None, reversible=True, ergodic_cutoff=1,
-                 prior_counts=0, random_state=None, sampler='metzner',
-                 verbose=False):
+                 prior_counts=0, sliding_window=True, random_state=None,
+                 sampler='metzner', verbose=False):
         self.lag_time = lag_time
         self.n_samples = n_samples
         self.n_steps = n_steps
@@ -155,6 +160,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self.reversible = reversible
         self.ergodic_cutoff = ergodic_cutoff
         self.prior_counts = prior_counts
+        self.sliding_window = sliding_window
         self.random_state = random_state
         self.sampler = sampler
         self.verbose = verbose
@@ -169,11 +175,12 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         sequences = list_of_1d(sequences)
         if int(self.lag_time) <= 0:
             raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(sequences, int(self.lag_time))
+        raw_counts, mapping = _transition_counts(
+            sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
         if self.ergodic_cutoff >= 1:
             self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                raw_counts, self.ergodic_cutoff, self.verbose)
+                self.lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             self.countsmat_ = raw_counts
@@ -299,14 +306,14 @@ sampler          : {sampler}
 Number of states : {n_states}
 
 Timescales:
-    mean : [{mean_ts}]  units 
+    mean : [{mean_ts}]  units
     stdev: [{std_ts}]  units""".format(lag_time=self.lag_time, reversible=self.reversible,
                              ergodic_cutoff=self.ergodic_cutoff, prior_counts=self.prior_counts,
                              n_samples=self.n_samples, n_steps=self.n_steps,
                              n_chains=self.n_chains, n_timescales=self.n_timescales,
                              sampler=self.sampler,
                              n_states=self.n_states_,
-                             mean_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.mean(0)]), 
+                             mean_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.mean(0)]),
                              std_ts=', '.join(['{:.2f}'.format(t) for t in self.all_timescales_.std(0)]))
 
     @property

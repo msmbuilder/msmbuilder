@@ -1,4 +1,4 @@
-# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes 
+# Author(s): TJ Lane (tjlane@stanford.edu) and Christian Schwantes
 #            (schwancr@stanford.edu)
 # Contributors: Vince Voelz, Kyle Beauchamp, Robert McGibbon
 # Copyright (c) 2014, Stanford University
@@ -25,6 +25,9 @@ References
        flux and folding pathways in network models of
        coarse-grained protein dynamics. J. Chem. Phys.
        130, 205102 (2009).
+.. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+       pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+       19011-19016.
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
@@ -44,7 +47,7 @@ def fluxes(sources, sinks, msm, for_committors=None):
     sinks : array_like, int
         The set of folded/product states.
     msm : msmbuilder.MarkovStateModel
-        MSM that has been fit to data. 
+        MSM that has been fit to data.
     for_committors : np.ndarray, optional
         The forward committors associated with `sources`, `sinks`, and `tprob`.
         If not provided, is calculated from scratch. If provided, `sources`
@@ -70,6 +73,9 @@ def fluxes(sources, sinks, msm, for_committors=None):
            flux and folding pathways in network models of
            coarse-grained protein dynamics. J. Chem. Phys.
            130, 205102 (2009).
+    .. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+           pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+           19011-19016.
     """
     sources = np.array(sources).reshape((-1,))
     sinks = np.array(sinks).reshape((-1,))
@@ -135,6 +141,9 @@ def net_fluxes(sources, sinks, msm, for_committors=None):
            flux and folding pathways in network models of
            coarse-grained protein dynamics. J. Chem. Phys.
            130, 205102 (2009).
+    .. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+           pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+           19011-19016.
     """
 
     flux_matrix = fluxes(sources, sinks, msm, for_committors=for_committors)

@@ -10,10 +10,10 @@
 from __future__ import absolute_import, print_function, division
 import numbers
 import numpy as np
-from sklearn.utils import array2d
 from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 from ..base import BaseEstimator
+from ..utils import array2d
 
 __all__ = ['NDGrid']
 EPS = 1e-10
@@ -21,6 +21,7 @@ EPS = 1e-10
 #-----------------------------------------------------------------------------
 # Code
 #-----------------------------------------------------------------------------
+
 
 class _NDGrid(ClusterMixin, TransformerMixin):
     """Discretize continuous data points onto an N-dimensional
@@ -76,7 +77,7 @@ class _NDGrid(ClusterMixin, TransformerMixin):
         """
         X = array2d(X)
         self.n_features = X.shape[1]
-        self.n_bins = self.n_bins_per_feature**self.n_features
+        self.n_bins = self.n_bins_per_feature ** self.n_features
 
         if self.min is None:
             min = np.min(X, axis=0)
@@ -96,7 +97,9 @@ class _NDGrid(ClusterMixin, TransformerMixin):
             if not max.shape == (self.n_features,):
                 raise ValueError('max shape error')
 
-        self.grid = np.array([np.linspace(min[i]-EPS, max[i]+EPS, self.n_bins_per_feature + 1) for i in range(self.n_features)])
+        self.grid = np.array(
+            [np.linspace(min[i] - EPS, max[i] + EPS, self.n_bins_per_feature + 1)
+             for i in range(self.n_features)])
 
         return self
 
@@ -119,8 +122,8 @@ class _NDGrid(ClusterMixin, TransformerMixin):
         binassign = np.zeros((self.n_features, len(X)), dtype=int)
         for i in range(self.n_features):
             binassign[i] = np.digitize(X[:, i], self.grid[i]) - 1
-        labels = np.dot(self.n_features**np.arange(self.n_features), binassign)
 
+        labels = np.dot(self.n_bins_per_feature ** np.arange(self.n_features), binassign)
         assert np.max(labels) < self.n_bins
         return labels
 

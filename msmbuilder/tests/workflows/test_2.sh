@@ -2,7 +2,7 @@ msmb AlanineDipeptide
 msmb AtomIndices --out atom_indices.txt \
      -p ~/msmbuilder_data/alanine_dipeptide/ala2.pdb \
      -d --heavy
-msmb AtomPairsFeaturizer --out atom_pairs/ \
+msmb AtomPairsFeaturizer --transformed atom_pairs/ \
     --trjs '~/msmbuilder_data/alanine_dipeptide/*.dcd' \
     --pair_indices atom_indices.txt \
     --top ~/msmbuilder_data/alanine_dipeptide/ala2.pdb

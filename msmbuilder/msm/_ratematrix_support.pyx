@@ -1,7 +1,10 @@
 # This file is designed to be included by _ratematrix.pyx
 
-cpdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
-    """Diagonalize the rate matrix
+cpdef eig_K(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
+    r"""eig_K(A, n, pi=None, which='K')
+
+    Diagonalize the rate matrix, K, from either the matrix K or the symmetric
+    rate matrix, S.
 
     If which == 'K', the first argument should be the rate matrix, K, and `pi`
     is ignored. If which == 'S', the first argument should be the symmetric
@@ -11,6 +14,9 @@ cpdef eigK(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
 
     Whichever is supplied the return value is the eigen decomposition of `K`.
     The eigendecomposition of S is not returned.
+
+    Using the symmetric rate matrix, S, is somewhat faster and more numerically
+    stable.
 
     Returns
     -------
@@ -92,7 +98,7 @@ cdef int hadamard_inplace(const double[:, ::1] A, const double[:, ::1] B) nogil:
         for j in range(A.shape[1]):
             A[i, j] = A[i, j] * B[i, j]
 
-    return 1;
+    return 1
 
 
 cdef int transmat(const double[::1] expwt, const double[:, ::1] U,
@@ -101,9 +107,10 @@ cdef int transmat(const double[::1] expwt, const double[:, ::1] U,
     """Compute the transition matrix, expm(Kt), from the eigen-decomposition
     of K
 
-    On exit, T is written into the
+    On exit, T is written into the variable `T`. temp is an n x n workspace.
     """
     cdef npy_intp i, j
+    cdef double rowsum
     # T = np.dot(np.dot(V, np.diag(expwt)), U.T)
     for i in range(n):
         for j in range(n):
@@ -111,8 +118,8 @@ cdef int transmat(const double[::1] expwt, const double[:, ::1] U,
     cdgemm_NT(temp, U, T)
 
 
-cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] V,
-            const double[:, ::1] U, npy_intp n, double[::1] temp,
+cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] U,
+            const double[:, ::1] V, npy_intp n, double[::1] temp,
             double[::1] out) nogil:
     r"""Calculate the derivative of the eigenvalues, w, of a matrix, K(\theta),
     with respect to \theta_u.
@@ -138,8 +145,8 @@ cpdef int dw_du(const double[:, ::1] dKu, const double[:, ::1] V,
     """
     cdef npy_intp i
     for i in range(n):
-        cdgemv_N(dKu, U[:, i], temp)
-        cddot(temp, V[:, i], &out[i])
+        cdgemv_N(dKu, V[:, i], temp)
+        cddot(temp, U[:, i], &out[i])
 
 
 
@@ -151,6 +158,7 @@ cdef dT_dtheta(const double[::1] w, const double[:, ::1] U, const double[:, ::1]
     Returns
     -------
     """
+    cdef double rowsum
     cdef npy_intp i, j
     cdef double[::1] expwt
     cdef double[:, ::1] X, temp1, temp2, dLdK
@@ -165,10 +173,21 @@ cdef dT_dtheta(const double[::1] w, const double[:, ::1] U, const double[:, ::1]
 
         transmat(expwt, U, V, n, temp1, T)
 
+        # When the rate matrix is not irreducible, T contains zeros,
+        # which messes things up
+        for i in range(n):
+            rowsum = 0
+            for j in range(n):
+                if T[i, j] <= 0.0:
+                    T[i, j] = 1e-20
+                rowsum += T[i, j]
+            for j in range(n):
+                T[i, j] = T[i, j] / rowsum
+
         # dLdK[i,j] = counts[i,j] / T[i,j]
         for i in range(n):
             for j in range(n):
-                if counts[i, j] > 0:
+                if counts[i, j] > 0 and T[j, j] > 0:
                     dLdK[i, j] = counts[i, j] / T[i, j]
 
         # out = U \left(V^T dLdK U \circ X(\lambda, t))\right) V^T
