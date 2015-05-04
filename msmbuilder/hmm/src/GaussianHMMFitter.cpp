@@ -6,7 +6,7 @@
 #include "gaussian.h"
 #include <cmath>
 
-using namespace Mixtape;
+namespace Mixtape {
 
 template <class T>
 GaussianHMMFitter<T>::GaussianHMMFitter(void* owner, int n_states, int n_features, int n_iter, const double* log_startprob) :
@@ -113,3 +113,5 @@ void GaussianHMMFitter<double>::do_mstep() {
 
 template class GaussianHMMFitter<float>;
 template class GaussianHMMFitter<double>;
+
+}
