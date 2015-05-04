@@ -111,13 +111,13 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     cdef reversible_type, n_lqa_iter, fusion_prior, vars_prior, vars_weight, init_algo
     cdef _means_, _vars_, _transmat_, _populations_, _fit_logprob_, _fit_time_
 
-    def __init__(self, n_states, n_features, n_init=10, n_iter=10,
+    def __init__(self, n_states, n_init=10, n_iter=10,
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', vars_prior=1e-3,
                  vars_weight=1, random_state=None, precision='mixed', n_jobs=1,
                  timing=False, n_hotstart='all', init_algo='kmeans'):
         self.n_states = int(n_states)
-        self.n_features = int(n_features)
+        self.n_features = -1
         self.n_init = int(n_init)
         self.n_iter = int(n_iter)
         self.n_lqa_iter = int(n_lqa_iter)
@@ -377,6 +377,7 @@ timescales: {timescales}
             is the length of the i_th observation.
         """
         self._validate_sequences(sequences)
+        self.n_features = sequences[0].shape[1]
         dtype = sequences[0].dtype
         best_fit = {'params': {}, 'loglikelihood': -np.inf}
         start_time = time.time()
@@ -429,8 +430,13 @@ timescales: {timescales}
         dtype = sequences[0].dtype
         if any(s.dtype != dtype for s in sequences):
             raise ValueError('All sequences must have the same data type')
-        if any(s.shape[1] != self.n_features for s in sequences):
-            raise ValueError('All sequences must have %d features' % self.n_features)
+        if self.n_features == -1:
+            # It hasn't been set yet.
+            n_features = sequences[0].shape[1]
+        else:
+            n_features = self.n_features
+        if any(s.shape[1] != n_features for s in sequences):
+            raise ValueError('All sequences must have %d features' % n_features)
     
     cdef vector[Trajectory] _convert_sequences_to_vector_float(self, sequences):
         """Convert the sequences supplied by the user into the form needed by the C++ code."""

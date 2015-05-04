@@ -20,8 +20,7 @@ def test_1():
     featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
 
     sequences = featurizer.transform(trajectories)
-    hmm = GaussianHMM(n_states=4, n_features=sequences[0].shape[1],
-                            n_init=1)
+    hmm = GaussianHMM(n_states=4, n_init=1)
     hmm.fit(sequences)
 
     assert len(hmm.timescales_ == 3)
@@ -79,7 +78,7 @@ def test_2():
     
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
-            model = GaussianHMM(n_states=2, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
+            model = GaussianHMM(n_states=2, init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
             assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
@@ -94,7 +93,7 @@ def test_3():
     
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
-            model = GaussianHMM(n_states=3, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
+            model = GaussianHMM(n_states=3, init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.08)
             assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
