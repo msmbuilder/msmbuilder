@@ -32,7 +32,7 @@ cdef extern from "GaussianHMMFitter.h" namespace "Mixtape":
         void get_post(double*)
         void get_log_probability(double*)
 
-cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
+cdef public class GaussianFusionHMM[object GaussianHMMObject, type GaussianHMMType]:
     """Reversible Gaussian Hidden Markov Model L1-Fusion Regularization
 
     This model estimates Hidden Markov model for a vector dataset which is
@@ -788,7 +788,7 @@ timescales: {timescales}
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
 
-cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitter):
+cdef public void _do_mstep_float(GaussianFusionHMM hmm, GaussianHMMFitter[float]* fitter):
     """This function exists to let the C++ code call back into Cython."""
     cdef np.ndarray[double, ndim=2] transmat
     cdef np.ndarray[double, ndim=2] means
@@ -801,7 +801,7 @@ cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitt
     fitter.set_transmat(<double*> &transmat[0,0])
     fitter.set_means_and_variances(<double*> &means[0,0], <double*> &vars[0,0])
 
-cdef public void _do_mstep_double(GaussianHMM hmm, GaussianHMMFitter[double]* fitter):
+cdef public void _do_mstep_double(GaussianFusionHMM hmm, GaussianHMMFitter[double]* fitter):
     """This function exists to let the C++ code call back into Cython."""
     cdef np.ndarray[double, ndim=2] transmat
     cdef np.ndarray[double, ndim=2] means

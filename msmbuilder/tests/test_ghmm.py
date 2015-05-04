@@ -79,7 +79,7 @@ def test_2():
     
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
-            model = GaussianFusionHMM(n_states=2, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
+            model = GaussianFusionHMM(n_states=2, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
             assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
@@ -94,7 +94,7 @@ def test_3():
     
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
-            model = GaussianFusionHMM(n_states=3, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_em_iter=30)
+            model = GaussianFusionHMM(n_states=3, n_features=X[0].shape[1], init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.08)
             assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
