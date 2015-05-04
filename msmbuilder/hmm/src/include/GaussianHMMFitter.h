@@ -3,7 +3,7 @@
 
 #include "HMMFitter.h"
 
-namespace Mixtape {
+namespace msmbuilder {
 
 /**
  * This subclass of HMMFitter computes Gaussian HMMs.
@@ -38,6 +38,6 @@ private:
     std::vector<double> means_over_variances, means2_over_variances, variances, log_variances, obs, obs2;
 };
 
-} // namespace Mixtape
+} // namespace msmbuilder
 
 #endif

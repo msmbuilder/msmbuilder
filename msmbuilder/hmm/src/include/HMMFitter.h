@@ -7,7 +7,7 @@
 #include <cmath>
 #include <vector>
 
-namespace Mixtape {
+namespace msmbuilder {
 
 /**
  * This class fits Hidden Markov Models to trajectories.  It is an abstract class that defines the features common to
@@ -260,6 +260,6 @@ protected:
     }
 };
 
-} // namespace Mixtape
+} // namespace msmbuilder
 
 #endif

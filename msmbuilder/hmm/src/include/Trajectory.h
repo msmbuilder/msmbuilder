@@ -1,7 +1,7 @@
 #ifndef MIXTAPE_TRAJECTORY_H
 #define MIXTAPE_TRAJECTORY_H
 
-namespace Mixtape {
+namespace msmbuilder {
 
 /**
  * Trajectory provides a convenient wrapping of the data from a Numpy array describing a sequence of observations.
@@ -51,6 +51,6 @@ private:
     int frameStride, featureStride;
 };
 
-} // namespace Mixtape
+} // namespace msmbuilder
 
 #endif

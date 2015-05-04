@@ -6,7 +6,7 @@
 #include "gaussian.h"
 #include <cmath>
 
-namespace Mixtape {
+namespace msmbuilder {
 
 template <class T>
 GaussianHMMFitter<T>::GaussianHMMFitter(void* owner, int n_states, int n_features, int n_iter, const double* log_startprob) :

@@ -12,12 +12,12 @@ from .discrete_approx import discrete_approx_mvn, NotSatisfiableError
 from ..utils import check_iter_of_sequences, printoptions
 from ..msm._markovstatemodel import _transmat_mle_prinz
 
-cdef extern from "Trajectory.h" namespace "Mixtape":
+cdef extern from "Trajectory.h" namespace "msmbuilder":
     cdef cppclass Trajectory:
         Trajectory(char*, int, int, int, int) except +
         Trajectory()
 
-cdef extern from "GaussianHMMFitter.h" namespace "Mixtape":
+cdef extern from "GaussianHMMFitter.h" namespace "msmbuilder":
     cdef cppclass GaussianHMMFitter[T]:
         GaussianHMMFitter(GaussianHMM, int, int, int, double*) except +
         void set_transmat(double*)
