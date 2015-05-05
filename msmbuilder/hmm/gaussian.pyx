@@ -114,7 +114,7 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     def __init__(self, n_states, n_init=10, n_iter=10,
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', vars_prior=1e-3,
-                 vars_weight=1, random_state=None, precision='mixed', n_jobs=1,
+                 vars_weight=1, random_state=None, n_jobs=1,
                  timing=False, n_hotstart='all', init_algo='kmeans'):
         self.n_states = int(n_states)
         self.n_features = -1
@@ -148,10 +148,10 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         return ArgSpec(
         ['self', 'n_states', 'n_init', 'n_iter', 'n_lqa_iter',
          'fusion_prior', 'thresh', 'reversible_type', 'vars_prior',
-         'vars_weight', 'random_state', 'precision', 'n_jobs', 'timing',
+         'vars_weight', 'random_state', 'n_jobs', 'timing',
          'n_hotstart', 'init_algo'],
           None, None,
-          [10, 10, 10, 1e-2, 1e-2, 'mle', 1e-3, 1, None, 'mixed', 1, False,
+          [10, 10, 10, 1e-2, 1e-2, 'mle', 1e-3, 1, None, 1, False,
           'all', 'kmeans']
         )
 
@@ -812,6 +812,23 @@ timescales: {timescales}
         self.stats['obs**2'] = obs2
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
+    
+    def __reduce__(self):
+        """Pickle support"""
+        args = (self.n_states, self.n_init, self.n_iter, self.n_lqa_iter, self.fusion_prior, self.thresh,
+                 self.reversible_type, self.vars_prior, self.vars_weight, self.random_state, self.n_jobs,
+                 self.timing, self.n_hotstart, self.init_algo)
+        state = (self._means_, self._vars_, self._transmat_, self._populations_, self._fit_logprob_, self._fit_time_)
+        return (self.__class__, args, state)
+    
+    def __setstate__(self, state):
+        """Pickle support"""
+        self._means_ = state[0]
+        self._vars_ = state[1]
+        self._transmat_ = state[2]
+        self._populations_ = state[3]
+        self._fit_logprob_ = state[4]
+        self._fit_time_ = state[5]
 
 cdef public void _do_mstep_float(GaussianHMM hmm, GaussianHMMFitter[float]* fitter):
     """This function exists to let the C++ code call back into Cython."""
