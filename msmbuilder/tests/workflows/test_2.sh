@@ -20,5 +20,4 @@ msmb tICA --inp atom_pairs/ --transformed atom_pairs_tica.h5 \
     --lag_time 2
 msmb GaussianHMM --inp atom_pairs_tica.h5 \
     --out hmm.pkl \
-    --n_states 2 \
-    --n_features 4
+    --n_states 2

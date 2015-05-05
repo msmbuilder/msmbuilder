@@ -136,22 +136,41 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         self._transmat_.fill(1.0/n_states)
         self.stats = {}
 
+    @classmethod
+    def _init_argspec(self):
+        # Returns the equivalent of `inspect.getargspec(GaussianHMM.__init__)`.
+        # this is required for the command line infastructure for all estimators
+        # written in cython as a workaround, since cython modules don't
+        # interact correctly with the `inspect` module.
+
+        # any changes to the signature of __init__ need to be reflected here.
+        from inspect import ArgSpec
+        return ArgSpec(
+        ['self', 'n_states', 'n_init', 'n_iter', 'n_lqa_iter',
+         'fusion_prior', 'thresh', 'reversible_type', 'vars_prior',
+         'vars_weight', 'random_state', 'precision', 'n_jobs', 'timing',
+         'n_hotstart', 'init_algo'],
+          None, None,
+          [10, 10, 10, 1e-2, 1e-2, 'mle', 1e-3, 1, None, 'mixed', 1, False,
+          'all', 'kmeans']
+        )
+
     @property
     def means_(self):
         return self._means_
-    
+
     @property
     def vars_(self):
         return self._vars_
-    
+
     @property
     def transmat_(self):
         return self._transmat_
-    
+
     @property
     def populations_(self):
         return self._populations_
-    
+
     @property
     def fit_logprob_(self):
         return self._fit_logprob_
@@ -365,7 +384,7 @@ timescales: {timescales}
     """.format(n_states=self.n_states, logprob=self._fit_logprob_[-1],
                populations=str(self._populations_), transmat=str(self._transmat_),
                timescales=self.timescales_, fit_time=self._fit_time_)
-    
+
     def fit(self, sequences):
         """Estimate model parameters.
 
@@ -437,7 +456,7 @@ timescales: {timescales}
             n_features = self.n_features
         if any(s.shape[1] != n_features for s in sequences):
             raise ValueError('All sequences must have %d features' % n_features)
-    
+
     cdef vector[Trajectory] _convert_sequences_to_vector_float(self, sequences):
         """Convert the sequences supplied by the user into the form needed by the C++ code."""
         cdef vector[Trajectory] trajectoryVec
@@ -446,7 +465,7 @@ timescales: {timescales}
             array = s
             trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
         return trajectoryVec
-    
+
     cdef vector[Trajectory] _convert_sequences_to_vector_double(self, sequences):
         """Convert the sequences supplied by the user into the form needed by the C++ code."""
         cdef vector[Trajectory] trajectoryVec
@@ -480,7 +499,7 @@ timescales: {timescales}
                     small_dataset).cluster_centers_
             self._vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         self._populations_ = np.ones(self.n_states) / self.n_states
-        
+
     def _fit_float(self, sequences):
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[double, ndim=1] startprob
@@ -499,7 +518,7 @@ timescales: {timescales}
             fitter.fit(trajectoryVec, self.thresh)
         finally:
             del fitter
-        
+
     def _fit_double(self, sequences):
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[double, ndim=1] startprob
@@ -544,7 +563,7 @@ timescales: {timescales}
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % self.reversible_type)
-    
+
         difference_cutoff = 1e-10
         # we don't want denom to be zero, because then the new value of the means
         # will be nan/inf. so padd it up by a very small constant. This particular
@@ -552,22 +571,22 @@ timescales: {timescales}
         # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/mixture/gmm.py#L496
         EPS = np.finfo(np.float32).eps
         denom = (stats['post'][:, np.newaxis] + 10 * EPS)
-    
+
         means = stats['obs'] / denom  # unregularized means
-    
+
         if self.fusion_prior > 0 and self.n_lqa_iter > 0:
             # adaptive regularization strength
             strength = self.fusion_prior / self._getdiff(means, difference_cutoff)
             rhs = stats['obs'] / self._vars_
             for i in range(self.n_features):
                 np.fill_diagonal(strength[i], 0)
-    
+
             break_lqa = False
             for s in range(self.n_lqa_iter):
                 diff = self._getdiff(means, difference_cutoff)
                 if np.all(diff <= difference_cutoff) or break_lqa:
                     break
-    
+
                 offdiagonal = -strength / diff
                 diagonal_penalty = np.sum(strength / diff, axis=2)
                 for f in range(self.n_features):
@@ -585,26 +604,26 @@ timescales: {timescales}
                         # just break now and use the last valid value
                         # of the means.
                         break_lqa = True
-    
+
             for i in range(self.n_features):
                 for k, j in zip(*np.triu_indices(self.n_states)):
                     if diff[i, k, j] <= difference_cutoff:
                         means[k, i] = means[j, i]
-    
+
         self._means_ = means
-    
+
         vars_prior = self.vars_prior
         vars_weight = self.vars_weight
         if vars_prior is None:
             vars_weight = 0
             vars_prior = 0
-    
+
         var_num = (stats['obs**2']
                    - 2 * self._means_ * stats['obs']
                    + self._means_ ** 2 * denom)
         var_denom = max(vars_weight - 1, 0) + denom
         self._vars_ = (vars_prior + var_num) / var_denom
-    
+
     def score(self, sequences):
         """Log-likelihood of sequences under the model
 
@@ -642,7 +661,7 @@ timescales: {timescales}
             return fitter.score_trajectories(trajectoryVec)
         finally:
             del fitter
-    
+
     cdef _score_double(self, sequences):
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[double, ndim=1] startprob
@@ -661,7 +680,7 @@ timescales: {timescales}
             return fitter.score_trajectories(trajectoryVec)
         finally:
             del fitter
-    
+
     def predict(self, sequences):
         """Find most likely hidden-state sequence corresponding to
         each data timeseries.
@@ -691,7 +710,7 @@ timescales: {timescales}
             return self._predict_double(sequences)
         else:
             raise ValueError('Unsupported data type: '+str(dtype))
-    
+
     cdef _predict_float(self, sequences):
         cdef Trajectory trajectory
         cdef np.ndarray[np.int32_t, ndim=1] state_sequence
@@ -719,7 +738,7 @@ timescales: {timescales}
             return (logprob, viterbi_sequences)
         finally:
             del fitter
-    
+
     cdef _predict_double(self, sequences):
         cdef Trajectory trajectory
         cdef np.ndarray[np.int32_t, ndim=1] state_sequence
@@ -747,7 +766,7 @@ timescales: {timescales}
             return (logprob, viterbi_sequences)
         finally:
             del fitter
-    
+
     cdef _record_stats_float(self, GaussianHMMFitter[float]* fitter):
         """Copy various statistics from the C++ class to this one."""
         cdef np.ndarray[double, ndim=2] transition_counts
@@ -770,7 +789,7 @@ timescales: {timescales}
         self.stats['obs**2'] = obs2
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
-    
+
     cdef _record_stats_double(self, GaussianHMMFitter[double]* fitter):
         """Copy various statistics from the C++ class to this one."""
         cdef np.ndarray[double, ndim=2] transition_counts

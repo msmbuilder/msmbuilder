@@ -264,7 +264,7 @@ class NumpydocClassCommand(Command):
     def __init__(self, args):
         # create the instance of `klass`
 
-        init_args = inspect.getargspec(self.klass.__init__)[0]
+        init_args = get_init_argspec(self.klass)[0]
         kwargs = {}
 
         for k, v in args.__dict__.items():
@@ -303,12 +303,7 @@ class NumpydocClassCommand(Command):
 
         assert cls.klass is not None
 
-        # inspect __init__
-        try:
-            args, varargs, keywords, defaults = inspect.getargspec(cls.klass.__init__)
-        except TypeError:
-            args = []
-
+        args, _, _, defaults = get_init_argspec(cls.klass)
         doc = numpydoc.docscrape.ClassDoc(cls.klass)
         # mapping from the name of the argument to the helptext
         helptext = {d[0]: ' '.join(d[2]) for d in doc['Parameters']}
@@ -538,3 +533,18 @@ def exttype(suffix):
 
 def stripquotestype(s):
     return s.strip('\'"')
+
+
+def get_init_argspec(klass):
+    """Wrapper around inspect.getargspec(klass.__init__) which, for cython
+    classes uses an auxiliary '_init_argspec' method, since they don't play
+    nice with the inspect module.
+
+    By convention, a cython class should defined the classmethod _init_argspec
+    that, when called, returns what ``inspect.getargspec`` would be expected
+    to return when called on that class's __init__ method.
+    """
+    if hasattr(klass, '_init_argspec'):
+        return klass._init_argspec()
+    else:
+        return inspect.getargspec(klass.__init__)
