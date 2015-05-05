@@ -540,7 +540,7 @@ def get_init_argspec(klass):
     classes uses an auxiliary '_init_argspec' method, since they don't play
     nice with the inspect module.
 
-    By convention, a cython class should defined the classmethod _init_argspec
+    By convention, a cython class should define the classmethod _init_argspec
     that, when called, returns what ``inspect.getargspec`` would be expected
     to return when called on that class's __init__ method.
     """
