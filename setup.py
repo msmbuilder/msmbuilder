@@ -155,15 +155,14 @@ extensions.append(
               include_dirs=[np.get_include()]))
 
 extensions.append(
-    Extension('msmbuilder.hmm._ghmm',
+    Extension('msmbuilder.hmm.gaussian',
               language='c++',
-              sources=[pjoin(HMMDIR, 'wrappers/GaussianHMMCPUImpl.pyx')] +
-                      glob.glob(pjoin(HMMDIR, 'src/*.c')) +
+              sources=[pjoin(HMMDIR, 'gaussian.pyx')]+
                       glob.glob(pjoin(HMMDIR, 'src/*.cpp')),
               libraries=compiler.compiler_libraries_openmp,
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
               include_dirs=[np.get_include(),
-                            "msmbuilder/src",
+                            HMMDIR,
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
 
@@ -178,7 +177,6 @@ extensions.append(
               include_dirs=[np.get_include(),
                             pjoin(HMMDIR, 'cephes'),
                             'msmbuilder/src/f2py']))
-
 write_version_py(VERSION, ISRELEASED, filename='msmbuilder/version.py')
 setup(name='msmbuilder',
       author='Robert McGibbon',

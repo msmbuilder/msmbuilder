@@ -13,7 +13,7 @@ import os
 
 from ..dataset import dataset
 from ..utils import verbosedump
-from ..hmm import GaussianFusionHMM
+from ..hmm import GaussianHMM
 from ..msm import (MarkovStateModel, BayesianMarkovStateModel, ContinuousTimeMSM,
                    BayesianContinuousTimeMSM)
 from ..cmdline import NumpydocClassCommand, argument, exttype
@@ -49,8 +49,8 @@ class FitCommand(NumpydocClassCommand):
 
         inp_ds.close()
 
-class GaussianFusionHMMCommand(FitCommand):
-    klass = GaussianFusionHMM
+class GaussianHMMCommand(FitCommand):
+    klass = GaussianHMM
     _concrete = True
     _group = 'MSM'
 

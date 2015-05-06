@@ -42,8 +42,8 @@ def map_drawn_samples(selected_pairs_by_state, trajectories, top=None):
 
     See Also
     --------
-    ghmm.GaussianFusionHMM.draw_samples : Draw samples from GHMM
-    ghmm.GaussianFusionHMM.draw_centroids : Draw centroids from GHMM
+    ghmm.GaussianHMM.draw_samples : Draw samples from GHMM
+    ghmm.GaussianHMM.draw_centroids : Draw centroids from GHMM
     """
 
     frames_by_state = []

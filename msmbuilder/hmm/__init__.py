@@ -1,3 +1,3 @@
 from __future__ import absolute_import
-from .ghmm import GaussianFusionHMM
+from .gaussian import GaussianHMM
 from .vmhmm import VonMisesHMM
