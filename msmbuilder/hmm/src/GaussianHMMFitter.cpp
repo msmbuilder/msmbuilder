@@ -11,8 +11,7 @@ namespace msmbuilder {
 
 template <class T>
 GaussianHMMFitter<T>::GaussianHMMFitter(void* owner, int n_states, int n_features, int n_iter, const double* log_startprob) :
-        HMMFitter<T>(n_states, n_features, n_iter, log_startprob),
-        owner(owner), means(n_states*n_features), log_variances(n_states*n_features), inv_variances(n_states*n_features) {
+        HMMFitter<T>(n_states, n_features, n_iter, log_startprob), owner(owner), a0(n_states*n_features), a1(n_states*n_features), a2(n_states*n_features) {
 }
 
 template <class T>
@@ -23,9 +22,9 @@ template <class T>
 void GaussianHMMFitter<T>::set_means_and_variances(const double* means, const double* variances) {
     int n_elements = this->n_states*this->n_features;
     for (int i = 0; i < n_elements; i++) {
-        this->means[i] = means[i];
-        this->inv_variances[i] = 1.0/variances[i];
-        log_variances[i] = log(variances[i]);
+        this->a0[i] = means[i]*means[i]/variances[i] + log(variances[i]);
+        this->a1[i] = -2.0*means[i]/variances[i];
+        this->a2[i] = 1.0/variances[i];
     }
 }
 
@@ -51,12 +50,8 @@ void GaussianHMMFitter<T>::compute_log_likelihood(const Trajectory& trajectory,
             double temp = 0;
             for (int i = 0; i < this->n_features; i++) {
                 T element = trajectory.get<T>(t, i);
-                double mean = means[j*this->n_features+i];
-                double inv_variance = inv_variances[j*this->n_features+i];
-                temp += mean*mean*inv_variance
-                        - 2.0*element*mean*inv_variance
-                        + element*element*inv_variance
-                        + log_variances[j*this->n_features+i];
+                int index = j*this->n_features+i;
+                temp += a0[index] + element*(a1[index] + element*a2[index]);
             }
             frame_log_probability[t][j] = -0.5*(this->n_features*log_M_2_PI+temp);
         }
@@ -72,22 +67,30 @@ void GaussianHMMFitter<T>::accumulate_sufficient_statistics(const Trajectory& tr
     int traj_length = trajectory.frames();
     std::vector<double> traj_obs(this->n_states*this->n_features, 0);
     std::vector<double> traj_obs2(this->n_states*this->n_features, 0);
-    for (int i = 0; i < this->n_states; i++)
+    std::vector<double> state_posteriors(traj_length);
+    for (int i = 0; i < this->n_states; i++) {
+        // Copy the posteriors into a compact array.  This makes memory access more efficient in the inner loop.
+        for (int j = 0; j < traj_length; j++)
+            state_posteriors[j] = posteriors[j][i];
         for (int j = 0; j < this->n_features; j++) {
             double temp1 = 0.0;
             double temp2 = 0.0;
             for (int k = 0; k < traj_length; k++) {
                 T element = trajectory.get<T>(k, j);
-                temp1 += element*posteriors[k][i];
-                temp2 += element*element*posteriors[k][i];
+                temp1 += element*state_posteriors[k];
+                temp2 += element*element*state_posteriors[k];
             }
             traj_obs[i*this->n_features+j] += temp1;
             traj_obs2[i*this->n_features+j] += temp2;
         }
-    for (int i = 0; i < this->n_states; i++) {
-        for (int j = 0; j < this->n_features; j++) {
-            obs[i*this->n_features+j] += traj_obs[i*this->n_features+j];
-            obs2[i*this->n_features+j] += traj_obs2[i*this->n_features+j];
+    }
+#pragma omp critical
+    {
+        for (int i = 0; i < this->n_states; i++) {
+            for (int j = 0; j < this->n_features; j++) {
+                obs[i*this->n_features+j] += traj_obs[i*this->n_features+j];
+                obs2[i*this->n_features+j] += traj_obs2[i*this->n_features+j];
+            }
         }
     }
 }

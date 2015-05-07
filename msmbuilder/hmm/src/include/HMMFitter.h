@@ -73,8 +73,6 @@ public:
      * @param convergence_threshold  iteration will stop when the log probability changes by less than this amount
      */
     void fit(const std::vector<Trajectory>& trajectories, double convergence_threshold) {
-        std::vector<std::vector<double> > frame_log_probability, fwdlattice, bwdlattice, posteriors;
-        std::vector<std::vector<double> > traj_transition_counts(n_states, std::vector<double>(n_states));
         iter_log_probability.clear();
         for (int i = 0; i < n_iter; i++) {
             // Expectation step
@@ -83,26 +81,31 @@ public:
             for (int i = 0; i < n_states; i++)
                 for (int j = 0; j < n_states; j++)
                     transition_counts[i][j] = 0.0;
+#pragma omp parallel for default(shared)
             for (int j = 0; j < (int) trajectories.size(); j++) {
                 const Trajectory& trajectory = trajectories[j];
-                frame_log_probability.resize(trajectory.frames(), std::vector<double>(n_states));
-                fwdlattice.resize(trajectory.frames(), std::vector<double>(n_states));
-                bwdlattice.resize(trajectory.frames(), std::vector<double>(n_states));
-                posteriors.resize(trajectory.frames(), std::vector<double>(n_states));
-                
+                std::vector<std::vector<double> > frame_log_probability(trajectory.frames(), std::vector<double>(n_states));
+                std::vector<std::vector<double> > fwdlattice(trajectory.frames(), std::vector<double>(n_states));
+                std::vector<std::vector<double> > bwdlattice(trajectory.frames(), std::vector<double>(n_states));
+                std::vector<std::vector<double> > posteriors(trajectory.frames(), std::vector<double>(n_states));
+                std::vector<std::vector<double> > traj_transition_counts(n_states, std::vector<double>(n_states));
                 compute_log_likelihood(trajectory, frame_log_probability);
                 do_forward_pass(frame_log_probability, fwdlattice);
                 do_backward_pass(frame_log_probability, bwdlattice);
                 compute_posteriors(fwdlattice, bwdlattice, posteriors);
                 compute_transition_counts(frame_log_probability, fwdlattice, bwdlattice, traj_transition_counts);
-                current_log_probability += logsumexp(&fwdlattice[trajectory.frames()-1][0], n_states);
-                for (int state = 0; state < n_states; state++)
-                    for (int frame = 0; frame < trajectory.frames(); frame++)
-                        post[state] += posteriors[frame][state];
+                double traj_log_probability = logsumexp(&fwdlattice[trajectory.frames()-1][0], n_states);
                 accumulate_sufficient_statistics(trajectory, frame_log_probability, posteriors, fwdlattice, bwdlattice);
-                for (int k = 0; k < n_states; k++)
-                    for (int m = 0; m < n_states; m++)
-                        transition_counts[k][m] += traj_transition_counts[k][m];
+#pragma omp critical
+                {
+                    for (int k = 0; k < n_states; k++) {
+                        for (int m = 0; m < n_states; m++)
+                            transition_counts[k][m] += traj_transition_counts[k][m];
+                        for (int frame = 0; frame < trajectory.frames(); frame++)
+                            post[k] += posteriors[frame][k];
+                    }
+                    current_log_probability += traj_log_probability;
+                }
             }
             iter_log_probability.push_back(current_log_probability);
 

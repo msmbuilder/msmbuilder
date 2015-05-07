@@ -35,7 +35,7 @@ public:
     void do_mstep();
 private:
     void* owner;
-    std::vector<double> means, log_variances, inv_variances, obs, obs2;
+    std::vector<double> obs, obs2, a0, a1, a2;
 };
 
 } // namespace msmbuilder
