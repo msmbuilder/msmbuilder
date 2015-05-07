@@ -95,5 +95,6 @@ def test_3():
         for reversible_type in ('mle', 'transpose'):
             model = GaussianHMM(n_states=3, init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
             model.fit(X)
-            validate_timeseries(means, vars, transmat, model, 0.1, 0.08)
+            validate_timeseries(means, vars, transmat, model, 0.1, 0.1)
             assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
+
