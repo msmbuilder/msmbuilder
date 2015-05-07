@@ -6,6 +6,7 @@ import numpy as np
 import mdtraj as md
 
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
+from ..utils import verbosedump
 from ..cmdline import NumpydocClassCommand, argument, exttype, stripquotestype
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
@@ -25,30 +26,22 @@ class FeaturizerCommand(NumpydocClassCommand):
         help='''Chunk size for loading trajectories using mdtraj.iterload''',
         default=10000, type=int)
     out = argument(
-        '--out',
-        help='DEPRECATED: Output path. Please use --transformed',
-        type=exttype('/'))
+        '-o', '--out', help='''Path to save featurizer instance using
+        the pickle protocol''',
+        default='', type=exttype('.pkl'))
     transformed = argument(
         '--transformed',
         help="Output path for transformed data",
-        type=exttype('/'))
+        type=exttype('/'), required=True)
     stride = argument(
         '--stride', default=1, type=int,
         help='Load only every stride-th frame')
 
-    def _deprecation_logic(self):
-        """Control deprecation of --out"""
-        if self.out is None and self.transformed is None:
-            self.error("Please specify --transformed")
-        if self.transformed is None:
-            warnings.warn("--out is deprecated. Please use --transformed")
-            self.transformed = self.out
-
     def start(self):
-        self._deprecation_logic()
-
         if os.path.exists(self.transformed):
             self.error('File exists: %s' % self.transformed)
+        if os.path.exists(self.out):
+            self.error('File exists: %s' % self.out)
 
         print(self.instance)
         if os.path.exists(os.path.expanduser(self.top)):
@@ -74,6 +67,14 @@ class FeaturizerCommand(NumpydocClassCommand):
         print("  $ ipython")
         print("  >>> from msmbuilder.dataset import dataset")
         print("  >>> ds = dataset('%s')\n" % self.transformed)
+
+        if self.out is not '':
+            verbosedump(self.instance, self.out)
+            print("To load this %s object interactively inside an IPython\n"
+                  "shell or notebook, run: \n" % self.klass.__name__)
+            print("  $ ipython")
+            print("  >>> from msmbuilder.utils import load")
+            print("  >>> model = load('%s')\n" % self.out)
 
 
 class DihedralFeaturizerCommand(FeaturizerCommand):

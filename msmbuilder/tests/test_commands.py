@@ -11,7 +11,7 @@ import subprocess
 import numpy as np
 import mdtraj as md
 from mdtraj.testing import eq
-from mdtraj.testing import get_fn as get_mdtraj_fn
+from mdtraj.testing import get_fn as get_mdtraj_fn, skipif
 
 from msmbuilder.utils import load
 from msmbuilder.dataset import dataset
@@ -136,18 +136,6 @@ def test_superpose_featurizer():
         assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
-def test_superpose_featurizer_deprecated():
-    with tempdir():
-        shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
-        shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
-              " --out distances --atom_indices all.txt"
-              " --reference_traj {data_home}/alanine_dipeptide/ala2.pdb"
-              " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
-            data_home=get_data_home()))
-        ds = dataset('distances')
-        assert len(ds) == 10
-        assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
-        print(ds.provenance)
 
 def test_atom_pairs_featurizer():
     with tempdir():
