@@ -132,8 +132,6 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         self.n_hotstart = n_hotstart
         self.init_algo = init_algo
         self.startprob = np.tile(1.0/n_states, n_states)
-        self._transmat_ = np.empty((n_states, n_states))
-        self._transmat_.fill(1.0/n_states)
         self.stats = {}
 
     @classmethod
@@ -499,7 +497,9 @@ timescales: {timescales}
                     small_dataset).cluster_centers_
             self._vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         self._populations_ = np.ones(self.n_states) / self.n_states
-
+        self._transmat_ = np.empty((self.n_states, self.n_states))
+        self._transmat_.fill(1.0/self.n_states)
+        
     def _fit_float(self, sequences):
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[double, ndim=1] startprob
