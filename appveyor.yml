@@ -33,11 +33,11 @@ environment:
 install:
   # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
   # as well as pip, conda-build, and the binstar CLI
-  - powershell .\\devtools\\appveyor\\install.ps1
+  - ps: . ".\\devtools\\appveyor\\install.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - conda config --add channels http://conda.binstar.org/omnia
 
 build: false
 
 test_script:
-  - "%CMD_IN_ENV% conda build devtools\\conda-recipe"
+  - "%CMD_IN_ENV% conda build --quiet devtools\\conda-recipe"
