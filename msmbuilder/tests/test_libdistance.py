@@ -21,7 +21,7 @@ def setup():
     Y_rmsd = AlanineDipeptide().get().trajectories[0][30:33]
     X_rmsd.center_coordinates()
     Y_rmsd.center_coordinates()
-    X_indices = random.random_integers(low=0, high=9, size=5)
+    X_indices = random.random_integers(low=0, high=9, size=5).astype(np.intp)
 
 
 
