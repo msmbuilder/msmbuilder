@@ -2,9 +2,8 @@ package:
   name: msmbuilder-dev
   version: !!str 3.3.0.dev0
 
-#source:
-#  fn: master.zip
-#  url: https://github.com/msmbuilder/msmbuilder/archive/master.zip
+source:
+  path: ../../
 
 build:
   preserve_egg_dir: True
@@ -44,7 +43,9 @@ test:
   imports:
     - msmbuilder
   commands:
-    - msmb -h
+    # Bug on windows conda build: more than one test command cannot be
+    # run. Should be fixed with conda-build version > 1.12.0
+    - msmb -h # [not win]
     - nosetests msmbuilder -v
 
 
