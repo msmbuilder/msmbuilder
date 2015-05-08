@@ -44,7 +44,7 @@ test:
   imports:
     - msmbuilder
   commands:
-    - msmb -h
+    - msmb -h  # [unix]
     - nosetests msmbuilder -v
 
 
