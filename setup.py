@@ -157,14 +157,29 @@ extensions.append(
 extensions.append(
     Extension('msmbuilder.hmm.gaussian',
               language='c++',
-              sources=[pjoin(HMMDIR, 'gaussian.pyx')]+
-                      glob.glob(pjoin(HMMDIR, 'src/*.cpp')),
+              sources=[pjoin(HMMDIR, 'gaussian.pyx'),
+                       pjoin(HMMDIR, 'src/GaussianHMMFitter.cpp')],
               libraries=compiler.compiler_libraries_openmp,
               extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
               include_dirs=[np.get_include(),
                             HMMDIR,
                             pjoin(HMMDIR, 'src/include/'),
                             pjoin(HMMDIR, 'src/')]))
+
+extensions.append(
+    Extension('msmbuilder.hmm.vonmises',
+              language='c++',
+              sources=[pjoin(HMMDIR, 'vonmises.pyx'),
+                       pjoin(HMMDIR, 'src/VonMisesHMMFitter.cpp'),
+                       pjoin(HMMDIR, 'cephes/i0.c'),
+                       pjoin(HMMDIR, 'cephes/chbevl.c')],
+              libraries=compiler.compiler_libraries_openmp,
+              extra_compile_args=compiler.compiler_args_sse3 + compiler.compiler_args_openmp,
+              include_dirs=[np.get_include(),
+                            HMMDIR,
+                            pjoin(HMMDIR, 'src/include/'),
+                            pjoin(HMMDIR, 'src/'),
+                            pjoin(HMMDIR, 'cephes/')]))
 
 extensions.append(
     Extension('msmbuilder.hmm._vmhmm',
