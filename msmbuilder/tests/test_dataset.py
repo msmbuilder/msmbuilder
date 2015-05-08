@@ -195,6 +195,8 @@ def test_union():
         assert mds[1].shape == (10, 5)
         np.testing.assert_array_almost_equal(np.sum(mds[0], axis=1), rs1)
         np.testing.assert_array_almost_equal(np.sum(mds[1], axis=1), rs2)
+        
+        mds.close()
 
 
 def test_union_2():
