@@ -126,7 +126,7 @@ extensions.append(
               language='c++',
               extra_compile_args=compiler.compiler_args_openmp,
               libraries=compiler.compiler_libraries_openmp,
-              include_dirs=['msmbuilder/src', 'msmbuilder/msm/src', np.get_include()]))
+              include_dirs=['msmbuilder/src', np.get_include()]))
 
 extensions.append(
     Extension('msmbuilder.msm._metzner_mcmc_fast',
