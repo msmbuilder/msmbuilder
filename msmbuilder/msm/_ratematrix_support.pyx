@@ -1,4 +1,8 @@
 # This file is designed to be included by _ratematrix.pyx
+from libc.float cimport DBL_MIN, DBL_MAX
+cdef double log_dbl_min = log(DBL_MIN)
+cdef double log_dbl_max = log(DBL_MAX)
+
 
 cpdef eig_K(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
     r"""eig_K(A, n, pi=None, which='K')
@@ -77,13 +81,22 @@ cdef int hadamard_X(const double[::1] w, const double[::1] expwt, double t,
         else:
             x_{ii} = t * e^{t w_i}
 
+    :math:`x_{ij}` is computed in a more numerically stable way (if w_1 ~ w_2)
+    as ::
+
+      x_{ij} = (e^{t w_1 - t w_2} - 1) / (t w_1 - t w_2)  * t e^{t w_2)
+
+    using a special numerically stable routine for ``exprel(x) = (exp(x)-1)/x``.
     """
     cdef npy_intp i, j
+    cdef double X_ij
 
     for i in range(n):
         for j in range(n):
             if i != j:
-                A[i, j] *= (expwt[i] - expwt[j]) / (w[i] - w[j])
+                #X_ij = (expwt[i] - expwt[j]) / (w[i] - w[j])
+                X_ij = exprel(t*(w[i]-w[j])) * t * expwt[j]
+                A[i, j] *= X_ij
             else:
                 A[i, j] *= t * expwt[i]
 
@@ -211,3 +224,25 @@ cdef dT_dtheta(const double[::1] w, const double[:, ::1] U, const double[:, ::1]
         assert np.allclose(dT, Y)
         assert np.allclose(T, np.dot(np.dot(V, np.diag(expwt)), U.T))
         assert np.allclose(T, scipy.linalg.expm(t*np.asarray(K)))
+
+
+cdef double exprel(double x) nogil:
+    """Compute the quantity (\exp(x)-1)/x using an algorithm that is accurate
+    for small x.
+    """
+
+    cdef double cut = 0.002;
+
+    if (x < log_dbl_min):
+        return -1.0 / x;
+
+    if (x < -cut):
+      return (exp(x) - 1.0)/x
+
+    if (x < cut):
+      return (1.0 + 0.5*x*(1.0 + x/3.0*(1.0 + 0.25*x*(1.0 + 0.2*x))))
+
+    if (x < log_dbl_max):
+      return (exp(x) - 1.0)/x
+
+    return 0.0 / 0.0  # nan

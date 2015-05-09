@@ -123,6 +123,7 @@ extensions.append(
 extensions.append(
     Extension('msmbuilder.msm._ratematrix',
               sources=[pjoin(MSMDIR, '_ratematrix.pyx')],
+              language='c++',
               extra_compile_args=compiler.compiler_args_openmp,
               libraries=compiler.compiler_libraries_openmp,
               include_dirs=['msmbuilder/src', np.get_include()]))
