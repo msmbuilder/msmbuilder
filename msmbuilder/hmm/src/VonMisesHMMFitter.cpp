@@ -10,12 +10,7 @@ extern "C" {
 #include "cephes.h"
 }
 
-
-
-
-#include <cstdlib>
-
-
+using namespace std;
 
 namespace msmbuilder {
 
@@ -52,72 +47,85 @@ void VonMisesHMMFitter<T>::initialize_sufficient_statistics() {
 
 template <class T>
 void VonMisesHMMFitter<T>::compute_log_likelihood(const Trajectory& trajectory,
-                            std::vector<std::vector<double> >& frame_log_probability) const {
-  double *kappa_cos_means, *kappa_sin_means;
-  double val, log_numerator, cos_obs_kj, sin_obs_kj;
-  const double LOG_2PI = 1.8378770664093453;
-  int n_states = this->n_states;
-  int n_features = this->n_features;
+                            vector<vector<double> >& frame_log_probability) const {
+    const double LOG_2PI = log(2*M_PI);
+    int n_states = this->n_states;
+    int n_features = this->n_features;
+    int traj_length = trajectory.frames();
 
-  // clear the output
-  for (int i = 0; i < trajectory.frames(); i++)
-      for (int j = 0; j < n_states; j++)
-          frame_log_probability[i][j] = 0.0;
-  // allocate two workspaces
-  kappa_cos_means = (double*) malloc(n_states * n_features * sizeof(double));
-  kappa_sin_means = (double*) malloc(n_states * n_features * sizeof(double));
-  if (NULL == kappa_cos_means || NULL == kappa_sin_means) {
-    fprintf(stderr, "compute_log_likelihood: Memory allocation failure");
-    exit(EXIT_FAILURE);
-  }
+    // Clear the output
+    for (int i = 0; i < traj_length; i++)
+        for (int j = 0; j < n_states; j++)
+            frame_log_probability[i][j] = 0.0;
 
-  // this sets the likelihood's denominator
-  for (int i = 0; i < n_states; i++) {
-    for (int j = 0; j < n_features; j++) {
-      val = LOG_2PI + log(i0(kappas[i*n_features + j]));
-      for (int k = 0; k < trajectory.frames(); k++)
-        frame_log_probability[k][i] -= val;
+    // Transpose the log probability matrix, since this makes memory access more efficient in the next loop.
+    vector<double> frame_log_probability_T(n_states*traj_length);
+    for (int i = 0; i < n_states; i++)
+        for (int j = 0; j < traj_length; j++)
+            frame_log_probability_T[i*traj_length+j] = frame_log_probability[j][i];
+
+    // This sets the likelihood's denominator
+    for (int i = 0; i < n_states; i++) {
+        for (int j = 0; j < n_features; j++) {
+            double val = LOG_2PI + log(i0(kappas[i*n_features + j]));
+            for (int k = 0; k < traj_length; k++)
+                frame_log_probability_T[i*traj_length+k] -= val;
+        }
     }
-  }
+    for (int i = 0; i < n_states; i++)
+        for (int j = 0; j < traj_length; j++)
+            frame_log_probability[j][i] = frame_log_probability_T[i*traj_length+j];
 
-  // We need to calculate cos(obs[k*n_features + j] - means[i*n_features + j])
-  // But we want to avoid having a trig function in the inner tripple loop,
-  // so we use the double angle formula to split up the computation into cos(x)cos(y) + sin(x)*sin(y)
-  // where each of the terms can be computed in a double loop.
-  for (int i = 0; i < n_states; i++) {
-    for (int j = 0; j < n_features; j++) {
-      kappa_cos_means[j*n_states + i] = kappas[i*n_features + j] * cos(means[i*n_features + j]);
-      kappa_sin_means[j*n_states + i] = kappas[i*n_features + j] * sin(means[i*n_features + j]);
+    // We need to calculate cos(obs[k*n_features + j] - means[i*n_features + j])
+    // But we want to avoid having a trig function in the inner triple loop,
+    // so we use the double angle formula to split up the computation into cos(x)cos(y) + sin(x)*sin(y)
+    // where each of the terms can be computed in a double loop.
+    vector<double> kappa_cos_means(n_states*n_features);
+    vector<double> kappa_sin_means(n_states*n_features);
+    for (int i = 0; i < n_states; i++) {
+        for (int j = 0; j < n_features; j++) {
+            kappa_cos_means[j*n_states + i] = kappas[i*n_features + j] * cos(means[i*n_features + j]);
+            kappa_sin_means[j*n_states + i] = kappas[i*n_features + j] * sin(means[i*n_features + j]);
+        }
     }
-  }
 
-  for (int k = 0; k < trajectory.frames(); k++) {
-    for (int j = 0; j < n_features; j++) {
-      T element = trajectory.get<T>(k, j);
-      cos_obs_kj = cos(element);
-      sin_obs_kj = sin(element);
-      for (int i = 0; i < n_states; i++) {
-        log_numerator = (cos_obs_kj*kappa_cos_means[j*n_states + i] + 
-        sin_obs_kj*kappa_sin_means[j*n_states + i]);
-        frame_log_probability[k][i] += log_numerator;
-      }
+    for (int k = 0; k < traj_length; k++) {
+        for (int j = 0; j < n_features; j++) {
+            T element = trajectory.get<T>(k, j);
+            double cos_obs_kj = cos(element);
+            double sin_obs_kj = sin(element);
+            for (int i = 0; i < n_states; i++) {
+                double log_numerator = (cos_obs_kj*kappa_cos_means[j*n_states + i] + sin_obs_kj*kappa_sin_means[j*n_states + i]);
+                frame_log_probability[k][i] += log_numerator;
+            }
+        }
     }
-  }
-
-  free(kappa_cos_means);
-  free(kappa_sin_means);
 }
 
 template <class T>
 void VonMisesHMMFitter<T>::accumulate_sufficient_statistics(const Trajectory& trajectory,
-                                      const std::vector<std::vector<double> >& frame_log_probability,
-                                      const std::vector<std::vector<double> >& posteriors,
-                                      const std::vector<std::vector<double> >& fwdlattice,
-                                      const std::vector<std::vector<double> >& bwdlattice) {
+                                      const vector<vector<double> >& frame_log_probability,
+                                      const vector<vector<double> >& posteriors,
+                                      const vector<vector<double> >& fwdlattice,
+                                      const vector<vector<double> >& bwdlattice) {
     int traj_length = trajectory.frames();
-    std::vector<double> traj_cosobs(this->n_states*this->n_features, 0);
-    std::vector<double> traj_sinobs(this->n_states*this->n_features, 0);
-    std::vector<double> state_posteriors(traj_length);
+    vector<double> traj_cosobs(this->n_states*this->n_features, 0);
+    vector<double> traj_sinobs(this->n_states*this->n_features, 0);
+    vector<double> coselement(traj_length*this->n_features);
+    vector<double> sinelement(traj_length*this->n_features);
+    vector<double> state_posteriors(traj_length);
+    
+    // Precompute the sin and cosine of every element of the trajectory.
+    
+    for (int i = 0; i < this->n_features; i++)
+        for (int j = 0; j < traj_length; j++) {
+            T element = trajectory.get<T>(j, i);
+            coselement[i*traj_length+j] = cos(element);
+            sinelement[i*traj_length+j] = sin(element);
+        }
+    
+    // Main loop to accumulate statistics.
+    
     for (int i = 0; i < this->n_states; i++) {
         // Copy the posteriors into a compact array.  This makes memory access more efficient in the inner loop.
         for (int j = 0; j < traj_length; j++)
@@ -126,9 +134,8 @@ void VonMisesHMMFitter<T>::accumulate_sufficient_statistics(const Trajectory& tr
             double temp1 = 0.0;
             double temp2 = 0.0;
             for (int k = 0; k < traj_length; k++) {
-                T element = trajectory.get<T>(k, j);
-                temp1 += cos(element)*state_posteriors[k];
-                temp2 += sin(element)*state_posteriors[k];
+                temp1 += coselement[j*traj_length+k]*state_posteriors[k];
+                temp2 += sinelement[j*traj_length+k]*state_posteriors[k];
             }
             traj_cosobs[i*this->n_features+j] += temp1;
             traj_sinobs[i*this->n_features+j] += temp2;
