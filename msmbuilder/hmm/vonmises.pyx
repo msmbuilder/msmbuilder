@@ -347,8 +347,11 @@ timescales: {timescales}
         # get initial centers
         # the number of initial trajectories used should be configurable...
         # currently it's just the 0-th one
-        cluster_centers = cluster.KMeans(n_clusters=self.n_states).fit(
-            np.hstack((np.sin(sequences[0]), np.cos(sequences[0])))).cluster_centers_
+        sequences = [ensure_type(s, dtype=np.float32, ndim=2, name='s', warn_on_cast=False)
+                     for s in sequences]
+        dataset = np.vstack(sequences)
+        cluster_centers = cluster.MiniBatchKMeans(n_clusters=self.n_states).fit(
+            np.hstack((np.sin(dataset), np.cos(dataset)))).cluster_centers_
         self._means_ = np.arctan2(cluster_centers[:, :self.n_features],
                                   cluster_centers[:, self.n_features:])
         self._kappas_ = np.ones((self.n_states, self.n_features))
