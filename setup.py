@@ -181,17 +181,6 @@ extensions.append(
                             pjoin(HMMDIR, 'src/'),
                             pjoin(HMMDIR, 'cephes/')]))
 
-extensions.append(
-    Extension('msmbuilder.hmm._vmhmm',
-              sources=[pjoin(HMMDIR, 'vonmises/vmhmm.c'),
-                       #pjoin(HMMDIR, 'vonmises/test.c'),
-                       pjoin(HMMDIR, 'vonmises/vmhmmwrap.pyx'),
-                       pjoin(HMMDIR, 'vonmises/spleval.c'),
-                       pjoin(HMMDIR, 'cephes/i0.c'),
-                       pjoin(HMMDIR, 'cephes/chbevl.c')],
-              include_dirs=[np.get_include(),
-                            pjoin(HMMDIR, 'cephes'),
-                            'msmbuilder/src/f2py']))
 write_version_py(VERSION, ISRELEASED, filename='msmbuilder/version.py')
 setup(name='msmbuilder',
       author='Robert McGibbon',
