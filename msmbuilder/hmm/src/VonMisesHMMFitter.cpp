@@ -39,9 +39,12 @@ void VonMisesHMMFitter<T>::set_means_and_kappas(const double* means, const doubl
 
 template <class T>
 void VonMisesHMMFitter<T>::initialize_sufficient_statistics() {
-    obs.resize(this->n_states*this->n_features);
-    for (int i = 0; i < (int) obs.size(); i++)
-        obs[i] = 0;
+    cosobs.resize(this->n_states*this->n_features);
+    sinobs.resize(this->n_states*this->n_features);
+    for (int i = 0; i < (int) cosobs.size(); i++) {
+        cosobs[i] = 0;
+        sinobs[i] = 0;
+    }
     this->post.resize(this->n_states);
     for (int i = 0; i < this->n_states; i++)
         this->post[i] = 0;
@@ -90,8 +93,9 @@ void VonMisesHMMFitter<T>::compute_log_likelihood(const Trajectory& trajectory,
 
   for (int k = 0; k < trajectory.frames(); k++) {
     for (int j = 0; j < n_features; j++) {
-      cos_obs_kj = cos(obs[k*n_features + j]);
-      sin_obs_kj = sin(obs[k*n_features + j]);
+      T element = trajectory.get<T>(k, j);
+      cos_obs_kj = cos(element);
+      sin_obs_kj = sin(element);
       for (int i = 0; i < n_states; i++) {
         log_numerator = (cos_obs_kj*kappa_cos_means[j*n_states + i] + 
         sin_obs_kj*kappa_sin_means[j*n_states + i]);
@@ -111,34 +115,47 @@ void VonMisesHMMFitter<T>::accumulate_sufficient_statistics(const Trajectory& tr
                                       const std::vector<std::vector<double> >& fwdlattice,
                                       const std::vector<std::vector<double> >& bwdlattice) {
     int traj_length = trajectory.frames();
-    std::vector<double> traj_obs(this->n_states*this->n_features, 0);
+    std::vector<double> traj_cosobs(this->n_states*this->n_features, 0);
+    std::vector<double> traj_sinobs(this->n_states*this->n_features, 0);
     std::vector<double> state_posteriors(traj_length);
     for (int i = 0; i < this->n_states; i++) {
         // Copy the posteriors into a compact array.  This makes memory access more efficient in the inner loop.
         for (int j = 0; j < traj_length; j++)
             state_posteriors[j] = posteriors[j][i];
         for (int j = 0; j < this->n_features; j++) {
-            double temp = 0.0;
+            double temp1 = 0.0;
+            double temp2 = 0.0;
             for (int k = 0; k < traj_length; k++) {
                 T element = trajectory.get<T>(k, j);
-                temp += element*state_posteriors[k];
+                temp1 += cos(element)*state_posteriors[k];
+                temp2 += sin(element)*state_posteriors[k];
             }
-            traj_obs[i*this->n_features+j] += temp;
+            traj_cosobs[i*this->n_features+j] += temp1;
+            traj_sinobs[i*this->n_features+j] += temp2;
         }
     }
 #pragma omp critical
     {
         for (int i = 0; i < this->n_states; i++)
-            for (int j = 0; j < this->n_features; j++)
-                obs[i*this->n_features+j] += traj_obs[i*this->n_features+j];
+            for (int j = 0; j < this->n_features; j++) {
+                cosobs[i*this->n_features+j] += traj_cosobs[i*this->n_features+j];
+                sinobs[i*this->n_features+j] += traj_sinobs[i*this->n_features+j];
+            }
     }
 }
 
 template <class T>
-void VonMisesHMMFitter<T>::get_obs(double* output) {
+void VonMisesHMMFitter<T>::get_cosobs(double* output) {
     for (int i = 0; i < this->n_states; i++)
         for (int j = 0; j < this->n_features; j++)
-            output[i*this->n_features+j] = obs[i*this->n_features+j];
+            output[i*this->n_features+j] = cosobs[i*this->n_features+j];
+}
+
+template <class T>
+void VonMisesHMMFitter<T>::get_sinobs(double* output) {
+    for (int i = 0; i < this->n_states; i++)
+        for (int j = 0; j < this->n_features; j++)
+            output[i*this->n_features+j] = sinobs[i*this->n_features+j];
 }
 
 template <>

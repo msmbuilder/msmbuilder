@@ -37,7 +37,7 @@ public:
     /** Set the transition matrix. */
     void set_transmat(const double* transmat) {
         for (int i = 0; i < n_states*n_states; i++) {
-            log_transmat[i] = std::log(transmat[i]);
+            log_transmat[i] = std::log(std::max(transmat[i], 1e-20));
         }
     }
 

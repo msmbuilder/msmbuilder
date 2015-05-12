@@ -28,12 +28,14 @@ public:
                                           const std::vector<std::vector<double> >& fwdlattice,
                                           const std::vector<std::vector<double> >& bwdlattice);
     
-    void get_obs(double* output);
+    void get_cosobs(double* output);
+
+    void get_sinobs(double* output);
     
     void do_mstep();
 private:
     void* owner;
-    std::vector<double> obs, means, kappas;
+    std::vector<double> cosobs, sinobs, means, kappas;
 };
 
 } // namespace msmbuilder

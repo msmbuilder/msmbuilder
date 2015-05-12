@@ -28,8 +28,8 @@ cdef extern from "VonMisesHMMFitter.h" namespace "msmbuilder":
         double predict_state_sequence(Trajectory& trajectory, int* state_sequence)
         int get_fit_iterations()
         void get_transition_counts(double*)
-        void get_obs(double*)
-        void get_obs2(double*)
+        void get_cosobs(double*)
+        void get_sinobs(double*)
         void get_post(double*)
         void get_log_probability(double*)
 
@@ -400,35 +400,32 @@ timescales: {timescales}
 
     def _do_mstep(self):
         stats = self.stats
-        posteriors = np.vstack(stats['posteriors'])
-        obs = np.vstack(stats['obs'])
-
+        transmat_prior = 1.0
         if self.reversible_type == 'mle':
             counts = np.maximum(
-                stats['trans'] + self.transmat_prior - 1.0, 1e-20).astype(np.float64)
-            self.transmat_, self.populations_ = _transmat_mle_prinz(counts)
+                stats['trans'] + transmat_prior - 1.0, 1e-20).astype(np.float64)
+            self._transmat_, self._populations_ = _transmat_mle_prinz(counts)
         elif self.reversible_type == 'transpose':
             revcounts = np.maximum(
-                self.transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
+                transmat_prior - 1.0 + stats['trans'] + stats['trans'].T, 1e-20)
             populations = np.sum(revcounts, axis=0)
-            self.populations_ = populations / np.sum(populations)
-            self.transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
+            self._populations_ = populations / np.sum(populations)
+            self._transmat_ = revcounts / np.sum(revcounts, axis=1)[:, np.newaxis]
         else:
             raise ValueError('Invalid value for reversible_type: %s '
                              'Must be either "mle" or "transpose"'
                              % self.reversible_type)
-        self.startprob_ = self.populations_
 
-        np.arctan2(np.dot(posteriors.T, np.sin(obs)),
-                   np.dot(posteriors.T, np.cos(obs)),
-                   out=self._means_)
+        np.arctan2(stats['sinobs'], stats['cosobs'], self._means_)
 
-        inv_kappas = np.zeros_like(self._kappas_)
-        for i in range(self.n_features):
-            for j in range(self.n_states):
-                n = np.sum(posteriors[:, j] * np.cos(obs[:, i] - self._means_[j, i]))
-                d = np.sum(posteriors[:, j])
-                inv_kappas[j, i] = n / d
+        # we don't want denom to be zero, because then the new value of the means
+        # will be nan/inf. so padd it up by a very small constant. This particular
+        # padding is following the sklearn mixture model m_step code from
+        # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/mixture/gmm.py#L496
+        EPS = np.finfo(np.float32).eps
+        kappa_denom = (stats['post'][:, np.newaxis] + 10 * EPS)
+        kappa_num = stats['cosobs']*np.cos(self._means_) + stats['sinobs']*np.sin(self._means_)
+        inv_kappas = kappa_num / kappa_denom
         self._kappas_ = inverse_mbessel_ratio(inv_kappas)
 
     def score(self, sequences):
@@ -577,38 +574,46 @@ timescales: {timescales}
     cdef _record_stats_float(self, VonMisesHMMFitter[float]* fitter):
         """Copy various statistics from the C++ class to this one."""
         cdef np.ndarray[double, ndim=2] transition_counts
-        cdef np.ndarray[double, ndim=2] obs
+        cdef np.ndarray[double, ndim=2] cosobs
+        cdef np.ndarray[double, ndim=2] sinobs
         cdef np.ndarray[double, ndim=1] post
         cdef np.ndarray[double, ndim=1] log_probability
         transition_counts = np.empty((self.n_states, self.n_states))
-        obs = np.empty((self.n_states, self.n_features))
+        cosobs = np.empty((self.n_states, self.n_features))
+        sinobs = np.empty((self.n_states, self.n_features))
         post = np.empty(self.n_states)
         log_probability = np.empty(fitter.get_fit_iterations())
         fitter.get_transition_counts(<double*> &transition_counts[0,0])
-        fitter.get_obs(<double*> &obs[0,0])
+        fitter.get_cosobs(<double*> &cosobs[0,0])
+        fitter.get_sinobs(<double*> &sinobs[0,0])
         fitter.get_post(<double*> &post[0])
         fitter.get_log_probability(<double*> &log_probability[0])
         self.stats['trans'] = transition_counts
-        self.stats['obs'] = obs
+        self.stats['cosobs'] = cosobs
+        self.stats['sinobs'] = sinobs
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
 
     cdef _record_stats_double(self, VonMisesHMMFitter[double]* fitter):
         """Copy various statistics from the C++ class to this one."""
         cdef np.ndarray[double, ndim=2] transition_counts
-        cdef np.ndarray[double, ndim=2] obs
+        cdef np.ndarray[double, ndim=2] cosobs
+        cdef np.ndarray[double, ndim=2] sinobs
         cdef np.ndarray[double, ndim=1] post
         cdef np.ndarray[double, ndim=1] log_probability
         transition_counts = np.empty((self.n_states, self.n_states))
-        obs = np.empty((self.n_states, self.n_features))
+        cosobs = np.empty((self.n_states, self.n_features))
+        sinobs = np.empty((self.n_states, self.n_features))
         post = np.empty(self.n_states)
         log_probability = np.empty(fitter.get_fit_iterations())
         fitter.get_transition_counts(<double*> &transition_counts[0,0])
-        fitter.get_obs(<double*> &obs[0,0])
+        fitter.get_cosobs(<double*> &cosobs[0,0])
+        fitter.get_sinobs(<double*> &sinobs[0,0])
         fitter.get_post(<double*> &post[0])
         fitter.get_log_probability(<double*> &log_probability[0])
         self.stats['trans'] = transition_counts
-        self.stats['obs'] = obs
+        self.stats['cosobs'] = cosobs
+        self.stats['sinobs'] = sinobs
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
     

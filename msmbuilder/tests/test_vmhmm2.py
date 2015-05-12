@@ -1,9 +1,9 @@
 from __future__ import print_function, division
 
 import numpy as np
-from msmbuilder.hmm import VonMisesHMM
+from msmbuilder.hmm.vonmises import VonMisesHMM
 from msmbuilder.example_datasets import AlanineDipeptide
-from msmbuilder.featurizer import SuperposeFeaturizer
+from msmbuilder.featurizer import DihedralFeaturizer
 from scipy.stats.distributions import vonmises
 from itertools import permutations
 import random
@@ -17,9 +17,10 @@ def test_1():
     topology = trajectories[0].topology
 
     indices = topology.select('symbol C or symbol O or symbol N')
-    featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
+    featurizer = DihedralFeaturizer(['phi', 'psi'], trajectories[0][0])
 
     sequences = featurizer.transform(trajectories)
+
     hmm = VonMisesHMM(n_states=4, n_init=1)
     hmm.fit(sequences)
 
@@ -33,17 +34,6 @@ def circwrap(x):
 def create_timeseries(means, kappas, transmat):
     """Construct a random timeseries based on a specified Markov model."""
     numStates = len(means)
-
-
-    #vm = VonMisesHMM(n_states=numStates)
-    #vm.means_ = means
-    #vm.kappas_ = kappas
-    #vm.transmat_ = transmat
-    #x, s = vm.sample(1000)
-    #return x
-
-
-
     state = random.randint(0, numStates-1)
     cdf = np.cumsum(transmat, 1)
     numFrames = 1000
@@ -96,9 +86,6 @@ def test_2():
     for reversible_type in ('mle', 'transpose'):
         model = VonMisesHMM(n_states=2, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
         model.fit(X)
-        print(model.transmat_)
-        print(model.means_)
-        print(model.kappas_)
         validate_timeseries(means, kappas, transmat, model, 0.1, 0.5, 0.05)
         assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
 
@@ -113,8 +100,5 @@ def test_3():
     for reversible_type in ('mle', 'transpose'):
         model = VonMisesHMM(n_states=3, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
         model.fit(X)
-        print(model.transmat_)
-        print(model.means_)
-        print(model.kappas_)
         validate_timeseries(means, kappas, transmat, model, 0.1, 0.5, 0.1)
         assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
