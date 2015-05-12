@@ -102,7 +102,3 @@ def test_3():
         model.fit(X)
         validate_timeseries(means, kappas, transmat, model, 0.1, 0.5, 0.1)
         assert abs(model.fit_logprob_[-1]-model.score(X)) < 0.5
-
-test_1()
-test_2()
-test_3()
