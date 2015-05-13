@@ -216,6 +216,7 @@ class AtomPairsFeaturizer(Featurizer):
         # TODO: We might want to implement more error checking here. Or during
         # featurize(). E.g. are the pair_indices supplied valid?
         self.pair_indices = pair_indices
+        self.atom_indices = pair_indices
         self.n_features = len(self.pair_indices)
         self.periodic = periodic
         self.exponent = exponent
@@ -267,6 +268,8 @@ class DihedralFeaturizer(Featurizer):
             types = [types]
         self.types = list(types)  # force a copy
         self.sincos = sincos
+        self.wrote_atom_indices = False
+        self.atom_indices = []
 
         known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
         if not set(types).issubset(known):
@@ -297,11 +300,19 @@ class DihedralFeaturizer(Featurizer):
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
-            y = func(traj)[1]
+            indices,y = func(traj)
             if self.sincos:
                 x.extend([np.sin(y), np.cos(y)])
+                if not self.wrote_atom_indices:
+                    self.atom_indices.extend(indices)
+                    self.atom_indices.extend(indices)
             else:
                 x.append(y)
+                if not self.wrote_atom_indices:
+                    self.atom_indices.extend(indices)
+        if not self.wrote_atom_indices:
+            self.wrote_atom_indices = True
+            self.atom_indices = np.array(self.atom_indices)
         return np.hstack(x)
 
 
@@ -319,6 +330,7 @@ class KappaAngleFeaturizer(Featurizer):
     """
     def __init__(self, cos=True):
         self.cos = cos
+        self.atom_indices = None
 
     def partial_transform(self, traj):
         ca = [a.index for a in traj.top.atoms if a.name == 'CA']
@@ -329,6 +341,8 @@ class KappaAngleFeaturizer(Featurizer):
             [(ca[i - 2], ca[i], ca[i + 2]) for i in range(2, len(ca) - 2)])
         result = md.compute_angles(traj, angle_indices)
 
+        if self.atom_indices is None:
+            self.atom_indices = np.vstack(angle_indices)
         if self.cos:
             return np.cos(result)
 
@@ -362,7 +376,6 @@ class SASAFeaturizer(Featurizer):
     def __init__(self, mode='residue', **kwargs):
         self.mode = mode
         self.kwargs = kwargs
-
     def partial_transform(self, traj):
         return md.shrake_rupley(traj, mode=self.mode, **self.kwargs)
 
