@@ -30,11 +30,13 @@ from numpy cimport npy_intp
 from libc.math cimport sqrt, log, exp
 from libc.string cimport memset, strcmp
 
+
 include "cy_blas.pyx"
 include "config.pxi"
 include "triu_utils.pyx"      # ij_to_k() and k_to_ij()
 include "_ratematrix_support.pyx"
 include "_ratematrix_priors.pyx"
+include "_ratematrix_holmes.pyx"
 
 
 cpdef int build_ratemat(const double[::1] theta, npy_intp n, double[:, ::1] out,
