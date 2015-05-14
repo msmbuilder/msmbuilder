@@ -107,7 +107,7 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
                 random_state.random_integers(
                     0, n_samples - 1, self.batch_size),
             ])
-            dmat = libdistance.pdist(X, metric=self.metric, X_indices=minibatch_indices)
+            dmat = libdistance.pdist(X, metric=self.metric, X_indices=np.array(minibatch_indices, dtype=np.intp))
             minibatch_labels = np.concatenate([
                 np.arange(self.n_clusters),
                 labels_[minibatch_indices[self.n_clusters:]]
