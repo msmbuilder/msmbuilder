@@ -20,7 +20,7 @@ def test_1():
     featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
 
     sequences = featurizer.transform(trajectories)
-    hmm = GaussianHMM(n_states=4, n_init=1)
+    hmm = GaussianHMM(n_states=4, n_init=3)
     hmm.fit(sequences)
 
     assert len(hmm.timescales_ == 3)
