@@ -2,6 +2,7 @@
 from libc.float cimport DBL_MIN, DBL_MAX
 cdef double log_dbl_min = log(DBL_MIN)
 cdef double log_dbl_max = log(DBL_MAX)
+cdef double NAN = np.nan
 
 
 cpdef eig_K(const double[:, ::1] A, npy_intp n, double[::1] pi=None, which='K'):
@@ -245,4 +246,4 @@ cdef double exprel(double x) nogil:
     if (x < log_dbl_max):
       return (exp(x) - 1.0)/x
 
-    return 0.0 / 0.0  # nan
+    return NAN
