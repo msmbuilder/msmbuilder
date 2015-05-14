@@ -82,8 +82,6 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     n_hotstart : {int, 'all'}
         Number of sequences to use when hotstarting the EM.
         Default='all'
-    n_jobs : int
-        If hotstarting with kmeans, the number of jobs to use for parallelization
     init_algo : str
         Use this algorithm to hotstart the means and covariances.  Must
         be one of "kmeans" or "GMM"
@@ -105,7 +103,7 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
 
     cdef int n_states, n_features, n_init, n_iter
     cdef float thresh
-    cdef random_state, n_jobs, timing, n_hotstart
+    cdef random_state, timing, n_hotstart
     cdef startprob
     cdef stats
     cdef reversible_type, n_lqa_iter, fusion_prior, vars_prior, vars_weight, init_algo
@@ -114,7 +112,7 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     def __init__(self, n_states, n_init=10, n_iter=10,
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
                  reversible_type='mle', vars_prior=1e-3,
-                 vars_weight=1, random_state=None, n_jobs=1,
+                 vars_weight=1, random_state=None,
                  timing=False, n_hotstart='all', init_algo='kmeans'):
         self.n_states = int(n_states)
         self.n_features = -1
@@ -127,7 +125,6 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         self.vars_prior = float(vars_prior)
         self.vars_weight = float(vars_weight)
         self.random_state = random_state
-        self.n_jobs = n_jobs
         self.timing = timing
         self.n_hotstart = n_hotstart
         self.init_algo = init_algo
@@ -146,10 +143,10 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
         return ArgSpec(
         ['self', 'n_states', 'n_init', 'n_iter', 'n_lqa_iter',
          'fusion_prior', 'thresh', 'reversible_type', 'vars_prior',
-         'vars_weight', 'random_state', 'n_jobs', 'timing',
+         'vars_weight', 'random_state', 'timing',
          'n_hotstart', 'init_algo'],
           None, None,
-          [10, 10, 10, 1e-2, 1e-2, 'mle', 1e-3, 1, None, 1, False,
+          [10, 10, 10, 1e-2, 1e-2, 'mle', 1e-3, 1, None, False,
           'all', 'kmeans']
         )
 
@@ -491,9 +488,9 @@ timescales: {timescales}
         else:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self._means_ = cluster.KMeans(
+                self._means_ = cluster.MiniBatchKMeans(
                     n_clusters=self.n_states, n_init=1, init='random',
-                    n_jobs=self.n_jobs, random_state=self.random_state).fit(
+                    random_state=self.random_state).fit(
                     small_dataset).cluster_centers_
             self._vars_ = np.vstack([np.var(small_dataset, axis=0)] * self.n_states)
         self._populations_ = np.ones(self.n_states) / self.n_states
@@ -816,8 +813,8 @@ timescales: {timescales}
     def __reduce__(self):
         """Pickle support"""
         args = (self.n_states, self.n_init, self.n_iter, self.n_lqa_iter, self.fusion_prior, self.thresh,
-                 self.reversible_type, self.vars_prior, self.vars_weight, self.random_state, self.n_jobs,
-                 self.timing, self.n_hotstart, self.init_algo)
+                self.reversible_type, self.vars_prior, self.vars_weight, self.random_state,
+                self.timing, self.n_hotstart, self.init_algo)
         state = (self._means_, self._vars_, self._transmat_, self._populations_, self._fit_logprob_, self._fit_time_)
         return (self.__class__, args, state)
     
