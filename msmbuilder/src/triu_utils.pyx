@@ -63,5 +63,5 @@ cdef inline void k_to_ij(npy_intp k, npy_intp n, npy_intp *i, npy_intp *j) nogil
         Column index, written into *j on exit
     """
 
-    i[0] = n - 2 - <int>(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    i[0] = n - 2 - <int>(sqrt(-8.0*k + 4.0*n*(n-1)-7.0)/2.0 - 0.5)
     j[0] = k + i[0] + 1 - n*(n-1)/2 + (n-i[0])*(n-i[0]-1)/2

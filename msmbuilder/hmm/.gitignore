@@ -1,2 +1,4 @@
-vonmises/vmhmmwrap.c
-wrappers/GaussianHMMCPUImpl.cpp
+gaussian.cpp
+gaussian.h
+vonmises.cpp
+vonmises.h
