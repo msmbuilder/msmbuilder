@@ -1,5 +1,7 @@
 #ifndef MIXTAPE_TRAJECTORY_H
 #define MIXTAPE_TRAJECTORY_H
+#include "Python.h"
+#include <cstdio>
 
 namespace msmbuilder {
 
@@ -14,16 +16,44 @@ public:
     /**
      * Create a Trajectory object wrapping an existing array of data.
      *
+     * @param object
      * @param data           the existing data to wrap
      * @param numFrames      the number of frames in the trajectory
      * @param numFeatures    the number of features in each frame
      * @param frameStride    the offset between successive frames, measured in bytes
      * @param featureStride  the offset between successive features, measured in bytes
      */
-    Trajectory(char* data, int numFrames, int numFeatures, int frameStride, int featureStride) :
-        data(data), numFrames(numFrames), numFeatures(numFeatures), frameStride(frameStride), featureStride(featureStride) {
+    Trajectory(PyObject* object, char* data, int numFrames, int numFeatures, int frameStride, int featureStride) : object(object), data(data), numFrames(numFrames), numFeatures(numFeatures), frameStride(frameStride), featureStride(featureStride) {
+        if (object != NULL)
+            Py_INCREF(object);
     }
-    Trajectory() {
+
+    Trajectory() : object(NULL), data(NULL) {
+
+    }
+
+    Trajectory(const Trajectory& other) : object(other.object), data(other.data), numFrames(other.numFrames), numFeatures(other.numFeatures), frameStride(other.frameStride), featureStride(other.featureStride){
+        if (object != NULL)
+            Py_INCREF(object);
+    }
+
+    Trajectory& operator=(const Trajectory & other) {
+        if (this != &other){
+            object = other.object;
+            data = other.data;
+            numFrames = other.numFrames;
+            numFeatures = other.numFeatures;
+            frameStride = other.frameStride;
+            featureStride = other.featureStride;
+
+            if (object != NULL)
+                Py_INCREF(object);
+        }
+        return *this;
+    }
+
+    ~Trajectory() {
+        Py_XDECREF(object);
     }
     /**
      * Get the number of frames in the Trajectory.
@@ -42,10 +72,15 @@ public:
      */
     template <class T>
     const T& get(int frame, int feature) const {
+        if (data == NULL) {
+            fprintf(stderr, "BIG PROBLEM\n");
+        }
+
         T* ptr = (T*) data;
         return ptr[(frame*frameStride+feature*featureStride)/sizeof(T)];
     }
 private:
+    PyObject* object;
     char* data;
     int numFrames, numFeatures;
     int frameStride, featureStride;

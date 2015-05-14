@@ -155,6 +155,11 @@ extensions.append(
                        pjoin(CLUSTERDIR, 'src', 'kmedoids.cc')],
               include_dirs=[np.get_include()]))
 
+
+# To get debug symbols on Windows, use
+# extra_link_args=['/DEBUG']
+# extra_compile_args=['/Zi']
+
 extensions.append(
     Extension('msmbuilder.hmm.gaussian',
               language='c++',
