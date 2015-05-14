@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 from libcpp.vector cimport vector
 from libcpp.string cimport string
+from cpython.ref cimport PyObject
 
 import time
 import warnings
@@ -15,7 +16,7 @@ from ..msm._markovstatemodel import _transmat_mle_prinz
 
 cdef extern from "Trajectory.h" namespace "msmbuilder":
     cdef cppclass Trajectory:
-        Trajectory(char*, int, int, int, int) except +
+        Trajectory(PyObject*, char*, int, int, int, int) except +
         Trajectory()
 
 cdef extern from "VonMisesHMMFitter.h" namespace "msmbuilder":
@@ -326,7 +327,7 @@ timescales: {timescales}
         cdef np.ndarray[float, ndim=2] array
         for s in sequences:
             array = s
-            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
+            trajectoryVec.push_back(Trajectory(<PyObject*> array, <char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
         return trajectoryVec
 
     cdef vector[Trajectory] _convert_sequences_to_vector_double(self, sequences):
@@ -335,7 +336,7 @@ timescales: {timescales}
         cdef np.ndarray[double, ndim=2] array
         for s in sequences:
             array = s
-            trajectoryVec.push_back(Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
+            trajectoryVec.push_back(Trajectory(<PyObject*> array, <char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1]))
         return trajectoryVec
 
     def _init(self, sequences):
@@ -538,7 +539,7 @@ timescales: {timescales}
             viterbi_sequences = []
             for s in sequences:
                 array = s
-                trajectory = Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1])
+                trajectory = Trajectory(<PyObject*> array, <char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1])
                 state_sequence = np.empty(len(s), dtype=np.int32)
                 logprob += fitter.predict_state_sequence(trajectory, <int*> &state_sequence[0])
                 viterbi_sequences.append(state_sequence)
@@ -566,7 +567,7 @@ timescales: {timescales}
             viterbi_sequences = []
             for s in sequences:
                 array = s
-                trajectory = Trajectory(<char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1])
+                trajectory = Trajectory(<PyObject*> array, <char*> &array[0,0], array.shape[0], array.shape[1], array.strides[0], array.strides[1])
                 state_sequence = np.empty(len(s), dtype=np.int32)
                 logprob += fitter.predict_state_sequence(trajectory, <int*> &state_sequence[0])
                 viterbi_sequences.append(state_sequence)
@@ -619,13 +620,13 @@ timescales: {timescales}
         self.stats['sinobs'] = sinobs
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
-    
+
     def __reduce__(self):
         """Pickle support"""
         args = (self.n_states, self.n_init, self.n_iter, self.thresh, self.reversible_type, self.random_state)
         state = (self._means_, self._kappas_, self._transmat_, self._populations_, self._fit_logprob_, self._fit_time_)
         return (self.__class__, args, state)
-    
+
     def __setstate__(self, state):
         """Pickle support"""
         self._means_ = state[0]
