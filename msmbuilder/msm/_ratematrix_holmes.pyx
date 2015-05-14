@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from numpy import zeros
 from numpy cimport npy_intp
@@ -6,6 +7,29 @@ from libc.stdlib cimport malloc, free
 
 
 cdef class ReversibleHolmesRateMatrixEMFitter(object):
+    """ReversibleHolmesRateMatrixEMFitter(countsmat, t)
+
+    Holmes-Rubin Expectation-maximization algorithm for fitting
+    reversible continous-time Markov models.
+
+    This class implements "Algorithm 4" described by Metzner in [2], which was
+    introduced by Holmes and Rubin in [1]. The notation follows [2].
+
+    Parameters
+    ----------
+    countsmat : array, shape=(n, n)
+        The matrix of observed transition counts.
+    t : double
+        The lag time.
+
+    References
+    ----------
+    .. [1] Holmes, I., and G. M. Rubin. "An expectation maximization algorithm
+        for training hidden substitution models." J. Mol. Biol. 317.5 (2002):
+        753-764.
+    .. [2] Metzner, Philipp, et al. "Generator estimation of Markov jump
+        processes." J. Comp. Phys. 227.1 (2007): 353-375.
+    """
     cdef double t
     cdef npy_intp n
     cdef double[:, ::1] countsmat
@@ -18,31 +42,93 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
         self.t = t
         self.n = countsmat.shape[0]
 
-    def fit(self, const double[:, ::1] ratemat, max_iter=100, min_iter=10, thresh=1e-6):
+    def fit(self, const double[:, ::1] ratemat, int max_iter=100, double thresh=1e-6):
+        """fit(ratemat, max_iter=100, thresh=1e-6)
+
+        Iterate the EM algorithm to improve a guess rate matrix.
+
+        Parameters
+        ----------
+        ratemat : array, shape=(n, n)
+            The initial rate matrix.
+        max_iter : int, optional
+            Maximum number of EM iteration to perform.
+        thresh : double, optinal
+            Terminate EM when the change in the log-likelihood is less than
+            this threshold.
+
+        Returns
+        -------
+        ratemat : array, shape=(n, n)
+            The new rate matrix.
+        loglikelihoods : array, shape=(n_iters,)
+            The log likelihood of the iterated rate matrix, after each step
+            of EM.
+        """
         cdef npy_intp i
-        cdef double logl
+        cdef double logl, iteration_start_time
         cdef double[:, ::1] new_ratemat
         cdef double[::1] loglikelihoods = zeros(max_iter)
+        cdef double[::1] times = zeros(max_iter)
+
+        if not (ratemat.shape[0] == ratemat.shape[0] == self.n):
+            raise ValueError('ratemat must be (%d, %d)' % (self.n, self.n))
 
         for i in range(max_iter):
+            iteration_start_time = time.time()
             new_ratemat, logl = self.em_step(ratemat)
+            times[i] = time.time() - iteration_start_time
             loglikelihoods[i] = logl
-            if i >= min_iter and (logl-loglikelihoods[i-1]) < thresh:
+            if i >= 1 and abs(logl-loglikelihoods[i-1]) < thresh:
                 break
             ratemat = new_ratemat
-        return ratemat, loglikelihoods[:i]
+
+        return np.asarray(ratemat), np.asarray(loglikelihoods[:i]), np.asarray(times[:i])
 
     def em_step(self, const double[:, ::1] ratemat):
-        cdef double[::1] pi
-        cdef double[::1] ER_i
-        cdef double[:, ::1] EN_ij
-        cdef double[:, ::1] new_ratemat
+        """Perform a single step of E-M
 
+        Parameters
+        ----------
+        ratemat : array, shape=(n, n)
+            The initial rate matrix.
+
+        Returns
+        -------
+        new_ratemat : array, shape=(n, n)
+            The updated rate matrix
+        logl : double
+            The log likelihood of new_ratemat
+        """
         logl, pi, ER_i, EN_ij = self.e_step(ratemat)
         new_ratemat = self.m_step(pi, ER_i, EN_ij)
         return new_ratemat, logl
 
     def e_step(self, const double[:, ::1] ratemat):
+        """e_step(ratemat)
+
+        Perform a single E-step.
+
+        Parameters
+        ----------
+        ratemat : array, shape=(n, n)
+            The rate matrix.
+
+        Returns
+        -------
+        logl : double
+            The log likelihood of ratemat.
+        pi : array, shape=(n,)
+            The stationary distribution of the rate matrix.
+        ER_i : array, shape=(n,),
+            The expectation value (conditional on ratemat) of the amount of
+            time the process has spent in each state. This is defined in Eq.
+            19 of Metzner.
+        EN_ij : array, shape=(n, n)
+            The expectation value (conditional on ratemat) of number of
+            transitions between each state. This is defined in Eq. 19 of
+            Metzner.
+        """
         cdef npy_intp i, c, d, p
         cdef double pi_norm
         cdef double[::1] w, pi, expwt
@@ -75,6 +161,27 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
         return logl, pi, ER_i, EN_ij
 
     def m_step(self, const double[::1] pi, const double[::1] ER_i, const double[:, ::1] EN_ij):
+        """Perform a single M-step
+
+        Parameters
+        ----------
+        pi : array, shape=(n,)
+            The stationary distribution of the rate matrix.
+        ER_i : array, shape=(n,),
+            The expectation value (conditional on ratemat) of the amount of
+            time the process has spent in each state. This is defined in Eq.
+            19 of Metzner.
+        EN_ij : array, shape=(n, n)
+            The expectation value (conditional on ratemat) of number of
+            transitions between each state. This is defined in Eq. 19 of
+            Metzner.
+
+        Returns
+        -------
+        new_ratemat : array, shape=(n, n)
+            The new rate matrix.
+        """
+
         cdef npy_intp i, j
         cdef double[:, ::1] ratemat = zeros((self.n, self.n))
         cdef double[:, ::1] mu = self._build_lagrange(pi, ER_i, EN_ij)
@@ -83,11 +190,13 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
             for j in range(self.n):
                 if j != i:
                     ratemat[i, j] = EN_ij[i, j] / (-mu[i,j]*pi[i] + ER_i[i])
+                    if ratemat[i, j] < 1e-15:
+                        ratemat[i, j] = 0.0
                     ratemat[i, i] -= ratemat[i, j]
         return ratemat
 
     def _build_psi(self, const double[::1] w):
-        # equation 27
+        # Build the matrix Psi_{pq}, defined in equation 27 of Metzner
         cdef double[:, ::1] psi = zeros((self.n, self.n))
         cdef npy_intp i, j
         for i in range(self.n):
@@ -99,7 +208,9 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
         return psi
 
     def _build_p_abcd(self, const double[:, ::1] U, const double[::1, :] VT, const double[:, ::1] psi):
-        # equation 28
+        # Build the integral table p_{abcd} = \int_0^t ds p_{ab}(s) p_{cd}(t-s),
+        # defined in equation 28 of Metzner.
+        # In equation 24, the index labels are switched to 'k','i','j','l'.
         cdef npy_intp i, a, b, c, d, p, q
         cdef double[::1] rootpi = zeros(self.n)
         cdef double[::1] invrootpi = zeros(self.n)
@@ -122,7 +233,10 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
         return p_abcd
 
     def _build_R_ikl(self, const double[:, ::1] transmat, const double[:, :, :, ::1] p_kijl):
-        # equation 24, part 1
+        # Build the R_{ikl} tensor defined in the first part of equation 24 of
+        # Metzner.
+        # R_{ikl} = E_L(R_i(t) | X(t) = l, X(0) = k)
+        #         = \frac{1}{p_{kl}} \int_0^t ds p_{ki}(s) p_{il}(t-s),
 
         cdef npy_intp i, k, l
         cdef double[:, :, ::1] R_ikl = zeros((self.n, self.n, self.n))
@@ -133,7 +247,10 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
         return R_ikl
 
     def _build_N_ijkl(self, const double[:, ::1] ratemat, const double[:, ::1] transmat,  const double[:, :, :, ::1] p_kijl):
-        # equation 24 part 2
+        # Build the N_{ijkl} tensor defined in the second part of equation 24 of
+        # Metzner.
+        # N_{ijkl} = E_L(N_{ij}(t) | X(t) = l, X(0) = k)
+        #          = \frac{l_{ij}}{p_{kl}} \int_0^t ds p_{ki}(s) p_{jl}(t-s),
         cdef npy_intp i, j, k, l
         cdef double[:, :, :, ::1] N_ijkl = zeros((self.n, self.n, self.n, self.n))
 
@@ -145,31 +262,40 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
         return N_ijkl
 
     def _build_ER_i(self, const double[:, :, ::1] R_ikl):
-        # equation 19, part 1
+        # Build the expectation value of the residence times, defined in
+        # equation 19 (part 1) of Metzner.
+        # ER_{i} = E_L(R_i(t | Y)) = \sum_{kl} C_{kl} R_{ikl}
         cdef npy_intp i, k, l
         cdef double[::1] ER_i = zeros(self.n)
+        cdef double[:, ::1] countsmat = self.countsmat
 
         for i in range(self.n):
             for k in range(self.n):
                 for l in range(self.n):
-                    ER_i[i] += self.countsmat[k, l] * R_ikl[i, k, l]
+                    ER_i[i] += countsmat[k, l] * R_ikl[i, k, l]
         return ER_i
 
     def _build_EN_ij(self, const double[:, :, :, ::1] N_ijkl):
-        # equation 19, part 2
+        # Build the expectation value of the transition counts, defined in
+        # equation 19 (part 2) of Metzner.
+        # EN_{ij} = E_L(N_ij(t | Y)) = \sum_{kl} C_{kl} N_{ijkl}
+
         cdef npy_intp i, j, k, l
         cdef double[:, ::1] EN_ij = zeros((self.n, self.n))
+        cdef double[:, ::1] countsmat = self.countsmat
 
         for i in range(self.n):
             for j in range(self.n):
                 for k in range(self.n):
                     for l in range(self.n):
-                        EN_ij[i,j] += self.countsmat[k, l] * N_ijkl[i, j, k, l]
+                        EN_ij[i,j] += countsmat[k, l] * N_ijkl[i, j, k, l]
         return EN_ij
 
     def _build_lagrange(self, const double[::1] pi, const double[::1] ER_i, const double[:, ::1] EN_ij):
-        # equation 30
+        # Build the lagrange multipliers for enforcing reversibility, \mu_{ij}
+        # defined equation 30 of Metzner.
         cdef npy_intp i, j
+        cdef double term1, term2, term3, term4
         cdef double[:, ::1] mu = zeros((self.n, self.n))
 
         for i in range(self.n):
@@ -181,17 +307,22 @@ cdef class ReversibleHolmesRateMatrixEMFitter(object):
 
                 if fabs(EN_ij[i,j]) < 1e-16 and fabs(EN_ij[j,i]) < 1e-16:
                     mu[i,j] = 0
+                elif term3 == 0:
+                    mu[i,j] = 0
                 else:
                     mu[i,j] = (term1 - term2) * (-term3 / term4)
+
         return mu
 
     def _compute_logl(self, const double[:, ::1] tmat):
+        # Compute the log likelihood.
         cdef npy_intp i, j
         cdef double logl, logt
+        cdef double[:, ::1] countsmat = self.countsmat
 
         logl = 0
         for i in range(self.n):
             for j in range(self.n):
                 logt = log(tmat[i, j]) if tmat[i, j] > 1e-16 else 0
-                logl += self.countsmat[i, j] * logt
+                logl += countsmat[i, j] * logt
         return logl

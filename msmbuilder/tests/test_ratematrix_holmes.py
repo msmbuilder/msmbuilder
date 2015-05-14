@@ -63,7 +63,7 @@ def test_2():
     n = ratemat.shape[0]
 
     fitter = ReversibleHolmesRateMatrixEMFitter(countsmat1, t=1)
-    ratemat, logl = fitter.fit(ratemat)
+    ratemat, logl, times = fitter.fit(ratemat)
 
     pi_norm = 0
     pi = np.zeros(n)
@@ -78,6 +78,9 @@ def test_2():
         for j in range(n):
             assert abs(pi[i] * ratemat[i,j] - pi[j] * ratemat[j,i]) < 1e-12
 
+    print(ratemat)
+    # print(logl)
+    # print(times)
     # print(np.asarray(logl))
     # print(np.diff(logl))
     # import matplotlib.pyplot as plt
