@@ -43,8 +43,8 @@ def test_4():
 
 
 def test_contigify_ids_1():
-    inp = np.array([0, 10, 10, 20, 20, 21])
-    ref = np.array([0, 1,  1,  2,  2,  3])
+    inp = np.array([0, 10, 10, 20, 20, 21], dtype=np.intp)
+    ref = np.array([0, 1,  1,  2,  2,  3], dtype=np.intp)
     out, mapping = contigify_ids(inp)
     assert np.all(out == ref)
     # it's inplace, so they should be equal now
@@ -53,8 +53,8 @@ def test_contigify_ids_1():
 
 
 def test_contigify_ids_2():
-    inp = np.array([2, 0, 10, 2, 2, 10])
-    ref = np.array([0, 1,  2, 0, 0,  2])
+    inp = np.array([2, 0, 10, 2, 2, 10], dtype=np.intp)
+    ref = np.array([0, 1,  2, 0, 0,  2], dtype=np.intp)
     out, mapping = contigify_ids(inp)
     assert np.all(out == ref)
     # it's inplace, so they should be equal now
@@ -71,7 +71,7 @@ def test_index():
             return int(n*i - i*(i+1)/2 + j - 1 - i)
         return int(n*j - j*(j+1)/2 + i - 1 - j)
 
-    
+
     X = np.random.randn(n, 1)
     pdist = libdistance.pdist(X, 'euclidean')
     for i in range(n):

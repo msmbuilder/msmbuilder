@@ -71,7 +71,7 @@ class _RegularSpatial(ClusterMixin, TransformerMixin):
         for i in range(1, len(X)):
             # distance from X[i] to each X with indices in cluster_ids
             d = libdistance.dist(
-                X, X[i], metric=self.metric, X_indices=np.array(cluster_ids))
+                X, X[i], metric=self.metric, X_indices=np.array(cluster_ids, dtype=np.intp))
             if np.all(d > self.d_min):
                 cluster_ids.append(i)
 
