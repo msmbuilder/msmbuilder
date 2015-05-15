@@ -456,3 +456,15 @@ def test_guess():
 
     assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-4
     assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-2
+
+
+def test_doublewell():
+    trjs = load_doublewell(random_state=0)['trajectories']
+    for n_states in [10, 50]:
+        clusterer = NDGrid(n_bins_per_feature=n_states)
+        assignments = clusterer.fit_transform(trjs)
+
+        for sliding_window in [True, False]:
+            model = ContinuousTimeMSM(lag_time=100, sliding_window=sliding_window)
+            model.fit(assignments)
+            print(len(model.loglikelihoods_))
