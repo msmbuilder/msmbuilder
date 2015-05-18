@@ -425,7 +425,7 @@ def hessian(double[::1] theta, double[:, ::1] counts, double t=1, npy_intp[::1] 
     cdef double[:, ::1] K, T, Q, dKu,  Au, temp1, temp2
 
     if inds is None:
-        inds = np.arange(size)
+        inds = np.arange(size, dtype=np.intp)
         hessian = zeros((size, size))
     else:
         hessian = zeros((len(inds), len(inds)))

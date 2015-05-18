@@ -1,6 +1,8 @@
 from __future__ import print_function
 import time
 import sys
+import warnings
+warnings.simplefilter('ignore')
 import numpy as np
 import scipy.linalg
 from numpy.testing.decorators import skipif
@@ -414,8 +416,6 @@ def test_score_2():
 
 
 def test_score_3():
-    import warnings
-    warnings.simplefilter('ignore')
     from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=6,
@@ -436,3 +436,35 @@ def test_score_3():
     train = model.score_
     test = model.score(test_data)
     print(train, test)
+
+
+def test_guess():
+    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+
+    cluster = NDGrid(n_bins_per_feature=5,
+          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+
+    ds = MullerPotential(random_state=0).get()['trajectories']
+    assignments = cluster.fit_transform(ds)
+
+    model1 = ContinuousTimeMSM(guess='log')
+    model1.fit(assignments)
+
+    model2 = ContinuousTimeMSM(guess='pseudo')
+    model2.fit(assignments)
+
+    assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-4
+    assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-2
+
+
+def test_doublewell():
+    trjs = load_doublewell(random_state=0)['trajectories']
+    for n_states in [10, 50]:
+        clusterer = NDGrid(n_bins_per_feature=n_states)
+        assignments = clusterer.fit_transform(trjs)
+
+        for sliding_window in [True, False]:
+            model = ContinuousTimeMSM(lag_time=100, sliding_window=sliding_window)
+            model.fit(assignments)
+            print(len(model.loglikelihoods_))
