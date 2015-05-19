@@ -2,6 +2,7 @@ from __future__ import print_function
 import time
 import sys
 import warnings
+from nose.tools import assert_true
 warnings.simplefilter('ignore')
 import numpy as np
 import scipy.linalg
@@ -467,4 +468,4 @@ def test_doublewell():
         for sliding_window in [True, False]:
             model = ContinuousTimeMSM(lag_time=100, sliding_window=sliding_window)
             model.fit(assignments)
-            print(len(model.loglikelihoods_))
+            assert_true(model.optimizer_state_.success)
