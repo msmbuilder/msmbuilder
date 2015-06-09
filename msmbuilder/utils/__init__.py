@@ -6,3 +6,4 @@ from .probability import *
 from .subsampler import *
 from .validation import *
 from .compat import *
+from .nearest import KDTree
