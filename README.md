@@ -13,13 +13,16 @@ MSMBuilder has been used to model protein folding and conformational change
 from molecular dynamics (MD) simulations. MSMBuilder is available under the
 LGPL (v2.1 or later).
 
-Algorithms available include:
+Capabilities include:
 
-- Geometric clustering
-- Markov state models
-- Time-structure independent components analysis
-- L1-regularized reversible hidden Markov models
-- Transition path theory
+- Feature extraction into dihedrals, contact maps, and more
+- Geometric clustering with a variety of algorithms.
+- Dimensionality reduction using time-structure independent component
+  analysis (tICA) and principle component analysis (PCA).
+- Markov state model (MSM) construction
+- Rate-matrix MSM construction
+- Hidden markov model (HMM) construction
+- Timescale and transition path analysis.
 
 Check out the documentation at [msmbuilder.org](http://msmbuilder.org) and
 join the [mailing list](https://mailman.stanford.edu/mailman/listinfo/msmbuilder-user)
