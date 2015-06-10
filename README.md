@@ -1,5 +1,5 @@
-MSMBuilder: Statistical models for Biomolecular Dynamics
-========================================================
+MSMBuilder
+==========
 
 [![Build Status](https://travis-ci.org/msmbuilder/msmbuilder.svg?branch=master)] (https://travis-ci.org/msmbuilder/msmbuilder)
 [![PyPi version](https://badge.fury.io/py/msmbuilder.svg)]                       (https://pypi.python.org/pypi/msmbuilder/)
