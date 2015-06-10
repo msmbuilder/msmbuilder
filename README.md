@@ -33,7 +33,7 @@ Installation
 The preferred installation mechanism for `msmbuilder` is with `conda`:
 
 ```bash
-$ conda install -c https://conda.binstar.org/omnia msmbuilder
+$ conda install -c omnia msmbuilder
 ```
 
 If you don't have conda, or are new to scientific python, we recommend that
