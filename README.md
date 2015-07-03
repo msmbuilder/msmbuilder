@@ -18,7 +18,7 @@ Capabilities include:
 - Feature extraction into dihedrals, contact maps, and more
 - Geometric clustering with a variety of algorithms.
 - Dimensionality reduction using time-structure independent component
-  analysis (tICA) and principle component analysis (PCA).
+  analysis (tICA) and principal component analysis (PCA).
 - Markov state model (MSM) construction
 - Rate-matrix MSM construction
 - Hidden markov model (HMM) construction
