@@ -64,6 +64,9 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
     verbose : bool
         Whether to print information about the dataset
 
+    **kwargs :
+        Format-specific arguments
+
     """
 
     if mode == 'r' and fmt is None:
@@ -79,7 +82,8 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
         return HDF5Dataset(path, mode=mode, verbose=verbose)
     elif fmt.endswith("-union"):
         sub_fmt = fmt[:-len('-union')]
-        return UnionDataset(path, fmt=sub_fmt, mode=mode, verbose=verbose)
+        return UnionDataset(path, fmt=sub_fmt, mode=mode,
+                            verbose=verbose, **kwargs)
     else:
         raise NotImplementedError("unknown fmt: %s" % fmt)
 
@@ -443,14 +447,9 @@ class MDTrajDataset(_BaseDataset):
             atom_indices=self.atom_indices, stride=self.stride)
 
 
-def _dim_match(arr):
-    if arr.ndim == 1:
-        return arr[:, np.newaxis]
-    return arr
-
-
 class UnionDataset(_BaseDataset):
-    def __init__(self, paths, mode, fmt='dir-npy', verbose=False):
+    def __init__(self, paths, mode='r', fmt='dir-npy',
+                 normalize_variance=False, verbose=False):
         # Check mode
         if mode != 'r':
             raise ValueError("Union datasets are read only")
@@ -470,24 +469,41 @@ class UnionDataset(_BaseDataset):
         # Sanity check
         self._check_same_length()
 
+        # Optionally compute normalization
+        if normalize_variance:
+            self.norms = self._get_normalizations()
+        else:
+            self.norms = np.ones(len(self.datasets))
+        assert len(self.norms) == len(self.datasets)
+
+
     def _check_same_length(self):
         """Check that the datasets are the same length"""
-        lens = []
-        for ds in self.datasets:
-            lens.append(
-                sum(1 for _ in ds.keys())
-            )
+        lens = [len(ds) for ds in self.datasets]
         if len(set(lens)) > 1:
             err = "Each dataset must be the same length. You gave: {}"
             err = err.format(lens)
             raise ValueError(err)
 
+    def _get_normalizations(self):
+        norms = []
+        for ds in self.datasets:
+            ds_all = np.concatenate(ds[:])
+            norms += [np.std(ds_all)]
+        return np.asarray(norms)
+
     def keys(self):
         return self.datasets[0].keys()
 
     def get(self, i):
-        return np.concatenate([_dim_match(ds.get(i))
-                               for ds in self.datasets], axis=1)
+        def _dim_match(arr):
+            if arr.ndim == 1:
+                return arr[:, np.newaxis]
+            return arr
+
+        return np.concatenate(
+            [_dim_match(ds.get(i)) / norm
+             for ds, norm in zip(self.datasets, self.norms)], axis=1)
 
     def close(self):
         for ds in self.datasets:
