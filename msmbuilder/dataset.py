@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University
+# Contributors: Matthew Harrigan <matthew.harrigan@outlook.com>
+# Copyright (c) 2015, Stanford University
 # All rights reserved.
 
 from __future__ import absolute_import, print_function, division
@@ -24,7 +24,6 @@ import numpy as np
 from . import version
 
 _PYTABLES_DISABLE_COMPRESSION = tables.Filters(complevel=0)
-
 
 __all__ = ['dataset']
 
@@ -123,7 +122,7 @@ class _BaseDataset(Sequence):
         if mode in 'wa':
             if mode == 'w' and exists(path):
                 raise ValueError('File exists: %s' % path)
-            #os.makedirs(path, exist_ok=True) # (py3 only)
+            # os.makedirs(path, exist_ok=True) # (py3 only)
             try:
                 os.makedirs(path)
             except OSError:
@@ -132,10 +131,13 @@ class _BaseDataset(Sequence):
 
     def create_derived(self, out_path, comments='', fmt=None):
         if fmt is None:
-            out_dataset = self.__class__(out_path, mode='w', verbose=self.verbose)
+            out_dataset = self.__class__(out_path, mode='w',
+                                         verbose=self.verbose)
         else:
-            out_dataset = dataset(out_path, mode='w', verbose=self.verbose, fmt=fmt)
-        out_dataset._write_provenance(previous=self.provenance, comments=comments)
+            out_dataset = dataset(out_path, mode='w', verbose=self.verbose,
+                                  fmt=fmt)
+        out_dataset._write_provenance(previous=self.provenance,
+                                      comments=comments)
         return out_dataset
 
     def apply(self, fn):
@@ -154,6 +156,93 @@ class _BaseDataset(Sequence):
         if previous:
             val += self._PREV_TEMPLATE.format(previous=previous)
         return val
+
+    def fit_with(self, estimator):
+        """Call the fit method of the estimator on this dataset
+
+        Parameters
+        ----------
+        estimator : object with `fit` or `partial_fit` method
+            If the estimator has a ``partial_fit`` method, this will be
+            called on each trajectory in the dataset. Otherwise, the ``fit``
+            method will be called on all dataset items.
+
+        Returns
+        -------
+        estimator
+            The fit estimator.
+        """
+        if hasattr(estimator, 'partial_fit'):
+            for item in self:
+                estimator.partial_fit(item)
+        else:
+            estimator.fit([item for item in self])
+
+        return estimator
+
+    def transform_with(self, estimator, out_ds, fmt=None):
+        """Call the partial_transform method of the estimator on this dataset
+
+        Parameters
+        ----------
+        estimator : object with ``partial_fit`` method
+            This object will be used to transform this dataset into a new
+            dataset. The estimator should be fitted prior to calling
+            this method.
+        out_ds : str or Dataset
+            This dataset will be transformed and saved into out_ds. If
+            out_ds is a path, a new dataset will be created at that path.
+        fmt : str
+            The type of dataset to create if out_ds is a string.
+
+        Returns
+        -------
+        out_ds : Dataset
+            The tranformed dataset.
+        """
+        if isinstance(out_ds, str):
+            out_ds = self.create_derived(out_ds, fmt=fmt)
+        elif isinstance(out_ds, _BaseDataset):
+            err = "Dataset must be opened in write mode."
+            assert out_ds.mode in ('w', 'a'), err
+        else:
+            err = "Please specify a dataset path or an existing dataset."
+            raise ValueError(err)
+        for key in self.keys():
+            out_ds[key] = estimator.partial_transform(self[key])
+        return out_ds
+
+    def fit_transform_with(self, estimator, out_ds, fmt=None):
+        """Create a new dataset with the given estimator.
+
+        The estimator will be fit by this dataset, and then each trajectory
+        will be transformed by the estimator.
+
+        Parameters
+        ----------
+        estimator : BaseEstimator
+            This object will be fit and used to transform this dataset
+            into a new dataset.
+        out_ds : str or Dataset
+            This dataset will be transformed and saved into out_ds. If
+            out_ds is a path, a new dataset will be created at that path.
+        fmt : str
+            The type of dataset to create if out_ds is a string.
+
+        Returns
+        -------
+        out_ds : Dataset
+            The transformed dataset.
+
+        Examples
+        --------
+        diheds = dataset("diheds")
+        tica = diheds.fit_transform_with(tICA(), 'tica')
+        kmeans = tica.fit_transform_with(KMeans(), 'kmeans')
+        msm = kmeans.fit_with(MarkovStateModel())
+        """
+        self.fit_with(estimator)
+        return self.transform_with(estimator, out_ds, fmt=fmt)
 
     @property
     def provenance(self):
@@ -250,7 +339,8 @@ class NumpyDirDataset(_BaseDataset):
         return np.save(filename, x)
 
     def keys(self):
-        for fn in sorted(os.listdir(os.path.expanduser(self.path)), key=_keynat):
+        for fn in sorted(os.listdir(os.path.expanduser(self.path)),
+                         key=_keynat):
             match = self._ITEM_RE.match(fn)
             if match:
                 yield int(match.group(1))
