@@ -21,8 +21,10 @@ from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     """Reversible first order master equation model
 
-    This model fits a reversible continuous-time Markov model for labeled
-    sequence data.
+    This model fits a continuous-time Markov model (master equation) from
+    discrete-time integer labeled timeseries. The key estimated attribute,
+    ``ratemat_``, is a matrix containing the estimated first order rate
+    constants between the states. See [1] for details.
 
     Parameters
     ----------
@@ -94,6 +96,12 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
     right_eigenvectors_ : array of shape=(n_timescales+1)
         Dominant right eigenvectors of the rate matrix,
 
+    References
+    ----------
+    .. [1] R. T. McGibbon and V. S. Pande, Efficient maximum likelihood
+       parameterization of continuous-time Markov processes." J. Chem. Phys.
+       143, 034109 (2015) http://dx.doi.org/10.1063/1.4926516
+
     See Also
     --------
     MarkovStateModel : discrete-time analog
@@ -146,7 +154,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
 
         return countsmat
 
-    @experimental('ContinuousTimeMSM')
     def fit(self, sequences, y=None):
         self._build_counts(sequences)
         return self._fit()
