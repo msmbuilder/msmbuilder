@@ -255,6 +255,10 @@ class _BaseDataset(Sequence):
         return sum(1 for xx in self.keys())
 
     def __getitem__(self, i):
+        if isinstance(i, slice):
+            err = "Please index datasets with explicit indices or ds[:]."
+            assert i.start is None and i.step is None and i.stop is None, err
+            return [self.get(i) for i in self.keys()]
         return self.get(i)
 
     def __setitem__(self, i, x):
@@ -313,13 +317,6 @@ class NumpyDirDataset(_BaseDataset):
     _PROVENANCE_FILE = 'PROVENANCE.txt'
 
     def get(self, i, mmap=False):
-        if isinstance(i, slice):
-            items = []
-            start, stop, step = i.indices(len(self))
-            for ii in itertools.islice(itertools.count(), start, stop, step):
-                items.append(self.get(ii))
-            return items
-
         mmap_mode = 'r' if mmap else None
 
         filename = join(self.path, self._ITEM_FORMAT % i)
@@ -392,13 +389,6 @@ class HDF5Dataset(_BaseDataset):
                                         filters=_PYTABLES_DISABLE_COMPRESSION)
 
     def get(self, i, mmap=False):
-        if isinstance(i, slice):
-            items = []
-            start, stop, step = i.indices(len(self))
-            for ii in itertools.islice(itertools.count(), start, stop, step):
-                items.append(self.get(ii))
-            return items
-
         return self._handle.get_node('/', self._ITEM_FORMAT % i)[:]
 
     def keys(self):
