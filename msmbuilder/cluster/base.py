@@ -62,9 +62,9 @@ class MultiSequenceClusterMixin(object):
             # trajectories (which is the use case that I want to be sure to
             # support), but in general the python container protocol doesn't
             # give us a generic way to make sure we merged sequences
-            concat = sequences[0]
+            concat = sequences[:][0]
             if len(sequences) > 1:
-                concat = concat.join(sequences[1:])
+                concat = concat.join(sequences[:][1:])
             concat.center_coordinates()
         else:
             raise TypeError('sequences must be a list of numpy arrays '
