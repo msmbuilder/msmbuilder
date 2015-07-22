@@ -162,22 +162,15 @@ class _BaseDataset(Sequence):
 
         Parameters
         ----------
-        estimator : object with `fit` or `partial_fit` method
-            If the estimator has a ``partial_fit`` method, this will be
-            called on each trajectory in the dataset. Otherwise, the ``fit``
-            method will be called on all dataset items.
+        estimator : BaseEstimator
+            estimator.fit will be called on this dataset.
 
         Returns
         -------
         estimator
             The fit estimator.
         """
-        if hasattr(estimator, 'partial_fit'):
-            for item in self:
-                estimator.partial_fit(item)
-        else:
-            estimator.fit([item for item in self])
-
+        estimator.fit(self)
         return estimator
 
     def transform_with(self, estimator, out_ds, fmt=None):
