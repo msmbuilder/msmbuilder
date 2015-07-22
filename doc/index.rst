@@ -47,7 +47,6 @@ licensed under the GNU LGPL (v2.1 or later).
     ratematrix
     hmm
     persistence
-    commandline
     apipatterns
     plugins
     faq
