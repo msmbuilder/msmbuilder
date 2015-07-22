@@ -40,11 +40,11 @@ licensed under the GNU LGPL (v2.1 or later).
     installation
     examples/index
     featurization
+    tica
     cluster
     msm
-    ratematrix
     tpt
-    tica
+    ratematrix
     hmm
     persistence
     commandline

@@ -30,4 +30,7 @@ Workflow
 3. Use the best model to make meaningful conclusions about your system
    under study.
 
+
+.. figure:: _static/flow-chart.png
+
 .. vim: tw=75

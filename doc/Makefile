@@ -6,8 +6,6 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
-TOOLSPATH			= ../devtools/
-EXAMPLEBUILD  = examples_rst.py
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -53,7 +51,6 @@ builddir:
 
 clean:
 	rm -rf $(BUILDDIR)/*
-	rm -rf $(TOOLSPATH)/hash_dict.pickle
 	rm -rf examples/generated/*.rst
 	rm -rf generated/*.rst
 

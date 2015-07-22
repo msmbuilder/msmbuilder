@@ -2,21 +2,20 @@
 .. currentmodule:: msmbuilder.msm
 
 Markov state models (MSMs)
-===========================
+==========================
 
-Background
-----------
-Markov state models (MSMs) are a class of timeseries models for modeling the
-long-timescale dynamics of molecular systems. An MSM is essentially a kinetic
-map of the conformational space a molecule explores. The model consists of (1)
-a set of conformational states and (2) a matrix of transition probabilities
-(or, equivalently, transition rates) between each pair of states.
+Markov state models (MSMs) are a class of models for modeling the
+long-timescale dynamics of molecular systems. An MSM is essentially a
+kinetic map of the conformational space a molecule explores. The model
+consists of (1) a set of conformational states, and (2) a matrix of
+transition probabilities between each pair of states.
 
-In MSMBuilder, you can use :class:`MarkovStateModel` to build MSMs from "labeled"
-trajectories -- that is, sequences of integers corresponding to the index of
-the conformational state occupied by the system at each time point on a
-trajectory. The :ref:`cluster` module provides a number of different methods for
-clustering the trajectories that you can use to define the states.
+In MSMBuilder, you can use :class:`MarkovStateModel` to build MSMs from
+"labeled" trajectories -- that is, sequences of integers corresponding to
+the index of the conformational state occupied by the system at each time
+point on a trajectory. The :ref:`cluster` module provides a number of
+different methods for clustering the trajectories that you can use to
+define the states.
 
 
 Algorithms
@@ -31,12 +30,14 @@ Algorithms
 
 Maximum Likelihood and Bayesian Estimation
 ------------------------------------------
+
 There are two steps in constructing an MSM
 
   1. Count the number of observed transitions between states. That is,
-     construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number
-     of observed transitions from state :math:`i` at time :math:`t` to
-     state :math:`j` at time :math:`t+\tau`, summed over all times :math:`t`.
+       construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number
+       of observed transitions from state :math:`i` at time :math:`t` to
+       state :math:`j` at time :math:`t+\tau`, summed over all times
+       :math:`t`.
 
   2. Estimate the transition probability matrix, :math:`\mathbf{T}`
 
@@ -47,15 +48,16 @@ There are two steps in constructing an MSM
      :math:`N`, and :math:`s_t \in \{1, \ldots, k\}` the state-index of the
      trajectory at time :math:`t`.
 
-The probability that a given transition probability matrix would
-generate some observed trajectory (the likelihood) is
+The probability that a given transition probability matrix would generate
+some observed trajectory (the likelihood) is
 
 .. math ::
   \mathcal{L}(\mathbf{T}) = P(S | \mathbf{T}) =
   \prod_{t=0}^{N-\tau} T_{s_t, s_{t+\tau}} = \prod_{i,j}^{k} T_{ij}^{C_{ij}}.
 
 Assuming a prior distribution on :math:`T` of the form
-:math:`P(T)=\prod_{ij} T_{ij}^{B_{ij}}`, we then have a posterior distribution
+:math:`P(T)=\prod_{ij} T_{ij}^{B_{ij}}`, we then have a posterior
+distribution
 
 .. math ::
    P(\mathbf{T} | S) \propto \prod_{i,j}^{k} T_{ij}^{B_{ij} + C_{ij}}.
@@ -63,51 +65,58 @@ Assuming a prior distribution on :math:`T` of the form
 
 MSMBuilder implements two MSM estimators.
 
- -  :class:`MarkovStateModel` performs maximum likelihood estimation.
-    It estimates a single transition matrix, :math:`\mathbf{T}`, to
-    maximimize :math:`\mathcal{L}(\mathbf{T})`.
- - :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte Carlo
-   to (approximately) draw a sample of transition matrices from the posterior
-   distribution :math:`P(\mathbf{T} | S)`. This sampler is described in Metzner
-   et al. [#f5]_ This can be used to estimate the sampling uncertainty in
-   functions of the transition matrix (e.g. relaxation timescales).
+ -  :class:`MarkovStateModel` performs maximum likelihood estimation.  It
+   estimates a single transition matrix, :math:`\mathbf{T}`, to maximimize
+   :math:`\mathcal{L}(\mathbf{T})`.
+
+ - :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte
+   Carlo to (approximately) draw a sample of transition matrices from the
+   posterior distribution :math:`P(\mathbf{T} | S)`. This sampler is
+   described in Metzner et al. [#f5]_ This can be used to estimate the
+   sampling uncertainty in functions of the transition matrix (e.g.
+   relaxation timescales).
 
 .. note::
 
-   The uncertainty in the transition matrix (and functions of the transition
-   matrix) that can be estimated from :class:`BayesianMarkovStateModel` do not
-   **fully** account for all sources of error. In particular, the discretization
-   induced by clustering produces a negative bias on  the eigenvalues of the
-   transition matrix -- they asymptotically underestimate the eigenvalues of
-   the propagator / transfer operator in the limit of infinite sampling. [#f6]_
-   See section 3D (Quantifying the discretization error) of Prinz et al. for
-   more discussion on the discretization error. [#f1]_
+   The uncertainty in the transition matrix (and functions of the
+   transition matrix) that can be estimated from
+   :class:`BayesianMarkovStateModel` do not **fully** account for all
+   sources of error. In particular, the discretization induced by
+   clustering produces a negative bias on  the eigenvalues of the
+   transition matrix -- they asymptotically underestimate the eigenvalues
+   of the propagator / transfer operator in the limit of infinite sampling.
+   [#f6]_ See section 3D (Quantifying the discretization error) of Prinz et
+   al. for more discussion on the discretization error. [#f1]_
 
 
 Tradeoffs and Parameter Selection
 ---------------------------------
+
 The most important tradeoff with MSMs is a `bias-variance dilemma
-<http://en.wikipedia.org/wiki/Bias%E2%80%93variance_dilemma>`_ on the number of
-states. We know analytically that the expected value of the relaxation
-timescales is below the true value when using a finite number of states, and
-that the magnitude of this bias decreases as the number of states goes up. On
-the other hand, the statistical error in the MSM (variance) goes up as the
-number of states increases with a fixed data set, because there are fewer
-transitions (data) per element of the transition probability matrix.
+<http://en.wikipedia.org/wiki/Bias%E2%80%93variance_dilemma>`_ on the
+number of states. We know analytically that the expected value of the
+relaxation timescales is below the true value when using a finite number of
+states, and that the magnitude of this bias decreases as the number of
+states goes up. On the other hand, the statistical error in the MSM
+(variance) goes up as the number of states increases with a fixed data set,
+because there are fewer transitions (data) per element of the transition
+probability matrix.
 
-There are no existing algorithms in the MSM literature which fully balance these
-competing sources of error in an automatic and practical way, although some
-partially satisfactory algorithms are available. [#f3]_ [#f4]_
+There are no existing algorithms in the MSM literature which fully balance
+these competing sources of error in an automatic and practical way,
+although some partially satisfactory algorithms are available. [#f3]_
+[#f4]_
 
-A second key parameter is the lag time of the model. The lag time controls a
-trade off between accuracy and descriptive power. [TODO: WRITE MORE]
+A second key parameter is the lag time of the model. The lag time controls
+a trade off between accuracy and descriptive power. [TODO: WRITE MORE]
 
 
 Analyzing an MSM
 ----------------
-1. timescales
-2. eigenvectors
-3. lumping
+
+#. timescales
+#. eigenvectors
+#. lumping
 
 
 References
@@ -118,3 +127,5 @@ References
 .. [#f4] Kellogg, E. H., O. F. Lange, and D. Baker. `Evaluation and optimization of discrete state models of protein folding. <http://dx.doi.org//10.1021/jp3044303>`_ J. Phys. Chem. B 116.37 (2012): 11405-11413.
 .. [#f5] Metzner, P., F. Noe, and C. Schutte. `Estimating the sampling error: Distribution of transition matrices and functions of transition matrices for given trajectory data. <http://journals.aps.org/pre/abstract/10.1103/PhysRevE.80.021106>`_ Phys. Rev. E 80.2 (2009): 021106.
 .. [#f6] Nuske, F., et al. `Variational approach to molecular kinetics. <http://pubs.acs.org/doi/abs/10.1021/ct4009156>`_ J. Chem. Theory Comput.10.4 (2014): 1739-1752.
+
+.. vim: tw=75

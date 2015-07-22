@@ -151,6 +151,8 @@ def nb_to_html(nb_path):
 
     header = '\n'.join(header_lines)
 
+    body = body.replace('class="container" id="notebook-container"', 'id="notebook-container"')
+
     # concatenate raw html lines
     lines = ['<div class="ipynotebook">']
     lines.append(header)
@@ -160,10 +162,8 @@ def nb_to_html(nb_path):
 
 def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
-    # Always use --pylab so figures appear inline
-    # perhaps this is questionable?
     notebook = read(open(nb_path), 'json')
-    nb_runner = NotebookRunner(notebook, pylab=True, mpl_inline=True)
+    nb_runner = NotebookRunner(notebook)
     try:
         nb_runner.run_notebook(skip_exceptions=skip_exceptions)
     except NotebookError as e:

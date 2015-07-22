@@ -15,50 +15,25 @@ you download the `Anaconda scientific python distribution
 <https://store.continuum.io/cshop/anaconda/>`_.
 
 
-Dependencies
-------------
+From Source
+-----------
 
-.. I copied a lot of this formatting and text from the Theano docs
-.. (http://deeplearning.net/software/theano/_sources/install.txt)
-.. Thanks guys!
 
 MSMBuilder is a python package that heavily leans on other components of the
 scientific python ecosystem. To use msmbuilder, the following libraries and
 software will need to be installed.
+ 
+ * scikit-learn, scipy, numpy
+ * pandas
+ * mdtraj
+ * cython *(build-time dependency)*
 
-    Linux, Mac OS X, or Windows
-        We develop mainly on 64-bit Linux and Mac machines. Windows _is_
-        supported, but may be a little rough around the edges.
-
-    `Python <http://python.org>`_ >= 2.7
-
-    `NumPy <http://numpy.scipy.org/>`_ >= 1.6.0
-        Numpy is the base package for numerical computing in python.
-
-    `SciPy <http://scipy.org>`_ >= 0.11.0
-        We use scipy for sparse matrix, numerical linear algebra and
-        optimization.
-
-    `scikit-learn <http://sklearn.org>`_ >= 0.14.0
-        Many of the models in msmbuilder build off base classes in
-        scikit-learn.
-
-    `MDTraj <http://mdtraj.org>`_ >= 1.2.0
-        MDTraj is a library for handing molecular dynamics trajectories.
-
-    `Pandas <http://pandas.pydata.org>`_ >= 0.9.0
-
-    `cython <http://cython.org>`_ >= 0.18.0
-        This is needed to compile the package.
-
-
-Optional packages:
-
-    `nose <http://somethingaboutorange.com/mrl/projects/nose/>`_
-        Recommended, to run the test-suite.
-
-    `Git <http://git-scm.com>`_
-        To download the source code
+Additional dependencies for running tests and building the docs include:
+ 
+ * nose
+ * numdifftools
+ * pyhmc
+ * msmb_theme
 
 
 Frequently Asked Questions
