@@ -388,17 +388,16 @@ class tICA(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        sequences : list of array-like
-            List of sequences, or a single sequence. Each sequence should be a
-            1D iterable of state labels. Labels can be integers, strings, or
-            other orderable objects.
+        sequences : list of array, each of shape (n_samples_i, n_features)
+            Test data. A list of sequences in afeature space, each of which is a 2D
+            array of possibily different lengths, but the same number of features.
 
         Returns
         -------
         gmrq : float
             Generalized matrix Rayleigh quotient. This number indicates how
-            well the top ``n_timescales+1`` eigenvectors of this MSM perform as
-            slowly decorrelating collective variables for the new data in
+            well the top ``n_timescales+1`` eigenvectors of this tICA model perform
+            as slowly decorrelating collective variables for the new data in
             ``sequences``.
 
         References
