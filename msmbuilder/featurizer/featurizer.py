@@ -276,6 +276,41 @@ class DihedralFeaturizer(Featurizer):
             raise ValueError('angles must be a subset of %s. you supplied %s' % (
                 str(known), str(types)))
 
+    def describe_features(self, traj):
+        """Return a Pandas Dataframe describing the features."""
+        x = []
+        for a in self.types:
+            func = getattr(md, 'compute_%s' % a)
+            aind, y = func(traj)
+            n = len(aind)
+
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i])) for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i])) for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
+
+
+            bigclass = ["dihedral"] * n
+            smallclass = [a] * n
+
+            if self.sincos:
+                #x.extend([np.sin(y), np.cos(y)])
+                aind =  list(aind) * 2
+                resnames = resnames * 2
+                resSeq = resSeq * 2
+                resid = resid * 2
+                otherInfo = (["sin"] * n) + (["cos"] * n)
+                bigclass = bigclass * 2
+                smallclass = smallclass * 2
+            else:
+                otherInfo = ["nosincos"] * n
+
+            for i in range(len(resnames)):
+                d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
+                           otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
+                x.append(d_i)
+
+        return x
+
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
         of dihedral (torsion) angles
@@ -303,16 +338,8 @@ class DihedralFeaturizer(Featurizer):
             indices,y = func(traj)
             if self.sincos:
                 x.extend([np.sin(y), np.cos(y)])
-                if not self.wrote_atom_indices:
-                    self.atom_indices.extend(indices)
-                    self.atom_indices.extend(indices)
             else:
                 x.append(y)
-                if not self.wrote_atom_indices:
-                    self.atom_indices.extend(indices)
-        if not self.wrote_atom_indices:
-            self.wrote_atom_indices = True
-            self.atom_indices = np.array(self.atom_indices)
         return np.hstack(x)
 
 
@@ -348,6 +375,37 @@ class KappaAngleFeaturizer(Featurizer):
 
         assert result.shape == (traj.n_frames, traj.n_residues - 4)
         return result
+
+    def describe_features(self, traj):
+        """Return a Pandas Dataframe describing the Kappa angle features."""
+        x = []
+        #fill in the atom indices using just the first frame
+        res_ = self.partial_transform(traj[0])
+        if self.atom_indices is not None:
+            aind = self.atom_indices
+            n = len(aind)
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i])) for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i])) for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
+            bigclass = ["angle"] * n
+            smallclass = ["kappa"] * n
+
+            if self.cos:
+                otherInfo = (["cos"] * n)
+            else:
+                otherInfo = ["nocos"] * n
+
+            assert len(self.atom_indices)==len(resnames)
+
+            for i in range(len(resnames)):
+                    d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
+                               otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
+                    x.append(d_i)
+
+            return x
+        else:
+            raise UserWarning("Cannot describe features for trajectories with fewer than 5 alpha carbon\
+                              using KappaAngle Featurizer")
 
 
 class SASAFeaturizer(Featurizer):
