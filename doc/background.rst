@@ -16,6 +16,10 @@ quantitative predictions about the system?
 Workflow
 ~~~~~~~~
 
+A default workflow is outlined below. Note that most steps are optional
+under certain circumstances. Read the rest of the documentation to
+understand when.
+
 1. Set up a system for molecular dynamics, and run one or more simulations
    for as long as you can on as many CPUs or GPUs as you have access to.
    There are a lot of great software packages for running MD, e.g `OpenMM
@@ -23,14 +27,25 @@ Workflow
    `Amber <http://ambermd.org/>`_, `CHARMM <http://www.charmm.org/>`_, and
    many others. MSMBuilder is not one of them.
 
-2. Analyze your simulations with MSMBuilder.  Build estimators for the
-   long-timescale dynamical processes, and perform model selection using
-   cross-validation.
+2. :ref:`Featurize<featurization>` trajectories into an appropriate vector of
+   features such as backbone dihedral angles.
 
-3. Use the best model to make meaningful conclusions about your system
-   under study.
+3. :ref:`Reduce the dimensionality<decomposition>` of your features using
+   tICA or a similar algorithm.
+
+4. :ref:`Cluster<cluster>` your data to define (micro-)states.
+
+5. :ref:`Estimate a model<msm>` of your data.
+
+6. Use :ref:`GMRQ cross-validation<gmrq>` to select the best model.
+
+.. todo:: Please update the above link to gmrq
 
 
 .. figure:: _static/flow-chart.png
+    :align: center
+    :width: 80%
+
+    A diagram of potential workflows.
 
 .. vim: tw=75

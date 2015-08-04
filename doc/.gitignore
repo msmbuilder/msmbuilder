@@ -1,2 +1,8 @@
 _build/
 generated/
+
+# autosummary generated files
+cluster/
+msm/
+ratematrix/
+decomposition/

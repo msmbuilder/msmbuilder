@@ -1,13 +1,14 @@
-.. _tica:
-.. currentmodule:: msmbuilder
+.. _decomposition:
+.. currentmodule:: msmbuilder.decomposition
 
-Time-structure Independent Components Analysis (tICA)
-=====================================================
+Dimensionality Reduction
+========================
+
+tICA
+----
 
 
 .. figure:: _static/tica_vs_pca.png
-   :height: 300 px
-   :width: 300 px
    :align: right
 
    tICA compared to PCA (courtesy of C. R. Schwantes)
@@ -24,15 +25,24 @@ linear combinations of the input degrees of freedom, tICA finds
 high-autocorrelation linear combinations of the input degrees of freedom.
 
 
+PCA
+---
+
+Principal component analysis (PCA) is a method for finding the most
+highly-varying degrees of freedom in a data set (not necessarily a time
+series). PCA is useful as a dimensionality reduction method. 
+
+
 Algorithms
 ----------
 
 .. autosummary::
-    :toctree: generated/
-    :template: class.rst
+    :toctree: decomposition/
 
-    ~decomposition.tICA
-    ~decomposition.SparseTICA
+    tICA
+    SparseTICA
+    PCA
+
 
 Combination with MSM
 --------------------
@@ -72,6 +82,7 @@ Example
 
 References
 ----------
+
 .. [#f1] Schwantes, Christian R., and Vijay S. Pande. `Improvements in Markov State Model Construction Reveal Many Non-Native Interactions in the Folding of NTL9 <http://dx.doi.org/10.1021/ct300878a>`_ J. Chem Theory Comput. 9.4 (2013): 2000-2009.
 .. [#f2] Perez-Hernandez, Guillermo, et al. `Identification of slow molecular order parameters for Markov model construction <http://dx.doi.org/10.1063/1.4811489>`_ J Chem. Phys (2013): 015102.
 .. [#f3] Naritomi, Yusuke, and Sotaro Fuchigami. `Slow dynamics in protein fluctuations revealed by time-structure based independent component analysis: The case of domain motions <http://dx.doi.org/10.1063/1.3554380>`_ J. Chem. Phys. 134.6 (2011): 065101.

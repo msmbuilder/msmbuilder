@@ -2,8 +2,8 @@
 .. currentmodule:: msmbuilder.featurizer
 
 
-Featurization and Distance Metrics
-==================================
+Featurization
+=============
 
 Many algorithms require that the input data be vectors in a (euclidean)
 vector space. This includes :class:`~msmbuilder.cluster.KMeans` clustering,
@@ -24,7 +24,6 @@ Featurizations
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
 
     AtomPairsFeaturizer
     ContactFeaturizer

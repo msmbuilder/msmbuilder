@@ -1,8 +1,8 @@
 .. _cluster:
 .. currentmodule:: msmbuilder.cluster
 
-Geometric Clustering
-====================
+Clustering
+==========
 
 Clustering MD trajectories groups the the data [#f1]_ into a set of
 clusters such that conformations in the same cluster are structurally
@@ -23,10 +23,10 @@ probably others.
 
 On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a
 tradeoff between clustering quality and computational cost. For that reason
-MSMBuilder has a bunch of different clustering algorithms implemented.
+MSMBuilder has a variety of different clustering algorithms implemented.
 
-API
----
+Algorithms
+----------
 
 All clustering algorithms in MSMBuilder follow the following basic API.
 Hyperparameters, including the number of clusters, random seeds, the
@@ -36,11 +36,9 @@ to ``fit`` should be a *list* of molecular dynamics trajectories or a list
 of 2D numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
 
 
-Algorithms
-----------
 .. autosummary::
-    :toctree: generated/
-    :template: class.rst
+    :toctree: cluster/
+    :nosignatures:
 
     KCenters
     KMeans
@@ -48,13 +46,6 @@ Algorithms
     MiniBatchKMedoids
     RegularSpatial
     LandmarkAgglomerative
-
-
-Additional Algorithms
----------------------
-.. autosummary::
-    :toctree: generated/
-
     AffinityPropagation
     GMM
     MeanShift

@@ -110,7 +110,7 @@ Where should I start with the MSM literature?
 
 
 What is the relationship between MSMBuilder and other packages?
-------------------------------------------------------------
+---------------------------------------------------------------
 
     Another software packages that performs similar
     analyses is `EMMA <https://simtk.org/home/emma>`_.  MSMBuilder inherits a lot of
@@ -225,7 +225,7 @@ Why am I getting MemoryErrors?
 
 
 How can I cite MSMBuilder?
----------------------------
+--------------------------
 
     Please cite `MSMBuilder2: Modeling Conformational Dynamics on the Picosecond to Millisecond Scale <http://pubs.acs.org/doi/abs/10.1021/ct200463m>`_
     Most of the individual methods that are implemented in MSMBuilder were also introduced in published papers. The

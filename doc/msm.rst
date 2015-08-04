@@ -22,8 +22,7 @@ Algorithms
 ----------
 
 .. autosummary::
-    :toctree: generated/
-    :template: class.rst
+    :toctree: msm/
 
     MarkovStateModel
     BayesianMarkovStateModel

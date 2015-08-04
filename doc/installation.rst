@@ -20,21 +20,8 @@ From Source
 
 
 MSMBuilder is a python package that heavily leans on other components of the
-scientific python ecosystem. To use msmbuilder, the following libraries and
-software will need to be installed.
- 
- * scikit-learn, scipy, numpy
- * pandas
- * mdtraj
- * cython *(build-time dependency)*
-
-Additional dependencies for running tests and building the docs include:
- 
- * nose
- * numdifftools
- * pyhmc
- * msmb_theme
-
+scientific python ecosystem. See ``devtools/conda-recipe/meta.yaml`` for a
+complete and up-to-date list of build, run, and test dependencies.
 
 Frequently Asked Questions
 --------------------------
