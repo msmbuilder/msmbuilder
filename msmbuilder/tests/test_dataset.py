@@ -188,7 +188,7 @@ def test_union():
             rs1 = np.sum(ds1[0], axis=1) + np.sum(ds2[0], axis=1)
             rs2 = ds1[1] + np.sum(ds2[1], axis=1)
 
-        mds = dataset(['ds1.h5', 'ds2.h5'])
+        mds = dataset(['ds1.h5', 'ds2.h5'], fmt='hdf5-union')
 
         assert len(mds) == 2
         assert mds[0].shape == (10, 6)
@@ -210,7 +210,7 @@ def test_union_2():
             ds2[1] = np.random.randn(10,4)
 
 
-        mds = dataset(['ds1', 'ds2'])
+        mds = dataset(['ds1', 'ds2'], fmt='dir-npy-union')
         mds_out = mds.create_derived('derived', fmt='dir-npy')
         assert len(mds_out.provenance.split('\n')) > 0
 
@@ -226,7 +226,7 @@ def test_union_3():
             # Uneven length!
 
         with assert_raises(ValueError):
-            mds = dataset(['ds1', 'ds2'])
+            mds = dataset(['ds1', 'ds2'], fmt='dir-npy-union')
 
 
 def test_order_1():
