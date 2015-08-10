@@ -63,7 +63,7 @@ Intended Audience :: Developers
 License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)
 Programming Language :: C++
 Programming Language :: Python
-Development Status :: 4 - Beta
+Development Status :: 5 - Production/Stable
 Topic :: Software Development
 Topic :: Scientific/Engineering
 Operating System :: POSIX
