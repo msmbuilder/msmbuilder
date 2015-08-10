@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v3.3 (Unreleased)
+-----------------
+
+- `GaussianHMM` and `VonMisesHMM` is rewritten to feature higher code reuse
+  and code quality (#583, #582, #584, #572, #570).
+- `KDTree` can find n nearest points to e.g. a cluster center (#599).
+- `PCCAPlus` is compatible with scipy 0.16 (#620).
+- Documentation improvements (#618, #608, #604, #602)
+- Test improvements, especially for Windows (#593, #590, #588, #579, #578,
+  #577, #576)
+- The command line flag for featurizers `--out` now saves the featurizer as
+  a pickle file. This is consistent with other command-line commands
+  (#546).
+- Bug fix: `MarkovStateModel.sample()` produced trajectories of incorrect
+  length. This function is still deprecated (#556).
+- `Slicer` featurizer can slice feature arrays as part of a pipeline
+  (#567).
+
 v3.2 (April 14, 2015)
 ---------------------
 
@@ -8,7 +26,7 @@ v3.2 (April 14, 2015)
   an exception
 - New methods for sampling from MSM models
 - Datasets can be opened in "append" mode
-- Compatibility with sklearn 0.16
+- Compatibility with scipy 0.16
 - `utils.dump` saves using the pickle protocol. `utils.load` is backwards
   compatible.
 - The command line flag for featurizers `--out` is deprecated. Use
