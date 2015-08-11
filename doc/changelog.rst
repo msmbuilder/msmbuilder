@@ -4,6 +4,10 @@ Changelog
 v3.3 (Unreleased)
 -----------------
 
+- ``FeatureUnion`` is an estimator that deprecates the functionality of
+  ``UnionDataset``. Passing a list of paths to ``dataset()`` will no longer
+  automatically yield a ``UnionDataset``. This behavior is still available by
+  specifying ``fmt="dir-npy-union"``, but is deprecated (#611).
 - ``GaussianHMM`` and ``VonMisesHMM`` is rewritten to feature higher code reuse
   and code quality (#583, #582, #584, #572, #570).
 - ``KDTree`` can find n nearest points to e.g. a cluster center (#599).
