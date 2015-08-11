@@ -24,8 +24,6 @@ conda install --yes `conda build devtools/conda-recipe --output`
 pip install msmb_theme s3cmd
 
 # Install stuff for running the example IPython notebooks
-sudo apt-get update -qq
-sudo apt-get install -qq pandoc         # notebook -> rst
 conda install --yes `cat doc/requirements.txt | xargs`
 
 cd doc && make html && cd -
