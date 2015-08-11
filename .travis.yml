@@ -1,4 +1,10 @@
 language: c
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - pandoc
 
 branches:
   only:
