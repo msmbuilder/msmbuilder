@@ -155,3 +155,13 @@ class KMedoids(MultiSequenceClusterMixin, _KMedoids, BaseEstimator):
         MultiSequenceClusterMixin.fit(self, sequences)
         self.cluster_ids_ = self._split_indices(self.cluster_ids_)
         return self
+
+    def summarize(self):
+        return """KMedoids clustering
+-------------------
+n_clusters : {n_clusters}
+n_passes   : {n_passes}
+metric     : {metric}
+
+Inertia    : {inertia_}
+""".format(**self.__dict__)

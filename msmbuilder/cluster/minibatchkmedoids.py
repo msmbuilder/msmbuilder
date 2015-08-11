@@ -197,3 +197,12 @@ class MiniBatchKMedoids(MultiSequenceClusterMixin, _MiniBatchKMedoids, BaseEstim
         MultiSequenceClusterMixin.fit(self, sequences)
         self.cluster_ids_ = self._split_indices(self.cluster_ids_)
         return self
+
+    def summarize(self):
+        return """MiniBatchKMedoids clustering
+----------------------------
+n_clusters : {n_clusters}
+metric     : {metric}
+
+Inertia    : {inertia_}
+""".format(**self.__dict__)
