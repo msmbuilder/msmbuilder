@@ -450,8 +450,8 @@ def test_guess():
     model2 = ContinuousTimeMSM(guess='pseudo')
     model2.fit(assignments)
 
-    assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-4
-    assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-2
+    assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-3
+    assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-1
 
 
 def test_doublewell():
