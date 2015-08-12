@@ -89,6 +89,9 @@ class MullerPotential(_NWell):
             high=[M['MAX_X'], M['MAX_Y']],
             size=(M['N_TRAJECTORIES'], 2))
 
+        # TODO: remove
+        print("x0s", x0s)
+
         # propagate releases the GIL, so we can use a thread pool and
         # get a nice speedup
         tp = ThreadPool(cpu_count())
