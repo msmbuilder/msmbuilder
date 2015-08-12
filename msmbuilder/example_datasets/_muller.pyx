@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.utils import check_random_state
 from libc.math cimport exp, sqrt
-cimport cython
 from numpy cimport npy_intp
 
 cdef double *MULLER_aa = [-1, -1, -6.5, 0.7]

@@ -1,18 +1,11 @@
 from __future__ import print_function, division, absolute_import
 
-import time
-import numbers
-from os import makedirs
-from os.path import join
-from os.path import exists
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
-from sklearn.utils import check_random_state
 
 from .brownian1d import _NWell
-from .base import Bunch, Dataset, get_data_home
 from ._muller import propagate, muller_potential
 
 __all__ = ['load_muller', 'MullerPotential']
