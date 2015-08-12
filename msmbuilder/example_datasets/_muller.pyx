@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.utils import check_random_state
 from libc.math cimport exp, sqrt
-cimport cython
 from numpy cimport npy_intp
 
 cdef double *MULLER_aa = [-1, -1, -6.5, 0.7]
@@ -12,18 +11,21 @@ cdef double *MULLER_XX = [1, 0, -0.5, -1]
 cdef double *MULLER_YY = [0, 0.5, 1.5, 1]
 
 
-def propagate(int n_steps=5000, x0=[-0.5, 0.5], int thin=1,
+def propagate(int n_steps=5000, x0=None, int thin=1,
               double kT=1.5e4, double dt=0.1, double D=0.010,
               random_state=None, double min_x=-np.inf, double max_x=np.inf,
               double min_y=-np.inf, double max_y=np.inf):
     random = check_random_state(random_state)
+    if x0 is None:
+        x0 = (-0.5, 0.5)
     cdef int i, j
     cdef int save_index = 0
     cdef double DT_SQRT_2D = dt * sqrt(2 * D)
     cdef double beta = 1.0 / kT
     cdef double[:, ::1] r = random.randn(n_steps, 2)
     cdef double[:, ::1] saved_x = np.zeros(((n_steps)/thin, 2))
-    cdef double x, y
+    cdef double x = x0[0]
+    cdef double y = x0[1]
     cdef double[2] grad
 
     with nogil:

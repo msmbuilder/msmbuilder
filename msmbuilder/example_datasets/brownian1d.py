@@ -82,6 +82,11 @@ class _NWell(Dataset):
                 return verboseload(path)
             else:
                 trajectories = self.simulate_func(random)
+
+                # TODO: Remove
+                print("trajectories.len", len(trajectories))
+                print("traj[0].sum", trajectories[0].sum())
+
                 verbosedump(trajectories, path)
                 return trajectories
 
