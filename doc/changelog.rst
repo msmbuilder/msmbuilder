@@ -20,6 +20,8 @@ v3.3 (Unreleased)
   (#546).
 - Bug fix: ``MarkovStateModel.sample()`` produced trajectories of incorrect
   length. This function is still deprecated (#556).
+- Bug fix: The muller example dataset did not respect users' specifications
+  for initial coordinates (#631).
 - ``Slicer`` featurizer can slice feature arrays as part of a pipeline
   (#567).
 
