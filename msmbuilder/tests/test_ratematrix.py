@@ -395,6 +395,11 @@ def test_uncertainties_backward():
 def test_score_2():
     from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
     ds = MullerPotential(random_state=0).get()['trajectories']
+
+    # TODO: Remove
+    print("len", len(ds))
+    print("ds", ds)
+
     cluster = NDGrid(n_bins_per_feature=6,
           min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
           max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
