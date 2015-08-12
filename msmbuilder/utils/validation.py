@@ -68,6 +68,14 @@ def array2d(X, dtype=None, order=None, copy=False, force_all_finite=True):
 def _assert_all_finite(X):
     """Like assert_all_finite, but only for ndarray."""
     X = np.asanyarray(X)
+
+    #TODO: Remove
+    print('dtype.char:', X.dtype.char)
+    print('AllFloat:', np.typecodes['AllFloat'])
+    print('Sum:', X.sum())
+    print('All:', np.isfinite(X).all())
+    print("X:", X)
+
     if (X.dtype.char in np.typecodes['AllFloat'] and not np.isfinite(X.sum())
             and not np.isfinite(X).all()):
         raise ValueError("Input contains NaN, infinity"
