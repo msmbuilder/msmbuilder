@@ -11,7 +11,7 @@ def test_func():
 
 
 def test_class():
-    xx = MullerPotential(random_state=123122).get()['Trajectories']
+    xx = MullerPotential(random_state=123122).get()['trajectories']
     assert len(xx) == 10
     assert xx[0].ndim == 2
     assert xx[0].shape[1] == 2
