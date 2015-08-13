@@ -1,18 +1,11 @@
 from __future__ import print_function, division, absolute_import
 
-import time
-import numbers
-from os import makedirs
-from os.path import join
-from os.path import exists
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
-from sklearn.utils import check_random_state
 
 from .brownian1d import _NWell
-from .base import Bunch, Dataset, get_data_home
 from ._muller import propagate, muller_potential
 
 __all__ = ['load_muller', 'MullerPotential']
@@ -84,7 +77,7 @@ class MullerPotential(_NWell):
 
     def simulate_func(self, random):
         M = MULLER_PARAMETERS
-        x0 = random.uniform(
+        x0s = random.uniform(
             low=[M['MIN_X'], M['MIN_Y']],
             high=[M['MAX_X'], M['MAX_Y']],
             size=(M['N_TRAJECTORIES'], 2))
@@ -97,7 +90,7 @@ class MullerPotential(_NWell):
                 n_steps=M['N_STEPS'], x0=x0, thin=M['THIN'], kT=M['KT'],
                 dt=M['DT'], D=M['DIFFUSION_CONST'], random_state=random,
                 min_x=M['MIN_X'], max_x=M['MAX_X'], min_y=M['MIN_Y'],
-                max_y=M['MAX_Y']), x0)
+                max_y=M['MAX_Y']), x0s)
 
     def potential(self, x, y):
         return muller_potential(x, y)

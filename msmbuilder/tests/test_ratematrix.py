@@ -1,9 +1,4 @@
 from __future__ import print_function
-import time
-import sys
-import warnings
-from nose.tools import assert_true
-warnings.simplefilter('ignore')
 import numpy as np
 import scipy.linalg
 from numpy.testing.decorators import skipif
@@ -11,8 +6,8 @@ from scipy.optimize import check_grad, approx_fprime
 try:
     import numdifftools as nd
 except ImportError:
-    print('Missig test dependency', file=sys.stderr)
-    print('  pip installl numdifftools', file=sys.stderr)
+    print('Missig test dependency')
+    print('  pip installl numdifftools')
     raise
 
 from msmbuilder.msm import _ratematrix
@@ -307,7 +302,7 @@ def test_hessian_3():
     seqs = [seqs[i] for i in range(10)]
 
     lag_time = 10
-    model = ContinuousTimeMSM(verbose=True, lag_time=lag_time)
+    model = ContinuousTimeMSM(verbose=False, lag_time=lag_time)
     model.fit(seqs)
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
@@ -334,7 +329,7 @@ def test_fit_2():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
 
-    model = ContinuousTimeMSM(verbose=True, lag_time=10)
+    model = ContinuousTimeMSM(verbose=False, lag_time=10)
     model.fit(seqs)
     t1 = np.sort(model.timescales_)
     t2 = -1/np.sort(np.log(np.linalg.eigvals(model.transmat_))[1:])
@@ -455,8 +450,8 @@ def test_guess():
     model2 = ContinuousTimeMSM(guess='pseudo')
     model2.fit(assignments)
 
-    assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-4
-    assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-2
+    assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-3
+    assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-1
 
 
 def test_doublewell():
@@ -468,4 +463,4 @@ def test_doublewell():
         for sliding_window in [True, False]:
             model = ContinuousTimeMSM(lag_time=100, sliding_window=sliding_window)
             model.fit(assignments)
-            assert_true(model.optimizer_state_.success)
+            assert model.optimizer_state_.success
