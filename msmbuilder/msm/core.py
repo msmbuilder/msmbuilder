@@ -165,28 +165,31 @@ class _SampleMSMMixin(object):
         return self.inverse_transform([chain])[0]
 
     def draw_samples(self, sequences, n_samples, random_state=None):
-        """Sample conformations from each state.
+        """Sample conformations for a sequences of states.
 
         Parameters
         ----------
-        sequences : list
-            List of state label sequences, each of which
-            has shape (n_samples_i), where n_samples_i is the length of
-            the ith trajectory.
+        sequences : list or list of lists
+            A sequence or list of sequences, in which each element corresponds
+            to a state label.
         n_samples : int
-            How many samples to return from each state
+            How many samples to return for any givem state.
 
         Returns
         -------
-        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
-            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
-            pairs from the specified state.
+        selected_pairs_by_state : np.array, dtype=int,
+            shape=(n_states, n_samples, 2) selected_pairs_by_state[state] gives
+            an array of randomly selected (trj, frame) pairs from the specified
+            state.
 
         See Also
         --------
-        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        utils.map_drawn_samples : Extract conformations from MD trajectories by
+        index.
 
         """
+        if not any([isinstance(seq, list) for seq in sequences]):
+            sequences = [sequences]
 
         random = check_random_state(random_state)
 
