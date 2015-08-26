@@ -5,6 +5,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import collections
 import numpy as np
 import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
@@ -173,7 +174,7 @@ class _SampleMSMMixin(object):
             A sequence or list of sequences, in which each element corresponds
             to a state label.
         n_samples : int
-            How many samples to return for any givem state.
+            How many samples to return for any given state.
 
         Returns
         -------
@@ -188,7 +189,8 @@ class _SampleMSMMixin(object):
         index.
 
         """
-        if not any([isinstance(seq, list) for seq in sequences]):
+        if not any([isinstance(seq, collections.Iterable)
+                    for seq in sequences]):
             sequences = [sequences]
 
         random = check_random_state(random_state)
@@ -198,8 +200,12 @@ class _SampleMSMMixin(object):
             all_frames = [np.where(a == state)[0] for a in sequences]
             pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames)
                      for frame in frames]
-            selected_pairs_by_state.append([pairs[random.choice(len(pairs))]
-                                            for i in range(n_samples)])
+            if pairs:
+                selected_pairs_by_state.append(
+                    [pairs[random.choice(len(pairs))]
+                     for i in range(n_samples)])
+            else:
+                selected_pairs_by_state.append([])
 
         return np.array(selected_pairs_by_state)
 
