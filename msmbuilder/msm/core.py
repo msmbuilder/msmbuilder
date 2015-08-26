@@ -5,6 +5,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import collections
 import numpy as np
 import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
@@ -165,39 +166,46 @@ class _SampleMSMMixin(object):
         return self.inverse_transform([chain])[0]
 
     def draw_samples(self, sequences, n_samples, random_state=None):
-        """Sample conformations from each state.
+        """Sample conformations for a sequences of states.
 
         Parameters
         ----------
-        sequences : list
-            List of state label sequences, each of which
-            has shape (n_samples_i), where n_samples_i is the length of
-            the ith trajectory.
+        sequences : list or list of lists
+            A sequence or list of sequences, in which each element corresponds
+            to a state label.
         n_samples : int
-            How many samples to return from each state
+            How many samples to return for any given state.
 
         Returns
         -------
-        selected_pairs_by_state : np.array, dtype=int, shape=(n_states, n_samples, 2)
-            selected_pairs_by_state[state] gives an array of randomly selected (trj, frame)
-            pairs from the specified state.
+        selected_pairs_by_state : np.array, dtype=int,
+            shape=(n_states, n_samples, 2) selected_pairs_by_state[state] gives
+            an array of randomly selected (trj, frame) pairs from the specified
+            state.
 
         See Also
         --------
-        utils.map_drawn_samples : Extract conformations from MD trajectories by index.
+        utils.map_drawn_samples : Extract conformations from MD trajectories by
+        index.
 
         """
-        n_states = max(map(lambda x: max(x), sequences)) + 1
-        n_states_2 = len(np.unique(np.concatenate(sequences)))
-        assert n_states == n_states_2, "Must have non-empty, zero-indexed, consecutive states: found %d states and %d unique states." % (n_states, n_states_2)
+        if not any([isinstance(seq, collections.Iterable)
+                    for seq in sequences]):
+            sequences = [sequences]
 
         random = check_random_state(random_state)
 
         selected_pairs_by_state = []
-        for state in range(n_states):
+        for state in range(self.n_states_):
             all_frames = [np.where(a == state)[0] for a in sequences]
-            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames) for frame in frames]
-            selected_pairs_by_state.append([pairs[random.choice(len(pairs))] for i in range(n_samples)])
+            pairs = [(trj, frame) for (trj, frames) in enumerate(all_frames)
+                     for frame in frames]
+            if pairs:
+                selected_pairs_by_state.append(
+                    [pairs[random.choice(len(pairs))]
+                     for i in range(n_samples)])
+            else:
+                selected_pairs_by_state.append([])
 
         return np.array(selected_pairs_by_state)
 
@@ -499,4 +507,3 @@ def _dict_compose(dict1, dict2):
     {'a': 'A', 'b': 'b'}
     """
     return {k: dict2.get(v) for k, v in dict1.items() if v in dict2}
-
