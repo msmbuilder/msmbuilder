@@ -35,7 +35,7 @@ install:
   # as well as pip, conda-build, and the binstar CLI
   - ps: . ".\\devtools\\appveyor\\install.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - conda config --add channels http://conda.binstar.org/omnia
+  - conda config --add channels omnia
 
 build: false
 
