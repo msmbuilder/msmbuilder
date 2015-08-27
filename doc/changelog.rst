@@ -27,6 +27,8 @@ v3.3 (Unreleased)
 - ``MarkovStateModel.draw_samples`` failed if discrete trajectories did not
   contain every possible state (#638). Function can now accept a single
   trajectory, as well as a list of them.
+- ``SuperposeFeaturizer`` now respects the topology argument when loading the
+  reference trajectory (#555).
 
 v3.2 (April 14, 2015)
 ---------------------

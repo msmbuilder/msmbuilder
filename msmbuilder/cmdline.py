@@ -267,11 +267,19 @@ class NumpydocClassCommand(Command):
         init_args = get_init_argspec(self.klass)[0]
         kwargs = {}
 
-        for k, v in args.__dict__.items():
-            # these are all of the specified options from the command line
-            # some of them correspond to __init__ args for self.klass, and
-            # others are "extra" arguments that weren't part of klass
+        # these are all of the specified options from the command line
+        # some of them correspond to __init__ args for self.klass, and
+        # others are "extra" arguments that weren't part of klass
 
+        # we do the "extra" arguments first, so we can use them when
+        # loading init args
+
+        for k, v in args.__dict__.items():
+            if k not in init_args:
+                # set the others as attributes on self
+                setattr(self, k, v)
+
+        for k, v in args.__dict__.items():
             if k in init_args:
                 # put the ones for klass.__init__ in a dict
                 kwargs[k] = v
@@ -279,9 +287,6 @@ class NumpydocClassCommand(Command):
                 if hasattr(self, '_%s_type' % k):
                     kwargs[k] = getattr(self, '_%s_type' % k)(v)
 
-            else:
-                # set the others as attributes on self
-                setattr(self, k, v)
 
         # make an instantiation of `klass`, populated with the requested
         # arguments from the command line
