@@ -47,7 +47,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         The lag time of the model
     n_timescales : int, optional
         The number of dynamical timescales to calculate when diagonalizing
-        the transition matrix.
+        the transition matrix. If not specified, it will compute n_states - 1
     reversible_type : {'mle', 'transpose', None}
         Method by which the reversibility of the transition matrix
         is enforced. 'mle' uses a maximum likelihood method that is
@@ -107,7 +107,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         The equilibrium population (stationary eigenvector) of transmat_
     """
 
-    def __init__(self, lag_time=1, n_timescales=10, reversible_type='mle',
+    def __init__(self, lag_time=1, n_timescales=None, reversible_type='mle',
                  ergodic_cutoff='on', prior_counts=0, sliding_window=True,
                  verbose=True):
         self.reversible_type = reversible_type
@@ -350,9 +350,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
                     self._left_eigenvectors,
                     self._right_eigenvectors)
 
-        n_timescales = self.n_timescales
-        if n_timescales is None:
-            n_timescales = self.n_states_ - 1
+        n_timescales = min(self.n_timescales if self.n_timescales is not None
+                           else self.n_states_ - 1, self.n_states_ - 1)
 
         k = n_timescales + 1
         u, lv, rv = _solve_msm_eigensystem(self.transmat_, k)
@@ -581,9 +580,9 @@ Timescales:
         if self.reversible_type is None:
             raise NotImplementedError('reversible_type must be "mle" or "transpose"')
 
-        n_timescales = min(self.n_timescales, self.n_states_ - 1)
-        if n_timescales is None:
-            n_timescales = self.n_states_ - 1
+        n_timescales = min(self.n_timescales if self.n_timescales is not None
+                           else self.n_states_ - 1, self.n_states_ - 1)
+
         u, lv, rv = self._get_eigensystem()
 
         sigma2 = np.zeros(n_timescales + 1)

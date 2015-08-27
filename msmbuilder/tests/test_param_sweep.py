@@ -65,3 +65,10 @@ def test_multi_params():
 
     # this is redundant, but w/e
     assert len(set(params)) == 6
+
+
+def test_ntimescales():
+    # see issue #603
+    trajs = [np.random.randint(0,30,500) for _ in range(5)]
+    its = implied_timescales(trajs, [1,2,3], n_timescales=11)
+    assert its.shape[1] == 11

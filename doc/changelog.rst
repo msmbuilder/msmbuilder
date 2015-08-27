@@ -29,6 +29,9 @@ v3.3 (Unreleased)
   trajectory, as well as a list of them.
 - ``SuperposeFeaturizer`` now respects the topology argument when loading the
   reference trajectory (#555).
+- The default number of timescales in ``MarkovStateModel`` is now one less
+  than the number of states (was 10). This addresses some bugs with
+  ``implied_timescales`` and PCCA(+) (#603).
 
 v3.2 (April 14, 2015)
 ---------------------
