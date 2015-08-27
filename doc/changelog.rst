@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v3.4 (Development)
+------------------
+
+Version 3.4.0.dev0 is the current development release of MSMBuilder.
+
+API Changes
+~~~~~~~~~~~
+
+
+New Features
+~~~~~~~~~~~~
+
+
+Improvements
+~~~~~~~~~~~~
+
+
+
 v3.3 (August 27, 2015)
 ----------------------
 
