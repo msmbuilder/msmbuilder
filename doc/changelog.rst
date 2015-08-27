@@ -4,34 +4,49 @@ Changelog
 v3.3 (Unreleased)
 -----------------
 
+We're pleased to announce the release of MSMBuilder v3.3.0. The focus of this
+release is a completely re-written module for constructing HMMs as well as bug
+fixes and incremental improvements.
+
+API Changes
+~~~~~~~~~~~
+
 - ``FeatureUnion`` is an estimator that deprecates the functionality of
   ``UnionDataset``. Passing a list of paths to ``dataset()`` will no longer
   automatically yield a ``UnionDataset``. This behavior is still available by
   specifying ``fmt="dir-npy-union"``, but is deprecated (#611).
+- The command line flag for featurizers ``--out`` (deprecated in 3.2) now saves
+  the featurizer as a pickle file (#546). Please use ``--transformed`` for the
+  old behavior. This is consistent with other command-line commands.
+- The default number of timescales in ``MarkovStateModel`` is now one less than
+  the number of states (was 10). This addresses some bugs with
+  ``implied_timescales`` and PCCA(+) (#603).
+
+New Features
+~~~~~~~~~~~~
+
 - ``GaussianHMM`` and ``VonMisesHMM`` is rewritten to feature higher code reuse
   and code quality (#583, #582, #584, #572, #570).
 - ``KDTree`` can find n nearest points to e.g. a cluster center (#599).
+- ``Slicer`` featurizer can slice feature arrays as part of a pipeline
+  (#567).
+
+Improvements
+~~~~~~~~~~~~
+
 - ``PCCAPlus`` is compatible with scipy 0.16 (#620).
 - Documentation improvements (#618, #608, #604, #602)
 - Test improvements, especially for Windows (#593, #590, #588, #579, #578,
   #577, #576)
-- The command line flag for featurizers ``--out`` now saves the featurizer as
-  a pickle file. This is consistent with other command-line commands
-  (#546).
 - Bug fix: ``MarkovStateModel.sample()`` produced trajectories of incorrect
   length. This function is still deprecated (#556).
-- Bug fix: The muller example dataset did not respect users' specifications
-  for initial coordinates (#631).
-- ``Slicer`` featurizer can slice feature arrays as part of a pipeline
-  (#567).
+- Bug fix: The muller example dataset did not respect users' specifications for
+  initial coordinates (#631).
 - ``MarkovStateModel.draw_samples`` failed if discrete trajectories did not
   contain every possible state (#638). Function can now accept a single
   trajectory, as well as a list of them.
 - ``SuperposeFeaturizer`` now respects the topology argument when loading the
   reference trajectory (#555).
-- The default number of timescales in ``MarkovStateModel`` is now one less
-  than the number of states (was 10). This addresses some bugs with
-  ``implied_timescales`` and PCCA(+) (#603).
 
 v3.2 (April 14, 2015)
 ---------------------
