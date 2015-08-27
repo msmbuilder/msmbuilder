@@ -136,6 +136,20 @@ def test_superpose_featurizer():
         assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
+def test_superpose_featurizer_reftop():
+    # see issue #555
+    with tempdir():
+        shell('msmb AtomIndices -o all.txt --all -a -p %s/alanine_dipeptide/ala2.pdb' % get_data_home()),
+        shell("msmb SuperposeFeaturizer --trjs '{data_home}/alanine_dipeptide/*.dcd'"
+              " --transformed distances --atom_indices all.txt"
+              " --reference_traj {data_home}/alanine_dipeptide/trajectory_0.dcd"
+              " --top {data_home}/alanine_dipeptide/ala2.pdb".format(
+            data_home=get_data_home()))
+        ds = dataset('distances')
+        assert len(ds) == 10
+        assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
+        print(ds.provenance)
+
 
 def test_atom_pairs_featurizer():
     with tempdir():
@@ -199,3 +213,4 @@ def test_convert_chunked_project_1():
         assert set(record.keys()) == set(('filename', 'chunks'))
         assert record['filename'] == 'traj-00000000.dcd'
         assert sorted(glob.glob('%s/*.dcd' % root)) == record['chunks']
+
