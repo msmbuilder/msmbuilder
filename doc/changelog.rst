@@ -24,6 +24,9 @@ v3.3 (Unreleased)
   for initial coordinates (#631).
 - ``Slicer`` featurizer can slice feature arrays as part of a pipeline
   (#567).
+- ``MarkovStateModel.draw_samples`` failed if discrete trajectories did not
+  contain every possible state (#638). Function can now accept a single
+  trajectory, as well as a list of them.
 
 v3.2 (April 14, 2015)
 ---------------------
