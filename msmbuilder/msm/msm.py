@@ -350,10 +350,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
                     self._left_eigenvectors,
                     self._right_eigenvectors)
 
-        n_timescales = self.n_timescales
-        if n_timescales is None:
-            n_timescales = self.n_states_ - 1
-        n_timescales = min(n_timescales, self.n_states_ - 1)
+        n_timescales = min(self.n_timescales if self.n_timescales is not None
+                           else self.n_states_ - 1, self.n_states_ - 1)
 
         k = n_timescales + 1
         u, lv, rv = _solve_msm_eigensystem(self.transmat_, k)
@@ -582,10 +580,8 @@ Timescales:
         if self.reversible_type is None:
             raise NotImplementedError('reversible_type must be "mle" or "transpose"')
 
-        n_timescales = self.n_timescales
-        if n_timescales is None:
-            n_timescales = self.n_states_ - 1
-        n_timescales = min(n_timescales, self.n_states_ - 1)
+        n_timescales = min(self.n_timescales if self.n_timescales is not None
+                           else self.n_states_ - 1, self.n_states_ - 1)
 
         u, lv, rv = self._get_eigensystem()
 
