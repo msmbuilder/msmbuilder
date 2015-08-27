@@ -27,6 +27,9 @@ v3.3 (Unreleased)
 - ``MarkovStateModel.draw_samples`` failed if discrete trajectories did not
   contain every possible state (#638). Function can now accept a single
   trajectory, as well as a list of them.
+- The default number of timescales in ``MarkovStateModel`` is now one less
+  than the number of states (was 10). This addresses some bugs with
+  ``implied_timescales`` and PCCA(+) (#603).
 
 v3.2 (April 14, 2015)
 ---------------------
