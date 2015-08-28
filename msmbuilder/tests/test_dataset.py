@@ -86,8 +86,6 @@ def test_3():
          np.testing.assert_array_equal(ds[:][1], ds[1])
          np.testing.assert_array_equal(ds[:][2], ds[2])
 
-         np.testing.assert_array_equal(ds[1:][0], ds[1])
-         np.testing.assert_array_equal(ds[1:][1], ds[2])
 
     finally:
         shutil.rmtree(path)
@@ -137,8 +135,6 @@ def test_hdf5_1():
         np.testing.assert_array_equal(ds[:][1], ds[1])
         np.testing.assert_array_equal(ds[:][2], ds[2])
 
-        np.testing.assert_array_equal(ds[1:][0], ds[1])
-        np.testing.assert_array_equal(ds[1:][1], ds[2])
 
         ds.close()
         with dataset('ds.h5') as ds:
@@ -260,8 +256,6 @@ def test_append_dirnpy():
         np.testing.assert_array_equal(ds[:][1], ds[1])
         np.testing.assert_array_equal(ds[:][2], ds[2])
 
-        np.testing.assert_array_equal(ds[1:][0], ds[1])
-        np.testing.assert_array_equal(ds[1:][1], ds[2])
 
     finally:
         shutil.rmtree(path)
@@ -275,14 +269,16 @@ def test_items():
         ds[1] = np.random.randn(10, 2)
         ds[5] = np.random.randn(10, 3)
 
-        # NOTE!
-        # ds[:] does not work for non-contiguous keys.
 
         keys = [0, 1, 5]
 
         for i, (k, v) in enumerate(ds.items()):
             assert k == keys[i]
             np.testing.assert_array_equal(ds[k], v)
+
+        np.testing.assert_array_equal(ds[:][0], ds[0])
+        np.testing.assert_array_equal(ds[:][1], ds[1])
+        np.testing.assert_array_equal(ds[:][2], ds[5])
 
         ds.close()
 

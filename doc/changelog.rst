@@ -9,9 +9,17 @@ Version 3.4.0.dev0 is the current development release of MSMBuilder.
 API Changes
 ~~~~~~~~~~~
 
+- Range-based slicing on dataset objects is no longer allowed. Keys in the
+  dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
+  loads all trajectories in a list (#610).
+
 
 New Features
 ~~~~~~~~~~~~
+
+- Dataset objects have a method, ``fit_transform_with`` to simplify the common
+  pattern of applying an estimator to a dataset object to produce a new dataset
+  object (#610).
 
 
 Improvements
