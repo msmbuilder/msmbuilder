@@ -28,14 +28,24 @@ env:
     - CONDA_PY=2.7
     - CONDA_PY=3.3
     - CONDA_PY=3.4
-  global:
-    # For pushing docs to S3:
-    # travis encrypt AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-    # travis encrypt AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-    - secure: "U2tY/Y6BBgpDR6FQP/bX7Hm89MadrlIeyuviAwbejJ7REb+ppWWY4pfvmVKhGFoPjOgLdvTdioarJUZHtbujTNkEsI9d6JW99YYdHuMruj9Y/1mwbDJdric1jBg29sqc6NSycaTNa/uiL8EDJBJI/JLN9GcCModbO7QbqlbhNns="
-    - secure: "K36Ags61kE9/+iSvN6N3Pzi6QIB6z4g25wdNlK4HBjxW90MFMDhvR3OMw6yJgNgFu5A95lTlIsUnqqx3tbQdqX/+XY4aMPIGzVIRKWpYS6d9+HoNO1d85sGy78dpGsybDR7AdsKi2SkoxYVmwD1CSUoA/S8pE3fIb5Ou28DKKyQ="
-    # BINSTAR_TOKEN
-    - secure: "DISF0Evu4jZm/E3N+7At6nvsy+2yUScrEdOUc5nrX+f1nvtHfMo9L7Q/5LodF4/iD0zo046+xL/kLqlXbneMIgNyUrruGCliki1kefwEfzAPaYndC/ZIZQ3RcQ29rvu1ALv/x8KMiyC2N9h90P6RNi8YJ63Rjl8KRGa6N2cFlVM="
 
 after_success:
   - source devtools/ci/after_sucess.sh
+
+before_deploy:
+  - echo "Deploying!"
+
+deploy:
+  provider: s3
+  secret_access_id:
+    secure: "C0rtKtVHzdmaofuGDFkZljzvnZCRB0irXIHsFcQ6Cocf8V7rmYvuIpKxzlfQkI6RMBQ4bmzUe2z2XsvKwweUJFHur9Wc9mI+b4dBPcTR+ewwVzYs0nML6vSU7SYseMhJndnlD6J/WpP6vyrJ4YQIcYvRvqN1Qn6Mn2Kk8EagySM="
+  secret_access_key:
+    secure: "V9R4Nid8E19iymAPqpc5RIPB9Nkvx5N2iB66lQrHGyn2nZjoo6Cp+mbon/Ow/Ot9BWWa7NA1ihJUvs+in3WKIDPfiPiN6qgCE6j35VZJaDqeU5SW/6mbd6CqZEEFy3mA0EDeIIFFvWLnuLyStOJPFKPI/vkrkLxzNhcENSDIc4Q="
+  bucket: "msmbuilder.org"
+  skip_cleanup: true
+  local_dir: doc/_build/
+  # change the following!
+  upload_dir: tmp-deploy
+  on:
+    branch: master
+    condition: $CONDA_PY = 2.7
