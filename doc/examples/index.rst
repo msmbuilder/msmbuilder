@@ -24,7 +24,7 @@ notebook server:
    :maxdepth: 2
    :titlesonly:
    
-   intro
+   Intro/Intro
    commandline
 
 .. vim: tw=75

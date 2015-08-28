@@ -1,8 +1,8 @@
 .. _commandline:
 .. highlight:: bash
 
-Introductory Example (command line)
-===================================
+Command line Tutorial
+=====================
 
 MSMBuilder is designed as a python library and a command-line program.  The
 API can be much more powerful, and should be easy for researchers familiar
