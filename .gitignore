@@ -43,5 +43,5 @@ msmbuilder/version.py
 # Vim temp files
 *.swp
 *.swo
-
 build.log
+msmbuilder/decomposition/_speigh.cpp

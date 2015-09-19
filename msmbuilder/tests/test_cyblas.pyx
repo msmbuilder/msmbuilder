@@ -115,3 +115,30 @@ def test_ddot():
     y = np.random.randn(60)[::6]
     cddot(x, y, &result)
     np.testing.assert_almost_equal(np.dot(x, y), result)
+
+
+def test_dger_1():
+    x = np.random.randn(50)
+    y = np.random.randn(50)
+
+    A = np.zeros((50, 50), order='F')
+    cdger(1.0, x, y, A)
+    np.testing.assert_almost_equal(np.outer(x, y), A)
+
+
+def test_dger_2():
+    x = np.random.randn(5)
+    y = np.random.randn(10)
+    A = np.zeros((5, 10), order='F')
+    result = np.outer(x, y)
+    cdger(1.0, x, y, A)
+    np.testing.assert_almost_equal(result, A)
+
+def test_dger_3():
+    x = np.random.randn(2, 5)
+    y = np.random.randn(2, 10)
+    A = np.zeros((5, 10), order='F')
+    for i in range(2):
+        cdger(0.5, x[i], y[i], A)
+
+    np.testing.assert_almost_equal(0.5*np.dot(x.T, y), A)

@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.linalg
-from msmbuilder.decomposition.speigh import speigh, scdeflate, imported_cvxpy
-from numpy.testing.decorators import skipif
+from msmbuilder.decomposition._speigh import speigh, scdeflate
+from msmbuilder.decomposition._speigh import solve_cvxpy, solve_admm, project
+
 
 
 def rand_pos_semidef(n, seed=0):
@@ -35,7 +36,7 @@ def build_lowrank(n, v, seed=0):
 
     A = scipy.linalg.inv(V.T).dot(np.diag(w)).dot(scipy.linalg.inv(V))
     B = scipy.linalg.inv(V.dot(V.T))
-    return A, B
+    return np.ascontiguousarray(A), np.ascontiguousarray(B)
 
 
 def eigh(A, B=None):
@@ -51,7 +52,6 @@ def eigh(A, B=None):
 
 class Test_scdeflate(object):
 
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_1(self):
         n = 4
         A = rand_sym(n)
@@ -62,7 +62,6 @@ class Test_scdeflate(object):
 
         self.assert_deflated(w1, V1, w2, V2)
 
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_2(self):
         n = 4
         A = rand_sym(n)
@@ -91,30 +90,28 @@ class Test_scdeflate(object):
 
 
 class Test_speigh_1(object):
-
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_1(self):
         # test with indefinite A matrix, identity B
         n = 4
         A = rand_sym(n)
         B = np.eye(n)
+
+        w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
+        np.testing.assert_array_almost_equal(w[0], w0)
+        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
 
-        #w0, v0, v0f = speigh(A, B, rho=0,  return_x_f=True)
-        #self.assert_close(w0, v0, v0f, A, B)
-
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_2(self):
         # test with indefinite B matrix, indefinite B
         n = 4
         A = rand_sym(n)
         B = rand_pos_semidef(n)
+
+        w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
+        np.testing.assert_array_almost_equal(w[0], w0)
+        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
 
-        #w0, v0, v0f = speigh(A, B, rho=0, return_x_f=True)
-        #self.assert_close(w0, v0, v0f, A, B)
-
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_3(self):
         # test with positive semidefinite A matrix, and diagonal
         # matrix B
@@ -122,78 +119,84 @@ class Test_speigh_1(object):
         A = rand_pos_semidef(n)
         B = np.diag(np.random.randn(n)**2)
 
+        w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
+        np.testing.assert_array_almost_equal(w[0], w0)
+        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
 
-        w0, v0, v0f = speigh(A, B, rho=0, return_x_f=True)
-        self.assert_close(w0, v0, v0f, A, B)
-
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_4(self):
         # test with positive semidefinite A matrix, and general
         # matrix B
         n = 4
         A = rand_pos_semidef(n)
         B = rand_pos_semidef(n) + np.eye(n)
+
+        w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
-        v_init = V[:, 0] + 0.1*np.random.randn(n)
-
-        w0, v0, v0f = speigh(A, B, rho=0, return_x_f=True)
-        self.assert_close(w0, v0, v0f, A, B)
-
-    def assert_close(self, w0, v0, v0f, A, B):
-        w, V = eigh(A, B)
-
-        v0 /= np.linalg.norm(v0)
-        v0f /= np.linalg.norm(v0f)
-        V[:, 0] /= np.linalg.norm(V[:,0])
-
-        np.testing.assert_almost_equal(w0, w[0])
-
-        assert (np.allclose(v0,  V[:, 0]) or
-                np.allclose(v0, -V[:, 0]))
-        assert (np.linalg.norm(v0f + V[:, 0]) < 1e-2 or
-                np.linalg.norm(v0f - V[:, 0]) < 1e-2)
+        np.testing.assert_array_almost_equal(w[0], w0)
+        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
 
 
 class Test_speigh_2(object):
 
-    @skipif(not imported_cvxpy, 'cvxpy is required')
     def test_1(self):
         # test with indefinite A matrix, identity B
         n = 4
-        x = np.array([1.0, 2.0, 3.0, 0])
+        x =    np.array([1.0, 2.0, 3.0, 0.0001])
+        x = x / np.sqrt(np.sum(x**2))
+
         A = np.outer(x, x)
         B = np.eye(n)
         w, V = eigh(A, B)
 
-        w0, v0, v0f = speigh(A, B, rho=0.0001, return_x_f=True)
-        self.assert_close(w0, v0, v0f, A, B)
+        w0, v0 = speigh(A, B, rho=0.01)
 
-    @skipif(not imported_cvxpy, 'cvxpy is required')
+        x_sp = np.array([1.0, 2.0, 3.0, 0])
+        x_sp = x_sp / np.sqrt(np.sum(x_sp**2))
+        np.testing.assert_array_almost_equal(v0, x_sp)
+
     def test_2(self):
         n = 4
         # build matrix with specified first generalized eigenvector
         A, B = build_lowrank(n, [1, 2, 0.001, 3], seed=0)
         w, V = eigh(A, B)
 
-        v0 = speigh(A, B, rho=0)[1][2]
-        vm4 = speigh(A, B, rho=1e-4)[1][2]
-        vm2 = speigh(A, B, rho=0.01)[1][2]
-        # using a low value for `rho`, we should recover the small element
-        # but when rho is higher, it should be truncated to zero.
-        np.testing.assert_almost_equal(np.abs(v0), 0.001)
-        np.testing.assert_almost_equal(np.abs(vm4), 0.001)
-        np.testing.assert_almost_equal(vm2, 0)
+        for rho in [1e-5, 1e-4, 1e-3]:
+            v1 = speigh(A, B, method=1, rho=rho)[1]
+            v2 = speigh(A, B, method=2, rho=rho)[1]
+            np.testing.assert_array_almost_equal(v1, v1)
 
-    def assert_close(self, w0, v0, v0f, A, B):
-        w, V = eigh(A, B)
+    def test_3(self):
+        n = 10
+        A = rand_sym(n, seed=1)
+        B = rand_pos_semidef(n, seed=1)
+        w1, V1 = speigh(A, B, method=1, rho=10)
+        w2, V2 = speigh(A, B, method=2, rho=10)
 
-        v0 /= np.linalg.norm(v0)
-        v0f /= np.linalg.norm(v0f)
-        V[:, 0] /= np.linalg.norm(V[:,0])
+        np.testing.assert_almost_equal(w1, w2)
+        np.testing.assert_almost_equal(V1, V2)
 
-        np.testing.assert_almost_equal(w0, w[0])
-        assert (np.allclose(v0,  V[:, 0]) or
-                np.allclose(v0, -V[:, 0]))
-        assert (np.linalg.norm(v0f + V[:, 0]) < 1e-3 or
-                np.linalg.norm(v0f - V[:, 0]) < 1e-3)
+
+def test_project():
+    B = np.array([[ 4.805,  0.651,  0.611, -4.98 , -1.448],
+           [ 0.651,  6.132, -1.809,  0.613,  4.838],
+           [ 0.611, -1.809,  4.498,  0.055, -4.548],
+           [-4.98 ,  0.613,  0.055,  9.841,  2.17 ],
+           [-1.448,  4.838, -4.548,  2.17 ,  9.949]])
+    v  = np.array([-2.95538824, -3.26629412,  0.        , -5.04124118,  0.        ])
+
+    sol1 = project_cvxpy(v, B)
+    sol2 = np.empty_like(v)
+    eigvals, eigvecs = map(np.ascontiguousarray, scipy.linalg.eigh(B))
+    project(v, eigvals, eigvecs, sol2)
+    np.testing.assert_array_almost_equal(sol1, sol2, decimal=4)
+
+def project_cvxpy(v, B):
+    import cvxpy as cp
+    x = cp.Variable(len(v))
+    cp.Problem(cp.Minimize(
+        cp.norm2(x - v)**2
+    ), [cp.quad_form(x, B) <= 1]).solve()
+
+    sol = np.asarray(x.value)[:,0]
+    return sol

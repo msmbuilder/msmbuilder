@@ -45,7 +45,7 @@ def test_shape():
 def test_score_1():
     X = np.random.randn(100, 5)
     for n in range(1, 5):
-        tica = tICA(n_components=n, gamma=0)
+        tica = tICA(n_components=n, shrinkage=0)
         tica.fit([X])
         assert_approx_equal(
             tica.score([X]),
@@ -58,17 +58,16 @@ def test_score_1():
 def test_score_2():
     X = np.random.randn(100,5)
     Y = np.random.randn(100,5)
-    model = tICA(n_components=2, gamma=0.05).fit([X])
-
+    model = tICA(shrinkage=0.0, n_components=2).fit([X])
     s1 = model.score([Y])
-    s2 = tICA(gamma=0.0).fit(model.transform([Y])).eigenvalues_.sum()
+    s2 = tICA(shrinkage=0.0).fit(model.transform([Y])).eigenvalues_.sum()
 
     eq(s1, s2)
 
 
 def test_multiple_components():
     X = np.random.randn(100, 5)
-    tica = tICA(n_components=1, gamma=0)
+    tica = tICA(n_components=1, shrinkage=0)
     tica.fit([X])
 
     Y1 = tica.transform([X])[0]

@@ -12,8 +12,8 @@ from six import PY2
 import numpy as np
 import scipy.linalg
 from .tica import tICA
-from ..utils import experimental
-from .speigh import speigh, scdeflate
+from ..utils import experimental, array2d
+from ._speigh import speigh, scdeflate
 
 __all__ = ['SparseTICA']
 
@@ -44,19 +44,14 @@ class SparseTICA(tICA):
     lag_time : int
         Delay time forward or backward in the input data. The time-lagged
         correlations is computed between datas X[t] and X[t+lag_time].
-    gamma : nonnegative float, default=0.05
-        L2 regularization strength. Positive `gamma` entails incrementing
-        the sample covariance matrix by a constant times the identity,
-        to ensure that it is positive definite. The exact form of the
-        regularized sample covariance matrix is ::
-
-            covariance + (gamma / n_features) * Tr(covariance) * Identity
-
-        where :math:`Tr` is the trace operator.
     rho : positive float
         Regularization strength with controls the sparsity of the solutions.
         Higher values of rho gives more sparse tICS with nonozero loadings on
         fewer degrees of freedom. rho=0 corresponds to standard tICA.
+    shrinkage : float, default=None
+        The covariance shrinkage intensity (range 0-1). If shrinkage is not
+        specified (the default) it is estimated using an analytic formula
+        (the Rao-Blackwellized Ledoit-Wolf estimator) introduced in [5].
     weighted_transform : bool, default=False
         If True, weight the projections by the implied timescales, giving
         a quantity that has units [Time].
@@ -70,13 +65,6 @@ class SparseTICA(tICA):
         Convergence criteria for the sparse generalized eigensolver.
     maxiter : int
         Maximum number of iterations for the sparse generalized eigensolver.
-    max_nc : int
-        Maximum number of iterations without any change in the sparsity
-        pattern.
-    greedy : bool, default=True
-        Use a greedy heuristic in the sparse generalized eigensolver. This
-        *significantly* accelerates the solution for high-dimensional problems
-        under moderate to strong regularization.
     verbose : bool, default=False
         Print verbose information from the sparse generalized eigensolver.
 
@@ -123,49 +111,35 @@ class SparseTICA(tICA):
     .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
     """
 
-    def __init__(self, n_components, lag_time=1, gamma=0.05,
-                 rho=0.01, weighted_transform=True, epsilon=1e-6, tolerance=1e-8,
-                 maxiter=10000, max_nc=100, greedy=True, verbose=False):
-        super(SparseTICA, self).__init__(
-            n_components, lag_time=lag_time, gamma=gamma,
+    def __init__(self, n_components, lag_time=1, rho=0.01,
+                 weighted_transform=True, epsilon=1e-6, shrinkage=None,
+                 tolerance=1e-6, maxiter=10000, verbose=False):
+        super(SparseTICA, self).__init__(n_components, lag_time=lag_time,
             weighted_transform=weighted_transform)
         self.rho = rho
         self.epsilon = epsilon
+        self.shrinkage = shrinkage
         self.tolerance = tolerance
-        self.greedy = greedy
         self.maxiter = maxiter
-        self.max_nc = max_nc
         self.verbose = verbose
 
     def _solve(self):
         if not self._is_dirty:
             return
-        if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
-            raise RuntimeError('offset correlation matrix is not symmetric')
-        if not np.allclose(self.covariance_, self.covariance_.T):
-            raise RuntimeError('correlation matrix is not symmetric')
+
         if self.rho <= 0:
+            # if no sparse regularization, it's just regular tICA
             return super(SparseTICA, self)._solve()
-        self._do_solve()
 
-    @experimental('SparseTICA')
-    def _do_solve(self):
         A = self.offset_correlation_
-        B = self.covariance_ + (self.gamma / self.n_features) * \
-            np.trace(self.covariance_) * np.eye(self.n_features)
-
-        tau = max(0, -np.min(scipy.linalg.eigvalsh(A)))
-        gevals, gevecs = scipy.linalg.eigh(A, B)
-        ind = np.argsort(gevals)[::-1]
-        gevecs, gevals = gevecs[:, ind], gevals[ind]
+        B = self.covariance_
 
         self._eigenvalues_ = np.zeros((self.n_components))
         self._eigenvectors_ = np.zeros((self.n_features, self.n_components))
 
         for i in range(self.n_components):
-            u, v = speigh(A, B, rho=self.rho, v_init=gevecs[:, i], eps=self.epsilon,
-                          tol=self.tolerance, tau=tau, maxiter=self.maxiter,
-                          max_nc=self.max_nc, greedy=self.greedy,
+            u, v = speigh(A, B, rho=self.rho, eps=self.epsilon,
+                          tol=self.tolerance, maxiter=self.maxiter,
                           verbose=self.verbose)
 
             self._eigenvalues_[i] = u
@@ -182,7 +156,7 @@ class SparseTICA(tICA):
         return """Sparse time-structure based Independent Components Analysis (tICA)
 ------------------------------------------------------------------
 n_components        : {n_components}
-gamma               : {gamma}
+shrinkage           : {shrinkage}
 lag_time            : {lag_time}
 weighted_transform  : {weighted_transform}
 rho                 : {rho}
@@ -197,6 +171,6 @@ Top 5 eigenvalues :
 Number of active degrees of freedom:
 {active}
 """.format(n_components=self.n_components, lag_time=self.lag_time, rho=self.rho,
-           gamma=self.gamma, weighted_transform=self.weighted_transform,
+           shrinkage=self.shrinkage_, weighted_transform=self.weighted_transform,
            timescales=self.timescales_[:5], eigenvalues=self.eigenvalues_[:5],
            n_features=self.n_features, active=active)
