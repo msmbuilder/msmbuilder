@@ -45,7 +45,7 @@ Tutorial
 
 4. Now we can compute the pairwise distances for each frame::
 
-    msmb AtomPairsFeaturizer --out pair_features \
+    msmb AtomPairsFeaturizer --transformed pair_features \
         --pair_indices AtomIndices.txt \
         --top alanine_dipeptide/ala2.pdb \
         --trjs "alanine_dipeptide/*.dcd"
