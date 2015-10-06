@@ -40,7 +40,7 @@ bioinformatics. Many good reviews have been written, such as [#f1]_.
 L1-Regularized Reversible Gaussian HMM
 --------------------------------------
 In [#f2]_, McGibbon et. al. introduced a reversible Gaussian HMM for studying
-protein dynamics. The class :class:`GaussianFusionHMM` implements the algorithm
+protein dynamics. The class :class:`GaussianHMM` implements the algorithm
 described in that paper. Compared to a "vanilla" HMM, it has a couple bells and
 whistles.
 
@@ -54,10 +54,6 @@ whistles.
     helps encourage a sense of sparisty where each state might be different
     from the other states along only a subset of the coordinates.
 
-The implementation is also quite fast. There is a backend for NVIDIA GPUs in CUDA
-as well as a multithreaded and explicitly vectorized CPU implementation. Compared
-to a default implementation, it can be ~10x-100x faster.
-
 
 Algorithms
 ----------
@@ -65,7 +61,7 @@ Algorithms
     :toctree: generated/
     :template: class.rst
 
-    ~GaussianFusionHMM
+    ~GaussianHMM
     ~VonMisesHMM
 
 Example
@@ -73,7 +69,7 @@ Example
 .. code-block:: python
 
     from msmbuilder.featurizer import SuperposeFeaturizer
-    from msmbuilder.ghmm import GaussianFusionHMM
+    from msmbuilder.ghmm import GaussianHMM
 
     xtal = md.load('crystal-structure.pdb')
     alpha_carbons = [a.index for a in xtal.topology.atoms if a.name == 'CA']
@@ -84,9 +80,9 @@ Example
         t = md.load(trajectory_file, top=xtal)
         dataset.append(f.partial_transform(t))
 
-    hmm = GaussianFusionHMM(n_states=8, n_features=len(alpha_carbons))
+    hmm = GaussianHMM(n_states=8)
     hmm.fit(dataset)
-    print hmm.timescales_()
+    print hmm.timescales_
 
 
 References
