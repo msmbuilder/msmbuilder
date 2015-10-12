@@ -51,3 +51,5 @@ deploy:
 
   - provider: script
     script: devtools/ci/deploy_conda.sh
+    on:
+      branch: master
