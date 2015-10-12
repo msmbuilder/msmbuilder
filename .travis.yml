@@ -19,8 +19,8 @@ install:
   - "sh -e /etc/init.d/xvfb start"
 
 script:
-  - conda build devtools/conda-recipe
-  - devtools/ci/build_docs.sh
+  conda build devtools/conda-recipe \
+  && devtools/ci/build_docs.sh
 
 env:
   matrix:

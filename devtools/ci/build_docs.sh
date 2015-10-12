@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
-which python
+# Print each line, exit on error
+set -ev
+
 conda install --yes `conda build devtools/conda-recipe --output`
 pip install msmb_theme
 
