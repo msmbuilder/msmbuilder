@@ -1,3 +1,5 @@
+#!/usr/bin/env sh
+
 # Print each line, exit on error
 set -ev
 

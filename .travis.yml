@@ -20,7 +20,7 @@ install:
 
 script:
   conda build devtools/conda-recipe
-  && source devtools/ci/build_docs.sh
+  && devtools/ci/build_docs.sh
 
 env:
   matrix:
