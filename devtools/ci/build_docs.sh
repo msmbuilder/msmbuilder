@@ -5,7 +5,6 @@ pip install msmb_theme
 conda install --yes `cat doc/requirements.txt | xargs`
 
 cd doc && make html && cd -
-cat /tmp/sphinx-*
 
 # TODO
 # python devtools/ci/update-versions.py
