@@ -19,7 +19,7 @@ install:
   - "sh -e /etc/init.d/xvfb start"
 
 script:
-  conda build devtools/conda-recipe \
+  conda build devtools/conda-recipe
   && source devtools/ci/build_docs.sh
 
 env:
