@@ -1,4 +1,6 @@
 #!/bin/bash
+
+which python
 conda install --yes `conda build devtools/conda-recipe --output`
 pip install msmb_theme
 
