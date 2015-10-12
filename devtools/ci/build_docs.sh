@@ -9,4 +9,5 @@ pip install msmb_theme
 # Install doc requirements
 conda install --yes `cat doc/requirements.txt | xargs`
 
-cd doc && make html && cd -
+cd doc
+make html

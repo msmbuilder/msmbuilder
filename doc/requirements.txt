@@ -1,3 +1,4 @@
+numpydoc
 matplotlib
 sphinx
 boto
