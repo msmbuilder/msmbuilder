@@ -17,12 +17,12 @@ requirements:
     - python
     - setuptools
     - cython
-    - numpy
+    - numpy x.x
     - mdtraj
   run:
     - python
     - setuptools
-    - numpy
+    - numpy x.x
     - scipy
     - pandas
     - six
