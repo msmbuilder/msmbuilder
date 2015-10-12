@@ -29,20 +29,20 @@ env:
     - CONDA_PY=3.4
 
 deploy:
-  provider: s3
-  secret_access_id:
-    secure: "C0rtKtVHzdmaofuGDFkZljzvnZCRB0irXIHsFcQ6Cocf8V7rmYvuIpKxzlfQkI6RMBQ4bmzUe2z2XsvKwweUJFHur9Wc9mI+b4dBPcTR+ewwVzYs0nML6vSU7SYseMhJndnlD6J/WpP6vyrJ4YQIcYvRvqN1Qn6Mn2Kk8EagySM="
-  secret_access_key:
-    secure: "V9R4Nid8E19iymAPqpc5RIPB9Nkvx5N2iB66lQrHGyn2nZjoo6Cp+mbon/Ow/Ot9BWWa7NA1ihJUvs+in3WKIDPfiPiN6qgCE6j35VZJaDqeU5SW/6mbd6CqZEEFy3mA0EDeIIFFvWLnuLyStOJPFKPI/vkrkLxzNhcENSDIc4Q="
-  bucket: "msmbuilder.org"
-  skip_cleanup: true
-  local_dir: doc/_build/
-  # change the following!
-  upload_dir: test-deploy
-  on:
-    branch: master
-    condition: $CONDA_PY = 2.7
+  - provider: s3
+    secret_access_id:
+      secure: "C0rtKtVHzdmaofuGDFkZljzvnZCRB0irXIHsFcQ6Cocf8V7rmYvuIpKxzlfQkI6RMBQ4bmzUe2z2XsvKwweUJFHur9Wc9mI+b4dBPcTR+ewwVzYs0nML6vSU7SYseMhJndnlD6J/WpP6vyrJ4YQIcYvRvqN1Qn6Mn2Kk8EagySM="
+    secret_access_key:
+      secure: "V9R4Nid8E19iymAPqpc5RIPB9Nkvx5N2iB66lQrHGyn2nZjoo6Cp+mbon/Ow/Ot9BWWa7NA1ihJUvs+in3WKIDPfiPiN6qgCE6j35VZJaDqeU5SW/6mbd6CqZEEFy3mA0EDeIIFFvWLnuLyStOJPFKPI/vkrkLxzNhcENSDIc4Q="
+    bucket: "msmbuilder.org"
+    skip_cleanup: true
+    local_dir: doc/_build/
+    # change the following!
+    upload_dir: test-deploy
+    on:
+      branch: master
+      condition: $CONDA_PY = 2.7
 
 
-  provider: script
-  script: devtools/ci/deploy_conda.sh
+  - provider: script
+    script: devtools/ci/deploy_conda.sh
