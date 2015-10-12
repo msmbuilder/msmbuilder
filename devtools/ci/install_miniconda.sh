@@ -13,4 +13,4 @@ export PATH=$HOME/miniconda/bin:$PATH
 conda update --yes conda
 conda config --add channels omnia
 conda config --set anaconda_upload yes
-conda install --yes conda-build jinja2
+conda install --yes conda-build jinja2 anaconda-client
