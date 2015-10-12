@@ -11,29 +11,22 @@ branches:
     - master
 
 install:
-  - source devtools/ci/install.sh
+  - source devtools/ci/install_miniconda.sh
   - export PYTHONUNBUFFERED=true
   # start Virtual X, so default matplotlib backend works
+  # TOOD: fix tests so we don't need this.
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
 
 script:
-  # this builds the binary, unpacks it, and runs the tests
   - conda build devtools/conda-recipe
-  # check that any changed python files are pep8
-  - pip install git-lint && git-lint
+  - devtools/ci/build_docs.sh
 
 env:
   matrix:
     - CONDA_PY=2.7
     - CONDA_PY=3.3
     - CONDA_PY=3.4
-
-after_success:
-  - source devtools/ci/after_sucess.sh
-
-before_deploy:
-  - echo "Deploying!"
 
 deploy:
   provider: s3
@@ -45,7 +38,11 @@ deploy:
   skip_cleanup: true
   local_dir: doc/_build/
   # change the following!
-  upload_dir: tmp-deploy
+  upload_dir: test-deploy
   on:
     branch: master
     condition: $CONDA_PY = 2.7
+
+
+  provider: script
+  script: devtools/ci/deploy_conda.sh
