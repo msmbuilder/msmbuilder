@@ -12,5 +12,4 @@ export PATH=$HOME/miniconda/bin:$PATH
 
 conda update --yes conda
 conda config --add channels omnia
-conda install --yes conda-build pip
-
+conda install --yes conda-build jinja2
