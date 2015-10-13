@@ -43,10 +43,8 @@ test:
   imports:
     - msmbuilder
   commands:
-    # Bug on windows conda build: more than one test command cannot be
-    # run. Should be fixed with conda-build version > 1.12.0
-    - msmb -h # [not win]
-    # - nosetests msmbuilder -v
+    - msmb -h
+    - nosetests msmbuilder -v
 
 
 about:
