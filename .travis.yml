@@ -40,8 +40,8 @@ deploy:
       secure: "V9R4Nid8E19iymAPqpc5RIPB9Nkvx5N2iB66lQrHGyn2nZjoo6Cp+mbon/Ow/Ot9BWWa7NA1ihJUvs+in3WKIDPfiPiN6qgCE6j35VZJaDqeU5SW/6mbd6CqZEEFy3mA0EDeIIFFvWLnuLyStOJPFKPI/vkrkLxzNhcENSDIc4Q="
     bucket: "msmbuilder.org"
     skip_cleanup: true
-    local_dir: doc/_build/
-    # change the following!
+    local_dir: doc/_deploy/
+    # change the following to ./ (or remove(?))
     upload_dir: test-deploy
     on:
       branch: master
