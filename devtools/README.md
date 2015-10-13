@@ -11,7 +11,10 @@ How to do a release
 
 - Update the version number in `devtools/conda-recipe/meta.yaml`
 
-- Commit to master, and tag the release on github
+- Commit to master, and tag the release on github.
+
+- **For version 3.4 only.** Verify that `versions.json` is being generated
+  correctly and uploaded. Remove this line from this file afterwards.
 
 - To push the source to PyPI, use `python setup.py sdist
   --formats=gztar,zip upload`
