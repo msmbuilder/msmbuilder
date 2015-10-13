@@ -49,5 +49,6 @@ deploy:
 
   - provider: script
     script: devtools/ci/deploy_conda.sh
+    skip_cleanup: true
     on:
       branch: master
