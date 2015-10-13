@@ -19,3 +19,6 @@ cd doc && make html && cd -
 
 # Move the docs into a versioned subdirectory
 python devtools/ci/set_doc_version.py
+
+# Prepare versions.json
+python devtools/ci/update_versions_json.py
