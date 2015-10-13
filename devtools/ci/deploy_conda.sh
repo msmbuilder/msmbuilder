@@ -1,3 +1,4 @@
 #!/bin/bash
+
 conda install --yes anaconda-client
-anaconda upload -u omnia -t $BINSTAR_TOKEN --force `conda build devtools/conda-recipe --output`
+anaconda -t $BINSTAR_TOKEN upload -u omnia --force `conda build devtools/conda-recipe --output`
