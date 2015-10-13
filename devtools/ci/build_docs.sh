@@ -4,7 +4,7 @@
 set -ev
 
 # Install the built package
-conda create -n docenv python=$CONDA_PY
+conda create --yes -n docenv python=$CONDA_PY
 source activate docenv
 conda install --yes --use-local msmbuilder-dev
 
