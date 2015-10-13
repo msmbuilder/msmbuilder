@@ -29,8 +29,8 @@ env:
     - CONDA_PY=3.4
   global:
     - CONDA_NPY=1.9
-    # BINSTAR_TOKEN
-    - secure: "DISF0Evu4jZm/E3N+7At6nvsy+2yUScrEdOUc5nrX+f1nvtHfMo9L7Q/5LodF4/iD0zo046+xL/kLqlXbneMIgNyUrruGCliki1kefwEfzAPaYndC/ZIZQ3RcQ29rvu1ALv/x8KMiyC2N9h90P6RNi8YJ63Rjl8KRGa6N2cFlVM="
+    # $BINSTAR_TOKEN (for user mpharrigan, with access to omnia)
+    - secure: "DqDvfYriL3wYdQCp8pQM9huPQQ6U9dKWK02o0BhlAZque8mxU6MvZkp0GtajSqEPuVBjFeGOmFqzE5XgkLIs+vmniRyJ46hTDlOYIxgf2NA6AY6+xqVbqCIrq/xtIXPDPC0mXzASOdybAzdwv3VB/yq9G820o7qIWTg5yEg6qc0="
 
 deploy:
   - provider: s3
