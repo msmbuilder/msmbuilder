@@ -4,6 +4,8 @@
 set -ev
 
 # Install the built package
+conda create -n docenv python=$CONDA_PY
+source activate docenv
 conda install --yes --use-local msmbuilder-dev
 
 # TODO: Make this a conda package, include in requirements.txt
@@ -12,5 +14,8 @@ pip install msmb_theme
 # Install doc requirements
 conda install --yes --file doc/requirements.txt
 
-cd doc
-make html
+# Make docs
+cd doc && make html && cd -
+
+# Move the docs into a versioned subdirectory
+python devtools/ci/set_doc_version.py
