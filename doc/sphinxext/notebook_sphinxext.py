@@ -26,9 +26,11 @@ def export_html(wd, name):
     nb = _read(wd, name)
 
     config = {
-        'Exporter': {'template_file': 'basic'},
+        'Exporter': {'template_file': 'embed',
+                     'template_path': ['./sphinxext/']},
         'ExecutePreprocessor': {'enabled': True},
         'ExtractOutputPreprocessor': {'enabled': True},
+        'CSSHTMLHeaderPreprocessor': {'enabled': True}
     }
 
     exporter = HTMLExporter(config)
@@ -87,13 +89,11 @@ class NotebookDirective(Directive):
         export_python(**fmt)
 
         # Create link to notebook and script files
-        link_rst = (
-            "(" +
-            formatted_link("{wd}/{name}.ipynb".format(**fmt)) + "; " +
-            formatted_link(
-                "{wd}/{name}_eval.ipynb".format(**fmt)) + "; " +
-            formatted_link("{wd}/{name}.py".format(**fmt)) +
-            ")")
+        link_rst = "({uneval}; {eval}; {py})".format(
+            uneval=formatted_link("{wd}/{name}.ipynb".format(**fmt)),
+            eval=formatted_link("{wd}/{name}_eval.ipynb".format(**fmt)),
+            py=formatted_link("{wd}/{name}.py".format(**fmt)),
+        )
 
         rst_file = self.state_machine.document.attributes['source']
         self.state_machine.insert_input([link_rst], rst_file)
