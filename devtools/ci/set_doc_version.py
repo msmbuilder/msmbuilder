@@ -6,7 +6,7 @@ import msmbuilder.version
 if msmbuilder.version.release:
     docversion = msmbuilder.version.short_version
 else:
-    docversion = 'latest'
+    docversion = 'development'
 
 os.mkdir("doc/_deploy")
 shutil.copytree("doc/_build", "doc/_deploy/{docversion}"
