@@ -1,9 +1,7 @@
 numpydoc
 matplotlib
-sphinx
-boto
+sphinx=1.2
 ipython-notebook
 jinja2
-runipy
 openmm
 nbconvert
