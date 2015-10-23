@@ -61,8 +61,8 @@ Algorithms
     :toctree: generated/
     :template: class.rst
 
-    ~GaussianHMM
-    ~VonMisesHMM
+    GaussianHMM
+    VonMisesHMM
 
 Example
 -------

@@ -23,8 +23,8 @@ notebook server:
 .. toctree::
    :maxdepth: 2
    :titlesonly:
-   
-   Intro/Intro
-   commandline
+   :glob:
+
+   *
 
 .. vim: tw=75

@@ -55,6 +55,20 @@ like the stationary distribution, rate matrix, eigenvalues, and relaxation times
 can be computed by calling methods on the :class:`ContinuousTimeMSM` object. See [1]
 for more detail.
 
+Under the hood (expert functions)
+---------------------------------
+.. currentmodule:: msmbuilder.msm._ratematrix
+.. autosummary::
+    :toctree: ratematrix/advanced
+
+    build_ratemat
+    loglikelihood
+    hessian
+    sigma_K
+    sigma_pi
+    sigma_eigenvalues
+    sigma_timescales
+    eig_K
 
 References
 ----------

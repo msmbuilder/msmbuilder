@@ -2,13 +2,13 @@
 .. currentmodule:: msmbuilder
 
 MSMBuilder API Patterns
-====================
+=======================
 
 MSMBuilder API
------------
+--------------
 
 Hyperparameters
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 Models in msmbuilder inherit from base classes in `scikit-learn
 <http://scikit-learn.org/stable/>`_, and follow a similar API. Like sklearn,
 each type of model is a python class. Hyperparameters are passed in via
