@@ -22,6 +22,8 @@ API Changes
   ``PCCA.transform`` would throw an exception when operating on a system
   with trimming because it was using this misleading dictionary. Please use
   ``pcca.microstate_mapping_`` for this functionality. 
+- ``UnionDataset`` has been removed after deprecation in 3.3. Please use
+  ``FeatureUnion`` instead (#671).
 
 
 New Features
