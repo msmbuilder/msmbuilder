@@ -9,7 +9,7 @@ source activate docenv
 conda install --yes --use-local msmbuilder-dev
 
 # TODO: Make this a conda package, include in requirements.txt
-pip install msmb_theme
+pip install sphinx==1.2.3 sphinx_rtd_theme==0.1.9 msmb_theme==1.1.0
 
 # Install doc requirements
 conda install --yes --file doc/requirements.txt
