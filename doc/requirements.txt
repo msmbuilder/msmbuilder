@@ -1,6 +1,6 @@
 numpydoc
 matplotlib
-sphinx=1.2
+sphinx=1.2.3
 ipython-notebook
 jinja2
 openmm
