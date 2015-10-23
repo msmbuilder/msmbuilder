@@ -1,3 +1,5 @@
+.. _persistence:
+
 Datasets and Persistence
 ========================
 

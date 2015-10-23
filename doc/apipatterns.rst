@@ -1,4 +1,4 @@
-.. _meta:
+.. _apipatterns:
 .. currentmodule:: msmbuilder
 
 MSMBuilder API Patterns
