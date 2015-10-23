@@ -40,8 +40,6 @@ deploy:
     bucket: "msmbuilder.org"
     skip_cleanup: true
     local_dir: doc/_deploy/
-    # change the following to ./ (or remove(?))
-    upload_dir: test-deploy
     on:
       branch: master
       condition: "$CONDA_PY = 3.4"
