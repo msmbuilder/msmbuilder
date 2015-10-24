@@ -3,99 +3,73 @@
 Datasets and Persistence
 ========================
 
-MSMBuilder loads and saves two types of objects to and from the filesystem:
-datasets and models.
+MSMBuilder has utility functions for persisting data (loading and saving).
+The two types of objects to be persisted on disk are datasets and models. 
 
 Datasets
 --------
-In MSMBuilder, a dataset is a collection of timeseries, or "sequences".
-Conceptually, each timeseries usually represents a single molecular dynamics
-trajectory, and may be represented in a number of different formats
 
- - A sequence may be an instance of ``mdtraj.Trajectory``, a molecular dynamics
-   trajectory object.
- - A sequence may be a ``double`` or ``float``-valued 2D array with shape
-   ``n_frames x n_features``, representing the projection of each frame in
-   molecular dynamics trajectory into some vector space of dimension 
-   :math:`\mathbb{R}^{n_{features}}`. The leading dimension with length
-   ``n_frames`` indexes over the timeseries.
+In MSMBuilder, a ``dataset`` is a collection of timeseries, or "sequences".
+Each timeseries usually represents a single molecular
+dynamics trajectory, and may be represented in a number of different
+formats
 
-   ..
+- A sequence may be an instance of ``mdtraj.Trajectory``, a molecular
+  dynamics trajectory object.
 
-        Example: :class:`AtomPairsFeaturizer` transforms trajectories into
-        a vector space with dimension specified by the number of pairs of
-        atoms supplied.
+- A sequence may be a ``numpy`` 2D array with shape ``n_frames x
+  n_features``, representing the projection of each frame in molecular
+  dynamics trajectory into some vector space of dimension
+  :math:`\mathbb{R}^{n_{features}}`. The leading dimension with length
+  ``n_frames`` indexes over the timeseries. For example,
+  `featurization<featurization>` takes a list of trajectories and returns a
+  list of feature arrays.
 
- - A sequence may be an integer-valued 1D array with shape ``n_frames``.
-
-   ..
-
-       Example: When a dataset is clustered, the transformed result of a
-       trajectory is a sequence of the cluster index of each frame.
+- A sequence may be an integer-valued 1D array with shape ``n_frames``.
+  For example, `clustering<clustering>` takes a list of feature arrays and
+  returns a list of sequences of state indices.
 
 
 Datasets on Disk
 ~~~~~~~~~~~~~~~~
 
-Trajectories (read-only)
-"""""""""""""""""""""""""
-Trajectory datasets are loaded using MDTraj. This requires
-specifying a `glob <http://en.wikipedia.org/wiki/Glob_%28programming%29>`_
-pattern for the trajectories, as well as the topology. MSMBuilder does not write
-trajectory datasets.
-
-
-    Example::
-
-      >>> from msmbuilder.dataset import dataset
-      >>> ds = dataset('trajectories/*.xtc', top='topology.pdb')
-      >>> for traj in ds:
-      ...     # iterate over trajectories
-      ...     print(traj)
- 
-
-HDF5 Array Datasets (read or write)
-"""""""""""""""""""""""""""""""""""
-
-Array datasets can be read and written in two formats: ``hdf5`` and ``npy-dir``.
+MSMBuilder can read and write datasets to and from disk (resp) in two
+formats: ``hdf5`` and ``dir-npy``. From the Python API, you must choose
+which format to write. The command-line application chooses the most
+sensible option for you.
 
 With HDF5, the dataset containing all of the trajectories is contained in a
-single file on disk. This is generally the most convenient, but can be unwieldy
-for datasets larger than 10GB. The transformed output of the ``msmb tICA``,
-``msmb PCA``, and all of the clustering commands are stored in HDF5 format.
+single file on disk. This is generally the most convenient, but can be
+unwieldy for large datasets. The transformed output of ``msmb tICA``,
+``msmb PCA``, and clustering commands are stored in HDF5 format.
 
-npy-dir Array Datasets (read or write)
-""""""""""""""""""""""""""""""""""""""
+The ``dir-npy`` format stores the dataset as a collection of uncompressed
+numpy ``.npy`` files in a directory on disk. This is the most suitable for
+large datasets, because it enables features like memory-mapped IO. The
+transformed output of ``msmb`` Featurizer commands are stored in
+``dir-npy`` format.
 
-The ``npy-dir`` format stores the dataset in a directory on disk, containing
-each sequence in a separate uncompressed file. This is the most suitable for
-large datasets, because it enables features like memory-mapped IO. The transformed output of ``msmb *Featurizer`` commands are stored in
-``npy-dir`` format.
+
+Trajectory Datasets - Read only
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Trajectory datasets are loaded using MDTraj. This requires specifying a
+`glob <http://en.wikipedia.org/wiki/Glob_%28programming%29>`_ pattern for
+the trajectories, as well as the topology. MSMBuilder does not write
+trajectory datasets.
+ 
 
 Provenance Information
-""""""""""""""""""""""
-When msmbuilder saves a dataset, it also saves information which can be used to
-trace the provenance of the dataset.
+~~~~~~~~~~~~~~~~~~~~~~
 
-  Example::
+When msmbuilder saves a dataset, it also saves information which can be
+used to trace the provenance of the dataset.
+
+.. code-block:: bash
 
     $ msmb AtomPairsFeaturizer --out atom_pairs  --trjs '*.dcd'  --pair_indices atom_indices.txt  --top top.pdb
-    AtomPairsFeaturizer(exponent=1.0,
-              pair_indices=array([[ 1,  4],
-           [ 1,  5],
-           ...,
-           [15, 18],
-           [16, 18]]),
-              periodic=False)
-    100%|########################################################################################|Time: 0:00:00
 
-    Saving transformed dataset to 'atom_pairs/'
-    To load this dataset interactive inside an IPython
-    shell or notebook, run
-
-      $ ipython
-      >>> from msmbuilder.dataset import dataset
-      >>> ds = dataset('atom_pairs/')
+    [...]
 
     $ ls atom_pairs
     00000000.npy   00000002.npy   00000004.npy   00000006.npy   00000008.npy   PROVENANCE.txt
@@ -119,16 +93,22 @@ trace the provenance of the dataset.
       atom_indices	None
 
 
-Model persistence
------------------
+Models
+------
 
 MSMBuilder models can be losslessly persisted to disk using Python's pickle
-infrastructure. We recommend using the functions :func:`msmbuilder.utils.load`
-and :func:`msmbuilder.utils.dump` to load and save models respectively.
+infrastructure. We recommend using the functions
+:func:`msmbuilder.utils.load` and :func:`msmbuilder.utils.dump` to load and
+save models respectively. The pickle format is not secure against malicious
+attacks. Don't load MSMBuilder models from untrusted sources.
 
-.. currentmodule msmbuilder.dataset
 
 Functions
 ---------
 
 .. autofunction:: msmbuilder.dataset.dataset
+.. autofunction:: msmbuilder.utils.dump
+.. autofunction:: msmbuilder.utils.load
+
+.. vim: tw=75
+

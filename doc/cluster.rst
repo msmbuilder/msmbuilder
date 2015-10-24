@@ -30,7 +30,7 @@ Algorithms
 
 All clustering algorithms in MSMBuilder follow the following basic API.
 Hyperparameters, including the number of clusters, random seeds, the
-distance metric (if applicable), etc are passed to the class constructor.
+distance metric (if applicable) are passed to the class constructor.
 Then, the computation is done by calling ``fit(sequences)``. The argument
 to ``fit`` should be a *list* of molecular dynamics trajectories or a list
 of 2D numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
@@ -53,25 +53,8 @@ of 2D numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
     SpectralClustering
     Ward
 
-Example
--------
-.. code-block:: python
 
-    import mdtraj as md
-
-    # load two trajectories and create a "dataset" with their
-    # phi dihedral angles
-    dataset = []
-    for trajectory_file in ['trj0.xtc', 'trj1.xtc']:
-        t = md.load(trajectory_file, top='topology.pdb')
-        indices, phi = md.compute_phi(t)
-        dataset.append(phi)
-
-    from msmbuilder.cluster import KMeans
-    cluster = KMeans(n_clusters=10)
-    cluster.fit(dataset)
-
-    print(cluster.labels_)
+.. todo: Example of clustering
 
 References
 ----------
