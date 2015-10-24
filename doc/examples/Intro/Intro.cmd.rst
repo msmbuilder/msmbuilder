@@ -1,7 +1,6 @@
-.. _commandline:
 .. highlight:: bash
 
-Command line Tutorial
+CMD Intro: FS Peptide
 =====================
 
 MSMBuilder is designed as a python library and a command-line program.  The

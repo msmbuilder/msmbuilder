@@ -24,7 +24,7 @@ Command Line
    :maxdepth: 2
    :titlesonly:
    
-   commandline
+   Intro/Intro.cmd
 
 Python API
 ----------
