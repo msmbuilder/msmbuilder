@@ -5,18 +5,22 @@ Transition Path Theory
 ======================
 
 
-Background
+Transition path theory (TPT) is a way to extract the highest-flux pathways
+of your system from an estimated MSM. 
+
+.. todo: more
+
+.. todo: example
+
+
+References
 ----------
-This module contains functions for analyzing Markov state models, with an
-emphasis on Transition Path Theory (TPT)
 
 These are some canonical references for TPT. Note that TPT is really a
 specialization of ideas very familiar to the mathematical study of Markov
-chains, and there are many books, manuscripts in the mathematical literature
-that cover the same concepts.
+chains, and there are many books, manuscripts in the mathematical
+literature that cover the same concepts.
 
-References
-~~~~~~~~~~
 .. [1] E, Weinan and Vanden-Eijnden, Eric Towards a Theory of Transition Paths
        J. Stat. Phys. 123 503-523 (2006)
 .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E. Transition path theory
@@ -44,3 +48,5 @@ Functions
     committors
     conditional_committors
     mfpts
+
+.. vim: tw=75

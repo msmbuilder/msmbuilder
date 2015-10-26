@@ -1,9 +1,11 @@
+.. _plugins:
+
 Extending MSMBuilder with Plugins
 =================================
 
-You can easily extend MSMBuilder by subclassing ``BaseEstimator`` or
-any of its children. You can even build your plugin to work with the
-``msmb`` command-line interface. 
+You can easily extend MSMBuilder by subclassing ``BaseEstimator`` or any of
+its children. You can even build your plugin to work with the ``msmb``
+command-line interface. 
 
 1. Subclass ``cmdline.Command`` or any of its children. For example,
    if you want to expose a new Featurizer from the command line.
@@ -30,3 +32,5 @@ any of its children. You can even build your plugin to work with the
 See the 
 `setuptools documentation <https://pythonhosted.org/setuptools/setuptools.html#extensible-applications-and-frameworks>`_
 for more information.
+
+.. vim: tw=75

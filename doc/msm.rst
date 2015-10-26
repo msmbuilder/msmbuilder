@@ -5,18 +5,15 @@ Markov state models (MSMs)
 ==========================
 
 Markov state models (MSMs) are a class of models for modeling the
-long-timescale dynamics of molecular systems. An MSM is essentially a
-kinetic map of the conformational space a molecule explores. The model
-consists of (1) a set of conformational states, and (2) a matrix of
-transition probabilities between each pair of states.
+long-timescale dynamics of molecular systems. They model the dynamics of a
+system as a series of memoryless, probabalistic jumps between a set of
+states. Practically, the model consists of (1) a set of conformational
+states, and (2) a matrix of transition probabilities between each pair of
+states.
 
 In MSMBuilder, you can use :class:`MarkovStateModel` to build MSMs from
-"labeled" trajectories -- that is, sequences of integers corresponding to
-the index of the conformational state occupied by the system at each time
-point on a trajectory. The :ref:`cluster` module provides a number of
-different methods for clustering the trajectories that you can use to
-define the states.
-
+"labeled" trajectories -- that is, sequences of integers that are the
+result of :ref:`clustering<cluster>`.
 
 Algorithms
 ----------
@@ -32,20 +29,19 @@ Maximum Likelihood and Bayesian Estimation
 
 There are two steps in constructing an MSM
 
-  1. Count the number of observed transitions between states. That is,
-       construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number
-       of observed transitions from state :math:`i` at time :math:`t` to
-       state :math:`j` at time :math:`t+\tau`, summed over all times
-       :math:`t`.
+#. Count the number of observed transitions between states. That is,
+   construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number of
+   observed transitions from state :math:`i` at time :math:`t` to state
+   :math:`j` at time :math:`t+\tau`, summed over all times :math:`t`.
 
-  2. Estimate the transition probability matrix, :math:`\mathbf{T}`
+#. Estimate the transition probability matrix, :math:`\mathbf{T}`
 
-     .. math ::
-         T_{ij} = P( s_{t+\tau} = j | s_t = i)
-
-     where :math:`S = (s_t)` is a trajectory in state-index space of length
-     :math:`N`, and :math:`s_t \in \{1, \ldots, k\}` the state-index of the
-     trajectory at time :math:`t`.
+   .. math ::
+       T_{ij} = P( s_{t+\tau} = j | s_t = i)
+    
+   where :math:`S = (s_t)` is a trajectory in state-index space of length
+   :math:`N`, and :math:`s_t \in \{1, \ldots, k\}` the state-index of the
+   trajectory at time :math:`t`.
 
 The probability that a given transition probability matrix would generate
 some observed trajectory (the likelihood) is
@@ -64,16 +60,16 @@ distribution
 
 MSMBuilder implements two MSM estimators.
 
- -  :class:`MarkovStateModel` performs maximum likelihood estimation.  It
-   estimates a single transition matrix, :math:`\mathbf{T}`, to maximimize
-   :math:`\mathcal{L}(\mathbf{T})`.
+- :class:`MarkovStateModel` performs maximum likelihood estimation.  It
+  estimates a single transition matrix, :math:`\mathbf{T}`, to maximimize
+  :math:`\mathcal{L}(\mathbf{T})`.
 
- - :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte
-   Carlo to (approximately) draw a sample of transition matrices from the
-   posterior distribution :math:`P(\mathbf{T} | S)`. This sampler is
-   described in Metzner et al. [#f5]_ This can be used to estimate the
-   sampling uncertainty in functions of the transition matrix (e.g.
-   relaxation timescales).
+- :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte
+  Carlo to (approximately) draw a sample of transition matrices from the
+  posterior distribution :math:`P(\mathbf{T} | S)`. This sampler is
+  described in Metzner et al. [#f5]_ This can be used to estimate the
+  sampling uncertainty in functions of the transition matrix (e.g.
+  relaxation timescales).
 
 .. note::
 
@@ -106,16 +102,9 @@ these competing sources of error in an automatic and practical way,
 although some partially satisfactory algorithms are available. [#f3]_
 [#f4]_
 
-A second key parameter is the lag time of the model. The lag time controls
-a trade off between accuracy and descriptive power. [TODO: WRITE MORE]
+.. todo: talk about lag time
 
-
-Analyzing an MSM
-----------------
-
-#. timescales
-#. eigenvectors
-#. lumping
+.. todo: analysis page
 
 
 References

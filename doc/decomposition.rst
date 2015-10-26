@@ -1,8 +1,8 @@
 .. _decomposition:
 .. currentmodule:: msmbuilder.decomposition
 
-Dimensionality Reduction
-========================
+Decomposition
+=============
 
 tICA
 ----
@@ -57,28 +57,7 @@ freedom and transform the 66-dimensional dataset into a 1, 4, or
 10-dimensional dataset. Then, they applied
 :class:`~msmbuilder.cluster.KMeans` to the resulting data and built an MSM.
 
-Example
--------
-
-
-.. code-block:: python
-
-    from msmbuilder.decomposition import tICA
-    from msmbuilder.cluster import KMeans
-    from msmbuilder.msm import MarkovStateModel
-    from sklearn.pipeline import Pipeline
-
-    pipeline = Pipeline([
-        ('tica', tICA(n_components=4)),
-        ('kmeans', KMeans(n_clusters=1000)),
-        ('msm': MarkovStateModel(),
-    ])
-
-    # load a list of 2D arrays, each of shape (length_of_trajectory, n_features)
-    dataset = ...
-
-    pipeline.fit(dataset)
-
+.. todo: Link to example notebook.
 
 References
 ----------
