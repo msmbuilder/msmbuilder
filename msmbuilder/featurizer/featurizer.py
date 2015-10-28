@@ -275,7 +275,7 @@ class DihedralFeaturizer(Featurizer):
                 str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a Pandas Dataframe describing the Dihderal features."""
+        """Return a list of dictionaries describing the Dihderal features."""
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
@@ -375,7 +375,7 @@ class KappaAngleFeaturizer(Featurizer):
         return result
 
     def describe_features(self, traj):
-        """Return a Pandas Dataframe describing the Kappa angle features."""
+        """Return a list of dictionaries describing the Kappa angle features."""
         x = []
         #fill in the atom indices using just the first frame
         res_ = self.partial_transform(traj[0])
@@ -500,7 +500,7 @@ class ContactFeaturizer(Featurizer):
         return distances
 
     def describe_features(self, traj):
-        """Return a Pandas Dataframe describing the features in Contacts."""
+        """Return a list of dictionaries describing the features in Contacts."""
         x = []
         #fill in the atom indices using just the first frame
         distances,residue_indices = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
