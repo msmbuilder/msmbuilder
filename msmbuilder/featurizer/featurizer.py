@@ -268,8 +268,6 @@ class DihedralFeaturizer(Featurizer):
             types = [types]
         self.types = list(types)  # force a copy
         self.sincos = sincos
-        self.wrote_atom_indices = False
-        self.atom_indices = []
 
         known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
         if not set(types).issubset(known):
@@ -335,7 +333,7 @@ class DihedralFeaturizer(Featurizer):
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
-            indices,y = func(traj)
+            _,y = func(traj)
             if self.sincos:
                 x.extend([np.sin(y), np.cos(y)])
             else:
