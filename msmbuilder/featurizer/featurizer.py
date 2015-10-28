@@ -277,7 +277,7 @@ class DihedralFeaturizer(Featurizer):
                 str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a Pandas Dataframe describing the features."""
+        """Return a Pandas Dataframe describing the Dihderal features."""
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
@@ -500,6 +500,28 @@ class ContactFeaturizer(Featurizer):
         """
         distances, _ = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
         return distances
+
+    def describe_features(self, traj):
+        """Return a Pandas Dataframe describing the features in Contacts."""
+        x = []
+        #fill in the atom indices using just the first frame
+        distances,residue_indices = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
+        n = residue_indices.shape[0]
+        aind = ["N/A"] * n
+        resSeq = [[traj.top.residue(j).resSeq for j in i] for i in residue_indices]
+        resid = [[traj.top.residue(j).index for j in i] for i in residue_indices]
+        resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
+        bigclass = [self.contacts] * n
+        smallclass = [self.scheme] * n
+        otherInfo = [self.ignore_nonprotein]*n
+
+        for i in range(n):
+            d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
+                               otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
+            x.append(d_i)
+
+        return x
+
 
 
 class GaussianSolventFeaturizer(Featurizer):
