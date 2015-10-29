@@ -506,8 +506,8 @@ class ContactFeaturizer(Featurizer):
         distances,residue_indices = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
         n = residue_indices.shape[0]
         aind = ["N/A"] * n
-        resSeq = [[traj.top.residue(j).resSeq for j in i] for i in residue_indices]
-        resid = [[traj.top.residue(j).index for j in i] for i in residue_indices]
+        resSeq = [np.array([traj.top.residue(j).resSeq for j in i]) for i in residue_indices]
+        resid = [np.array([traj.top.residue(j).index for j in i]) for i in residue_indices]
         resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
         bigclass = [self.contacts] * n
         smallclass = [self.scheme] * n
