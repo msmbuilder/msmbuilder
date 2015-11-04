@@ -14,6 +14,7 @@ import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
 from scipy.stats import vonmises as vm
 from msmbuilder import libdistance
+import itertools
 
 from ..base import BaseEstimator
 
@@ -392,42 +393,63 @@ class DihedralFeaturizer(Featurizer):
                              (str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the Dihderal features."""
-        x = []
-        for a in self.types:
-            func = getattr(md, 'compute_%s' % a)
-            aind, _ = func(traj)
-            n = len(aind)
+        """Return a list of dictionaries describing the dihderal features.
 
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
 
-            bigclass = ["dihedral"] * n
-            smallclass = [a] * n
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Dihedral
+                - featuregroup: the type of dihedral angle and whether sin or
+                  cos has been applied.
+        """
 
+        feature_descs = []
+        for dihed_type in self.types:
+            # TODO: Don't recompute dihedrals, just get the indices
+            func = getattr(md, 'compute_%s' % dihed_type)
+            # ainds is a list of four-tuples of atoms participating
+            # in each dihedral
+            aind_tuples, _ = func(traj)
+
+            top = traj.topology
+            resseqs = []
+            resids = []
+            resnames = []
+            for ainds in aind_tuples:
+                resseqs += [set(top.atom(ai).residue.resSeq for ai in ainds)]
+                resids += [set(top.atom(ai).residue.index for ai in ainds)]
+                resnames += [set(top.atom(ai).residue.name for ai in ainds)]
+
+            zippy = zip(aind_tuples, resseqs, resids, resnames)
             if self.sincos:
-                aind = list(aind) * 2
-                resnames = resnames * 2
-                resSeq = resSeq * 2
-                resid = resid * 2
-                otherInfo = (["sin"] * n) + (["cos"] * n)
-                bigclass = bigclass * 2
-                smallclass = smallclass * 2
+                zippy = itertools.product(['sin', 'cos'], zippy)
             else:
-                otherInfo = ["nosincos"] * n
+                zippy = itertools.product(['nosincos'], zippy)
 
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
+            for sincos, info in zippy:
+                ainds, resseq, resid, resname = info
+                feature_descs += [dict(
+                    resnames=resname,
+                    atominds=ainds,
+                    resseqs=resseq,
+                    resids=resid,
+                    featurizer="Dihedral",
+                    featuregroup="{}-{}".format(sincos, dihed_type),
+                )]
 
-        return x
+        return feature_descs
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
