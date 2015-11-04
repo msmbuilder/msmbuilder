@@ -232,7 +232,7 @@ cdef double exprel(double x) nogil:
     for small x.
     """
 
-    cdef double cut = 0.002;
+    cdef double cut = 0.002
 
     if (x < log_dbl_min):
         return -1.0 / x;
