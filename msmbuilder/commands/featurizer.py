@@ -11,7 +11,8 @@ from ..cmdline import NumpydocClassCommand, argument, exttype, stripquotestype
 from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
-                          ContactFeaturizer, GaussianSolventFeaturizer)
+                          ContactFeaturizer, GaussianSolventFeaturizer,
+                          KappaAngleFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -86,6 +87,10 @@ class DihedralFeaturizerCommand(FeaturizerCommand):
     $ msmb DihedralFeaturizer --trjs './trajectories/*.h5' \\
         --transformed dihedrals-withchi --types phi psi chi1
     '''
+
+class KappaAngleFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = KappaAngleFeaturizer
 
 
 class AtomPairsFeaturizerCommand(FeaturizerCommand):
