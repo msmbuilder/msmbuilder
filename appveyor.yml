@@ -9,20 +9,24 @@ environment:
     - PYTHON: "C:\\Miniconda"
       CONDA_PY: "27"
       CONDA_NPY: "19"
+      RUN_CMD: "%CMD_IN_ENV%"
 
     - PYTHON: "C:\\Miniconda-x64"
       CONDA_PY: "27"
       CONDA_NPY: "19"
       ARCH: "64"
+      RUN_CMD: "%CMD_IN_ENV%"
 
     - PYTHON: "C:\\Miniconda3"
       CONDA_PY: "35"
       CONDA_NPY: "1.10"
+      RUN_CMD: ""
 
     - PYTHON: "C:\\Miniconda3-x64"
       CONDA_PY: "35"
       CONDA_NPY: "1.10"
       ARCH: "64"
+      RUN_CMD: ""
 
 install:
   - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
@@ -33,4 +37,4 @@ install:
 build: false
 
 test_script:
-  - "%CMD_IN_ENV% conda build --quiet devtools\\conda-recipe"
+  - "%RUN_CMD% conda build --quiet devtools\\conda-recipe"
