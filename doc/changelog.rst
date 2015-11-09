@@ -14,6 +14,9 @@ API Changes
 - Range-based slicing on dataset objects is no longer allowed. Keys in the
   dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
   loads all trajectories in a list (#610).
+- Ward clustering has been renamed AgglomerativeClustering in scikit-learn.
+  Please use the new msmbuilder wrapper class AgglomerativeClustering. An
+  alias for Ward has been made available.
 
 
 New Features
