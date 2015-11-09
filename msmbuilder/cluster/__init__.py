@@ -1,21 +1,15 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University
+# Contributors: Matthew Harrigan <matthew.harrigan@outlook.com>
+# Copyright (c) 2015, Stanford University
 # All rights reserved.
 
-#-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
 
 from __future__ import absolute_import, print_function, division
-import numpy as np
-from sklearn import cluster
-from sklearn import mixture
+import warnings
 
-import mdtraj as md
+from sklearn import cluster, mixture
+
 from ..base import BaseEstimator
-from ..utils import check_iter_of_sequences
-
 from .base import MultiSequenceClusterMixin
 from .kcenters import KCenters
 from .ndgrid import NDGrid
@@ -50,20 +44,18 @@ def _replace_labels(doc):
 
     return doc[:labelstart] + replace + doc[labelend:]
 
-#-----------------------------------------------------------------------------
-# New "multisequence" versions of all of the clustering algorithims in sklearn
-#-----------------------------------------------------------------------------
-
 
 class KMeans(MultiSequenceClusterMixin, cluster.KMeans, BaseEstimator):
     __doc__ = _replace_labels(cluster.KMeans.__doc__)
 
 
-class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans, BaseEstimator):
+class MiniBatchKMeans(MultiSequenceClusterMixin, cluster.MiniBatchKMeans,
+                      BaseEstimator):
     __doc__ = _replace_labels(cluster.MiniBatchKMeans.__doc__)
 
 
-class AffinityPropagation(MultiSequenceClusterMixin, cluster.AffinityPropagation, BaseEstimator):
+class AffinityPropagation(MultiSequenceClusterMixin,
+                          cluster.AffinityPropagation, BaseEstimator):
     __doc__ = _replace_labels(cluster.AffinityPropagation.__doc__)
 
 
@@ -71,12 +63,30 @@ class MeanShift(MultiSequenceClusterMixin, cluster.MeanShift, BaseEstimator):
     __doc__ = _replace_labels(cluster.MeanShift.__doc__)
 
 
-class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering, BaseEstimator):
+class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering,
+                         BaseEstimator):
     __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
 
 
-class Ward(MultiSequenceClusterMixin, cluster.Ward, BaseEstimator):
-    __doc__ = _replace_labels(cluster.Ward.__doc__)
+try:
+    class Ward(MultiSequenceClusterMixin, cluster.Ward, BaseEstimator):
+        __doc__ = _replace_labels(cluster.Ward.__doc__)
+except AttributeError:
+
+    class AgglomerativeClustering(MultiSequenceClusterMixin,
+                                  cluster.AgglomerativeClustering,
+                                  BaseEstimator):
+        __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
+
+
+    class Ward(AgglomerativeClustering):
+        __doc__ = AgglomerativeClustering.__doc__
+
+        def __init__(self, *args, **kwargs):
+            warnings.warn("sklearn.cluster.Ward was removed, "
+                          "please use AgglomerativeClustering",
+                          DeprecationWarning)
+            super(Ward, self).__init__(*args, **kwargs)
 
 
 class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
