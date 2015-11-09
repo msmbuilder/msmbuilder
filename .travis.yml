@@ -26,8 +26,9 @@ env:
   matrix:
     - CONDA_PY=2.7
     - CONDA_PY=3.4
+    - CONDA_PY=3.5
   global:
-    - CONDA_NPY=1.9
+    - CONDA_NPY=1.10
     # $BINSTAR_TOKEN (for user mpharrigan, with access to omnia)
     - secure: "DqDvfYriL3wYdQCp8pQM9huPQQ6U9dKWK02o0BhlAZque8mxU6MvZkp0GtajSqEPuVBjFeGOmFqzE5XgkLIs+vmniRyJ46hTDlOYIxgf2NA6AY6+xqVbqCIrq/xtIXPDPC0mXzASOdybAzdwv3VB/yq9G820o7qIWTg5yEg6qc0="
 
