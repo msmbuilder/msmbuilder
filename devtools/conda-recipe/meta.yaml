@@ -1,6 +1,6 @@
 package:
   name: msmbuilder-dev
-  version: !!str 3.4.0.dev0
+  version: "3.4.0.dev0"
 
 source:
   path: ../../
