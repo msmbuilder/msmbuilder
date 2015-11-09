@@ -43,9 +43,3 @@ deploy:
     on:
       branch: master
       condition: "$CONDA_PY = 3.4"
-
-  - provider: script
-    script: devtools/ci/deploy_conda.sh
-    skip_cleanup: true
-    on:
-      branch: master
