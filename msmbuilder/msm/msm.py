@@ -130,6 +130,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         self.transmat_ = None
         self.n_states_ = None
         self.populations_ = None
+        self.percent_retained_ = None
 
     def _parse_ergodic_cutoff(self):
         """Get a numeric value from the ergodic_cutoff input,
@@ -178,14 +179,15 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         if ergodic_cutoff > 0:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
-            self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                raw_counts, ergodic_cutoff, self.verbose)
+            self.countsmat_, mapping2, self.percent_retained_ = \
+                _strongly_connected_subgraph(raw_counts, ergodic_cutoff,
+                                             self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             # no ergodic trimming.
             self.countsmat_ = raw_counts
             self.mapping_ = mapping
-
+            self.percent_retained_ = 100
         self.n_states_ = self.countsmat_.shape[0]
 
         # use a dict like a switch statement: dispatch to different
