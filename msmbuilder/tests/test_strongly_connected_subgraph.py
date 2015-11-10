@@ -7,7 +7,7 @@ def test_0():
     tC, m, p_r = _strongly_connected_subgraph(np.zeros((1,1)))
     assert tC.shape == (0, 0)
     assert m == {}
-    assert np.isnan(a)
+    assert np.isnan(p_r)
 
 def test_01():
     # but if that state does have a self-connection, it should be retained
