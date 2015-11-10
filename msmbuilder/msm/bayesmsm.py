@@ -170,6 +170,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self.all_transmats_ = None
         self.n_states_ = None
         self._is_dirty = True
+        self.percent_retained_ = None
 
     def fit(self, sequences, y=None):
         sequences = list_of_1d(sequences)
@@ -179,8 +180,9 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
             sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
         if self.ergodic_cutoff >= 1:
-            self.countsmat_, mapping2 = _strongly_connected_subgraph(
-                self.lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
+            self.countsmat_, mapping2, self.percent_retained_ = \
+                _strongly_connected_subgraph(self.lag_time * raw_counts,
+                                             self.ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             self.countsmat_ = raw_counts
