@@ -40,6 +40,7 @@ test:
     - numdifftools
     - matplotlib
     - statsmodels
+    - hmmlearn
   imports:
     - msmbuilder
   commands:

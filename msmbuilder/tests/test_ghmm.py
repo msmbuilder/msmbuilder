@@ -4,7 +4,7 @@ import numpy as np
 from msmbuilder.hmm import GaussianHMM
 from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import SuperposeFeaturizer
-import sklearn.hmm
+import hmmlearn.hmm
 from itertools import permutations
 import warnings
 
@@ -30,7 +30,7 @@ def create_timeseries(means, vars, transmat):
     """Construct a random timeseries based on a specified Markov model."""
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        model = sklearn.hmm.GaussianHMM(n_components=len(means))
+        model = hmmlearn.hmm.GaussianHMM(n_components=len(means))
         model.means_ = means
         model.covars_ = vars
         model.transmat_ = transmat
@@ -45,9 +45,9 @@ def validate_timeseries(means, vars, transmat, model, valuetol=1e-3, transmattol
     assert (model.transmat_ <= 1.0).all()
     totalProbability = sum(model.transmat_.T)
     assert (abs(totalProbability-1.0) < 1e-5).all()
-    
+
     # The states may have come out in a different order, so we need to test all possible permutations.
-    
+
     for order in permutations(range(len(means))):
         match = True
         for i in range(numStates):
@@ -64,7 +64,7 @@ def validate_timeseries(means, vars, transmat, model, valuetol=1e-3, transmattol
         if match:
             # It matches.
             return
-    
+
     # No permutation matched.
     assert False
 
@@ -73,9 +73,9 @@ def test_2():
     means = np.array([[0.0], [5.0]])
     vars = np.array([[1.0], [1.0]])
     X = [create_timeseries(means, vars, transmat) for i in range(10)]
-    
+
     # For each value of various options, create a 2 state HMM and see if it is correct.
-    
+
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
             model = GaussianHMM(n_states=2, init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)
@@ -88,9 +88,9 @@ def test_3():
     means = np.array([[0.0], [10.0], [5.0]])
     vars = np.array([[1.0], [2.0], [0.3]])
     X = [create_timeseries(means, vars, transmat) for i in range(20)]
-    
+
     # For each value of various options, create a 3 state HMM and see if it is correct.
-    
+
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
             model = GaussianHMM(n_states=3, init_algo=init_algo, reversible_type=reversible_type, thresh=1e-4, n_iter=30)

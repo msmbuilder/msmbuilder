@@ -18,7 +18,7 @@ from msmbuilder.dataset import dataset
 from msmbuilder.example_datasets import get_data_home
 from msmbuilder.example_datasets.alanine_dipeptide import fetch_alanine_dipeptide
 
-import sklearn.hmm
+import hmmlearn.hmm
 DATADIR = HMM = None
 
 ################################################################################
@@ -30,7 +30,7 @@ def setup_module():
     DATADIR = tempfile.mkdtemp()
     # 4 components and 3 features. Each feature is going to be the x, y, z
     # coordinate of 1 atom
-    HMM = sklearn.hmm.GaussianHMM(n_components=4)
+    HMM = hmmlearn.hmm.GaussianHMM(n_components=4)
     HMM.transmat_ = np.array([[0.9, 0.1, 0.0, 0.0],
                               [0.1, 0.7, 0.2, 0.0],
                               [0.0, 0.1, 0.8, 0.1],
