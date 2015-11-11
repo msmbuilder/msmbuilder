@@ -367,7 +367,6 @@ class AlphaAngleFeaturizer(Featurizer):
         self.atom_indices = None
 
     def partial_transform(self, traj):
-
         """Featurize an MD trajectory into a vector space via calculation
         of dihedral (torsion) angles of alpha carbon backbone
 
