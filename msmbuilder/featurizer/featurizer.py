@@ -1,7 +1,8 @@
 # Author: Kyle A. Beauchamp <kyleabeauchamp@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
 #               Matthew Harrigan <matthew.p.harrigan@gmail.com>
-# Copyright (c) 2014, Stanford University and the Authors
+#               Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2015, Stanford University and the Authors
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -345,6 +346,99 @@ class DihedralFeaturizer(Featurizer):
             else:
                 x.append(y)
         return np.hstack(x)
+
+
+
+class AlphaAngleFeaturizer(Featurizer):
+    """Featurizer to extract alpha (dihedral) angles.
+
+    The alpha angle of residue `i` is the dihedral formed by the four CA atoms
+    of residues `i-1`, `i`, `i+1` and `i+2`.
+
+    Parameters
+    ----------
+    sincos : bool
+        Instead of outputting the angle, return the sine and cosine of the
+        angle as separate features.
+    """
+
+    def __init__(self, sincos=True):
+        self.sincos = sincos
+        self.atom_indices = None
+
+    def partial_transform(self, traj):
+
+        """Featurize an MD trajectory into a vector space via calculation
+        of dihedral (torsion) angles of alpha carbon backbone
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        """
+
+        ca = [a.index for a in traj.top.atoms if a.name == 'CA']
+        if len(ca) < 4:
+            return np.zeros((len(traj), 0), dtype=np.float32)
+
+        alpha_indices = np.array(
+            [(ca[i - 1], ca[i], ca[i+1], ca[i + 2]) for i in range(1, len(ca) - 2)])
+        result = md.compute_dihedrals(traj, alpha_indices)
+
+        x = []
+        if self.atom_indices is None:
+            self.atom_indices = np.vstack(alpha_indices)
+        if self.sincos:
+            x.extend([np.cos(result), np.sin(result)])
+        else:
+            x.append(result)
+        return np.hstack(x)
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the alpha dihedral angle features."""
+        x = []
+        #fill in the atom indices using just the first frame
+        res_ = self.partial_transform(traj[0])
+        if self.atom_indices is not None:
+            aind = self.atom_indices
+            n = len(aind)
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i])) for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i])) for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
+            bigclass = ["dihedral"] * n
+            smallclass = ["alpha"] * n
+
+            if self.sincos:
+                #x.extend([np.sin(y), np.cos(y)])
+                aind =  list(aind) * 2
+                resnames = resnames * 2
+                resSeq = resSeq * 2
+                resid = resid * 2
+                otherInfo = (["sin"] * n) + (["cos"] * n)
+                bigclass = bigclass * 2
+                smallclass = smallclass * 2
+            else:
+                otherInfo = ["nosincos"] * n
+
+            for i in range(len(resnames)):
+                d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
+                           otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
+                x.append(d_i)
+
+            return x
+        else:
+            raise UserWarning("Cannot describe features for trajectories with fewer than 4 alpha carbon\
+                              using AlphaAngleFeaturizer")
+
 
 
 class KappaAngleFeaturizer(Featurizer):

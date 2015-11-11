@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          DihedralFeaturizerCommand, DRIDFeaturizerCommand,
-                         SuperposeFeaturizerCommand, KappaAngleFeaturizerCommand)
+                         SuperposeFeaturizerCommand, KappaAngleFeaturizerCommand,
+                         AlphaAngleFeaturizerCommand)
 from .fit import GaussianHMMCommand
 from .fit_transform import KMeansCommand, KCentersCommand
 from .transform import TransformCommand
