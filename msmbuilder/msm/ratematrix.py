@@ -129,6 +129,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         self.eigenvalues_ = None
         self.left_eigenvectors_ = None
         self.right_eigenvectors_ = None
+        self.percent_retained_ = None
 
     def _build_counts(self, sequences):
         sequences = list_of_1d(sequences)
@@ -141,12 +142,13 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         if self.ergodic_cutoff >= 1:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
-            countsmat, mapping2 = _strongly_connected_subgraph(
+            countsmat, mapping2, self.percent_retained_ = _strongly_connected_subgraph(
                 lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
             mapping = _dict_compose(mapping, mapping2)
         else:
             # no ergodic trimming.
             countsmat = raw_counts
+            self.percent_retained_ = 100
 
         self.n_states_ = countsmat.shape[0]
         self.countsmat_ = countsmat

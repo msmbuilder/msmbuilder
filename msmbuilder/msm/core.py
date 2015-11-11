@@ -113,6 +113,7 @@ class _MappingTransformMixin(TransformerMixin):
             result.append(f(y))
         return result
 
+
 class _SampleMSMMixin(object):
     """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""
     def sample_discrete(self, state=None, n_steps=100, random_state=None):
@@ -360,19 +361,19 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
         csum = component_pops.sum()
         return 100 * component_pops[which] / csum if csum != 0 else np.nan
 
+    percent_retained = cpop(which_component)
     if verbose:
         print("MSM contains %d strongly connected component%s "
               "above weight=%.2f. Component %d selected, with "
               "population %f%%" % (n_components, 's' if (n_components != 1) else '',
-                                   weight, which_component, cpop(which_component)))
-
+                                   weight, which_component, percent_retained))
 
     # keys are all of the "input states" which have a valid mapping to the output.
     keys = np.arange(n_states_input)[component_assignments == which_component]
 
     if n_components == n_states_input and counts[np.ix_(keys, keys)] == 0:
         # if we have a completely disconnected graph with no self-transitions
-        return np.zeros((0, 0)), {}
+        return np.zeros((0, 0)), {}, percent_retained
 
     # values are the "output" state that these guys are mapped to
     values = np.arange(len(keys))
@@ -381,7 +382,7 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
 
     trimmed_counts = np.zeros((n_states_output, n_states_output), dtype=counts.dtype)
     trimmed_counts[np.ix_(values, values)] = counts[np.ix_(keys, keys)]
-    return trimmed_counts, mapping
+    return trimmed_counts, mapping, percent_retained
 
 
 def _transition_counts(sequences, lag_time=1, sliding_window=True):
@@ -483,7 +484,7 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
 
     transitions = np.hstack(_transitions)
     C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),
-        shape=(n_states, n_states))
+                   shape=(n_states, n_states))
     counts = counts + np.asarray(C.todense())
 
     # If sliding window is False, this function will be called recursively
