@@ -4,7 +4,7 @@ import msmbuilder.featurizer
 from msmbuilder.featurizer import subset_featurizer
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 
-def test_AlanineDipeptide():
+def test_alanine_dipeptide():
 	# will produce 0 features because not enough peptides
 
 	dataset = fetch_alanine_dipeptide()
@@ -15,32 +15,32 @@ def test_AlanineDipeptide():
 
 	assert(nothing[0].shape[1] == 0)
 
-from msmbuilder.example_datasets import FsPeptide
-fs_peptide = FsPeptide()
-import tempfile
-import os
-os.chdir(tempfile.mkdtemp())
-from msmbuilder.dataset import dataset
+from msmbuilder.example_datasets import fetch_fs_peptide
+#fs_peptide = FsPeptide()
+#import tempfile
+#import os
+#os.chdir(tempfile.mkdtemp())
+#from msmbuilder.dataset import dataset
 
-def test_FsPeptide():
+def test_fs_peptide():
 	# will produce 36 features
 
-	xyz = dataset(fs_peptide.data_dir + "/*.xtc", topology=fs_peptide.data_dir + '/fs_peptide.pdb')
+	dataset = fetch_fs_peptide()
+	trajectories = dataset["trajectories"]
+	trj0 = trajectories[0][0]
 	featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer()
-	alphas = xyz.create_derived('alphas_test/', fmt='dir-npy')
-	for i in xyz.keys():
-	    alphas[i] = featurizer.partial_transform(xyz[i])
+	alphas = featurizer.transform(trajectories)
 
 	assert(alphas[0].shape[1] == 36)
 
-def test_FsPeptide_nosincos():
+def test_fs_peptide_nosincos():
 	# will produce 18 features
 
-	xyz = dataset(fs_peptide.data_dir + "/*.xtc", topology=fs_peptide.data_dir + '/fs_peptide.pdb')
+	dataset = fetch_fs_peptide()
+	trajectories = dataset["trajectories"]
+	trj0 = trajectories[0][0]
 	featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer(sincos=False)
-	alphas = xyz.create_derived('alphas_test_nosincos/', fmt='dir-npy')
-	for i in xyz.keys():
-	    alphas[i] = featurizer.partial_transform(xyz[i])
+	alphas = featurizer.transform(trajectories)
 
 	assert(alphas[0].shape[1] == 18)
 
