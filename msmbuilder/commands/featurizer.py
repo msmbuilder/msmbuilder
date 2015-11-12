@@ -12,7 +12,7 @@ from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
                           ContactFeaturizer, GaussianSolventFeaturizer,
-                          KappaAngleFeaturizer)
+                          KappaAngleFeaturizer, AlphaAngleFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -91,6 +91,11 @@ class DihedralFeaturizerCommand(FeaturizerCommand):
 class KappaAngleFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = KappaAngleFeaturizer
+
+
+class AlphaAngleFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = AlphaAngleFeaturizer
 
 
 class AtomPairsFeaturizerCommand(FeaturizerCommand):
