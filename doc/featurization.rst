@@ -18,7 +18,7 @@ Featurizations
 --------------
 
 .. autosummary::
-    :toctree: generated/
+    :toctree: _featurization/
 
     AtomPairsFeaturizer
     ContactFeaturizer

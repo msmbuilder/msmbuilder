@@ -57,7 +57,7 @@ described in that paper. Compared to a "vanilla" HMM:
 Algorithms
 ----------
 .. autosummary::
-    :toctree: generated/
+    :toctree: _hmm/
     :template: class.rst
 
     GaussianHMM

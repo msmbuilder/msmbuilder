@@ -37,7 +37,7 @@ Algorithms
 ----------
 
 .. autosummary::
-    :toctree: decomposition/
+    :toctree: _decomposition/
 
     tICA
     SparseTICA

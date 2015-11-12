@@ -37,7 +37,7 @@ Functions
 ---------
 
 .. autosummary::
-    :toctree: generated/
+    :toctree: _tpt/
 
     fluxes
     net_fluxes
