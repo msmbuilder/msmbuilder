@@ -19,7 +19,7 @@ def test_1():
     indices = topology.select('symbol C or symbol O or symbol N')
     featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
 
-    sequences = featurizer.transform(trajectories)
+    sequences = featurizer.partial_transform(trajectories)
     hmm = GaussianHMM(n_states=4, n_init=3)
     hmm.fit(sequences)
 
