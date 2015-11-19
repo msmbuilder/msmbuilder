@@ -194,9 +194,9 @@ class SuperposeFeaturizer(Featurizer):
         transform : simultaneously featurize a collection of MD trajectories
         """
         traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
-        diff2 = (traj.xyz[:, self.atom_indices] -
-                 self.reference_traj.xyz[0, self.atom_indices]) ** 2
-        x = np.sqrt(np.sum(diff2, axis=2))
+        diff2 = (traj.xyz[:, self.atom_indices, :] -
+                 self.reference_traj.xyz[0, self.atom_indices, :]) ** 2
+        x = np.sqrt(np.sum(diff2, axis=(1, 2)))
         return x
 
 
