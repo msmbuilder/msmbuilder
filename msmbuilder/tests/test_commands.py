@@ -133,7 +133,7 @@ def test_superpose_featurizer():
                   data_home=get_data_home()))
         ds = dataset('distances')
         assert len(ds) == 10
-        assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
+        assert ds.shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
 def test_superpose_featurizer_reftop():
@@ -147,7 +147,7 @@ def test_superpose_featurizer_reftop():
             data_home=get_data_home()))
         ds = dataset('distances')
         assert len(ds) == 10
-        assert ds[0].shape[1] == len(np.loadtxt('all.txt'))
+        assert ds.shape[1] == len(np.loadtxt('all.txt'))
         print(ds.provenance)
 
 
