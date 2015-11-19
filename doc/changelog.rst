@@ -1,8 +1,14 @@
 Changelog
 =========
 
-v3.3.1 (Development)
---------------------
+v3.3.1 (November 19, 2015)
+--------------------------
+
+This point release is for compatibility with scikit-learn version 0.17
+
+- Ward clustering has been renamed AgglomerativeClustering in scikit-learn.
+  Please use the new msmbuilder wrapper class AgglomerativeClustering. An
+  alias for Ward has been made available.
 
 
 v3.3.0 (August 27, 2015)
