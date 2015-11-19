@@ -1,8 +1,12 @@
 Changelog
 =========
 
-v3.3 (August 27, 2015)
-----------------------
+v3.3.1 (Development)
+--------------------
+
+
+v3.3.0 (August 27, 2015)
+------------------------
 
 We're pleased to announce the release of MSMBuilder v3.3.0. The focus of this
 release is a completely re-written module for constructing HMMs as well as bug
