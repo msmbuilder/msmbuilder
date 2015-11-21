@@ -253,7 +253,7 @@ class StrucRMSDFeaturizer(Featurizer):
             
         result = np.array(x)
         return np.transpose(x)
-        # test
+
         # for i in range(0, self.reference_traj.n_frames):
         #     y = np.array([md.rmsd(traj, self.reference_traj, i)])
         #     x = np.append(x,y)
