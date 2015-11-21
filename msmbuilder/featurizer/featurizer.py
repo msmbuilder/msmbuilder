@@ -200,6 +200,60 @@ class SuperposeFeaturizer(Featurizer):
         return x
 
 
+
+class StrucRMSDFeaturizer(Featurizer):
+    """Featurizer based on overall RMSD to a set of reference structures.
+
+    Parameters
+    ----------
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with
+    reference_traj : md.Trajectory
+        The reference conformation to superpose each frame with respect to
+        (only the first frame in reference_traj is used)
+    superpose_atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        If not None, these atom_indices are used for the superposition
+    """
+
+    def __init__(self, atom_indices, reference_traj, superpose_atom_indices=None):
+        self.atom_indices = atom_indices
+        if superpose_atom_indices is None:
+            self.superpose_atom_indices = atom_indices
+        else:
+            self.superpose_atom_indices = superpose_atom_indices
+        self.reference_traj = reference_traj
+#        self.n_features = len(self.atom_indices)
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via distance
+        after superposition
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
+        x = []
+        for i in range (0, self.reference_traj.n_frames):
+            y = np.array([md.rmsd(traj, self.reference_traj, i)])
+            x = np.append(x,y)
+
+        return np.hstack(x)
+
+
 class AtomPairsFeaturizer(Featurizer):
     """Featurizer based on distances between specified pairs of atoms.
 

@@ -12,7 +12,8 @@ from ..dataset import dataset, MDTrajDataset
 from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
                           ContactFeaturizer, GaussianSolventFeaturizer,
-                          KappaAngleFeaturizer, AlphaAngleFeaturizer)
+                          KappaAngleFeaturizer, AlphaAngleFeaturizer,
+                          StrucRMSDFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -106,6 +107,26 @@ class AtomPairsFeaturizerCommand(FeaturizerCommand):
         if fn is None:
             return None
         return np.loadtxt(fn, dtype=int, ndmin=2)
+
+
+class StrucRMSDFeaturizerCommand(FeaturizerCommand):
+    klass = StrucRMSDFeaturizer
+    _concrete = True
+
+    def _reference_traj_type(self, fn):
+        if self.top.strip() == "":
+            top = None
+        else:
+            top = os.path.expanduser(self.top)
+            err = ("Couldn't find topology file '{}' "
+                   "when loading reference trajectory".format(top))
+            assert os.path.exists(top), err
+        return md.load(fn, top=top)
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)
 
 
 class SuperposeFeaturizerCommand(FeaturizerCommand):
