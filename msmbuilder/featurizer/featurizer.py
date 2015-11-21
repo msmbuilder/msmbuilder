@@ -247,11 +247,17 @@ class StrucRMSDFeaturizer(Featurizer):
         """
         traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
         x = []
-        for i in range (0, self.reference_traj.n_frames):
-            y = np.array([md.rmsd(traj, self.reference_traj, i)])
-            x = np.append(x,y)
+        for i in range(0, self.reference_traj.n_frames):
+            y = md.rmsd(traj, self.reference_traj, i)
+            x.append(y)
+            
+        result = np.array(x)
+        return np.transpose(x)
+        # for i in range(0, self.reference_traj.n_frames):
+        #     y = np.array([md.rmsd(traj, self.reference_traj, i)])
+        #     x = np.append(x,y)
 
-        return np.hstack(x)
+        # return np.hstack(x)
 
 
 class AtomPairsFeaturizer(Featurizer):
