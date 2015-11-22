@@ -252,15 +252,7 @@ class StrucRMSDFeaturizer(Featurizer):
             x.append(y)
             
         result = np.array(x)
-        return np.transpose(x)
-
-        # test 2
-
-        # for i in range(0, self.reference_traj.n_frames):
-        #     y = np.array([md.rmsd(traj, self.reference_traj, i)])
-        #     x = np.append(x,y)
-
-        # return np.hstack(x)
+        return np.transpose(result)
 
 
 class AtomPairsFeaturizer(Featurizer):
