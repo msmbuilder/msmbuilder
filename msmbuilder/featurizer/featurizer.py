@@ -202,7 +202,10 @@ class SuperposeFeaturizer(Featurizer):
 
 
 class StrucRMSDFeaturizer(Featurizer):
-    """Featurizer based on overall RMSD to a set of reference structures.
+    """Featurizer which inputs a trajectory to be analyzed ('traj') and a
+    reference trajectory ('ref') and outputs the RMSD of each frame of
+    traj with respect to each frame in ref. The output is a numpy array
+    with n_rows = traj.n_frames and n_columns = ref.n_frames.
 
     Parameters
     ----------
