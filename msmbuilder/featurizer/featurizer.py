@@ -202,7 +202,9 @@ class SuperposeFeaturizer(Featurizer):
 
 
 class StrucRMSDFeaturizer(Featurizer):
-    """Featurizer which inputs a trajectory to be analyzed ('traj') and a
+    """Featurizer based on RMSD to one or more reference structures.
+
+    This featurizer inputs a trajectory to be analyzed ('traj') and a
     reference trajectory ('ref') and outputs the RMSD of each frame of
     traj with respect to each frame in ref. The output is a numpy array
     with n_rows = traj.n_frames and n_columns = ref.n_frames.
@@ -225,7 +227,6 @@ class StrucRMSDFeaturizer(Featurizer):
         else:
             self.superpose_atom_indices = superpose_atom_indices
         self.reference_traj = reference_traj
-#        self.n_features = len(self.atom_indices)
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via distance
@@ -248,7 +249,6 @@ class StrucRMSDFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
         x = []
         for i in range(0, self.reference_traj.n_frames):
             y = md.rmsd(traj, self.reference_traj, i)
