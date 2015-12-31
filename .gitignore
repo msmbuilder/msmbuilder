@@ -44,3 +44,4 @@ msmbuilder/version.py
 *.swp
 *.swo
 
+build.log
