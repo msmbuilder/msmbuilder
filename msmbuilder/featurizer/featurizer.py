@@ -16,7 +16,7 @@ import mdtraj as md
 from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
-import libdistance
+from msmbuilder import libdistance
 
 from ..base import BaseEstimator
 
