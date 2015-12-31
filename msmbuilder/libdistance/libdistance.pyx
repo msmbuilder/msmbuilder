@@ -168,7 +168,7 @@ def cdist(XA, XB, const char* metric):
         return _cdist_rmsd(XA, XB)
 
     if not (isinstance(XA, np.ndarray) and isinstance(XB, np.ndarray)):
-        raise TypeError('TODO')
+        raise TypeError('XA and XB must be numpy arrays')
     if metric not in VECTOR_METRICS:
         raise ValueError('metric must be one of %s' %
                          ', '.join("'%s'" % s for s in VECTOR_METRICS))
