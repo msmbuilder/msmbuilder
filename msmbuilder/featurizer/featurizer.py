@@ -16,6 +16,7 @@ import mdtraj as md
 from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
+import libdistance
 
 from ..base import BaseEstimator
 
@@ -249,7 +250,7 @@ class StrucRMSDFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        result = cdist(traj, self.reference_traj, 'rmsd')
+        result = libdistance.cdist(traj, self.reference_traj, 'rmsd')
         return result
 
 

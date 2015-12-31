@@ -138,9 +138,9 @@ def cdist(XA, XB, const char* metric):
 
     Parameters
     ----------
-    XA : array, shape = (n_samples, n_features) or md.Trajectory
+    XA : array, shape = (na_samples, m_features) or md.Trajectory
         The data array
-    XB : array, shape = (n_samples, n_features) or md.Trajectory
+    XB : array, shape = (nb_samples, m_features) or md.Trajectory
         The reference array
     metric : {"euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",
               "braycurtis", "hamming", "jaccard", "cityblock", "rmsd"}
@@ -149,11 +149,9 @@ def cdist(XA, XB, const char* metric):
 
     Returns
     -------
-    Y : ndarray
-        A :math:`n_A` by :math:`n_B` distance matrix is returned.
-        For each :math:`i` and :math:`j`, the metric
-        ``dist(u=XA[i], v=XB[j])`` is computed and stored in the
-        :math:`ij` th entry.
+    Y : array, shape = (na_samples, nb_samples)
+        For each sample i in XA and each sample j in XB
+        ``dist(u=XA[i], v=XB[j])`` is computed and stored in Y[i,j]
 
     Note
     ----
