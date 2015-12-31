@@ -249,13 +249,8 @@ class StrucRMSDFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        x = []
-        for i in range(0, self.reference_traj.n_frames):
-            y = md.rmsd(traj, self.reference_traj, i)
-            x.append(y)
-            
-        result = np.array(x)
-        return np.transpose(result)
+        result = cdist(traj, self.reference_traj, 'rmsd')
+        return result
 
 
 class AtomPairsFeaturizer(Featurizer):
