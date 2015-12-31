@@ -420,11 +420,9 @@ cdef _cdist_rmsd(XA, XB):
     cdef double[:, ::1] out
 
     if XA._rmsd_traces is None:
-        raise ValueError('XA must be pre-centered using '
-                         'md.Trajectory.center_coordinates')
+        XA.center_coordinates()
     if XB._rmsd_traces is None:
-        raise ValueError('XB must be pre-centered using '
-                         'md.Trajectory.center_coordinates')
+        XB.center_coordinates()
 
     if XA_xyz.shape[1] != XB_xyz.shape[1]:
         raise ValueError('XA and XB must have the same number of atoms')
