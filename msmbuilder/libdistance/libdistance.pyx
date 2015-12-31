@@ -1,8 +1,8 @@
 # cython: c_string_type=str, c_string_encoding=ascii
 
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University
+# Contributors: Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2015, Stanford University
 # All rights reserved.
 
 from __future__ import print_function
@@ -43,6 +43,11 @@ cdef extern from "pdist.hpp":
     void pdist_float_X_indices(const float* X, const char* metric, npy_intp n,
         npy_intp m, const npy_intp* X_indices, npy_intp n_X_indices,
         double* out) nogil
+cdef extern from "cdist.hpp":
+    void cdist_double(const double* XA, const double* XB, const char* metric,
+        npy_intp na, npy_intp nb, npy_intp m, double* out) nogil
+    void cdist_float(const float* XA, const float* XB, const char* metric,
+        npy_intp na, npy_intp nb, npy_intp m, double* out) nogil
 cdef extern from "dist.hpp":
     void dist_double(const double* X, const double* y, const char* metric,
         npy_intp n, npy_intp m, double* out) nogil
@@ -124,6 +129,54 @@ def assign_nearest(X, Y, const char* metric, npy_intp[::1] X_indices=None):
         return _assign_nearest_float(X, Y, metric, X_indices)
     else:
         raise TypeError('X and y must be both float32 or float64')
+
+
+def cdist(XA, XB, const char* metric):
+    """cdist(XA, XB, metric):
+
+    Computes distance between each pair of the two collections of inputs.
+
+    Parameters
+    ----------
+    XA : array, shape = (na_samples, m_features) or md.Trajectory
+        The data array
+    XB : array, shape = (nb_samples, m_features) or md.Trajectory
+        The reference array
+    metric : {"euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",
+              "braycurtis", "hamming", "jaccard", "cityblock", "rmsd"}
+        The distance metric to use. metric = "rmsd" requires that X be of type
+        md.Trajectory; other distance metrics require that it be a numpy array
+
+    Returns
+    -------
+    Y : array, shape = (na_samples, nb_samples)
+        For each sample i in XA and each sample j in XB
+        ``dist(u=XA[i], v=XB[j])`` is computed and stored in Y[i,j]
+
+    Note
+    ----
+    Not implemented for X_indices != None
+
+    See Also
+    --------
+    mdtraj.rmsd
+    scipy.spatial.distance.cdist
+    """
+    if (isinstance(XA, md.Trajectory) and isinstance(XB, md.Trajectory) and strcmp(metric, RMSD) == 0):
+        return _cdist_rmsd(XA, XB)
+
+    if not (isinstance(XA, np.ndarray) and isinstance(XB, np.ndarray)):
+        raise TypeError('XA and XB must be numpy arrays')
+    if metric not in VECTOR_METRICS:
+        raise ValueError('metric must be one of %s' %
+                         ', '.join("'%s'" % s for s in VECTOR_METRICS))
+
+    if XA.dtype == np.float64 and XB.dtype == np.float64:
+        return _cdist_double(XA, XB, metric)
+    elif XA.dtype == np.float32 and XB.dtype == np.float32:
+        return _cdist_float(XA, XB, metric)
+    else:
+        raise TypeError('XA and XB must be identically float32 or float64')
 
 
 def pdist(X, const char* metric, npy_intp[::1] X_indices=None):
@@ -354,6 +407,57 @@ cdef _assign_nearest_float(float[:, ::1] X, float[:, ::1] Y,
         X.shape[0], Y.shape[0], n_features, length,
         &assignments[0])
     return np.array(assignments, copy=False), inertia
+
+
+cdef _cdist_rmsd(XA, XB):
+    cdef npy_intp i, j
+    cdef float[:, :, ::1] XA_xyz = XA.xyz
+    cdef float[:, :, ::1] XB_xyz = XB.xyz
+    cdef npy_intp XA_length = XA_xyz.shape[0]
+    cdef npy_intp XB_length = XB_xyz.shape[0]
+    cdef int n_atoms = XA_xyz.shape[1]
+    cdef float[::1] XA_trace, XB_trace
+    cdef double[:, ::1] out
+
+    if XA._rmsd_traces is None:
+        XA.center_coordinates()
+    if XB._rmsd_traces is None:
+        XB.center_coordinates()
+
+    if XA_xyz.shape[1] != XB_xyz.shape[1]:
+        raise ValueError('XA and XB must have the same number of atoms')
+
+    XA_trace = XA._rmsd_traces
+    XB_trace = XB._rmsd_traces
+
+    out = np.zeros((XA_length, XB_length), dtype=np.double)
+
+    for i in range(XA_length):
+        for j in range(XB_length):
+            rmsd = sqrt(msd_atom_major(n_atoms, n_atoms, &XA_xyz[i,0,0],
+                        &XB_xyz[j,0,0], XA_trace[i], XB_trace[j], 0, NULL))
+            out[i,j] = rmsd
+
+    return np.array(out, copy=False)
+
+
+cdef _cdist_double(double[:, ::1] XA, double[:, ::1] XB, const char* metric):
+    cdef double[:, ::1] out
+    if XA.shape[1] != XB.shape[1]:
+        raise ValueError('XA and XB must have the same number of columns')
+    out = np.zeros((XA.shape[0], XB.shape[0]), dtype=np.double)
+    cdist_double(&XA[0,0], &XB[0,0], metric, XA.shape[0], XB.shape[0],
+                    XA.shape[1], &out[0,0])
+    return np.array(out, copy=False)
+
+cdef _cdist_float(float[:, ::1] XA, float[:, ::1] XB, const char* metric):
+    cdef double[:, ::1] out
+    if XA.shape[1] != XB.shape[1]:
+        raise ValueError('XA and XB must have the same number of columns')
+    out = np.zeros((XA.shape[0], XB.shape[0]), dtype=np.double)
+    cdist_float(&XA[0,0], &XB[0,0], metric, XA.shape[0], XB.shape[0],
+                    XA.shape[1], &out[0,0])
+    return np.array(out, copy=False)
 
 
 cdef _pdist_rmsd(X, npy_intp[::1] X_indices=None):

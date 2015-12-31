@@ -16,6 +16,7 @@ import mdtraj as md
 from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
+from msmbuilder import libdistance
 
 from ..base import BaseEstimator
 
@@ -198,6 +199,59 @@ class SuperposeFeaturizer(Featurizer):
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
         return x
+
+
+
+class StrucRMSDFeaturizer(Featurizer):
+    """Featurizer based on RMSD to one or more reference structures.
+
+    This featurizer inputs a trajectory to be analyzed ('traj') and a
+    reference trajectory ('ref') and outputs the RMSD of each frame of
+    traj with respect to each frame in ref. The output is a numpy array
+    with n_rows = traj.n_frames and n_columns = ref.n_frames.
+
+    Parameters
+    ----------
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with
+    reference_traj : md.Trajectory
+        The reference conformation to superpose each frame with respect to
+        (only the first frame in reference_traj is used)
+    superpose_atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        If not None, these atom_indices are used for the superposition
+    """
+
+    def __init__(self, atom_indices, reference_traj, superpose_atom_indices=None):
+        self.atom_indices = atom_indices
+        if superpose_atom_indices is None:
+            self.superpose_atom_indices = atom_indices
+        else:
+            self.superpose_atom_indices = superpose_atom_indices
+        self.reference_traj = reference_traj
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via distance
+        after superposition
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        result = libdistance.cdist(traj, self.reference_traj, 'rmsd')
+        return result
 
 
 class AtomPairsFeaturizer(Featurizer):
