@@ -179,7 +179,8 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         raw_counts, mapping = _transition_counts(
             sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
-        if self.ergodic_cutoff >= 1:
+        ergodic_cutoff = self._parse_ergodic_cutoff()
+        if ergodic_cutoff > 0:
             self.countsmat_, mapping2, self.percent_retained_ = \
                 _strongly_connected_subgraph(self.lag_time * raw_counts,
                                              self.ergodic_cutoff, self.verbose)

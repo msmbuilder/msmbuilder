@@ -210,6 +210,20 @@ class _SampleMSMMixin(object):
 
         return np.array(selected_pairs_by_state)
 
+    def _parse_ergodic_cutoff(self):
+        """Get a numeric value from the ergodic_cutoff input,
+        which can be 'on' or 'off'.
+        """
+        ec_is_str = isinstance(self.ergodic_cutoff, str)
+        if ec_is_str and self.ergodic_cutoff.lower() == 'on':
+            if self.sliding_window:
+                return 1.0 / self.lag_time
+            else:
+                return 1.0
+        elif ec_is_str and self.ergodic_cutoff.lower() == 'off':
+            return 0.0
+        else:
+            return self.ergodic_cutoff
 
 def _solve_ratemat_eigensystem(theta, k, n):
     """Find the dominant eigenpairs of a reversible rate matrix (master
@@ -296,6 +310,7 @@ def _solve_msm_eigensystem(transmat, k):
     lv = np.real_if_close(lv[:, order[:k]])
     rv = np.real_if_close(rv[:, order[:k]])
     return _normalize_eigensystem(u, lv, rv)
+
 
 
 def _normalize_eigensystem(u, lv, rv):
