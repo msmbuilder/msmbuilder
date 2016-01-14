@@ -204,7 +204,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return self
 
     def _fit_reversible(self, countsmat):
-        if self.ergodic_cutoff < 1:
+        if self._parse_ergodic_cutoff() < 1:
             with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 warnings.warn("reversible=True and ergodic_cutoff < 1 "
