@@ -149,7 +149,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
        matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
     """
     def __init__(self, lag_time=1, n_samples=100, n_steps=0, n_chains=None,
-                 n_timescales=None, reversible=True, ergodic_cutoff=1,
+                 n_timescales=None, reversible=True, ergodic_cutoff='on',
                  prior_counts=0, sliding_window=True, random_state=None,
                  sampler='metzner', verbose=False):
         self.lag_time = lag_time
