@@ -84,6 +84,22 @@ class _MappingTransformMixin(TransformerMixin):
 
         return result
 
+    def _parse_ergodic_cutoff(self):
+        """Get a numeric value from the ergodic_cutoff input,
+        which can be 'on' or 'off'.
+        """
+        ec_is_str = isinstance(self.ergodic_cutoff, str)
+        if ec_is_str and self.ergodic_cutoff.lower() == 'on':
+            if self.sliding_window:
+                return 1.0 / self.lag_time
+            else:
+                return 1.0
+        elif ec_is_str and self.ergodic_cutoff.lower() == 'off':
+            return 0.0
+        else:
+            return self.ergodic_cutoff
+
+
     def inverse_transform(self, sequences):
         """Transform a list of sequences from internal indexing into
         labels
@@ -210,20 +226,6 @@ class _SampleMSMMixin(object):
 
         return np.array(selected_pairs_by_state)
 
-    def _parse_ergodic_cutoff(self):
-        """Get a numeric value from the ergodic_cutoff input,
-        which can be 'on' or 'off'.
-        """
-        ec_is_str = isinstance(self.ergodic_cutoff, str)
-        if ec_is_str and self.ergodic_cutoff.lower() == 'on':
-            if self.sliding_window:
-                return 1.0 / self.lag_time
-            else:
-                return 1.0
-        elif ec_is_str and self.ergodic_cutoff.lower() == 'off':
-            return 0.0
-        else:
-            return self.ergodic_cutoff
 
 def _solve_ratemat_eigensystem(theta, k, n):
     """Find the dominant eigenpairs of a reversible rate matrix (master
