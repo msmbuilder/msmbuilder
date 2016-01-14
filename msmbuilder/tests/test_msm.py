@@ -360,6 +360,8 @@ def test_score_1():
 def test_ergodic_cut_off():
     assert(MarkovStateModel(lag_time=10).ergodic_cutoff==
             BayesianMarkovStateModel(lag_time=10).ergodic_cutoff)
+    assert(MarkovStateModel(lag_time=10)._parse_ergodic_cutoff()==
+           BayesianMarkovStateModel(lag_time=10)._parse_ergodic_cutoff())
     for cut_off in [0.01, 'on', 'off']:
         assert(MarkovStateModel(ergodic_cutoff=cut_off).ergodic_cutoff ==
                BayesianMarkovStateModel(ergodic_cutoff=cut_off).ergodic_cutoff)
