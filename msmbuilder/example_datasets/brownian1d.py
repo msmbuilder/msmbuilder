@@ -316,10 +316,5 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
         transmat[i, :] = transmat[i, :] / np.sum(transmat[i, :])
 
     transmat = np.linalg.matrix_power(transmat, lag_time)
-    #u, v = scipy.linalg.eig(transmat)
-    #_normalize_eigensystem
-    # order = np.argsort(np.real(u))[::-1]
     u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat)-1)
     return u, rv
-
-    # return np.real_if_close(u[order]), np.real_if_close(v[:, order])
