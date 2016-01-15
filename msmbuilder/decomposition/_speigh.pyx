@@ -302,10 +302,6 @@ cpdef double solve_admm(const double[::1] b, const double[::1] w,
 
         if verbose > 1:
             print(' rho', rho, ' residuals ', sqrt(r_norm2), sqrt(s_norm2))
-            #print('x', np.asarray(x))
-            #print('z', np.asarray(z))
-            #print('u', np.asarray(u))
-            #print('f', 0.5*np.dot(x,x) - np.dot(x,b) + 0.5*np.dot(b,b) + np.sum(np.abs(np.multiply(w, x))))
 
         if r_norm2 < N*tol*tol and s_norm2 < N*tol*tol:
             break
