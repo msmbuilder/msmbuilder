@@ -16,7 +16,6 @@ msmb MarkovStateModel --inp kmedoids_centers.h5 \
 
 msmb tICA --inp atom_pairs/ --transformed atom_pairs_tica.h5 \
     --n_components 4 \
-    --gamma 0 \
     --weighted_transform \
     --lag_time 2
 msmb GaussianHMM --inp atom_pairs_tica.h5 \
