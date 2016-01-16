@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors:
-# Copyright (c) 2014, Stanford University
+# Copyright (c) 2014-2016, Stanford University
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ class SparseTICA(tICA):
     .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
     """
 
-    def __init__(self, n_components, lag_time=1, rho=0.01,
+    def __init__(self, n_components=None, lag_time=1, rho=0.01,
                  weighted_transform=True, epsilon=1e-6, shrinkage=None,
                  tolerance=1e-6, maxiter=10000, verbose=False):
         super(SparseTICA, self).__init__(n_components, lag_time=lag_time,
