@@ -1,7 +1,6 @@
 import numpy as np
 from msmbuilder.example_datasets import DoubleWell
 from msmbuilder.decomposition import tICA, SparseTICA
-from msmbuilder.decomposition.speigh import imported_cvxpy
 from numpy.testing.decorators import skipif
 
 
@@ -16,14 +15,14 @@ def build_dataset():
         data.append(t)
     return data
 
-@skipif(not imported_cvxpy, 'cvxpy is required')
+
 def test_1():
     data = build_dataset()
     tica = tICA(n_components=1).fit(data)
     tic0 = tica.components_[0]
-    print('tICA\n', tic0)
 
-    stica = SparseTICA(n_components=1, verbose=True).fit(data)
+    stica = SparseTICA(n_components=1, verbose=False).fit(data)
     stic0 = stica.components_[0]
-    print('Sparse tICA\n', stic0)
-    assert np.allclose(stic0, [1,0,0,0,0,0,0,0,0,0])
+
+    np.testing.assert_array_almost_equal(stic0[1:], np.zeros(9))
+    np.testing.assert_almost_equal(stic0[0], 0.58, decimal=1)

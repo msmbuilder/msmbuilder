@@ -37,12 +37,10 @@ class tICA(BaseEstimator, TransformerMixin):
     lag_time : int
         Delay time forward or backward in the input data. The time-lagged
         correlations is computed between datas X[t] and X[t+lag_time].
-    gamma : nonnegative float, default=0.05
-        Regularization strength. Positive `gamma` entails incrementing
-        the sample covariance matrix by a constant times the identity,
-        to ensure that it is positive definite. The exact form of the
-        regularized sample covariance matrix is
-        :math:`covariance + (gamma / n_features) * Tr(covariance) * Identity`
+    shrinkage : float, default=None
+        The covariance shrinkage intensity (range 0-1). If shrinkage is not
+        specified (the default) it is estimated using an analytic formula
+        (the Rao-Blackwellized Ledoit-Wolf estimator) introduced in [5].
     weighted_transform : bool, default=False
         If True, weight the projections by the implied timescales, giving
         a quantity that has units [Time].
@@ -96,12 +94,14 @@ class tICA(BaseEstimator, TransformerMixin):
        (2011): 065101.
     .. [4] Molgedey, Lutz, and Heinz Georg Schuster. Phys. Rev. Lett. 72.23
        (1994): 3634.
+    .. [5] Chen, Yilun, Ami Wiesel, and Alfred O. Hero III. ICASSP (2009)
     """
 
-    def __init__(self, n_components=None, lag_time=1, gamma=0.05, weighted_transform=False):
+    def __init__(self, n_components=None, lag_time=1, shrinkage=None, weighted_transform=False):
         self.n_components = n_components
         self.lag_time = lag_time
-        self.gamma = gamma
+        self.shrinkage = shrinkage
+        self.shrinkage_ = None
         self.weighted_transform = weighted_transform
 
         self.n_features = None
@@ -165,14 +165,15 @@ class tICA(BaseEstimator, TransformerMixin):
         if self.n_observations_ == 0:
             raise RuntimeError('The model must be fit() before use.')
 
-        if not np.allclose(self.offset_correlation_, self.offset_correlation_.T):
+        lhs = self.offset_correlation_
+        rhs = self.covariance_
+
+        if not np.allclose(lhs, lhs.T):
             raise RuntimeError('offset correlation matrix is not symmetric')
-        if not np.allclose(self.covariance_, self.covariance_.T):
+        if not np.allclose(rhs, rhs.T):
             raise RuntimeError('correlation matrix is not symmetric')
 
-        rhs = self.covariance_ + (self.gamma / self.n_features) * \
-                np.trace(self.covariance_) * np.eye(self.n_features)
-        vals, vecs = scipy.linalg.eigh(self.offset_correlation_, b=rhs,
+        vals, vecs = scipy.linalg.eigh(lhs, b=rhs,
             eigvals=(self.n_features-self.n_components, self.n_features-1))
 
         # sort in order of decreasing value
@@ -231,10 +232,19 @@ class tICA(BaseEstimator, TransformerMixin):
     def covariance_(self):
         two_N = 2 * (self.n_observations_ - self.lag_time * self.n_sequences_)
         term = (self._outer_0_to_TminusTau + self._outer_offset_to_T) / two_N
-
         means = self.means_
-        value = term - np.outer(means, means)
-        return value
+
+        S = term - np.outer(means, means)  # sample covariance matix
+
+        if self.shrinkage is None:
+            sigma, self.shrinkage_ = rao_blackwell_ledoit_wolf(S, n=self.n_observations_)
+        else:
+            self.shrinkage_ = self.shrinkage
+            p = self.n_features
+            F = (np.trace(S) / p) * np.eye(p)  # shrinkage target
+            sigma = (1-self.shrinkage)*S + self.shrinkage*F
+
+        return sigma
 
     def fit(self, sequences, y=None):
         """Fit the model with a collection of sequences.
@@ -413,7 +423,7 @@ class tICA(BaseEstimator, TransformerMixin):
         # Note: How do we deal with regularization parameters like gamma
         # here? I'm not sure. Should C and S be estimated using self's
         # regularization parameters?
-        m2 = self.__class__(lag_time=self.lag_time)
+        m2 = self.__class__(shrinkage=self.shrinkage, n_components=self.n_components, lag_time=self.lag_time)
         for X in sequences:
             m2.partial_fit(X)
 
@@ -429,10 +439,13 @@ class tICA(BaseEstimator, TransformerMixin):
 
     def summarize(self):
         """Some summary information."""
+        # force shrinkage to be calculated
+        self.covariance_
+
         return """time-structure based Independent Components Analysis (tICA)
 -----------------------------------------------------------
 n_components        : {n_components}
-gamma               : {gamma}
+shrinkage           : {shrinkage}
 lag_time            : {lag_time}
 weighted_transform  : {weighted_transform}
 
@@ -442,5 +455,40 @@ Top 5 timescales :
 Top 5 eigenvalues :
 {eigenvalues}
 """.format(n_components=self.n_components, lag_time=self.lag_time,
-           gamma=self.gamma, weighted_transform=self.weighted_transform,
+           shrinkage=self.shrinkage_, weighted_transform=self.weighted_transform,
            timescales=self.timescales_[:5], eigenvalues=self.eigenvalues_[:5])
+
+
+def rao_blackwell_ledoit_wolf(S, n):
+    """Rao-Blackwellized Ledoit-Wolf shrinkaged estimator of the covariance
+    matrix.
+
+    Parameters
+    ----------
+    S : array, shape=(n, n)
+        Sample covariance matrix (e.g. estimated with np.cov(X.T))
+    n : int
+        Number of data points.
+
+    Returns
+    -------
+    sigma : array, shape=(n, n)
+    shrinkage : float
+
+    References
+    ----------
+    .. [1] Chen, Yilun, Ami Wiesel, and Alfred O. Hero III. "Shrinkage
+        estimation of high dimensional covariance matrices" ICASSP (2009)
+    """
+    p = len(S)
+    assert S.shape == (p, p)
+
+    alpha = (n-2)/(n*(n+2))
+    beta = ((p+1)*n - 2) / (n*(n+2))
+
+    trace_S2 = np.sum(S*S)  # np.trace(S.dot(S))
+    U = ((p * trace_S2 / np.trace(S)**2) - 1)
+    rho = min(alpha + beta/U, 1)
+
+    F = (np.trace(S) / p) * np.eye(p)
+    return (1-rho)*S + rho*F, rho
