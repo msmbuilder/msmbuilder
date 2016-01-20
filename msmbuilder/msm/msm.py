@@ -132,20 +132,6 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         self.populations_ = None
         self.percent_retained_ = None
 
-    def _parse_ergodic_cutoff(self):
-        """Get a numeric value from the ergodic_cutoff input,
-        which can be 'on' or 'off'.
-        """
-        ec_is_str = isinstance(self.ergodic_cutoff, str)
-        if ec_is_str and self.ergodic_cutoff.lower() == 'on':
-            if self.sliding_window:
-                return 1.0 / self.lag_time
-            else:
-                return 1.0
-        elif ec_is_str and self.ergodic_cutoff.lower() == 'off':
-            return 0.0
-        else:
-            return self.ergodic_cutoff
 
     def fit(self, sequences, y=None):
         """Estimate model parameters.

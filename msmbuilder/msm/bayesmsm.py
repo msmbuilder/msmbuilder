@@ -149,7 +149,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
        matrices for given trajectory data." Phys. Rev. E 80 021106 (2009)
     """
     def __init__(self, lag_time=1, n_samples=100, n_steps=0, n_chains=None,
-                 n_timescales=None, reversible=True, ergodic_cutoff=1,
+                 n_timescales=None, reversible=True, ergodic_cutoff='on',
                  prior_counts=0, sliding_window=True, random_state=None,
                  sampler='metzner', verbose=False):
         self.lag_time = lag_time
@@ -179,10 +179,11 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         raw_counts, mapping = _transition_counts(
             sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
-        if self.ergodic_cutoff >= 1:
+        ergodic_cutoff = self._parse_ergodic_cutoff()
+        if ergodic_cutoff > 0:
             self.countsmat_, mapping2, self.percent_retained_ = \
                 _strongly_connected_subgraph(self.lag_time * raw_counts,
-                                             self.ergodic_cutoff, self.verbose)
+                                             ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             self.countsmat_ = raw_counts
@@ -203,7 +204,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         return self
 
     def _fit_reversible(self, countsmat):
-        if self.ergodic_cutoff < 1:
+        if self._parse_ergodic_cutoff() < 1:
             with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 warnings.warn("reversible=True and ergodic_cutoff < 1 "
