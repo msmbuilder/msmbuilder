@@ -180,14 +180,16 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
             sequences, int(self.lag_time), sliding_window=self.sliding_window)
 
         ergodic_cutoff = self._parse_ergodic_cutoff()
+
         if ergodic_cutoff > 0:
             self.countsmat_, mapping2, self.percent_retained_ = \
-                _strongly_connected_subgraph(self.lag_time * raw_counts,
+                _strongly_connected_subgraph(raw_counts,
                                              ergodic_cutoff, self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
             self.countsmat_ = raw_counts
             self.mapping_ = mapping
+            self.percent_retained_ = 100
 
         self.n_states_ = self.countsmat_.shape[0]
         fit_method_map = {
