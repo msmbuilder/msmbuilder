@@ -89,7 +89,8 @@ class PCCA(MarkovStateModel):
 
     def partial_transform(self, sequence, mode='clip'):
         trimmed_sequence = super(PCCA, self).partial_transform(sequence, mode)
-        f = np.vectorize(self.trimmed_microstates_to_macrostates.get)
+        f = np.vectorize(self.trimmed_microstates_to_macrostates.get,
+                         otypes='i')
         if mode == 'clip':
             return [f(seq) for seq in trimmed_sequence]
         elif mode == 'fill':
