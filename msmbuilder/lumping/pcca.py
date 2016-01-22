@@ -66,6 +66,7 @@ class PCCA(MarkovStateModel):
 
         assert self.n_states_ > 0
         microstate_mapping = np.zeros(self.n_states_, dtype=int)
+
         def spread(x):
             return x.max() - x.min()
 
@@ -75,7 +76,7 @@ class PCCA(MarkovStateModel):
                                     for k in range(i + 1)])
             state_to_split = np.argmax(all_spreads)
             inds = ((microstate_mapping == state_to_split) &
-                   (v >= self.pcca_tolerance))
+                    (v >= self.pcca_tolerance))
             microstate_mapping[inds] = i + 1
 
         self.microstate_mapping_ = microstate_mapping
@@ -86,23 +87,15 @@ class PCCA(MarkovStateModel):
         return dict((key, self.microstate_mapping_[val])
                     for (key, val) in self.mapping_.items())
 
-    def transform(self, sequences):
-        """Map microstates onto macrostates, performing trimming if necessary.
-
-        Parameters
-        ----------
-        sequences : list(np.ndarray(dtype='int'))
-            List of arrays of cluster assignments
-        y : None
-            Unused, present for sklearn compatibility only.
-
-        Returns
-        -------
-        self
-        """
-        trimmed_sequences = super(PCCA, self).transform(sequences)
+    def partial_transform(self, sequence, mode='clip'):
+        trimmed_sequence = super(PCCA, self).partial_transform(sequence, mode)
         f = np.vectorize(self.trimmed_microstates_to_macrostates.get)
-        return [f(seq) for seq in trimmed_sequences]
+        if mode == 'clip':
+            return [f(seq) for seq in trimmed_sequence]
+        elif mode == 'fill':
+            return f(trimmed_sequence)
+        else:
+            raise ValueError
 
     @classmethod
     def from_msm(cls, msm, n_macrostates):
