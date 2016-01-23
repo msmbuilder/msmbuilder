@@ -86,7 +86,14 @@ class PCCA(MarkovStateModel):
         if mode == 'clip':
             return [self.microstate_mapping_[seq] for seq in trimmed_sequence]
         elif mode == 'fill':
-            return self.microstate_mapping_[trimmed_sequence]
+            def nan_get(x):
+                try:
+                    x = int(x)
+                    return self.microstate_mapping_[x]
+                except ValueError:
+                    return np.nan
+
+            return np.asarray([nan_get(x) for x in trimmed_sequence])
         else:
             raise ValueError
 
