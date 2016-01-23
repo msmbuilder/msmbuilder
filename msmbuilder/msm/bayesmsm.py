@@ -401,4 +401,3 @@ Timescales:
     def all_populations_(self):
         us, lvs, rvs = self._get_eigensystem()
         return lvs[:, :, 0]
-    
