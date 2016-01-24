@@ -11,7 +11,8 @@ import numpy as np
 class BootStrapMarkovStateModel(_MappingTransformMixin):
     """Bootstrap MSM class which estimates a distribution
     of transition matrices using random sampling with replacement
-    over the set of input trajectories.
+    over the set of input trajectories. The model fits
+    the mle over the original set of sequences as well.
 
     Parameters
     ----------
@@ -21,14 +22,20 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
     Attributes
     ----------
     all_populations_ : list of all population vectors
+    resample_ind_ : list of resample indices used to fit each
+    bootstrap mdl. This can be used to regenerate any mdl without
+    having to store it inside this object.
     mapped_populations_: array (n_samples, mle.n_states_)
     mapped_populations_mean_:array of mean of population
-    mapped_populations_std_:
-    mapped_populations_sem_:
-     Notes
-    -----
-    BootStrapMarkovStateModel is a subclass of MarkovStateModel.
+    mapped_populations_std_:array of std of population
+    mapped_populations_sem_:array of sem(std/n_samples)
+     of population
 
+    Notes
+    -----
+    The correct number of bootstrap sample is subject to
+    debate with several hundred samples(n_samples)
+    being the recommended starting figure.
     """
     def __init__(self, n_samples=10,  n_procs=None, **kwargs):
         self.n_samples = n_samples
@@ -37,14 +44,26 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
         self.all_populations_ = None
         self.mapped_populations_ = None
+        self.resample_ind_ = None
+
+    def fit(self, sequences, y=None):
+        sequences = list_of_1d(sequences)
+        self.mle.fit(sequences, y=y)
+        self._parallel_fit(sequences)
+
 
     def _fit_one(self, sequences):
         #not sure if i need to actually clone the original mdl but it seems
         #like a safe bet
         mdl = clone(self.mle)
-        mdl.fit(sequences)
-        # solve the eigensystem
-        mdl.eigenvalues_[0]
+        #there is no guarantee that the mdl fits this sequence set so
+        #we return None in that instance.
+        try:
+            mdl.fit(sequences)
+            # solve the eigensystem
+            mdl.eigenvalues_[0]
+        except:
+            mdl = None
         return mdl
 
     @staticmethod
@@ -65,6 +84,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
                 pass
         return return_vect
 
+
     def _parallel_fit(self, sequences):
         """
         :param sequences:
@@ -78,12 +98,24 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         self.all_populations_ = []
         self.mapped_populations_ = np.zeros((self.n_samples, self.mle.n_states_))
 
-        jbs = [resample(sequences) for i in range(self.n_samples)]
+
+        #we cache the sequencs of re sampling indices so that any mdl can be
+        #regenerated later on
+        self.resample_ind_ = [resample(range(len(sequences)))
+                                 for i in range(self.n_samples)]
+
+
+        jbs =[[sequences[trj_ind] for trj_ind in sample_ind]
+              for sample_ind in self.resample_ind_]
+
         all_mdls = pool.map(self._fit_one, jbs)
 
         for mdl_indx, mdl in enumerate(all_mdls):
-            self.all_populations_.append(mdl.populations_)
-            self.mapped_populations_[mdl_indx,:] = self._mapped_populations(self.mle, mdl)
+            if mdl is not None:
+                self.all_populations_.append(mdl.populations_)
+                self.mapped_populations_[mdl_indx,:] = \
+                    self._mapped_populations(self.mle, mdl)
+        return
 
     @property
     def mapped_populations_mean_(self):
@@ -99,11 +131,5 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         return np.std(self.mapped_populations_, axis=0)/self.n_samples
 
 
-    def fit(self, sequences, y=None):
-        sequences = list_of_1d(sequences)
-        self.mle.fit(sequences, y=y)
-        self._parallel_fit(sequences)
 
-    def transform(self):
-        raise NotImplementedError("This has not been implemented")
 
