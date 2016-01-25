@@ -43,7 +43,7 @@ class _MappingTransformMixin(TransformerMixin):
                                              self.verbose)
             self.mapping_ = _dict_compose(mapping, mapping2)
         else:
-            # no ergodic trimming.
+            # no ergodic trimming. 
             self.countsmat_ = raw_counts
             self.mapping_ = mapping
             self.percent_retained_ = 100
