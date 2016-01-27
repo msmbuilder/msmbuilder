@@ -73,7 +73,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         :return:
         """
         if self.n_procs is None:
-            self.n_procs = cpu_count()
+            self.n_procs = int(cpu_count()/2)
         pool = Pool(self.n_procs)
 
 
@@ -84,7 +84,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         #we cache the sequencs of re sampling indices so that any mdl can be
         #regenerated later on
         self.resample_ind_ = [resample(range(len(sequences)))
-                                 for i in range(self.n_samples)]
+                                 for _ in range(self.n_samples)]
 
 
         jbs =[[sequences[trj_ind] for trj_ind in sample_ind]
