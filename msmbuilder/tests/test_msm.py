@@ -357,7 +357,7 @@ def test_score_1():
         assert_approx_equal(model.score([sequence]), model.eigenvalues_.sum())
         assert_approx_equal(model.score([sequence]), model.score_)
 
-def test_ergodic_cut_off():
+def test_ergodic_cutoff():
     assert(MarkovStateModel(lag_time=10).ergodic_cutoff==
             BayesianMarkovStateModel(lag_time=10).ergodic_cutoff)
     assert(MarkovStateModel(lag_time=10)._parse_ergodic_cutoff()==
