@@ -46,10 +46,10 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         self.mapped_populations_ = None
         self.resample_ind_ = None
 
-    def fit(self, sequences, y=None):
+    def fit(self, sequences, y=None, pool=None):
         sequences = list_of_1d(sequences)
         self.mle.fit(sequences, y=y)
-        self._parallel_fit(sequences)
+        self._parallel_fit(sequences, pool)
 
 
     def _fit_one(self, sequences):
@@ -67,14 +67,15 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         return mdl
 
 
-    def _parallel_fit(self, sequences):
+    def _parallel_fit(self, sequences, pool=None):
         """
         :param sequences:
         :return:
         """
         if self.n_procs is None:
             self.n_procs = int(cpu_count()/2)
-        pool = Pool(self.n_procs)
+        if pool is None:
+            pool = Pool(self.n_procs)
 
 
         self.all_populations_ = []
