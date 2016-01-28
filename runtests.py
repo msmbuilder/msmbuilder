@@ -61,7 +61,7 @@ def main(argv):
                         help="Default nose verbosity is -v. "
                              "This turns that off")
     parser.add_argument("args", metavar="ARGS", default=[], nargs=REMAINDER,
-                        help="Arguments to pass to Nose, Python or shell")
+                        help="Arguments to pass to Nose")
     args = parser.parse_args(argv)
 
     if not args.no_build:
@@ -133,8 +133,8 @@ def build_project(args):
     cmd = [sys.executable, 'setup.py']
 
     # Always use ccache, if installed
-    env['PATH'] = os.pathsep.join(
-            EXTRA_PATH + env.get('PATH', '').split(os.pathsep))
+    prev_path = env.get('PATH', '').split(os.pathsep)
+    env['PATH'] = os.pathsep.join(EXTRA_PATH + prev_path)
 
     if args.debug:
         # assume everyone uses gcc/gfortran
