@@ -347,7 +347,7 @@ class FunctionFeaturizer(Featurizer):
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space by
-        applying giving function unto the trajectory.
+        applying the given function unto the trajectory.
 
         Parameters
         ----------
