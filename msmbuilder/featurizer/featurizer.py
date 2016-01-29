@@ -13,12 +13,10 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
-import os
 from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
 from msmbuilder import libdistance
-from ..utils import verboseload
 
 from ..base import BaseEstimator
 
