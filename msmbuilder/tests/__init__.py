@@ -41,6 +41,7 @@ def my_warn(message, category=None, stacklevel=1):
         return
 
     # test_bayes_ratematrix
+    # test_clustering
 
     print("Warning: module:  ", module)
     print("Warning: message: ", message)
