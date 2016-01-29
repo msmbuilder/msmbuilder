@@ -318,25 +318,36 @@ class FunctionFeaturizer(Featurizer):
 
     Parameters
     ----------
-    function : instatiation of the function
+    function : Instantiation of the function
+    *args : arguments to pass to the function MINUS the trajectory keyword
+    **kwargs: key word arguments to pass to the function MINUS the trajectory
+    keyword
 
+    UseCase:
+    ---------
+    function = compute_dihedrals
+    f = FunctionFeaturizer(function, indices=[[0,1,2,3]])
+    results = f.transform(dataset)
+
+    Notes
+    ----------
+    This Featurizer assumes that the function takes in the trajectory object
+    as the first argument
     """
 
-    def __init__(self, function, **kwargs):
+    def __init__(self, function, *args, **kwargs):
         if hasattr(function, '__call__'):
             self.function = function
-            self.args = {}
-            self.args.update(kwargs)
-        elif os.path.isfile(function):
-            self.function = verboseload(function)
+            self.args = args
+            self.kwargs = kwargs
         else:
             raise Exception("Sorry but we "
-                            "couldn't use the provided"
+                            "couldn't use the provided "
                             "function.")
 
     def partial_transform(self, traj):
-        """Featurize an MD trajectory into a vector space via
-        the input function
+        """Featurize an MD trajectory into a vector space by
+        applying giving function unto the trajectory.
 
         Parameters
         ----------
@@ -354,9 +365,15 @@ class FunctionFeaturizer(Featurizer):
         See Also
         --------
         transform : simultaneously featurize a collection of MD trajectories
+
+         Notes:
+        --------
+         This method assumes that the function takes in the trajectory object
+        as the first argument.
+
         """
         x = []
-        x.extend(self.function(traj, **self.args))
+        x.append(self.function(traj, *self.args, **self.kwargs))
         return np.hstack(x)
 
 class DihedralFeaturizer(Featurizer):

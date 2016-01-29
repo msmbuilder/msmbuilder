@@ -53,26 +53,34 @@ def test_SubsetAtomPairs2():
 def test_function_featurizer():
     dataset = fetch_alanine_dipeptide()
     trajectories = dataset["trajectories"]
-    trj0 = trajectories[0][0]
+    trj0 = trajectories[0]
+
     #use the dihedral to compute phi for ala
-
-
     atom_ind = [[4, 6, 8,14]]
     func = compute_dihedrals
-    f = FunctionFeaturizer(func, indices=atom_ind)
+    #test with args
+    f = FunctionFeaturizer(func, atom_ind)
     res1 = f.transform([trj0])
 
+    #test with kwargs
+    f = FunctionFeaturizer(func, indices=atom_ind)
+    res2 = f.transform([trj0])
+
+    #test with function in a fucntion
     def funcception(trj):
         return compute_phi(trj)[1]
 
     f = FunctionFeaturizer(funcception)
-    res2 = f.transform([trj0])
+    res3 = f.transform([trj0])
 
+    #know results
     f3 = DihedralFeaturizer(['phi'], sincos=False)
-    res3 = f3.transform([trj0])
+    res4 = f3.transform([trj0])
 
-    assert res1==res2==res3
-    return
+    # compare all
+    for r in [res2, res3, res4]:
+        np.testing.assert_array_almost_equal(res1, r)
+
 
 def test_that_all_featurizers_run():
     dataset = fetch_alanine_dipeptide()
