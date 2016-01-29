@@ -1,7 +1,9 @@
 import numpy as np
+from mdtraj import compute_dihedrals
 from mdtraj.testing import eq, raises
 import msmbuilder.featurizer
 from msmbuilder.featurizer import subset_featurizer
+from msmbuilder.featurizer import FunctionFeaturizer, DihedralFeaturizer
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 
 def test_SubsetAtomPairs0():
@@ -47,6 +49,23 @@ def test_SubsetAtomPairs2():
 
     any([eq(x, x0) for (x, x0) in zip(X_all, X_all0)])
 
+
+def test_function_featurizer():
+    dataset = fetch_alanine_dipeptide()
+    trajectories = dataset["trajectories"]
+    trj0 = trajectories[0][0]
+    #use the dihedral to compute phi for ala
+
+    atom_ind = [[4, 6, 8,14]]
+    func = compute_dihedrals
+    f = FunctionFeaturizer(func, indices=atom_ind)
+    res1 = f.transform([trj0])
+
+    f2 = DihedralFeaturizer(['phi'], sincos=False)
+    res2 = f2.transform([trj0])
+
+    assert res1==res2
+    return
 
 def test_that_all_featurizers_run():
     dataset = fetch_alanine_dipeptide()

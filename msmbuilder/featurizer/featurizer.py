@@ -322,9 +322,11 @@ class FunctionFeaturizer(Featurizer):
 
     """
 
-    def __init__(self, function):
+    def __init__(self, function, **kwargs):
         if hasattr(function, '__call__'):
             self.function = function
+            self.args = {}
+            self.args.update(kwargs)
         elif os.path.isfile(function):
             self.function = verboseload(function)
         else:
@@ -354,7 +356,7 @@ class FunctionFeaturizer(Featurizer):
         transform : simultaneously featurize a collection of MD trajectories
         """
         x = []
-        x.extend(self.function(traj))
+        x.extend(self.function(traj, **self.args))
         return np.hstack(x)
 
 class DihedralFeaturizer(Featurizer):
