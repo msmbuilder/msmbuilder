@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import scipy.optimize
 import statsmodels.api as sm
@@ -9,6 +11,9 @@ from msmbuilder.cluster import NDGrid
 from msmbuilder.example_datasets import load_quadwell
 from msmbuilder.msm import BayesianContinuousTimeMSM
 from msmbuilder.msm.bayes_ratematrix import _log_posterior
+from msmbuilder.utils import ExperimentalWarning
+
+warnings.filterwarnings('ignore', category=ExperimentalWarning)
 
 
 def test_ldirchlet_softmax_pdf_qq():

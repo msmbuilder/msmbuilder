@@ -40,6 +40,8 @@ def my_warn(message, category=None, stacklevel=1):
     if module == 'statsmodels.base.wrapper' and m['argspec'] in message:
         return
 
+    # test_bayes_ratematrix
+
     print("Warning: module:  ", module)
     print("Warning: message: ", message)
     return orig_warn(message=message, category=category,
