@@ -1,5 +1,5 @@
 import numpy as np
-from mdtraj import compute_dihedrals
+from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq, raises
 import msmbuilder.featurizer
 from msmbuilder.featurizer import subset_featurizer
@@ -56,15 +56,22 @@ def test_function_featurizer():
     trj0 = trajectories[0][0]
     #use the dihedral to compute phi for ala
 
+
     atom_ind = [[4, 6, 8,14]]
     func = compute_dihedrals
     f = FunctionFeaturizer(func, indices=atom_ind)
     res1 = f.transform([trj0])
 
-    f2 = DihedralFeaturizer(['phi'], sincos=False)
-    res2 = f2.transform([trj0])
+    def funcception(trj):
+        return compute_phi(trj)[1]
 
-    assert res1==res2
+    f = FunctionFeaturizer(funcception)
+    res2 = f.transform([trj0])
+
+    f3 = DihedralFeaturizer(['phi'], sincos=False)
+    res3 = f3.transform([trj0])
+
+    assert res1==res2==res3
     return
 
 def test_that_all_featurizers_run():
