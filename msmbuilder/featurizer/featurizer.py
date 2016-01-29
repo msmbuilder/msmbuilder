@@ -325,16 +325,14 @@ class FunctionFeaturizer(Featurizer):
         key word arguments to pass to the function MINUS the trajectory
     keyword
 
-
-
     Notes
     ----------
     This Featurizer assumes that the function takes in the trajectory object
-    as the first argument
+    as the first argument.
 
-        function = compute_dihedrals
-        f = FunctionFeaturizer(function, indices=[[0,1,2,3]])
-        results = f.transform(dataset)
+    function = compute_dihedrals
+    f = FunctionFeaturizer(function, indices=[[0,1,2,3]])
+    results = f.transform(dataset)
     """
 
     def __init__(self, function, *args, **kwargs):
