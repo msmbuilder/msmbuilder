@@ -13,10 +13,12 @@ from __future__ import print_function, division, absolute_import
 from six.moves import cPickle
 import numpy as np
 import mdtraj as md
+import os
 from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
 from msmbuilder import libdistance
+from ..utils import verboseload
 
 from ..base import BaseEstimator
 
@@ -306,6 +308,54 @@ class AtomPairsFeaturizer(Featurizer):
         d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
         return d ** self.exponent
 
+
+class FunctionFeaturizer(Featurizer):
+    """Featurizer based on arbitrary functions.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector the output of the function.
+
+    Parameters
+    ----------
+    function : instatiation of the function
+
+    """
+
+    def __init__(self, function):
+        if hasattr(function, '__call__'):
+            self.function = function
+        elif os.path.isfile(function):
+            self.function = verboseload(function)
+        else:
+            raise Exception("Sorry but we "
+                            "couldn't use the provided"
+                            "function.")
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via
+        the input function
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        x = []
+        x.extend(self.function(traj))
+        return np.hstack(x)
 
 class DihedralFeaturizer(Featurizer):
     """Featurizer based on dihedral angles.
