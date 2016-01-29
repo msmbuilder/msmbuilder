@@ -316,9 +316,13 @@ class FunctionFeaturizer(Featurizer):
 
     Parameters
     ----------
-    function : Instantiation of the function
-    *args : arguments to pass to the function MINUS the trajectory keyword
-    **kwargs: key word arguments to pass to the function MINUS the trajectory
+    function : function
+        Instantiation of the function. The function should accept
+        a mdtraj.Trajectory object as the first argument.
+    *args : list
+        arguments to pass to the function MINUS the trajectory keyword
+    **kwargs: kwargs
+        key word arguments to pass to the function MINUS the trajectory
     keyword
 
     UseCase:
