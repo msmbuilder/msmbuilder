@@ -42,6 +42,10 @@ def my_warn(message, category=None, stacklevel=1):
 
     # test_bayes_ratematrix
     # test_clustering
+    # test_commands
+
+    if module == 'nose.util' and m['argspec'] in message:
+        return
 
     print("Warning: module:  ", module)
     print("Warning: message: ", message)
