@@ -1,6 +1,6 @@
-from warnings import warn as orig_warn
-import warnings
 import sys
+import warnings
+from warnings import warn as orig_warn
 
 
 def my_warn(message, category=None, stacklevel=1):
@@ -23,16 +23,25 @@ def my_warn(message, category=None, stacklevel=1):
     # it would be incorrect to assume that each rule is *only* for the file
     # in its section header.
 
+    m = {
+        'argspec': 'inspect.getargspec() is deprecated'
+    }
+
     # test_agglomerative
 
-    if module == 'scipy._lib.decorator' and "inspect.getargspec() is deprecated" in message:
+    if module == 'scipy._lib.decorator' and m['argspec'] in message:
         return
 
-    if module == 'mdtraj.formats.hdf5' and "inspect.getargspec() is deprecated" in message:
+    if module == 'mdtraj.formats.hdf5' and m['argspec'] in message:
         return
 
     # test_alphaanglefeaturizer
 
+    if module == 'statsmodels.base.wrapper' and m['argspec'] in message:
+        return
+
+    print("Warning: module:  ", module)
+    print("Warning: message: ", message)
     return orig_warn(message=message, category=category,
                      stacklevel=stacklevel + 1)
 

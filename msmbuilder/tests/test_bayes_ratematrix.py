@@ -1,23 +1,17 @@
 import numpy as np
-import statsmodels.api as sm
 import scipy.optimize
+import statsmodels.api as sm
+from msmbuilder.msm._ratematrix import ldirichlet_softmax
+from msmbuilder.msm._ratematrix import lexponential
 from pyhmc import hmc
-from unittest.case import SkipTest
 
 from msmbuilder.cluster import NDGrid
 from msmbuilder.example_datasets import load_quadwell
-from msmbuilder.msm import ContinuousTimeMSM, BayesianContinuousTimeMSM
-from msmbuilder.msm._ratematrix import loglikelihood, ldirichlet_softmax
-from msmbuilder.msm._ratematrix import lexponential
+from msmbuilder.msm import BayesianContinuousTimeMSM
 from msmbuilder.msm.bayes_ratematrix import _log_posterior
 
 
-def test_1():
-    try:
-        from matplotlib import pyplot as pp
-    except ImportError:
-        raise SkipTest('Not making QQ plot')
-
+def test_ldirchlet_softmax_pdf_qq():
     # check that ldirichlet_softmax_pdf is actually giving a dirichlet
     # distribution, by comparing a QQ plot with np.random.dirichlet
     alpha = np.array([1, 2, 3], dtype=float)
@@ -26,6 +20,7 @@ def test_1():
         grad = np.zeros_like(x)
         logp = ldirichlet_softmax(x, alpha, grad=grad)
         return logp, grad
+
     samples, diag = hmc(logprob, x0=np.random.normal(size=(3,)), n_samples=1000,
                         args=(alpha,), n_steps=10, return_diagnostics=True)
 
@@ -34,10 +29,10 @@ def test_1():
     pi2 = np.random.dirichlet(alpha=alpha, size=1000)
 
     sm.qqplot_2samples(pi1[:, 0], pi2[:, 0], line='45')
-    pp.savefig('bayes_ratematrix-test-1.png')
+    # TODO: assert
 
 
-def test_2():
+def test_ldirchlet_softmax_pdf_gradient_1():
     # check that the gradient of ldirichlet_softmax_pdf is correct
     alpha = np.array([1, 2, 3], dtype=float)
 
@@ -57,7 +52,7 @@ def test_2():
         assert value < 1e-6
 
 
-def test_3():
+def test_ldirchlet_softmax_pdf_gradient_2():
     n = 4
     beta = np.array([1, 2, 3, 4], dtype=float)
 
@@ -79,14 +74,14 @@ def test_3():
 
 def test_4():
     n = 4
-    n_params = scipy.misc.comb(n+1, 2, exact=True)
+    n_params = scipy.misc.comb(n + 1, 2, exact=True)
     alpha = np.ones(n)
     beta = (np.arange(n_params - n) + 1).astype(np.float)
     counts = np.array([
-        [10, 2, 0,  0],
-        [1,  8, 2,  0],
-        [0,  4, 10, 1],
-        [0,  0, 2,  8]
+        [10, 2, 0, 0],
+        [1, 8, 2, 0],
+        [0, 4, 10, 1],
+        [0, 0, 2, 8]
     ]).astype(float)
 
     def log_posterior(theta):
@@ -99,9 +94,9 @@ def test_4():
     x0 = random.rand(n_trials, n_params)
     for i in range(n_trials):
         value = scipy.optimize.check_grad(
-            lambda x: log_posterior(x)[0],
-            lambda x: log_posterior(x)[1],
-        x0[i])
+                lambda x: log_posterior(x)[0],
+                lambda x: log_posterior(x)[1],
+                x0[i])
         assert value < 1e-4
 
 
@@ -110,5 +105,4 @@ def test_5():
     seqs = grid.fit_transform(load_quadwell(random_state=0)['trajectories'])
 
     model2 = BayesianContinuousTimeMSM(n_samples=100).fit(seqs)
-
-    print(model2.summarize())
+    # TODO: assert
