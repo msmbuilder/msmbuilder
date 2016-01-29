@@ -1,12 +1,12 @@
-import os
+from __future__ import print_function
+
 import sys
-import re
 
 OLD_LICENSE_START = '''# Redistribution and use in source and binary forms'''
 OLD_LICENSE_END = '''# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'''
 COPYRIGHT = '''# Author:
 # Contributors:
-# Copyright (c) 2014, Stanford University
+# Copyright (c) 2016, Stanford University
 # All rights reserved.
 
 '''
@@ -22,7 +22,10 @@ NEW_LICENSE = '''# MSMBuilder is free software: you can redistribute it and/or m
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with MSMBuilder. If not, see <http://www.gnu.org/licenses/>.'''
+# License along with MSMBuilder. If not, see <http://www.gnu.org/licenses/>.
+
+'''
+
 
 def replace(filename):
     with open(filename) as f:
@@ -36,17 +39,19 @@ def replace(filename):
 
     if (start != -1) and (end != -1):
         # old license found
-        newtext = text[:start] + license + text[end+len(OLD_LICENSE_END):]
+        newtext = text[:start] + license + text[end + len(OLD_LICENSE_END):]
     else:
         newtext = license + text
 
     with open(filename, 'w') as f:
         f.write(newtext)
 
+
 def main():
     for filename in sys.argv[1:]:
         replace(filename)
-        print filename
+        print(filename)
+
 
 if __name__ == '__main__':
     main()
