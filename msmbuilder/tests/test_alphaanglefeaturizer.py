@@ -11,7 +11,7 @@ def test_alanine_dipeptide():
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer()
     nothing = featurizer.transform(trajectories)
 
-    assert(nothing[0].shape[1] == 0)
+    assert (nothing[0].shape[1] == 0)
 
 
 def test_fs_peptide():
@@ -22,7 +22,7 @@ def test_fs_peptide():
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer()
     alphas = featurizer.transform(trajectories)
 
-    assert(alphas[0].shape[1] == 36)
+    assert (alphas[0].shape[1] == 36)
 
 
 def test_fs_peptide_nosincos():
@@ -33,4 +33,4 @@ def test_fs_peptide_nosincos():
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer(sincos=False)
     alphas = featurizer.transform(trajectories)
 
-    assert(alphas[0].shape[1] == 18)
+    assert (alphas[0].shape[1] == 18)
