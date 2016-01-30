@@ -58,6 +58,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_estimator_subclassing
     # test_featureunion
     # test_featurizer
+    # test_ghmm
 
 
 warnings.warn = my_warn
