@@ -52,5 +52,9 @@ def my_warn(message, category=None, stacklevel=1):
     return orig_warn(message=message, category=category,
                      stacklevel=stacklevel + 1)
 
+    # test_cyblas
+    # test_cyblas_wrapper
+    # test_dataset
+
 
 warnings.warn = my_warn
