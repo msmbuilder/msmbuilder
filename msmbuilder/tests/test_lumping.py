@@ -16,7 +16,7 @@ def _metastable_system():
         0 + random.randint(2, size=n),  # states 0, 1 interconverting
         2 + random.randint(2, size=n),  # states 2, 3 intercoverting
         0 + random.randint(2, size=n),  # states 0, 1 interconverting
-        2 + random.randint(2, size=n)   # states 2, 3 interconverting
+        2 + random.randint(2, size=n)  # states 2, 3 interconverting
     ])
 
     # the true (2-state) macrostate assignments
@@ -41,8 +41,9 @@ def test_pcca_1():
     # we need to consider any permutation of the state labels when we
     # test for equality. Since it's only a 2-state that's simple using
     # the logical_not to flip the assignments.
+    opposite = np.logical_not(ref_macrostate_assignments)
     assert (np.all(macro_assignments == ref_macrostate_assignments) or
-            np.all(macro_assignments == np.logical_not(ref_macrostate_assignments)))
+            np.all(macro_assignments == opposite))
 
 
 def test_pcca_plus_1():
@@ -55,8 +56,9 @@ def test_pcca_plus_1():
     # we need to consider any permutation of the state labels when we
     # test for equality. Since it's only a 2-state that's simple using
     # the logical_not to flip the assignments.
+    opposite = np.logical_not(ref_macrostate_assignments)
     assert (np.all(macro_assignments == ref_macrostate_assignments) or
-            np.all(macro_assignments == np.logical_not(ref_macrostate_assignments)))
+            np.all(macro_assignments == opposite))
 
 
 def test_from_msm():
