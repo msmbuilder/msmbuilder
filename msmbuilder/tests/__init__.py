@@ -61,6 +61,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_ghmm
     # test_kcenters
     # test_kmedoids
+    # test_libdistance
 
 
 warnings.warn = my_warn
