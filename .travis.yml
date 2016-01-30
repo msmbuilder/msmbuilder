@@ -10,11 +10,6 @@ branches:
   only:
     - master
 
-cache:
-  directories:
-    - $HOME/msmbuilder_data/alanine_dipeptide
-    - $HOME/msmbuilder_data/fs_peptide
-
 install:
   - source devtools/ci/install_miniconda.sh
 
