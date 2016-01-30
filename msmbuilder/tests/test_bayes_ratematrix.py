@@ -2,9 +2,9 @@ import warnings
 
 import numpy as np
 import scipy.optimize
-import statsmodels.api as sm
 from msmbuilder.msm._ratematrix import ldirichlet_softmax
 from msmbuilder.msm._ratematrix import lexponential
+
 from pyhmc import hmc
 
 from msmbuilder.cluster import NDGrid
@@ -33,7 +33,6 @@ def test_ldirchlet_softmax_pdf_qq():
     pi1 = expx / np.sum(expx, 1, keepdims=True)
     pi2 = np.random.dirichlet(alpha=alpha, size=1000)
 
-    sm.qqplot_2samples(pi1[:, 0], pi2[:, 0], line='45')
     # TODO: assert
 
 

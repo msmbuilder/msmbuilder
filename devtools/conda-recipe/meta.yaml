@@ -38,7 +38,6 @@ test:
     - nose
     - munkres
     - numdifftools
-    - matplotlib
     - statsmodels
     - hmmlearn
   imports:
