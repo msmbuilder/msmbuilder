@@ -39,16 +39,19 @@ if __name__ == '__main__':
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
-from six import with_metaclass
-import re
-import os
-import sys
+
 import abc
-import copy
-import textwrap
 import argparse
+import copy
 import inspect
 import itertools
+import os
+import re
+import sys
+import textwrap
+
+from six import with_metaclass, PY2
+
 from . import version
 
 try:
@@ -64,6 +67,23 @@ except ImportError:
     print('  $ pip install numpydoc', file=sys.stderr)
     print('-' * 35, file=sys.stderr)
     raise
+
+# Shim py3's inspect.Parameter class
+try:
+    from inspect import Parameter
+except ImportError:
+    class Parameter:
+        POSITIONAL_OR_KEYWORD = 'lalalapositionalorkeyword'
+        empty = 'dodododoempty'
+
+        def __init__(self, name, kind):
+            self.name = name
+            self.kind = kind
+            self.default = self.empty
+
+        def replace(self, default):
+            self.default = default
+            return self
 
 # Work around a very odd bug in pytables, where it destroys arguments in
 # sys.argv when imported
@@ -264,7 +284,7 @@ class NumpydocClassCommand(Command):
     def __init__(self, args):
         # create the instance of `klass`
 
-        init_args = get_init_argspec(self.klass)[0]
+        init_args = [arg for arg in get_init_argspec(self.klass).parameters]
         kwargs = {}
 
         # these are all of the specified options from the command line
@@ -308,7 +328,8 @@ class NumpydocClassCommand(Command):
 
         assert cls.klass is not None
 
-        args, _, _, defaults = get_init_argspec(cls.klass)
+        sig = get_init_argspec(cls.klass)
+
         doc = numpydoc.docscrape.ClassDoc(cls.klass)
         # mapping from the name of the argument to the helptext
         helptext = {d[0]: ' '.join(d[2]) for d in doc['Parameters']}
@@ -320,15 +341,15 @@ class NumpydocClassCommand(Command):
         # from other arguments on the subcommand
         group = argument_group('Parameters')
 
-        for i, arg in enumerate(args):
+        for i, arg in enumerate(sig.parameters):
             if i == 0 and arg == 'self':
                 continue
 
             # get default value
             kwargs = {}
-            try:
-                kwargs['default'] = defaults[i - len(args)]
-            except (IndexError, TypeError):
+            if sig.parameters[arg].default != Parameter.empty:
+                kwargs['default'] = sig.parameters[arg].default
+            else:
                 kwargs['required'] = True
 
             if arg in helptext:
@@ -540,6 +561,24 @@ def stripquotestype(s):
     return s.strip('\'"')
 
 
+def _shim_argspec(argspec):
+    from collections import OrderedDict
+    class Signature:
+        def __init__(self):
+            self.parameters = OrderedDict()
+
+    sig = Signature()
+    args, _, _, defaults = argspec
+    for arg in args:
+        sig.parameters[arg] = Parameter(arg, Parameter.POSITIONAL_OR_KEYWORD)
+
+    if defaults is not None:
+        last_args = list(sig.parameters.keys())[-len(defaults):]
+        for arg, default in zip(last_args, defaults):
+            sig.parameters[arg] = sig.parameters[arg].replace(default=default)
+
+    return sig
+
 def get_init_argspec(klass):
     """Wrapper around inspect.getargspec(klass.__init__) which, for cython
     classes uses an auxiliary '_init_argspec' method, since they don't play
@@ -550,6 +589,8 @@ def get_init_argspec(klass):
     to return when called on that class's __init__ method.
     """
     if hasattr(klass, '_init_argspec'):
-        return klass._init_argspec()
+        return _shim_argspec(klass._init_argspec())
+    elif PY2:
+        return _shim_argspec(inspect.getargspec(klass.__init__))
     else:
-        return inspect.getargspec(klass.__init__)
+        return inspect.signature(klass.__init__)

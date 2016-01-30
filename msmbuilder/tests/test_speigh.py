@@ -1,9 +1,10 @@
 import sys
+
 import numpy as np
 import scipy.linalg
-from numpy.testing.decorators import skipif
+from msmbuilder.decomposition._speigh import project
 from msmbuilder.decomposition._speigh import speigh, scdeflate
-from msmbuilder.decomposition._speigh import solve_cvxpy, solve_admm, project
+from numpy.testing.decorators import skipif
 
 try:
     import cvxpy as cp
@@ -53,11 +54,7 @@ def eigh(A, B=None):
     return w, V
 
 
-#######################################################
-
-
 class Test_scdeflate(object):
-
     def test_1(self):
         n = 4
         A = rand_sym(n)
@@ -86,12 +83,12 @@ class Test_scdeflate(object):
         assert np.sum(near_zero) == 1
         # the other eigenvalues should be unchanged
         np.testing.assert_array_almost_equal(
-            w1[1:], w2[np.logical_not(near_zero)])
+                w1[1:], w2[np.logical_not(near_zero)])
 
         remaining_V1 = V1[:, 1:]
         remaining_V2 = V2[:, np.logical_not(near_zero)]
         for i in range(remaining_V2.shape[1]):
-            assert (np.allclose(remaining_V1[:, i],  remaining_V2[:, i]) or
+            assert (np.allclose(remaining_V1[:, i], remaining_V2[:, i]) or
                     np.allclose(remaining_V1[:, i], -remaining_V2[:, i]))
 
 
@@ -105,7 +102,7 @@ class Test_speigh_1(object):
         w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
         np.testing.assert_array_almost_equal(w[0], w0)
-        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
+        np.testing.assert_array_almost_equal(v0 ** 2, V[:, 0] ** 2)
 
     def test_2(self):
         # test with indefinite B matrix, indefinite B
@@ -116,19 +113,19 @@ class Test_speigh_1(object):
         w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
         np.testing.assert_array_almost_equal(w[0], w0)
-        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
+        np.testing.assert_array_almost_equal(v0 ** 2, V[:, 0] ** 2)
 
     def test_3(self):
         # test with positive semidefinite A matrix, and diagonal
         # matrix B
         n = 4
         A = rand_pos_semidef(n)
-        B = np.diag(np.random.randn(n)**2)
+        B = np.diag(np.random.randn(n) ** 2)
 
         w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
         np.testing.assert_array_almost_equal(w[0], w0)
-        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
+        np.testing.assert_array_almost_equal(v0 ** 2, V[:, 0] ** 2)
 
     def test_4(self):
         # test with positive semidefinite A matrix, and general
@@ -140,16 +137,15 @@ class Test_speigh_1(object):
         w0, v0 = speigh(A, B, rho=0)
         w, V = eigh(A, B)
         np.testing.assert_array_almost_equal(w[0], w0)
-        np.testing.assert_array_almost_equal(v0**2, V[:,0]**2)
+        np.testing.assert_array_almost_equal(v0 ** 2, V[:, 0] ** 2)
 
 
 class Test_speigh_2(object):
-
     def test_1(self):
         # test with indefinite A matrix, identity B
         n = 4
-        x =    np.array([1.0, 2.0, 3.0, 0.0001])
-        x = x / np.sqrt(np.sum(x**2))
+        x = np.array([1.0, 2.0, 3.0, 0.0001])
+        x = x / np.sqrt(np.sum(x ** 2))
 
         A = np.outer(x, x)
         B = np.eye(n)
@@ -158,7 +154,7 @@ class Test_speigh_2(object):
         w0, v0 = speigh(A, B, rho=0.01)
 
         x_sp = np.array([1.0, 2.0, 3.0, 0])
-        x_sp = x_sp / np.sqrt(np.sum(x_sp**2))
+        x_sp = x_sp / np.sqrt(np.sum(x_sp ** 2))
         np.testing.assert_array_almost_equal(v0, x_sp)
 
     @skipif(not 'cvxpy' in sys.modules, 'CVXPY not installed')
@@ -187,12 +183,12 @@ class Test_speigh_2(object):
 
 @skipif(not 'cvxpy' in sys.modules, 'CVXPY not installed')
 def test_project():
-    B = np.array([[ 4.805,  0.651,  0.611, -4.98 , -1.448],
-           [ 0.651,  6.132, -1.809,  0.613,  4.838],
-           [ 0.611, -1.809,  4.498,  0.055, -4.548],
-           [-4.98 ,  0.613,  0.055,  9.841,  2.17 ],
-           [-1.448,  4.838, -4.548,  2.17 ,  9.949]])
-    v  = np.array([-2.95538824, -3.26629412,  0.        , -5.04124118,  0.        ])
+    B = np.array([[4.805, 0.651, 0.611, -4.98, -1.448],
+                  [0.651, 6.132, -1.809, 0.613, 4.838],
+                  [0.611, -1.809, 4.498, 0.055, -4.548],
+                  [-4.98, 0.613, 0.055, 9.841, 2.17],
+                  [-1.448, 4.838, -4.548, 2.17, 9.949]])
+    v = np.array([-2.95538824, -3.26629412, 0., -5.04124118, 0.])
 
     sol1 = project_cvxpy(v, B)
     sol2 = np.empty_like(v)
@@ -204,8 +200,8 @@ def test_project():
 def project_cvxpy(v, B):
     x = cp.Variable(len(v))
     cp.Problem(cp.Minimize(
-        cp.norm2(x - v)**2
+            cp.norm2(x - v) ** 2
     ), [cp.quad_form(x, B) <= 1]).solve()
 
-    sol = np.asarray(x.value)[:,0]
+    sol = np.asarray(x.value)[:, 0]
     return sol

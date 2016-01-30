@@ -1,8 +1,10 @@
 from __future__ import print_function
+
 import numpy as np
 import scipy.linalg
 from numpy.testing.decorators import skipif
 from scipy.optimize import check_grad, approx_fprime
+
 try:
     import numdifftools as nd
 except ImportError:
@@ -15,14 +17,15 @@ from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
 from msmbuilder.example_datasets import MullerPotential
 from msmbuilder.example_datasets import load_doublewell
 from msmbuilder.cluster import NDGrid
+
 random = np.random.RandomState(0)
 
 
 def example_theta(n):
-    return random.uniform(0, 1, size=int(n*(n-1)/2 + n))
+    return random.uniform(0, 1, size=int(n * (n - 1) / 2 + n))
 
 
-def test_build_ratemat_1():
+def test_build_ratemat():
     # test build_ratemat
     n = 4
     theta = example_theta(n)
@@ -32,7 +35,7 @@ def test_build_ratemat_1():
     # diagonal entries are negative
     assert np.all(np.diag(K) < 0)
     # off diagonal entries are non-negative
-    assert np.all(np.extract(1-np.eye(n), K) >= 0)
+    assert np.all(np.extract(1 - np.eye(n), K) >= 0)
     # row-sums are 0
     np.testing.assert_array_almost_equal(np.sum(K, axis=1), 0)
 
@@ -91,7 +94,6 @@ def test_dK_dtheta_3():
     for n in [3, 4]:
         theta = example_theta(n)
 
-
         dKuij1 = np.zeros((len(theta), n, n))
         dKuij2 = np.zeros((len(theta), n, n))
 
@@ -119,23 +121,21 @@ def test_dK_dtheta_4():
 
             gradprod2 = np.zeros(len(theta))
             grad2 = np.zeros(len(theta))
-            _ratematrix.dK_dtheta_u(theta, n, i, j, out=grad2, A=A, out2=gradprod2)
+            _ratematrix.dK_dtheta_u(theta, n, i, j, out=grad2, A=A,
+                                    out2=gradprod2)
 
             np.testing.assert_almost_equal(grad, grad2)
             np.testing.assert_almost_equal(gradprod1, gradprod2)
             np.testing.assert_almost_equal(np.dot(grad2, A), gradprod2)
 
 
-
-
 def test_dK_dtheta_5():
     n = 4
     theta = np.array(
-        [  2.59193443e-02,  0.00000000e+00,  6.83797216e-07,   3.08837678e-03,
-           0.00000000e+00,  2.56956907e-02,  -1.48051536e+00,  -1.51759911e+00,
-          -1.34983215e+00, -1.22431771e+00])
+            [2.59193443e-02, 0.00000000e+00, 6.83797216e-07, 3.08837678e-03,
+             0.00000000e+00, 2.56956907e-02, -1.48051536e+00, -1.51759911e+00,
+             -1.34983215e+00, -1.22431771e+00])
     size = len(theta)
-
 
     dK1 = np.zeros((size, n, n))
     dK2 = np.zeros((size, n, n))
@@ -155,7 +155,6 @@ def test_dK_dtheta_5():
     np.testing.assert_almost_equal(dK1, dK2)
     np.testing.assert_almost_equal(dK1, dK3)
     np.testing.assert_almost_equal(dK2, dK3)
-
 
 
 def test_grad_logl_1():
@@ -212,12 +211,14 @@ def test_dw_1():
     for i in range(n):
         g1 = approx_fprime(theta0, func, 1e-7, i)
         g2 = grad(theta0, i)
-        assert np.linalg.norm(g1-g2) < 2e-6
+        assert np.linalg.norm(g1 - g2) < 2e-6
 
 
 def test_hessian_1():
     n = 3
-    seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
+    seqs = [
+        [1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2,
+         1, 1, 1, 1, 2, 3, 3, 3, 3]]
 
     model = ContinuousTimeMSM().fit(seqs)
     theta = model.theta_
@@ -228,17 +229,18 @@ def test_hessian_1():
     hessian2 = Hfun(theta)
 
     # not sure what the cutoff here should be (see plot_test_hessian)
-    diff = np.linalg.norm(hessian1-hessian2)
+    diff = np.linalg.norm(hessian1 - hessian2)
     print("hessian difference: %f" % diff)
     assert diff < 1e-4
 
     print(_ratematrix.sigma_pi(-scipy.linalg.pinv(hessian1), theta, n))
 
 
-# @skipif(True, 'Zeros in the count matrix -> known failure')
 def test_hessian_2():
     n = 3
-    seqs = [[1,1,1,1,1,2,2,2,2,1,1,1,1,2,3,3,3,3,3,2,2,2,2,2,2,1,1,1,1,2,3,3,3,3]]
+    seqs = [
+        [1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2,
+         2, 1, 1, 1, 1, 2, 3, 3, 3, 3]]
 
     model = ContinuousTimeMSM().fit(seqs)
     print(model.timescales_)
@@ -247,10 +249,10 @@ def test_hessian_2():
     C = model.countsmat_
     print(C)
 
-    C_flat = (C+C.T)[np.triu_indices_from(C, k=1)]
+    C_flat = (C + C.T)[np.triu_indices_from(C, k=1)]
     print(C_flat)
     print('theta', theta, '\n')
-    inds = np.where(theta!=0)[0]
+    inds = np.where(theta != 0)[0]
 
     hessian1 = _ratematrix.hessian(theta, C, inds=inds)
     hessian2 = nd.Jacobian(lambda x: _ratematrix.loglikelihood(x, C)[1])(theta)
@@ -258,15 +260,14 @@ def test_hessian_2():
 
     np.set_printoptions(precision=3)
 
-    #H1 = hessian1[np.ix_(active, active)]
-    #H2 = hessian2[np.ix_(active, active)]
-    #H3 = hessian2[np.ix_(active, active)]
+    # H1 = hessian1[np.ix_(active, active)]
+    # H2 = hessian2[np.ix_(active, active)]
+    # H3 = hessian2[np.ix_(active, active)]
 
     print(hessian1, '\n')
     print(hessian2, '\n')
-    #print(hessian3)
+    # print(hessian3)
     print('\n')
-
 
     info1 = np.zeros((len(theta), len(theta)))
     info2 = np.zeros((len(theta), len(theta)))
@@ -276,15 +277,15 @@ def test_hessian_2():
     print('Inverse Hessian')
     print(info1)
     print(info2)
-    #print(scipy.linalg.pinv(hessian2))
-    #print(scipy.linalg.pinv(hessian1)[np.ix_(last, last)])
-    #print(scipy.linalg.pinv(hessian2)[np.ix_(last, last)])
+    # print(scipy.linalg.pinv(hessian2))
+    # print(scipy.linalg.pinv(hessian1)[np.ix_(last, last)])
+    # print(scipy.linalg.pinv(hessian2)[np.ix_(last, last)])
 
     print(_ratematrix.sigma_pi(info1, theta, n))
     print(_ratematrix.sigma_pi(info2, theta, n))
 
-    #print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian2), theta, n))
-    #print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian3), theta, n))
+    # print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian2), theta, n))
+    # print(_ratematrix.sigma_pi(scipy.linalg.pinv(-hessian3), theta, n))
 
     # print(np.linalg.norm(H1-H2))
     #
@@ -293,7 +294,6 @@ def test_hessian_2():
     #
     # # not sure what the cutoff here should be (see plot_test_hessian)
     # assert np.linalg.norm(hessian1-hessian2) < 1e-6
-
 
 
 def test_hessian_3():
@@ -306,10 +306,9 @@ def test_hessian_3():
     model.fit(seqs)
     msm = MarkovStateModel(verbose=False, lag_time=lag_time)
     print(model.summarize())
-    #print('MSM timescales\n', msm.fit(seqs).timescales_)
+    # print('MSM timescales\n', msm.fit(seqs).timescales_)
     print('Uncertainty K\n', model.uncertainty_K())
     print('Uncertainty eigs\n', model.uncertainty_eigenvalues())
-
 
 
 def test_fit_1():
@@ -332,7 +331,7 @@ def test_fit_2():
     model = ContinuousTimeMSM(verbose=False, lag_time=10)
     model.fit(seqs)
     t1 = np.sort(model.timescales_)
-    t2 = -1/np.sort(np.log(np.linalg.eigvals(model.transmat_))[1:])
+    t2 = -1 / np.sort(np.log(np.linalg.eigvals(model.transmat_))[1:])
 
     model = MarkovStateModel(verbose=False, lag_time=10)
     model.fit(seqs)
@@ -346,19 +345,9 @@ def test_fit_2():
 def test_score_1():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
-    model = ContinuousTimeMSM(verbose=False, lag_time=10, n_timescales=3).fit(seqs)
+    model = (ContinuousTimeMSM(verbose=False, lag_time=10, n_timescales=3)
+             .fit(seqs))
     np.testing.assert_approx_equal(model.score(seqs), model.score_)
-
-
-# def test_optimize_1():
-#     n = 50
-#     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-#     seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
-#     model = ContinuousTimeMSM(verbose=False).fit(seqs)
-#
-#     start = time.time()
-#     sigma_K = model.uncertainty_K()
-#     print('50 states: uncertainty_K speed', time.time()-start)
 
 
 def test_uncertainties_backward():
@@ -373,31 +362,32 @@ def test_uncertainties_backward():
     sigma_K = model.uncertainty_K()
 
     yield lambda: np.testing.assert_array_almost_equal(
-        sigma_ts, [ 9.508936,  0.124428,  0.117638])
+            sigma_ts, [9.508936, 0.124428, 0.117638])
     yield lambda: np.testing.assert_array_almost_equal(
-        sigma_lambda, [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
+            sigma_lambda,
+            [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
     yield lambda: np.testing.assert_array_almost_equal(
-        sigma_pi, [ 0.007496,  0.006564,  0.006348,  0.007863])
+            sigma_pi, [0.007496, 0.006564, 0.006348, 0.007863])
     yield lambda: np.testing.assert_array_almost_equal(
-        sigma_K,
-        [[ 0.000339,  0.000339,  0.      ,  0.      ],
-         [ 0.000352,  0.000372,  0.000122,  0.      ],
-         [ 0.      ,  0.000103,  0.000344,  0.000329],
-         [ 0.      ,  0.      ,  0.00029 ,  0.00029 ]])
+            sigma_K,
+            [[0.000339, 0.000339, 0., 0.],
+             [0.000352, 0.000372, 0.000122, 0.],
+             [0., 0.000103, 0.000344, 0.000329],
+             [0., 0., 0.00029, 0.00029]])
     yield lambda: np.testing.assert_array_almost_equal(
-        model.ratemat_,
-        [[-0.0254  ,  0.0254  ,  0.      ,  0.      ],
-         [ 0.02636 , -0.029629,  0.003269,  0.      ],
-         [ 0.      ,  0.002764, -0.030085,  0.027321],
-         [ 0.      ,  0.      ,  0.024098, -0.024098]])
+            model.ratemat_,
+            [[-0.0254, 0.0254, 0., 0.],
+             [0.02636, -0.029629, 0.003269, 0.],
+             [0., 0.002764, -0.030085, 0.027321],
+             [0., 0., 0.024098, -0.024098]])
 
 
 def test_score_2():
     from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
     ds = MullerPotential(random_state=0).get()['trajectories']
     cluster = NDGrid(n_bins_per_feature=6,
-          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
-          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+                     min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+                     max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
     assignments = cluster.fit_transform(ds)
     test_indices = [5, 0, 4, 1, 2]
     train_indices = [3, 6, 7, 8, 9]
@@ -415,8 +405,8 @@ def test_score_3():
     from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=6,
-          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
-          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+                     min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+                     max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
 
     ds = MullerPotential(random_state=0).get()['trajectories']
     assignments = cluster.fit_transform(ds)
@@ -424,7 +414,8 @@ def test_score_3():
     train_indices = [9, 4, 3, 6, 2]
     test_indices = [8, 0, 5, 7, 1]
 
-    model = ContinuousTimeMSM(lag_time=3, n_timescales=1, sliding_window=False, ergodic_cutoff=1)
+    model = ContinuousTimeMSM(lag_time=3, n_timescales=1, sliding_window=False,
+                              ergodic_cutoff=1)
     train_data = [assignments[i] for i in train_indices]
     test_data = [assignments[i] for i in test_indices]
 
@@ -438,8 +429,8 @@ def test_guess():
     from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=5,
-          min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
-          max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
+                     min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
+                     max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
 
     ds = MullerPotential(random_state=0).get()['trajectories']
     assignments = cluster.fit_transform(ds)
@@ -450,7 +441,8 @@ def test_guess():
     model2 = ContinuousTimeMSM(guess='pseudo')
     model2.fit(assignments)
 
-    assert np.abs(model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]) < 1e-3
+    diff = model1.loglikelihoods_[-1] - model2.loglikelihoods_[-1]
+    assert np.abs(diff) < 1e-3
     assert np.max(np.abs(model1.ratemat_ - model2.ratemat_)) < 1e-1
 
 
@@ -461,6 +453,7 @@ def test_doublewell():
         assignments = clusterer.fit_transform(trjs)
 
         for sliding_window in [True, False]:
-            model = ContinuousTimeMSM(lag_time=100, sliding_window=sliding_window)
+            model = ContinuousTimeMSM(lag_time=100,
+                                      sliding_window=sliding_window)
             model.fit(assignments)
             assert model.optimizer_state_.success

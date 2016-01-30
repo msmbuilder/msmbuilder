@@ -1,24 +1,23 @@
 from __future__ import print_function, division
+
 import os
 import tempfile
 
 import mdtraj as md
-import pandas as pd
-
 import numpy as np
-from numpy.testing import assert_approx_equal
-from mdtraj.testing import eq
-from sklearn.externals.joblib import load, dump
+import pandas as pd
 import sklearn.pipeline
+from mdtraj.testing import eq
+from numpy.testing import assert_approx_equal
 from six import PY3
-from msmbuilder.utils import map_drawn_samples
+from sklearn.externals.joblib import load, dump
+
 from msmbuilder import cluster
-
-from msmbuilder.msm.core import _transition_counts
 from msmbuilder.msm import MarkovStateModel, BayesianMarkovStateModel
+from msmbuilder.utils import map_drawn_samples
 
 
-def test_counts_1():
+def test_counts_no_trim():
     # test counts matrix without trimming
     model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
 
@@ -27,7 +26,7 @@ def test_counts_1():
     eq(model.mapping_, {1: 0})
 
 
-def test_counts_2():
+def test_counts_trim():
     # test counts matrix with trimming
     model = MarkovStateModel(reversible_type=None, ergodic_cutoff=1)
 
@@ -36,7 +35,7 @@ def test_counts_2():
     eq(model.countsmat_, np.array([[8]]))
 
 
-def test_counts_3():
+def test_counts_scaling():
     # test counts matrix scaling
     seq = [1] * 4 + [2] * 4 + [1] * 4
 
@@ -52,7 +51,7 @@ def test_counts_3():
     eq(model2.countsmat_, model3.countsmat_)
 
 
-def test_3():
+def test_pickle():
     model = MarkovStateModel(reversible_type='mle')
     model.fit([[0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0]])
 
@@ -73,18 +72,17 @@ def test_3():
         os.rmdir(dir)
 
 
-def test_4():
+def test_fit_on_many_clusterings():
     data = [np.random.randn(10, 1), np.random.randn(100, 1)]
     print(cluster.KMeans(n_clusters=3).fit_predict(data))
     print(cluster.MiniBatchKMeans(n_clusters=3).fit_predict(data))
     print(cluster.AffinityPropagation().fit_predict(data))
     print(cluster.MeanShift().fit_predict(data))
     print(cluster.SpectralClustering(n_clusters=2).fit_predict(data))
-    print(cluster.Ward(n_clusters=2).fit_predict(data))
+    print(cluster.AgglomerativeClustering(n_clusters=2).fit_predict(data))
 
 
-def test_5():
-    # test score_ll
+def test_score_ll_1():
     model = MarkovStateModel(reversible_type='mle')
     sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b']
     model.fit([sequence])
@@ -104,7 +102,7 @@ def test_5():
     assert np.sum(model.populations_) == 1.0
 
 
-def test_51():
+def test_score_ll_2():
     # test score_ll
     model = MarkovStateModel(reversible_type='mle')
     sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'c', 'c', 'c', 'a', 'a']
@@ -115,7 +113,7 @@ def test_51():
     assert score_ac == np.log(model.transmat_[0, 2])
 
 
-def test_6():
+def test_score_ll_novel():
     # test score_ll with novel entries
     model = MarkovStateModel(reversible_type='mle')
     sequence = ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b']
@@ -126,7 +124,7 @@ def test_6():
     assert not np.isfinite(model.score_ll([['a', 'c']]))
 
 
-def test_7():
+def test_timescales():
     # test timescales
     model = MarkovStateModel()
     model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1]])
@@ -149,7 +147,6 @@ def test_7():
 
 
 def test_transform():
-    # test transform
     model = MarkovStateModel()
     model.fit([['a', 'a', 'b', 'b', 'c', 'c', 'a', 'a']])
     assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
@@ -180,8 +177,8 @@ def test_transform():
     np.testing.assert_array_equal(v[0], [0, 0])
     np.testing.assert_array_equal(v[1], [1, 1, 1])
 
+
 def test_partial_transform():
-    # test transform
     model = MarkovStateModel()
     model.fit([['a', 'a', 'b', 'b', 'c', 'c', 'a', 'a']])
     assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
@@ -212,9 +209,10 @@ def test_partial_transform():
     np.testing.assert_array_equal(v[0], [0, 0])
     np.testing.assert_array_equal(v[1], [1, 1, 1])
 
-def test_9():
+
+def test_nan():
     # what if the input data contains NaN? They should be ignored
-    model = MarkovStateModel(ergodic_cutoff=0)
+    model = MarkovStateModel(ergodic_cutoff=0, reversible_type='none')
 
     seq = [0, 1, 0, 1, np.nan]
     model.fit(seq)
@@ -229,16 +227,16 @@ def test_9():
         assert model.mapping_ == {0: 0, 1: 1}
 
 
-def test_10():
+def test_inverse_transform():
     # test inverse transform
-    model = MarkovStateModel(reversible_type=None, ergodic_cutoff=0)
+    model = MarkovStateModel(reversible_type='transpose', ergodic_cutoff=0)
     model.fit([['a', 'b', 'c', 'a', 'a', 'b']])
     v = model.inverse_transform([[0, 1, 2]])
     assert len(v) == 1
     np.testing.assert_array_equal(v[0], ['a', 'b', 'c'])
 
 
-def test_11():
+def test_sample():
     # test sample
     model = MarkovStateModel()
     model.fit([[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
@@ -252,7 +250,7 @@ def test_11():
     assert np.sum(np.abs(diff)) < 0.1
 
 
-def test_12():
+def test_eigtransform_1():
     # test eigtransform
     model = MarkovStateModel(n_timescales=1)
     model.fit([[4, 3, 0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 0]])
@@ -282,15 +280,15 @@ def test_eigtransform_2():
     assert not np.any(np.isnan(transformed_1[0][2:]))
 
 
-def test_13():
+def test_normalization():
     model = MarkovStateModel(n_timescales=2)
     model.fit([[0, 0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 3, 3, 1, 1, 2, 2, 0, 0]])
     left_right = np.dot(model.left_eigenvectors_.T, model.right_eigenvectors_)
 
     # check biorthonormal
     np.testing.assert_array_almost_equal(
-        left_right,
-        np.eye(3))
+            left_right,
+            np.eye(3))
 
     # check that the stationary left eigenvector is normalized to be 1
     np.testing.assert_almost_equal(model.left_eigenvectors_[:, 0].sum(), 1)
@@ -298,18 +296,18 @@ def test_13():
     # the left eigenvectors satisfy <\phi_i, \phi_i>_{\mu^{-1}} = 1
     for i in range(3):
         np.testing.assert_almost_equal(
-            np.dot(model.left_eigenvectors_[:, i],
-                   model.left_eigenvectors_[:, i] / model.populations_), 1)
+                np.dot(model.left_eigenvectors_[:, i],
+                       model.left_eigenvectors_[:, i] / model.populations_), 1)
 
     # and that the right eigenvectors satisfy  <\psi_i, \psi_i>_{\mu} = 1
     for i in range(3):
         np.testing.assert_almost_equal(
-            np.dot(model.right_eigenvectors_[:, i],
-                   model.right_eigenvectors_[:, i] *
-                   model.populations_), 1)
+                np.dot(model.right_eigenvectors_[:, i],
+                       model.right_eigenvectors_[:, i] *
+                       model.populations_), 1)
 
 
-def test_14():
+def test_pipeline():
     from msmbuilder.example_datasets import load_doublewell
     from msmbuilder.cluster import NDGrid
     from sklearn.pipeline import Pipeline
@@ -334,7 +332,7 @@ def test_sample_1():
     clusterer = cluster.KMeans(n_clusters=2)
     msm = MarkovStateModel()
     pipeline = sklearn.pipeline.Pipeline(
-        [("clusterer", clusterer), ("msm", msm)]
+            [("clusterer", clusterer), ("msm", msm)]
     )
     pipeline.fit(data)
     trimmed_assignments = pipeline.transform(data)
@@ -356,10 +354,10 @@ def test_sample_1():
     # We should make sure we can sample from Trajectory objects too...
     # Create a fake topology with 1 atom to match our input dataset
     top = md.Topology.from_dataframe(
-        pd.DataFrame({
-            "serial": [0], "name": ["HN"], "element": ["H"], "resSeq": [1],
-            "resName": "RES", "chainID": [0]
-        }), bonds=np.zeros(shape=(0, 2), dtype='int')
+            pd.DataFrame({
+                "serial": [0], "name": ["HN"], "element": ["H"], "resSeq": [1],
+                "resName": "RES", "chainID": [0]
+            }), bonds=np.zeros(shape=(0, 2), dtype='int')
     )
     # np.newaxis reshapes the data to have a 40000 frames, 1 atom, 3 xyz
     trajectories = [md.Trajectory(x[:, np.newaxis], top)
@@ -382,13 +380,12 @@ def test_score_1():
         assert_approx_equal(model.score([sequence]), model.eigenvalues_.sum())
         assert_approx_equal(model.score([sequence]), model.score_)
 
-def test_ergodic_cutoff():
-    assert(MarkovStateModel(lag_time=10).ergodic_cutoff==
-            BayesianMarkovStateModel(lag_time=10).ergodic_cutoff)
-    assert(MarkovStateModel(lag_time=10)._parse_ergodic_cutoff()==
-           BayesianMarkovStateModel(lag_time=10)._parse_ergodic_cutoff())
-    for cut_off in [0.01, 'on', 'off']:
-        assert(MarkovStateModel(ergodic_cutoff=cut_off).ergodic_cutoff ==
-               BayesianMarkovStateModel(ergodic_cutoff=cut_off).ergodic_cutoff)
 
-    return
+def test_ergodic_cutoff():
+    assert (MarkovStateModel(lag_time=10).ergodic_cutoff ==
+            BayesianMarkovStateModel(lag_time=10).ergodic_cutoff)
+    assert (MarkovStateModel(lag_time=10)._parse_ergodic_cutoff() ==
+            BayesianMarkovStateModel(lag_time=10)._parse_ergodic_cutoff())
+    for cut_off in [0.01, 'on', 'off']:
+        assert (MarkovStateModel(ergodic_cutoff=cut_off).ergodic_cutoff ==
+                BayesianMarkovStateModel(ergodic_cutoff=cut_off).ergodic_cutoff)

@@ -337,11 +337,10 @@ class FunctionFeaturizer(Featurizer):
     >>> results = f.transform(dataset)
     """
 
-    def __init__(self, function, *args, **kwargs):
+    def __init__(self, function, func_args=None):
         if hasattr(function, '__call__'):
             self.function = function
-            self.args = args
-            self.kwargs = kwargs
+            self.func_args = func_args
         else:
             raise Exception("Sorry but we "
                             "couldn't use the provided "
@@ -375,7 +374,7 @@ class FunctionFeaturizer(Featurizer):
 
         """
         x = []
-        x.append(self.function(traj, *self.args, **self.kwargs))
+        x.append(self.function(traj,  **self.func_args))
         return np.hstack(x)
 
 class DihedralFeaturizer(Featurizer):

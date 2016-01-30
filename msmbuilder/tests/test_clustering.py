@@ -1,9 +1,11 @@
 from __future__ import print_function
-import numpy as np
-import msmbuilder.cluster
+
 import mdtraj as md
 import mdtraj.testing
+import numpy as np
 import scipy.spatial.distance
+
+import msmbuilder.cluster
 
 X1 = 0.3 * np.random.RandomState(0).randn(1000, 10).astype(np.double)
 X2 = 0.3 * np.random.RandomState(1).randn(1000, 10).astype(np.float32)
@@ -34,13 +36,16 @@ def test_regular_spatial():
         predict = model.predict([X])
         assert isinstance(predict, list) and len(predict) == 1
         assert len(predict[0]) == len(X)
-        assert isinstance(predict[0], np.ndarray) and predict[0].dtype == np.intp
+        assert (isinstance(predict[0], np.ndarray)
+                and predict[0].dtype == np.intp)
 
         assert model.cluster_centers_.shape[0] > 200
         assert not np.all(scipy.spatial.distance.pdist(X) > model.d_min)
-        assert np.all(scipy.spatial.distance.pdist(model.cluster_centers_) > model.d_min)
+        assert np.all(scipy.spatial.distance.pdist(model.cluster_centers_)
+                      > model.d_min)
 
-        assert np.all(np.shape(model.cluster_center_indices_) == (len(model.cluster_center_indices_), 2))
+        assert np.all(np.shape(model.cluster_center_indices_)
+                      == (len(model.cluster_center_indices_), 2))
 
 
 def test_kcenters_rmsd():
@@ -67,4 +72,5 @@ def test_kcenters_spatial():
         predict = model.predict([X])
         assert isinstance(predict, list) and len(predict) == 1
         assert len(predict[0]) == len(X)
-        assert isinstance(predict[0], np.ndarray) and predict[0].dtype == np.intp
+        assert (isinstance(predict[0], np.ndarray)
+                and predict[0].dtype == np.intp)
