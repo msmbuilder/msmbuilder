@@ -319,11 +319,10 @@ class FunctionFeaturizer(Featurizer):
     function : function
         Instantiation of the function. The function should accept
         a mdtraj.Trajectory object as the first argument.
-    *args : list
-        arguments to pass to the function MINUS the trajectory keyword
-    **kwargs: kwargs
-        key word arguments to pass to the function MINUS the trajectory
-        keyword
+    func_args : dictionary
+        A dictionary of key word arguments(keys) and their values to
+        pass to the function. These should NOT include the trajectory
+        object which is passed in as the first argument.
 
     Notes
     ----------
@@ -333,12 +332,12 @@ class FunctionFeaturizer(Featurizer):
     Examples
     --------
     >>> function = compute_dihedrals
-    >>> f = FunctionFeaturizer(function, indices=[[0,1,2,3]])
+    >>> f = FunctionFeaturizer(function, func_args={indices: [[0,1,2,3]]})
     >>> results = f.transform(dataset)
     """
 
-    def __init__(self, function, func_args=None):
-        if hasattr(function, '__call__'):
+    def __init__(self, function, func_args={}):
+        if callable(function):
             self.function = function
             self.func_args = func_args
         else:

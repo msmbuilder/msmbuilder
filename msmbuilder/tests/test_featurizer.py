@@ -1,15 +1,12 @@
 import numpy as np
-<<<<<<< HEAD
 from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq, raises
 import msmbuilder.featurizer
 from msmbuilder.featurizer import subset_featurizer
 from msmbuilder.featurizer import FunctionFeaturizer, DihedralFeaturizer
-=======
 from mdtraj.testing import eq
 
 import msmbuilder.featurizer
->>>>>>> 9344de14b2a85d8f06278ce669440e1c8a0bc20b
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 from msmbuilder.featurizer import get_atompair_indices, SubsetAtomPairs, \
     SubsetCosPhiFeaturizer, SubsetCosPsiFeaturizer, SubsetFeatureUnion, \
@@ -74,26 +71,22 @@ def test_function_featurizer():
     atom_ind = [[4, 6, 8,14]]
     func = compute_dihedrals
     #test with args
-    f = FunctionFeaturizer(func, atom_ind)
+    f = FunctionFeaturizer(func, func_args={"indices": atom_ind})
     res1 = f.transform([trj0])
 
-    #test with kwargs
-    f = FunctionFeaturizer(func, indices=atom_ind)
-    res2 = f.transform([trj0])
-
-    #test with function in a fucntion
+    #test with function in a fucntion without any args
     def funcception(trj):
         return compute_phi(trj)[1]
 
     f = FunctionFeaturizer(funcception)
-    res3 = f.transform([trj0])
+    res2 = f.transform([trj0])
 
     #know results
     f3 = DihedralFeaturizer(['phi'], sincos=False)
-    res4 = f3.transform([trj0])
+    res3 = f3.transform([trj0])
 
     # compare all
-    for r in [res2, res3, res4]:
+    for r in [res2, res3]:
         np.testing.assert_array_almost_equal(res1, r)
 
 
