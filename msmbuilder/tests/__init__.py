@@ -76,6 +76,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_sparsetica
     # test_speigh
     # test_strongly_connected_subgraph
+    # test_strucrmsdfeaturizer
 
 
 warnings.warn = my_warn
