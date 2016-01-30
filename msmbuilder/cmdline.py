@@ -79,10 +79,11 @@ except ImportError:
         def __init__(self, name, kind):
             self.name = name
             self.kind = kind
-            self.default = None
+            self.default = self.empty
 
         def replace(self, default):
             self.default = default
+            return self
 
 # Work around a very odd bug in pytables, where it destroys arguments in
 # sys.argv when imported
@@ -574,7 +575,7 @@ def _shim_argspec(argspec):
     if defaults is not None:
         last_args = list(sig.parameters.keys())[-len(defaults):]
         for arg, default in zip(last_args, defaults):
-            sig.parameters[arg].replace(default=default)
+            sig.parameters[arg] = sig.parameters[arg].replace(default=default)
 
     return sig
 
