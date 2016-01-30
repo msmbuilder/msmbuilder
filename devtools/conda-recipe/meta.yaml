@@ -40,7 +40,7 @@ test:
     - numdifftools
     - statsmodels
     - hmmlearn
-    - cvxpy
+    - cvxpy # [not win]
     # TODO: remove when new version of numdifftools is released!
     - matplotlib
   imports:
