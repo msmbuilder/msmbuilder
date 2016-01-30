@@ -73,6 +73,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_pca
     # test_ratematrix
     # test_sasa_featurizer
+    # test_sparsetica
 
 
 warnings.warn = my_warn
