@@ -68,17 +68,15 @@ class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering,
     __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
 
 
+class AgglomerativeClustering(MultiSequenceClusterMixin,
+                              cluster.AgglomerativeClustering,
+                              BaseEstimator):
+    __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
+
 try:
     class Ward(MultiSequenceClusterMixin, cluster.Ward, BaseEstimator):
         __doc__ = _replace_labels(cluster.Ward.__doc__)
 except AttributeError:
-
-    class AgglomerativeClustering(MultiSequenceClusterMixin,
-                                  cluster.AgglomerativeClustering,
-                                  BaseEstimator):
-        __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
-
-
     class Ward(AgglomerativeClustering):
         __doc__ = AgglomerativeClustering.__doc__
 
