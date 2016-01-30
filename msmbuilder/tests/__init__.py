@@ -66,6 +66,8 @@ def my_warn(message, category=None, stacklevel=1):
     # test_metzner_mcmc
     # test_msm
     # test_msm_uncertainty
+    # test_muller
+    # test_ndgrid
 
 
 warnings.warn = my_warn
