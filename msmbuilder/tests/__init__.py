@@ -64,6 +64,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_libdistance
     # test_lumping
     # test_metzner_mcmc
+    # test_msm
 
 
 warnings.warn = my_warn
