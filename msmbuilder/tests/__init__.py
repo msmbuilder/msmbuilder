@@ -74,6 +74,8 @@ def my_warn(message, category=None, stacklevel=1):
     # test_ratematrix
     # test_sasa_featurizer
     # test_sparsetica
+    # test_speigh
+    # test_strongly_connected_subgraph
 
 
 warnings.warn = my_warn
