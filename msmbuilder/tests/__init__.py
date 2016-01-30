@@ -56,6 +56,8 @@ def my_warn(message, category=None, stacklevel=1):
     # test_cyblas_wrapper
     # test_dataset
     # test_estimator_subclassing
+    # test_featureunion
+    # test_featurizer
 
 
 warnings.warn = my_warn
