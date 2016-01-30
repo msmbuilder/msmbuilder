@@ -40,6 +40,8 @@ test:
     - numdifftools
     - statsmodels
     - hmmlearn
+    # TODO: remove when new version of numdifftools is released!
+    - matplotlib
   imports:
     - msmbuilder
   commands:
