@@ -68,15 +68,18 @@ except ImportError:
     print('-' * 35, file=sys.stderr)
     raise
 
+# Shim py3's inspect.Parameter class
 try:
     from inspect import Parameter
 except ImportError:
     class Parameter:
-        POSITIONAL_OR_KEYWORD = 'lalalathisisashim'
+        POSITIONAL_OR_KEYWORD = 'lalalapositionalorkeyword'
+        empty = 'dodododoempty'
 
         def __init__(self, name, kind):
             self.name = name
             self.kind = kind
+            self.default = None
 
         def replace(self, default):
             self.default = default
@@ -343,9 +346,9 @@ class NumpydocClassCommand(Command):
 
             # get default value
             kwargs = {}
-            try:
+            if sig.parameters[arg].default != Parameter.empty:
                 kwargs['default'] = sig.parameters[arg].default
-            except (IndexError, TypeError):
+            else:
                 kwargs['required'] = True
 
             if arg in helptext:

@@ -81,8 +81,8 @@ def shell(str):
     print(split)
     with open(os.devnull, 'w') as noout:
         assert subprocess.call(split,
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL) == 0
+                               stderr=subprocess.STDOUT,
+                               stdout=noout) == 0
 
 
 def test_atomindices():
