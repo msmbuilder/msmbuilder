@@ -148,19 +148,13 @@ def test_7():
     assert np.sum(model.populations_) == 1.0
 
 
-def test_8():
+def test_transform():
     # test transform
     model = MarkovStateModel()
     model.fit([['a', 'a', 'b', 'b', 'c', 'c', 'a', 'a']])
     assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
 
     v = model.transform([['a', 'b', 'c']])
-    assert isinstance(v, list)
-    assert len(v) == 1
-    assert v[0].dtype == np.int
-    np.testing.assert_array_equal(v[0], [0, 1, 2])
-
-    v = model.transform([['a', 'b', 'c', 'd']], 'clip')
     assert isinstance(v, list)
     assert len(v) == 1
     assert v[0].dtype == np.int
@@ -186,6 +180,37 @@ def test_8():
     np.testing.assert_array_equal(v[0], [0, 0])
     np.testing.assert_array_equal(v[1], [1, 1, 1])
 
+def test_partial_transform():
+    # test transform
+    model = MarkovStateModel()
+    model.fit([['a', 'a', 'b', 'b', 'c', 'c', 'a', 'a']])
+    assert model.mapping_ == {'a': 0, 'b': 1, 'c': 2}
+
+    v = model.partial_transform(['a', 'b', 'c'])
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.partial_transform(['a', 'b', 'c', 'd'], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 1
+    assert v[0].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 1, 2])
+
+    v = model.partial_transform(['a', 'b', 'c', 'd'], 'fill')
+    assert isinstance(v, np.ndarray)
+    assert len(v) == 4
+    assert v.dtype == np.float
+    np.testing.assert_array_equal(v, [0, 1, 2, np.nan])
+
+    v = model.partial_transform(['a', 'a', 'SPLIT', 'b', 'b', 'b'], 'clip')
+    assert isinstance(v, list)
+    assert len(v) == 2
+    assert v[0].dtype == np.int
+    assert v[1].dtype == np.int
+    np.testing.assert_array_equal(v[0], [0, 0])
+    np.testing.assert_array_equal(v[1], [1, 1, 1])
 
 def test_9():
     # what if the input data contains NaN? They should be ignored

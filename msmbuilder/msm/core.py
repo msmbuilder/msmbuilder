@@ -16,23 +16,23 @@ from sklearn.utils import check_random_state
 from . import _ratematrix
 from ..utils import list_of_1d
 
-
 __all__ = [
     '_MappingTransformMixin', '_dict_compose', '_strongly_connected_subgraph',
-    '_transition_counts', '_solve_ratemat_eigensystem', '_normalize_eigensystem',
+    '_transition_counts', '_solve_ratemat_eigensystem',
+    '_normalize_eigensystem',
     '_solve_msm_eigensystem',
 ]
 
 
 class _MappingTransformMixin(TransformerMixin):
-
     def _setup(self, sequences, y=None):
         sequences = list_of_1d(sequences)
         # step 1. count the number of transitions
         if int(self.lag_time) <= 0:
             raise ValueError('Invalid lag_time: %s' % self.lag_time)
         raw_counts, mapping = _transition_counts(
-            sequences, int(self.lag_time), sliding_window=self.sliding_window)
+                sequences, int(self.lag_time),
+                sliding_window=self.sliding_window)
 
         ergodic_cutoff = self._parse_ergodic_cutoff()
         if ergodic_cutoff > 0:
@@ -50,8 +50,68 @@ class _MappingTransformMixin(TransformerMixin):
         self.n_states_ = self.countsmat_.shape[0]
         return ergodic_cutoff
 
+    def partial_transform(self, sequence, mode='clip'):
+        """Transform a sequence to internal indexing
+
+        Recall that `sequence` can be arbitrary labels, whereas ``transmat_``
+        and ``countsmat_`` are indexed with integers between 0 and
+        ``n_states - 1``. This methods maps a set of sequences from the labels
+        onto this internal indexing.
+
+        Parameters
+        ----------
+        sequence : array-like
+            A 1D iterable of state labels. Labels can be integers, strings, or
+            other orderable objects.
+        mode : {'clip', 'fill'}
+            Method by which to treat labels in `sequence` which do not have
+            a corresponding index. This can be due, for example, to the ergodic
+            trimming step.
+
+           ``clip``
+               Unmapped labels are removed during transform. If they occur
+               at the beginning or end of a sequence, the resulting transformed
+               sequence will be shorted. If they occur in the middle of a
+               sequence, that sequence will be broken into two (or more)
+               sequences. (Default)
+           ``fill``
+               Unmapped labels will be replaced with NaN, to signal missing
+               data. [The use of NaN to signal missing data is not fantastic,
+               but it's consistent with current behavior of the ``pandas``
+               library.]
+
+        Returns
+        -------
+        mapped_sequence : list or ndarray
+            If mode is "fill", return an ndarray in internal indexing.
+            If mode is "clip", return a list of ndarrays each in internal
+            indexing.
+        """
+        if mode not in ['clip', 'fill']:
+            raise ValueError('mode must be one of ["clip", "fill"]: %s' % mode)
+        sequence = np.asarray(sequence)
+        if sequence.ndim != 1:
+            raise ValueError("Each sequence must be 1D")
+
+        f = np.vectorize(lambda k: self.mapping_.get(k, np.nan),
+                         otypes=[np.float])
+
+        a = f(sequence)
+        if mode == 'fill':
+            if np.all(np.mod(a, 1) == 0):
+                result = a.astype(int)
+            else:
+                result = a
+        elif mode == 'clip':
+            result = [a[s].astype(int) for s in
+                      np.ma.clump_unmasked(np.ma.masked_invalid(a))]
+        else:
+            raise RuntimeError()
+
+        return result
+
     def transform(self, sequences, mode='clip'):
-        r"""Transform a list of sequences to internal indexing
+        """Transform a list of sequences to internal indexing
 
         Recall that `sequences` can be arbitrary labels, whereas ``transmat_``
         and ``countsmat_`` are indexed with integers between 0 and
@@ -90,20 +150,12 @@ class _MappingTransformMixin(TransformerMixin):
             raise ValueError('mode must be one of ["clip", "fill"]: %s' % mode)
         sequences = list_of_1d(sequences)
 
-        f = np.vectorize(lambda k: self.mapping_.get(k, np.nan),
-                         otypes=[np.float])
-
         result = []
         for y in sequences:
-            a = f(y)
             if mode == 'fill':
-                if np.all(np.mod(a, 1) == 0):
-                    result.append(a.astype(int))
-                else:
-                    result.append(a)
+                result.append(self.partial_transform(y, mode))
             elif mode == 'clip':
-                result.extend([a[s].astype(int) for s in
-                               np.ma.clump_unmasked(np.ma.masked_invalid(a))])
+                result.extend(self.partial_transform(y, mode))
             else:
                 raise RuntimeError()
 
@@ -123,7 +175,6 @@ class _MappingTransformMixin(TransformerMixin):
             return 0.0
         else:
             return self.ergodic_cutoff
-
 
     def inverse_transform(self, sequences):
         """Transform a list of sequences from internal indexing into
@@ -157,6 +208,7 @@ class _MappingTransformMixin(TransformerMixin):
 
 class _SampleMSMMixin(object):
     """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""
+
     def sample_discrete(self, state=None, n_steps=100, random_state=None):
         r"""Generate a random sequence of states by propagating the model
         using discrete time steps given by the model lagtime.
@@ -203,7 +255,7 @@ class _SampleMSMMixin(object):
 
         chain = [initial]
         for i in range(1, n_steps):
-            chain.append(np.sum(cstr[chain[i-1], :] < r[i]))
+            chain.append(np.sum(cstr[chain[i - 1], :] < r[i]))
 
         return self.inverse_transform([chain])[0]
 
@@ -244,8 +296,8 @@ class _SampleMSMMixin(object):
                      for frame in frames]
             if pairs:
                 selected_pairs_by_state.append(
-                    [pairs[random.choice(len(pairs))]
-                     for i in range(n_samples)])
+                        [pairs[random.choice(len(pairs))]
+                         for i in range(n_samples)])
             else:
                 selected_pairs_by_state.append([])
 
@@ -339,7 +391,6 @@ def _solve_msm_eigensystem(transmat, k):
     return _normalize_eigensystem(u, lv, rv)
 
 
-
 def _normalize_eigensystem(u, lv, rv):
     """Normalize the eigenvectors of a reversible Markov state model according
     to our preferred scheme.
@@ -393,7 +444,7 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     """
     n_states_input = counts.shape[0]
     n_components, component_assignments = csgraph.connected_components(
-        csr_matrix(counts >= weight), connection="strong")
+            csr_matrix(counts >= weight), connection="strong")
     populations = np.array(counts.sum(0)).flatten()
     component_pops = np.array([populations[component_assignments == i].sum() for
                                i in range(n_components)])
@@ -407,8 +458,9 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     if verbose:
         print("MSM contains %d strongly connected component%s "
               "above weight=%.2f. Component %d selected, with "
-              "population %f%%" % (n_components, 's' if (n_components != 1) else '',
-                                   weight, which_component, percent_retained))
+              "population %f%%" % (
+              n_components, 's' if (n_components != 1) else '',
+              weight, which_component, percent_retained))
 
     # keys are all of the "input states" which have a valid mapping to the output.
     keys = np.arange(n_states_input)[component_assignments == which_component]
@@ -422,7 +474,8 @@ def _strongly_connected_subgraph(counts, weight=1, verbose=True):
     mapping = dict(zip(keys, values))
     n_states_output = len(mapping)
 
-    trimmed_counts = np.zeros((n_states_output, n_states_output), dtype=counts.dtype)
+    trimmed_counts = np.zeros((n_states_output, n_states_output),
+                              dtype=counts.dtype)
     trimmed_counts[np.ix_(values, values)] = counts[np.ix_(keys, keys)]
     return trimmed_counts, mapping, percent_retained
 
@@ -481,7 +534,8 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
     be counted. The mapping return value will not include the NaN or None.
     """
     if (not sliding_window) and lag_time > 1:
-        return _transition_counts([X[::lag_time] for X in sequences], lag_time=1)
+        return _transition_counts([X[::lag_time] for X in sequences],
+                                  lag_time=1)
 
     classes = np.unique(np.concatenate(sequences))
     contains_nan = (classes.dtype.kind == 'f') and np.any(np.isnan(classes))
@@ -518,7 +572,8 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
             from_states = from_states[mask]
             to_states = to_states[mask]
 
-        if (not mapping_is_identity) and len(from_states) > 0 and len(to_states) > 0:
+        if (not mapping_is_identity) and len(from_states) > 0 and len(
+                to_states) > 0:
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
