@@ -6,10 +6,10 @@
 from __future__ import print_function, division, absolute_import
 
 import collections
+
 import numpy as np
 import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
-
 from sklearn.base import TransformerMixin
 from sklearn.utils import check_random_state
 
@@ -549,7 +549,10 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
     n_states = len(classes)
 
     mapping = dict(zip(classes, range(n_states)))
-    mapping_is_identity = np.all(classes == np.arange(n_states))
+    mapping_is_identity = (not contains_nan
+                           and not contains_none
+                           and classes.dtype.kind == 'i'
+                           and np.all(classes == np.arange(n_states)))
     mapping_fn = np.vectorize(mapping.get, otypes=[np.int])
     none_to_nan = np.vectorize(lambda x: np.nan if x is None else x,
                                otypes=[np.float])

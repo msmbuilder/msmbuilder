@@ -60,6 +60,8 @@ def main(argv):
     parser.add_argument("--no-verbose", action='store_true', default=False,
                         help="Default nose verbosity is -v. "
                              "This turns that off")
+    parser.add_argument("--ipython", action='store_true', default=False,
+                        help="Launch an ipython shell instead of nose")
     parser.add_argument("args", metavar="ARGS", default=[], nargs=REMAINDER,
                         help="Arguments to pass to Nose")
     args = parser.parse_args(argv)
@@ -72,21 +74,24 @@ def main(argv):
     if args.build_only:
         sys.exit(0)
 
-    nosecommand = ['nosetests']
-
-    if args.verbose > 0 and not args.no_verbose:
-        verbosity = "-{vs}".format(vs="v" * args.verbose)
-        nosecommand += [verbosity]
-
-    if args.tests:
-        nosecommand += args.tests[:]
+    if args.ipython:
+        commands = ['ipython']
     else:
-        nosecommand += [PROJECT_MODULE]
+        commands = ['nosetests']
 
-    extra_argv = args.args[:]
-    if extra_argv and extra_argv[0] == '--':
-        extra_argv = extra_argv[1:]
-    nosecommand += extra_argv
+        if args.verbose > 0 and not args.no_verbose:
+            verbosity = "-{vs}".format(vs="v" * args.verbose)
+            commands += [verbosity]
+
+        if args.tests:
+            commands += args.tests[:]
+        else:
+            commands += ["{}.tests".format(PROJECT_MODULE)]
+
+        extra_argv = args.args[:]
+        if extra_argv and extra_argv[0] == '--':
+            extra_argv = extra_argv[1:]
+        commands += extra_argv
 
     # Run the tests under build/test
     test_dir = os.path.join("build", "test")
@@ -102,7 +107,7 @@ def main(argv):
     cwd = os.getcwd()
     try:
         os.chdir(test_dir)
-        result = subprocess.call(nosecommand)
+        result = subprocess.call(commands)
     finally:
         os.chdir(cwd)
 

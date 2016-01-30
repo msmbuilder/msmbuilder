@@ -1,35 +1,11 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import subprocess
+
 from pkg_resources import resource_filename
+
 from msmbuilder.tests.test_commands import tempdir
-
-
-class CalledProcessError(Exception):
-    def __init__(self, returncode, cmd, stdout=None, stderr=None):
-         self.returncode = returncode
-         self.cmd = cmd
-         self.stdout = stdout
-         self.stderr = stderr
-
-    def __str__(self):
-        return ("Command '%s' returned non-zero exit status %d.\n"
-                "\n==== stdout ====\n%s\n==== stderr ====\n%s\n") % (self.cmd, self.returncode,
-                                                 self.stdout, self.stderr)
-
-
-def check_call(cmd):
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    try:
-        stdout, stderr = process.communicate()
-    except:
-        process.kill()
-        process.wait()
-        raise
-
-    retcode = process.poll()
-    if retcode:
-        raise CalledProcessError(retcode, cmd, stdout=stdout, stderr=stderr)
 
 
 def shell_lines(resource):
@@ -45,6 +21,18 @@ def shell_lines(resource):
             else:
                 yield buf + ' ' + line
                 buf = ''
+
+
+def check_call(tokens):
+    # ugh python 2 is the worst. newer pythons have subprocess.DEVNULL
+    with open(os.devnull, 'w') as devnull:
+        try:
+            out = subprocess.check_output(tokens, stderr=subprocess.STDOUT,
+                                          universal_newlines=True)
+        except subprocess.CalledProcessError as e:
+            print(e.cmd)
+            print(e.output)
+            raise
 
 
 def test_workflow_1():

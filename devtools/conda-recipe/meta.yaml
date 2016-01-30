@@ -38,14 +38,14 @@ test:
     - nose
     - munkres
     - numdifftools
-    - matplotlib
     - statsmodels
     - hmmlearn
+    - cvxpy # [not win]
   imports:
     - msmbuilder
   commands:
     - msmb -h
-    - nosetests msmbuilder -v
+    - nosetests msmbuilder.tests -v
 
 
 about:

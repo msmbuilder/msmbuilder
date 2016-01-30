@@ -12,23 +12,17 @@ branches:
 
 install:
   - source devtools/ci/install_miniconda.sh
-  - export PYTHONUNBUFFERED=true
-  # start Virtual X, so default matplotlib backend works
-  # TOOD: fix tests so we don't need this.
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
 
 script:
-  conda build devtools/conda-recipe
+  conda build --quiet devtools/conda-recipe
   && devtools/ci/build_docs.sh
 
 env:
   matrix:
-    - CONDA_PY=2.7
-    - CONDA_PY=3.4
-    - CONDA_PY=3.5
+    - CONDA_PY=2.7 CONDA_NPY=1.10
+    - CONDA_PY=3.4 CONDA_NPY=1.9
+    - CONDA_PY=3.5 CONDA_NPY=1.10
   global:
-    - CONDA_NPY=1.10
     # $BINSTAR_TOKEN (for user mpharrigan, with access to omnia)
     - secure: "DqDvfYriL3wYdQCp8pQM9huPQQ6U9dKWK02o0BhlAZque8mxU6MvZkp0GtajSqEPuVBjFeGOmFqzE5XgkLIs+vmniRyJ46hTDlOYIxgf2NA6AY6+xqVbqCIrq/xtIXPDPC0mXzASOdybAzdwv3VB/yq9G820o7qIWTg5yEg6qc0="
 
