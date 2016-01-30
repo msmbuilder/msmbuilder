@@ -549,7 +549,9 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
     n_states = len(classes)
 
     mapping = dict(zip(classes, range(n_states)))
-    mapping_is_identity = (classes.dtype.kind == 'i'
+    mapping_is_identity = (not contains_nan
+                           and not contains_none
+                           and classes.dtype.kind == 'i'
                            and np.all(classes == np.arange(n_states)))
     mapping_fn = np.vectorize(mapping.get, otypes=[np.int])
     none_to_nan = np.vectorize(lambda x: np.nan if x is None else x,
