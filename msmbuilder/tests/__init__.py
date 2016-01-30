@@ -35,6 +35,11 @@ def my_warn(message, category=None, stacklevel=1):
 
     print("Warning: module:  ", module)
     print("Warning: message: ", message)
+
+    # This explicit check is necessary for python  < 3.5 maybe??
+    if category is None:
+        category = UserWarning
+
     return orig_warn(message=message, category=category,
                      stacklevel=stacklevel + 1)
 
