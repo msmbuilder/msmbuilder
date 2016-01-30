@@ -1,4 +1,8 @@
-#!/bin/env python
+# Author: Mohammad M. Sultan <msultan@stanford.edu>
+# Contributors:
+# Copyright (c) 2016, Stanford University
+# All rights reserved.
+
 from __future__ import absolute_import, division
 from multiprocessing import Pool, cpu_count
 from msmbuilder.utils import list_of_1d
@@ -9,53 +13,81 @@ from ..msm import MarkovStateModel
 import numpy as np
 
 class BootStrapMarkovStateModel(_MappingTransformMixin):
-    """Bootstrap MSM class which estimates a distribution
-    of transition matrices using random sampling with replacement
-    over the set of input trajectories. The model fits
-    the mle over the original set of sequences as well.
+    """Bootstrap MarkovState Model.
+
+    This model fits a series of first-order Markov models
+    to bootstrap samples obtained from a dataset of
+    integer-valued timeseries.The sequence of transition
+    matrices are obtained using random sampling with
+    replacement over the set of input trajectories.
+    The model also fits the mle over the original set.
 
     Parameters
     ----------
-    n_samples : number of samples to obtain
-    n_procs : number of processes to use=
+    n_samples : int
+        Number of bootstrap models to construct
+    n_procs : int
+        Number of processors to use.
+        Defaults to int(cpu_count/2)
+    msm_args: dict
+        Dictionary containing arguments to pass unto
+        the MSM models.
 
     Attributes
     ----------
-    all_populations_ : list of all population vectors
-    resample_ind_ : list of resample indices used to fit each
-    bootstrap mdl. This can be used to regenerate any mdl without
-    having to store it inside this object.
+    mle_ : Markov State Model
+        MSM model fit unto original dataset. The state mapping
+        inferred here is used through the rest of the models.
+    all_populations_ : list of lists
+        Array of all populations obtained from each model
+    resample_ind_ : list
+        lis of resample indices used to fit each bootstrap mdl.
+        This can be used to regenerate any mdl without having
+        to store it inside this object.
     mapped_populations_: array (n_samples, mle.n_states_)
-    mapped_populations_mean_:array of mean of population
-    mapped_populations_std_:array of std of population
-    mapped_populations_sem_:array of sem(std/n_samples)
-     of population
+        Array containing population estimates from all the
+        models for the states retained in the mle model.
+    mapped_populations_mean_: array shape = (mle.n_states_)
+        Mean population across the set of models for the states
+        contained in the mle model.
+    mapped_populations_std_: array shape = (mle.n_states_)
+        Population std across the set of models for the states
+        contained in the mle model.
+    mapped_populations_sem_: array shape = (mle.n_states_)
+         Population sem across the set of models for the states
+         contained in the mle model.(std/self._succesfully_fit)
 
     Notes
     -----
     The correct number of bootstrap sample is subject to
     debate with several hundred samples(n_samples)
     being the recommended starting figure.
+
+    The fit function for this model optionally takes in a pool
+    of workers making it capable of parallelizing across
+    compute nodes via mpi or ipyparallel. This can lead to
+    a significant speed up for larger number of samples.
     """
-    def __init__(self, n_samples=10,  n_procs=None, **kwargs):
+    def __init__(self, n_samples=10,  n_procs=None, msm_args={}):
         self.n_samples = n_samples
         self.n_procs = n_procs
-        self.mle = MarkovStateModel(**kwargs)
+        self.mle_ = MarkovStateModel(**msm_args)
 
+        self._succesfully_fit = 0
         self.all_populations_ = None
         self.mapped_populations_ = None
         self.resample_ind_ = None
 
     def fit(self, sequences, y=None, pool=None):
         sequences = list_of_1d(sequences)
-        self.mle.fit(sequences, y=y)
+        self.mle_.fit(sequences, y=y)
         self._parallel_fit(sequences, pool)
 
 
     def _fit_one(self, sequences):
         #not sure if i need to actually clone the original mdl but it seems
         #like a safe bet
-        mdl = clone(self.mle)
+        mdl = clone(self.mle_)
         #there is no guarantee that the mdl fits this sequence set so
         #we return None in that instance.
         try:
@@ -79,7 +111,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
 
         self.all_populations_ = []
-        self.mapped_populations_ = np.zeros((self.n_samples, self.mle.n_states_))
+        self.mapped_populations_ = np.zeros((self.n_samples, self.mle_.n_states_))
 
 
         #we cache the sequencs of re sampling indices so that any mdl can be
@@ -95,9 +127,10 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
         for mdl_indx, mdl in enumerate(all_mdls):
             if mdl is not None:
+                self._succesfully_fit += 1
                 self.all_populations_.append(mdl.populations_)
                 self.mapped_populations_[mdl_indx,:] = \
-                    _mapped_populations(self.mle, mdl)
+                    _mapped_populations(self.mle_, mdl)
         return
 
     @property
@@ -111,7 +144,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
     @property
     def mapped_populations_sem_(self):
-        return np.std(self.mapped_populations_, axis=0)/self.n_samples
+        return np.std(self.mapped_populations_, axis=0)/self._succesfully_fit
 
 
 

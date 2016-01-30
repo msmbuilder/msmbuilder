@@ -1,5 +1,4 @@
 from __future__ import print_function, division
-import numpy as np
 from msmbuilder.msm import MarkovStateModel
 from msmbuilder.msm.validation import BootStrapMarkovStateModel
 from msmbuilder.msm.validation.bootstrapmsm import _mapped_populations as mapper
@@ -8,20 +7,18 @@ from mdtraj.testing import eq
 
 
 def test_mdl():
-    mdl = BootStrapMarkovStateModel(n_samples=10, n_procs=2, lag_time=10)
-    return True
+    mdl = BootStrapMarkovStateModel(n_samples=10, n_procs=2, msm_args={'lag_time': 10})
 
 
 def test_mle_eq():
     seq = [[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1]]
     mle_mdl = MarkovStateModel(lag_time=1)
-    b_mdl = BootStrapMarkovStateModel(n_samples=10, n_procs=2, lag_time=1)
+    b_mdl = BootStrapMarkovStateModel(n_samples=10, n_procs=2, msm_args={'lag_time': 1})
     mle_mdl.fit(seq)
     b_mdl.fit(seq)
     #make sure we have good model
-    eq(mle_mdl.populations_, b_mdl.mle.populations_)
-    eq(mle_mdl.timescales_, b_mdl.mle.timescales_)
-    return True
+    eq(mle_mdl.populations_, b_mdl.mle_.populations_)
+    eq(mle_mdl.timescales_, b_mdl.mle_.timescales_)
 
 
 class fakemsm():
@@ -54,7 +51,6 @@ def test_mapper_1():
     mapped_pop = mapper(mdl1, mdl2)
 
     assert(mapped_pop== [0.1, 0.2, 0.3]).all()
-    return True
 
 def test_mapper_2():
     #case where state 2 is throw out
@@ -68,7 +64,6 @@ def test_mapper_2():
 
     mapped_pop = mapper(mdl1, mdl2)
     assert (mapped_pop==[0.1, 0.2, 0.0]).all()
-    return True
 
 def test_mapper_3():
     #case where state 1 is throw out
@@ -81,7 +76,6 @@ def test_mapper_3():
 
     mapped_pop = mapper(mdl1, mdl2)
     assert (mapped_pop==[0.1, 0, 0.3]).all()
-    return True
 
 def test_mapper_4():
    #case where the mdl is jumbled around
@@ -94,4 +88,3 @@ def test_mapper_4():
 
     mapped_pop = mapper(mdl1, mdl2)
     assert (mapped_pop==[0.2, 0.3, 0.1]).all()
-    return True
