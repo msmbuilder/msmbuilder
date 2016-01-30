@@ -59,6 +59,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_featureunion
     # test_featurizer
     # test_ghmm
+    # test_kcenters
 
 
 warnings.warn = my_warn
