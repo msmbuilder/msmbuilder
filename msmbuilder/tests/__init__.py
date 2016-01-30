@@ -70,6 +70,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_ndgrid
     # test_nearest
     # test_param_sweep
+    # test_pca
 
 
 warnings.warn = my_warn
