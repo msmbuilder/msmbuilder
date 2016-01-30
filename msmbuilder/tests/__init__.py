@@ -65,6 +65,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_lumping
     # test_metzner_mcmc
     # test_msm
+    # test_msm_uncertainty
 
 
 warnings.warn = my_warn
