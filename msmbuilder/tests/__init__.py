@@ -71,6 +71,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_nearest
     # test_param_sweep
     # test_pca
+    # test_ratematrix
 
 
 warnings.warn = my_warn
