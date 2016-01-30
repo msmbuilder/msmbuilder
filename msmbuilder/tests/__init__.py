@@ -68,6 +68,8 @@ def my_warn(message, category=None, stacklevel=1):
     # test_msm_uncertainty
     # test_muller
     # test_ndgrid
+    # test_nearest
+    # test_param_sweep
 
 
 warnings.warn = my_warn
