@@ -86,7 +86,7 @@ def main(argv):
         if args.tests:
             commands += args.tests[:]
         else:
-            commands += [PROJECT_MODULE]
+            commands += ["{}.tests".format(PROJECT_MODULE)]
 
         extra_argv = args.args[:]
         if extra_argv and extra_argv[0] == '--':
