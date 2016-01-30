@@ -1,10 +1,11 @@
 from __future__ import print_function
-import sys
-import numpy as np
+
 import mdtraj as md
+import numpy as np
 import scipy.spatial.distance
-from msmbuilder.libdistance import assign_nearest, cdist, pdist, dist, sumdist
+
 from msmbuilder.example_datasets import AlanineDipeptide
+from msmbuilder.libdistance import assign_nearest, cdist, pdist, dist, sumdist
 
 random = np.random.RandomState()
 VECTOR_METRICS = ("euclidean", "sqeuclidean", "cityblock", "chebyshev",
@@ -24,7 +25,6 @@ def setup():
     X_indices = random.random_integers(low=0, high=9, size=5).astype(np.intp)
 
 
-
 def test_assign_nearest_double_float_1():
     # test without X_indices
     for metric in VECTOR_METRICS:
@@ -40,14 +40,14 @@ def test_assign_nearest_double_float_1():
             cdist_1 = cdist(X, Y, metric=metric)
             assert cdist_1.shape == (10, 3)
             f = lambda: np.testing.assert_array_equal(
-                assignments,
-                cdist_1.argmin(axis=1))
+                    assignments,
+                    cdist_1.argmin(axis=1))
             f.description = 'assign_nearest: %s %s' % (metric, X.dtype)
 
             yield lambda: np.testing.assert_almost_equal(
-                inertia,
-                cdist_1[np.arange(10), assignments].sum(),
-                decimal=5 if X.dtype == np.float32 else 10)
+                    inertia,
+                    cdist_1[np.arange(10), assignments].sum(),
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_assign_nearest_float_double_2():
@@ -65,12 +65,12 @@ def test_assign_nearest_float_double_2():
 
             cdist_1 = cdist(X[X_indices], Y, metric=metric)
             yield lambda: np.testing.assert_array_equal(
-                assignments,
-                cdist_1.argmin(axis=1))
+                    assignments,
+                    cdist_1.argmin(axis=1))
             yield lambda: np.testing.assert_almost_equal(
-                inertia,
-                cdist_1[np.arange(5), assignments].sum(),
-                decimal=5 if X.dtype == np.float32 else 10)
+                    inertia,
+                    cdist_1[np.arange(5), assignments].sum(),
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_assign_nearest_rmsd_1():
@@ -83,13 +83,13 @@ def test_assign_nearest_rmsd_1():
     assert cdist_rmsd.shape == (10, 3)
 
     np.testing.assert_array_equal(
-        assignments,
-        cdist_rmsd.argmin(axis=1))
+            assignments,
+            cdist_rmsd.argmin(axis=1))
 
     np.testing.assert_almost_equal(
-        inertia,
-        cdist_rmsd[np.arange(10), assignments].sum(),
-        decimal=6)
+            inertia,
+            cdist_rmsd[np.arange(10), assignments].sum(),
+            decimal=6)
 
 
 def test_assign_nearest_rmsd_2():
@@ -103,13 +103,13 @@ def test_assign_nearest_rmsd_2():
     assert cdist_rmsd.shape == (5, 3)
 
     np.testing.assert_array_equal(
-        assignments,
-        cdist_rmsd.argmin(axis=1))
+            assignments,
+            cdist_rmsd.argmin(axis=1))
 
     np.testing.assert_almost_equal(
-        inertia,
-        cdist_rmsd[np.arange(5), assignments].sum(),
-        decimal=5)
+            inertia,
+            cdist_rmsd[np.arange(5), assignments].sum(),
+            decimal=5)
 
 
 def test_cdist_double_float_1():
@@ -118,10 +118,10 @@ def test_cdist_double_float_1():
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
             cdist_1 = cdist(X, Y, metric)
             cdist_2 = scipy.spatial.distance.cdist(X, Y, metric)
-            yield lambda : np.testing.assert_almost_equal(
-                cdist_1,
-                cdist_2,
-                decimal=5 if X.dtype == np.float32 else 10)
+            yield lambda: np.testing.assert_almost_equal(
+                    cdist_1,
+                    cdist_2,
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_pdist_double_float_1():
@@ -130,10 +130,10 @@ def test_pdist_double_float_1():
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
             pdist_1 = pdist(X, metric)
             pdist_2 = scipy.spatial.distance.pdist(X, metric)
-            yield lambda : np.testing.assert_almost_equal(
-                pdist_1,
-                pdist_2,
-                decimal=5 if X.dtype == np.float32 else 10)
+            yield lambda: np.testing.assert_almost_equal(
+                    pdist_1,
+                    pdist_2,
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_pdist_double_float_2():
@@ -142,21 +142,23 @@ def test_pdist_double_float_2():
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
             pdist_1 = pdist(X, metric, X_indices=X_indices)
             pdist_2 = scipy.spatial.distance.pdist(X[X_indices], metric)
-            yield lambda : np.testing.assert_almost_equal(
-                pdist_1,
-                pdist_2,
-                decimal=5 if X.dtype == np.float32 else 10)
+            yield lambda: np.testing.assert_almost_equal(
+                    pdist_1,
+                    pdist_2,
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_cdist_rmsd_1():
     got = cdist(X_rmsd, Y_rmsd, "rmsd")
-    all2all = np.array([md.rmsd(X_rmsd, Y_rmsd[i], precentered=True) for i in range(len(Y_rmsd))]).T
+    all2all = np.array([md.rmsd(X_rmsd, Y_rmsd[i], precentered=True)
+                        for i in range(len(Y_rmsd))]).T
     np.testing.assert_almost_equal(got, all2all, decimal=5)
 
 
 def test_pdist_rmsd_1():
     got = pdist(X_rmsd, "rmsd")
-    all2all = np.array([md.rmsd(X_rmsd, X_rmsd[i], precentered=True) for i in range(len(X_rmsd))])
+    all2all = np.array([md.rmsd(X_rmsd, X_rmsd[i], precentered=True)
+                        for i in range(len(X_rmsd))])
     ref = all2all[np.triu_indices(10, k=1)]
     np.testing.assert_almost_equal(got, ref, decimal=5)
 
@@ -176,11 +178,10 @@ def test_dist_double_float_1():
     for metric in VECTOR_METRICS:
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
             dist_1 = dist(X, Y[0], metric)
-            dist_2 = cdist(X, Y, metric)[:,0]
-            yield lambda : np.testing.assert_almost_equal(
-                dist_1,
-                dist_2,
-                decimal=5 if X.dtype == np.float32 else 10)
+            dist_2 = cdist(X, Y, metric)[:, 0]
+            yield lambda: np.testing.assert_almost_equal(
+                    dist_1, dist_2,
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_dist_double_float_2():
@@ -188,11 +189,11 @@ def test_dist_double_float_2():
     for metric in VECTOR_METRICS:
         for X, Y in ((X_double, Y_double), (X_float, Y_float)):
             dist_1 = dist(X, Y[0], metric, X_indices)
-            dist_2 = cdist(X, Y, metric)[X_indices,0]
-            yield lambda : np.testing.assert_almost_equal(
-                dist_1,
-                dist_2,
-                decimal=5 if X.dtype == np.float32 else 10)
+            dist_2 = cdist(X, Y, metric)[X_indices, 0]
+            yield lambda: np.testing.assert_almost_equal(
+                    dist_1,
+                    dist_2,
+                    decimal=5 if X.dtype == np.float32 else 10)
 
 
 def test_dist_rmsd_1():
@@ -203,7 +204,8 @@ def test_dist_rmsd_1():
 
 def test_dist_rmsd_2():
     d = dist(X_rmsd, Y_rmsd[0], "rmsd", X_indices)
-    ref = md.rmsd(X_rmsd, Y_rmsd[0], precentered=True).astype(np.double)[X_indices]
+    ref = (md.rmsd(X_rmsd, Y_rmsd[0], precentered=True)
+           .astype(np.double)[X_indices])
     np.testing.assert_array_almost_equal(d, ref)
 
 
@@ -213,17 +215,17 @@ def test_sumdist_double_float():
         for X in (X_double, X_float):
             alldist = scipy.spatial.distance.squareform(pdist(X, metric))
             np.testing.assert_almost_equal(
-                sum(alldist[p[0], p[1]] for p in pairs),
-                sumdist(X, metric, pairs))
+                    sum(alldist[p[0], p[1]] for p in pairs),
+                    sumdist(X, metric, pairs))
 
 
 def test_sumdist_rmsd():
     pairs = random.random_integers(low=0, high=9, size=(5, 2)).astype(np.intp)
     alldist = scipy.spatial.distance.squareform(pdist(X_rmsd, "rmsd"))
     np.testing.assert_almost_equal(
-        sum(alldist[p[0], p[1]] for p in pairs),
-        sumdist(X_rmsd, "rmsd", pairs),
-        decimal=6)
+            sum(alldist[p[0], p[1]] for p in pairs),
+            sumdist(X_rmsd, "rmsd", pairs),
+            decimal=6)
 
 
 def test_canberra_32_1():
@@ -232,8 +234,8 @@ def test_canberra_32_1():
     # point resolution, a different one gets picked than by argmin()
     # on the cdist
     for i in range(10):
-        X = random.randn(10,2).astype(np.float32)
-        Y = X[[0,1,2], :]
+        X = random.randn(10, 2).astype(np.float32)
+        Y = X[[0, 1, 2], :]
 
         assignments, inertia = assign_nearest(X, Y, 'canberra')
         cdist_can = cdist(X, Y, metric='canberra')
@@ -246,17 +248,19 @@ def test_canberra_32_1():
             # make sure that there is actually some difference between the
             # entries in that row of the distance matrix before throwing
             # an error
-            if not np.all(row==row[0]):
+            if not np.all(row == row[0]):
                 assert False
 
 
 def test_canberra_32_2():
     for i in range(10):
-        X = random.randn(10,2).astype(np.float32)
-        Y = X[[0,1,2], :]
-        X_indices = random.random_integers(low=0, high=9, size=5).astype(np.intp)
+        X = random.randn(10, 2).astype(np.float32)
+        Y = X[[0, 1, 2], :]
+        X_indices = (random.random_integers(low=0, high=9, size=5)
+                     .astype(np.intp))
 
-        assignments, inertia = assign_nearest(X, Y, 'canberra', X_indices=X_indices)
+        assignments, inertia = assign_nearest(X, Y, 'canberra',
+                                              X_indices=X_indices)
         cdist_can = cdist(X[X_indices], Y, metric='canberra')
         ref = cdist_can.argmin(axis=1)
         if not np.all(ref == assignments):
@@ -267,5 +271,5 @@ def test_canberra_32_2():
             # make sure that there is actually some difference between the
             # entries in that row of the distance matrix before throwing
             # an error
-            if not np.all(row==row[0]):
+            if not np.all(row == row[0]):
                 assert False

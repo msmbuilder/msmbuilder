@@ -1,7 +1,8 @@
 import numpy as np
-from msmbuilder.example_datasets import DoubleWell
-from msmbuilder.decomposition import tICA, SparseTICA
 from numpy.testing.decorators import skipif
+
+from msmbuilder.decomposition import tICA, SparseTICA
+from msmbuilder.example_datasets import DoubleWell
 
 
 def build_dataset():
@@ -16,7 +17,7 @@ def build_dataset():
     return data
 
 
-def test_1():
+def test_doublewell():
     data = build_dataset()
     tica = tICA(n_components=1).fit(data)
     tic0 = tica.components_[0]

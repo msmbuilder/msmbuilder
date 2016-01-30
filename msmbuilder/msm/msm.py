@@ -20,7 +20,7 @@ from ..utils import list_of_1d
 from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
 from .core import (_MappingTransformMixin, _dict_compose,
-                   _strongly_connected_subgraph, _transition_counts,
+                   _transition_counts,
                    _solve_msm_eigensystem, _SampleMSMMixin)
 
 __all__ = ['MarkovStateModel']
@@ -154,27 +154,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         None will not be counted. The mapping_ attribute will not include the
         NaN or None.
         """
-        sequences = list_of_1d(sequences)
-        # step 1. count the number of transitions
-        if int(self.lag_time) <= 0:
-            raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(
-            sequences, int(self.lag_time), sliding_window=self.sliding_window)
-
-        ergodic_cutoff = self._parse_ergodic_cutoff()
-        if ergodic_cutoff > 0:
-            # step 2. restrict the counts to the maximal strongly ergodic
-            # subgraph
-            self.countsmat_, mapping2, self.percent_retained_ = \
-                _strongly_connected_subgraph(raw_counts, ergodic_cutoff,
-                                             self.verbose)
-            self.mapping_ = _dict_compose(mapping, mapping2)
-        else:
-            # no ergodic trimming.
-            self.countsmat_ = raw_counts
-            self.mapping_ = mapping
-            self.percent_retained_ = 100
-        self.n_states_ = self.countsmat_.shape[0]
+        _ = self._setup(sequences)
 
         # use a dict like a switch statement: dispatch to different
         # transition matrix estimators depending on the value of

@@ -1,22 +1,24 @@
-
 import numpy as np
-from numpy.testing import assert_approx_equal
 from mdtraj.testing import eq
+from numpy.testing import assert_approx_equal
+
 from msmbuilder.decomposition import tICA
 
-def test_1():
+
+def test_fit_transform():
     np.random.seed(42)
     X = np.random.randn(10, 3)
 
     tica = tICA(n_components=2, lag_time=1)
     y2 = tica.fit_transform([np.copy(X)])[0]
 
+
 def test_singular_1():
     tica = tICA(n_components=1)
 
     # make some data that has one column repeated twice
     X = np.random.randn(100, 2)
-    X = np.hstack((X, X[:,0, np.newaxis]))
+    X = np.hstack((X, X[:, 0, np.newaxis]))
 
     tica.fit([X])
     assert tica.components_.dtype == np.float64
@@ -36,7 +38,7 @@ def test_singular_2():
 
 
 def test_shape():
-    model = tICA(n_components=3).fit([np.random.randn(100,10)])
+    model = tICA(n_components=3).fit([np.random.randn(100, 10)])
     eq(model.eigenvalues_.shape, (3,))
     eq(model.eigenvectors_.shape, (10, 3))
     eq(model.components_.shape, (3, 10))
@@ -48,16 +50,16 @@ def test_score_1():
         tica = tICA(n_components=n, shrinkage=0)
         tica.fit([X])
         assert_approx_equal(
-            tica.score([X]),
-            tica.eigenvalues_.sum())
+                tica.score([X]),
+                tica.eigenvalues_.sum())
         X2 = np.random.randn(100, 5)
         assert tica.score([X2]) < tica.score([X])
         assert_approx_equal(tica.score([X]), tica.score_)
 
 
 def test_score_2():
-    X = np.random.randn(100,5)
-    Y = np.random.randn(100,5)
+    X = np.random.randn(100, 5)
+    Y = np.random.randn(100, 5)
     model = tICA(shrinkage=0.0, n_components=2).fit([X])
     s1 = model.score([Y])
     s2 = tICA(shrinkage=0.0).fit(model.transform([Y])).eigenvalues_.sum()
