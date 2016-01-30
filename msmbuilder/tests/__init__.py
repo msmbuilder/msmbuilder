@@ -60,6 +60,7 @@ def my_warn(message, category=None, stacklevel=1):
     # test_featurizer
     # test_ghmm
     # test_kcenters
+    # test_kmedoids
 
 
 warnings.warn = my_warn
