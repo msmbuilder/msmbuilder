@@ -307,6 +307,75 @@ class AtomPairsFeaturizer(Featurizer):
         return d ** self.exponent
 
 
+class FunctionFeaturizer(Featurizer):
+    """Featurizer based on arbitrary functions.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector the output of the function.
+
+    Parameters
+    ----------
+    function : function
+        Instantiation of the function. The function should accept
+        a mdtraj.Trajectory object as the first argument.
+    func_args : dictionary
+        A dictionary of key word arguments(keys) and their values to
+        pass to the function. These should NOT include the trajectory
+        object which is passed in as the first argument.
+
+    Notes
+    ----------
+    This Featurizer assumes that the function takes in the trajectory object
+    as the first argument.
+
+    Examples
+    --------
+    >>> function = compute_dihedrals
+    >>> f = FunctionFeaturizer(function, func_args={indices: [[0,1,2,3]]})
+    >>> results = f.transform(dataset)
+    """
+
+    def __init__(self, function, func_args={}):
+        if callable(function):
+            self.function = function
+            self.func_args = func_args
+        else:
+            raise ValueError("Sorry but we "
+                            "couldn't use the "
+                            "provided function "
+                            "because it is not "
+                            "callable")
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory using the provided function.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+
+        Notes
+        -----
+        This method assumes that the function takes in the trajectory object
+        as the first argument.
+
+        """
+
+        return self.function(traj,  **self.func_args)
+
 class DihedralFeaturizer(Featurizer):
     """Featurizer based on dihedral angles.
 
