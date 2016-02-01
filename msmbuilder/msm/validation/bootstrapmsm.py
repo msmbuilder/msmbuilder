@@ -85,8 +85,6 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
 
     def _fit_one(self, sequences):
-        #not sure if i need to actually clone the original mdl but it seems
-        #like a safe bet
         mdl = MarkovStateModel(**self.msm_args)
         #there is no guarantee that the mdl fits this sequence set so
         #we return None in that instance.
@@ -100,10 +98,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
 
     def _parallel_fit(self, sequences, pool=None):
-        """
-        :param sequences:
-        :return:
-        """
+
         if self.n_procs is None:
             self.n_procs = int(cpu_count()/2)
         if pool is None:
