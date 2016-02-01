@@ -8,7 +8,6 @@ from multiprocessing import Pool, cpu_count
 from msmbuilder.utils import list_of_1d
 from sklearn.utils import resample
 from ..core import _MappingTransformMixin
-from sklearn.base import clone
 from ..msm import MarkovStateModel
 import numpy as np
 
@@ -71,7 +70,8 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
     def __init__(self, n_samples=10,  n_procs=None, msm_args={}):
         self.n_samples = n_samples
         self.n_procs = n_procs
-        self.mle_ = MarkovStateModel(**msm_args)
+        self.msm_args = msm_args
+        self.mle_ = MarkovStateModel(**self.msm_args)
 
         self._succesfully_fit = 0
         self.all_populations_ = None
@@ -87,7 +87,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
     def _fit_one(self, sequences):
         #not sure if i need to actually clone the original mdl but it seems
         #like a safe bet
-        mdl = clone(self.mle_)
+        mdl = MarkovStateModel(**self.msm_args)
         #there is no guarantee that the mdl fits this sequence set so
         #we return None in that instance.
         try:
