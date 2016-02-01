@@ -341,13 +341,14 @@ class FunctionFeaturizer(Featurizer):
             self.function = function
             self.func_args = func_args
         else:
-            raise Exception("Sorry but we "
-                            "couldn't use the provided "
-                            "function.")
+            raise ValueError("Sorry but we "
+                            "couldn't use the "
+                            "provided function "
+                            "because it is not "
+                            "callable")
 
     def partial_transform(self, traj):
-        """Featurize a MD trajectory into a vector by
-        applying the given function unto the trajectory.
+        """Featurize an MD trajectory using the provided function.
 
         Parameters
         ----------
@@ -372,9 +373,8 @@ class FunctionFeaturizer(Featurizer):
         as the first argument.
 
         """
-        x = []
-        x.append(self.function(traj,  **self.func_args))
-        return np.hstack(x)
+
+        return self.function(traj,  **self.func_args)
 
 class DihedralFeaturizer(Featurizer):
     """Featurizer based on dihedral angles.
