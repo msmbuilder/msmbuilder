@@ -85,21 +85,6 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         self._parallel_fit(sequences, pool)
 
 
-    def _fit_one(self, sequences):
-        mdl = MarkovStateModel(**self.msm_args)
-        #there is no guarantee that the mdl fits this sequence set so
-        #we return None in that instance.
-        try:
-            mdl.fit(sequences)
-            # solve the eigensystem
-            mdl.eigenvalues_[0]
-        except ValueError:
-            mdl = None
-            warnings.warn("One of the MSMs fitting "
-                          "failed")
-        return mdl
-
-
     def _parallel_fit(self, sequences, pool=None):
 
         if self.n_procs is None:
@@ -118,10 +103,11 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
                                  for _ in range(self.n_samples)]
 
 
-        jbs =[[sequences[trj_ind] for trj_ind in sample_ind]
-              for sample_ind in self.resample_ind_]
+        jbs =[([sequences[trj_ind] for trj_ind in sample_ind],
+               self.msm_args)
+               for sample_ind in self.resample_ind_]
 
-        all_mdls = pool.map(self._fit_one, jbs)
+        all_mdls = pool.map(_fit_one, jbs)
 
         for mdl_indx, mdl in enumerate(all_mdls):
             if mdl is not None:
@@ -165,3 +151,18 @@ def _mapped_populations(mdl1, mdl2):
 
 
 
+def _fit_one(jt):
+    print(jt)
+    sequences, msm_args = jt
+    mdl = MarkovStateModel(**msm_args)
+    #there is no guarantee that the mdl fits this sequence set so
+    #we return None in that instance.
+    try:
+        mdl.fit(sequences)
+        # solve the eigensystem
+        mdl.eigenvalues_[0]
+    except ValueError:
+        mdl = None
+        warnings.warn("One of the MSMs fitting "
+                          "failed")
+    return mdl
