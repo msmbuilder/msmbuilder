@@ -10,6 +10,7 @@ from sklearn.utils import resample
 from ..core import _MappingTransformMixin
 from ..msm import MarkovStateModel
 import numpy as np
+import warnings
 
 class BootStrapMarkovStateModel(_MappingTransformMixin):
     """Bootstrap MarkovState Model.
@@ -92,8 +93,10 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
             mdl.fit(sequences)
             # solve the eigensystem
             mdl.eigenvalues_[0]
-        except:
+        except ValueError:
             mdl = None
+            warnings.warn("One of the MSMs fitting "
+                          "failed")
         return mdl
 
 

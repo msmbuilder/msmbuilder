@@ -21,7 +21,7 @@ def test_mle_eq():
     eq(mle_mdl.timescales_, b_mdl.mle_.timescales_)
 
 
-class fakemsm():
+class fakemsm(object):
     def __init__(self, n_states, mapping, populations ):
         self.n_states_ = n_states
         self.mapping_ = mapping
@@ -78,7 +78,7 @@ def test_mapper_3():
     assert (mapped_pop==[0.1, 0, 0.3]).all()
 
 def test_mapper_4():
-   #case where the mdl is jumbled around
+    #case where the mdl is jumbled around
     mdl1_mapping = {0:0,1:1,2:2}
     mdl2_mapping = {0:1,1:2,2:0}
 
