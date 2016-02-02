@@ -12,10 +12,8 @@ import glob
 from os.path import join, exists, expanduser
 import socket
 import getpass
-import itertools
 from datetime import datetime
 from collections import Sequence
-import warnings
 
 import tables
 import mdtraj as md
@@ -56,10 +54,6 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
             A read-only set of trajectory files that can be loaded
             with mdtraj
 
-        ``dir-npy-union`` or ``hdf5-union``
-            Several datasets of the respective type which will have
-            their features union-ed together.
-
     verbose : bool
         Whether to print information about the dataset
 
@@ -77,10 +71,10 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
     elif fmt == 'hdf5':
         return HDF5Dataset(path, mode=mode, verbose=verbose)
     elif fmt.endswith("-union"):
-        sub_fmt = fmt[:-len('-union')]
-        return UnionDataset(path, fmt=sub_fmt, mode=mode, verbose=verbose)
+        raise ValueError("union datasets have been removed. "
+                         "Please use msmbuilder.featurizer.FeatureUnion")
     else:
-        raise NotImplementedError("unknown fmt: %s" % fmt)
+        raise NotImplementedError("Unknown format fmt='%s'" % fmt)
 
 
 def _guess_format(path):
@@ -122,7 +116,6 @@ class _BaseDataset(Sequence):
         if mode in 'wa':
             if mode == 'w' and exists(path):
                 raise ValueError('File exists: %s' % path)
-            # os.makedirs(path, exist_ok=True) # (py3 only)
             try:
                 os.makedirs(path)
             except OSError:
@@ -493,62 +486,6 @@ def _dim_match(arr):
     if arr.ndim == 1:
         return arr[:, np.newaxis]
     return arr
-
-
-class UnionDataset(_BaseDataset):
-    def __init__(self, paths, mode, fmt='dir-npy', verbose=False):
-        warnings.warn("UnionDataset is deprecated. "
-                      "Please use msmbuilder.featurizer.FeatureUnion")
-
-        # Check mode
-        if mode != 'r':
-            raise ValueError("Union datasets are read only")
-
-        # Check format
-        supported_subformats = ['dir-npy', 'hdf5']
-        if fmt not in supported_subformats:
-            err = "Format must be one of {}. You gave {}"
-            err = err.format(supported_subformats, fmt)
-            raise ValueError(err)
-
-        # Save parameters
-        self.verbose = verbose
-        self.datasets = [dataset(path, mode, fmt, verbose)
-                         for path in paths]
-
-        # Sanity check
-        self._check_same_length()
-
-    def _check_same_length(self):
-        """Check that the datasets are the same length"""
-        lens = []
-        for ds in self.datasets:
-            lens.append(
-                sum(1 for _ in ds.keys())
-            )
-        if len(set(lens)) > 1:
-            err = "Each dataset must be the same length. You gave: {}"
-            err = err.format(lens)
-            raise ValueError(err)
-
-    def keys(self):
-        return self.datasets[0].keys()
-
-    def get(self, i):
-        return np.concatenate([_dim_match(ds.get(i))
-                               for ds in self.datasets], axis=1)
-
-    def close(self):
-        for ds in self.datasets:
-            ds.close()
-
-    def flush(self):
-        for ds in self.datasets:
-            ds.close()
-
-    @property
-    def provenance(self):
-        return "\n\n".join(ds.provenance for ds in self.datasets)
 
 
 def _keynat(string):
