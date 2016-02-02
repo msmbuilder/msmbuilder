@@ -152,7 +152,6 @@ def _mapped_populations(mdl1, mdl2):
 
 
 def _fit_one(jt):
-    print(jt)
     sequences, msm_args = jt
     mdl = MarkovStateModel(**msm_args)
     #there is no guarantee that the mdl fits this sequence set so
