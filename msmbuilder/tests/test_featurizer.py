@@ -1,4 +1,9 @@
 import numpy as np
+from mdtraj import compute_dihedrals, compute_phi
+from mdtraj.testing import eq, raises
+import msmbuilder.featurizer
+from msmbuilder.featurizer import subset_featurizer
+from msmbuilder.featurizer import FunctionFeaturizer, DihedralFeaturizer
 from mdtraj.testing import eq
 
 import msmbuilder.featurizer
@@ -55,6 +60,34 @@ def test_SubsetAtomPairs_3():
         pass
     else:
         raise AssertionError("Did not raise an assertion!")
+
+
+def test_function_featurizer():
+    dataset = fetch_alanine_dipeptide()
+    trajectories = dataset["trajectories"]
+    trj0 = trajectories[0]
+
+    #use the dihedral to compute phi for ala
+    atom_ind = [[4, 6, 8,14]]
+    func = compute_dihedrals
+    #test with args
+    f = FunctionFeaturizer(func, func_args={"indices": atom_ind})
+    res1 = f.transform([trj0])
+
+    #test with function in a fucntion without any args
+    def funcception(trj):
+        return compute_phi(trj)[1]
+
+    f = FunctionFeaturizer(funcception)
+    res2 = f.transform([trj0])
+
+    #know results
+    f3 = DihedralFeaturizer(['phi'], sincos=False)
+    res3 = f3.transform([trj0])
+
+    # compare all
+    for r in [res2, res3]:
+        np.testing.assert_array_almost_equal(res1, r)
 
 
 def test_that_all_featurizers_run():
