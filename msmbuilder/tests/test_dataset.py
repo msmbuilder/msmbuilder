@@ -6,11 +6,18 @@ import tempfile
 
 import numpy as np
 from mdtraj.testing import get_fn
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_raises_regexp
 from sklearn.externals.joblib import Parallel, delayed
 
 from msmbuilder.dataset import dataset
 from .test_commands import tempdir
+
+# Nose wraps unittest with pep8 function names, but throws deprecation
+# warnings about it!
+import warnings
+
+warnings.filterwarnings('ignore', message=r".*assertRaisesRegex.*",
+                        category=DeprecationWarning)
 
 
 def test_1():
@@ -164,69 +171,15 @@ def test_hdf5_3():
         iter_args = (dataset('ds.h5') for _ in range(5))
 
         sums = Parallel(n_jobs=2)(
-                delayed(_sum_helper)(a) for a in iter_args)
+            delayed(_sum_helper)(a) for a in iter_args)
 
         assert all(s == ref_sum for s in sums)
 
 
-import warnings
-
-# TODO: remove union dataset
-warnings.filterwarnings('ignore', message='.*UnionDataset is deprecated.*')
-
-
-def test_union():
-    with tempdir():
-        # This doesn't work with py2.6
-        with dataset('ds1.h5', 'w', 'hdf5') as ds1, \
-                dataset('ds2.h5', 'w', 'hdf5') as ds2:
-            ds1[0] = np.random.randn(10, 2)
-            ds1[1] = np.random.randn(10)
-            ds2[0] = np.random.randn(10, 4)
-            ds2[1] = np.random.randn(10, 4)
-
-            # Compare row sums
-            rs1 = np.sum(ds1[0], axis=1) + np.sum(ds2[0], axis=1)
-            rs2 = ds1[1] + np.sum(ds2[1], axis=1)
-
+def test_union_no_longer_exists():
+    with assert_raises_regexp(ValueError,
+                              r".*[Uu]se msmbuilder\.featurizer\.FeatureUnion.*"):
         mds = dataset(['ds1.h5', 'ds2.h5'], fmt='hdf5-union')
-
-        assert len(mds) == 2
-        assert mds[0].shape == (10, 6)
-        assert mds[1].shape == (10, 5)
-        np.testing.assert_array_almost_equal(np.sum(mds[0], axis=1), rs1)
-        np.testing.assert_array_almost_equal(np.sum(mds[1], axis=1), rs2)
-
-        mds.close()
-
-
-def test_union_2():
-    with tempdir():
-        # This doesn't work with py2.6
-        with dataset('ds1/', 'w', 'dir-npy') as ds1, \
-                dataset('ds2/', 'w', 'dir-npy') as ds2:
-            ds1[0] = np.random.randn(10, 2)
-            ds1[1] = np.random.randn(10)
-            ds2[0] = np.random.randn(10, 4)
-            ds2[1] = np.random.randn(10, 4)
-
-        mds = dataset(['ds1', 'ds2'], fmt='dir-npy-union')
-        mds_out = mds.create_derived('derived', fmt='dir-npy')
-        assert len(mds_out.provenance.split('\n')) > 0
-
-
-def test_union_3():
-    with tempdir():
-        # This doesn't work with py2.6
-        with dataset('ds1/', 'w', 'dir-npy') as ds1, \
-                dataset('ds2/', 'w', 'dir-npy') as ds2:
-            ds1[0] = np.random.randn(10, 2)
-            ds1[1] = np.random.randn(10)
-            ds2[0] = np.random.randn(10, 4)
-            # Uneven length!
-
-        with assert_raises(ValueError):
-            mds = dataset(['ds1', 'ds2'], fmt='dir-npy-union')
 
 
 def test_order_1():
