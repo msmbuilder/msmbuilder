@@ -3,6 +3,7 @@ from msmbuilder.msm import MarkovStateModel
 from msmbuilder.msm.validation import BootStrapMarkovStateModel
 from msmbuilder.msm.validation.bootstrapmsm import _mapped_populations as mapper
 from mdtraj.testing import eq
+import numpy as np
 
 
 
@@ -19,6 +20,20 @@ def test_mle_eq():
     #make sure we have good model
     eq(mle_mdl.populations_, b_mdl.mle_.populations_)
     eq(mle_mdl.timescales_, b_mdl.mle_.timescales_)
+
+
+def test_score():
+    seq = [np.random.randint(20, size=100),
+            np.random.randint(20, size=100),
+            np.random.randint(20, size=100)]
+    bmsm = BootStrapMarkovStateModel(n_samples=10, n_procs=2, msm_args={'lag_time':1})
+    bmsm.fit(seq)
+    # test that all samples got a training score ...
+    assert np.array(bmsm.all_training_scores_).shape[0] == 10
+    # ... and that the training score wasn't NaN
+    assert sum(np.isnan(bmsm.all_training_scores_)) == 0
+    # test that a test score was attempted (OK if it's NaN)
+    assert bmsm.n_samples == np.array(bmsm.all_test_scores_).shape[0]
 
 
 class fakemsm(object):
