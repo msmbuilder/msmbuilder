@@ -95,6 +95,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         self.mle_ = MarkovStateModel(**self.msm_args)
 
         self._succesfully_fit = 0
+        self._ommitted_trajs_ = None
         self.all_populations_ = None
         self.mapped_populations_ = None
         self.all_training_scores_ = None
@@ -134,7 +135,8 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         #get trajectory index that were omitted in each sampling 
         omitted_trajs = [traj_set.difference(set(sample_ind))
                             for sample_ind in self.resample_ind_]
-        print(omitted_trajs)
+
+        self._ommitted_trajs_ = omitted_trajs
 
         #get the test jobs
         test_jbs = [[sequences[trj_ind] for trj_ind in omitted_index]
