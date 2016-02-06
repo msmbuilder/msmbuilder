@@ -151,10 +151,10 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
                 self.mapped_populations_[mdl_indx,:] = \
                     _mapped_populations(self.mle_, mdl)
                 self.all_training_scores_.append(mdl.score_) # BEH
-            try:
-                self.all_test_scores_.append(mdl.score(test_jbs[mdl_indx]))
-            except ValueError:
-                self.all_test_scores_.append(np.nan)
+                try:
+                    self.all_test_scores_.append(mdl.score(test_jbs[mdl_indx]))
+                except ValueError:
+                    self.all_test_scores_.append(np.nan)
 
         return
 
