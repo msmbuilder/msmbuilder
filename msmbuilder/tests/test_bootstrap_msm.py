@@ -11,6 +11,19 @@ def test_mdl():
     mdl = BootStrapMarkovStateModel(n_samples=10, n_procs=2, msm_args={'lag_time': 10})
 
 
+def test_resampler():
+    sequences = [np.random.randint(20, size=100) for _ in range(100)]
+    mdl = BootStrapMarkovStateModel(n_samples=5, n_procs=2, msm_args={'lag_time': 10})
+    #probability that
+    mdl.fit(sequences)
+    #given a size of 100 input trajectories the probability that
+    # we re-pick the original set is about (1/100)^100.
+    # we test that the set of unique traj ids is never equal to
+    #original 100 sets in all 5 samples
+    for i in mdl.resample_ind_:
+        assert len(np.unique(i)) != 100
+
+
 def test_mle_eq():
     seq = [[0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1]]
     mle_mdl = MarkovStateModel(lag_time=1)
