@@ -169,7 +169,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
     @property
     def mapped_populations_sem_(self):
-        return np.std(self.mapped_populations_, axis=0)/self._succesfully_fit
+        return np.std(self.mapped_populations_, axis=0)/np.sqrt(self._succesfully_fit)
 
     @property
     def training_scores_mean_(self):
