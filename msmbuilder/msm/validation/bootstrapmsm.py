@@ -60,7 +60,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         contained in the mle model.
     mapped_populations_sem_ : array shape = (mle.n_states_)
         Population sem across the set of models for the states
-        contained in the mle model.(std/self._succesfully_fit)
+        contained in the mle model.(std/sqrt(self._succesfully_fit))
     training_scores_mean_ :  list
         Mean population across the list of model scores
     training_scores_std_ : list
@@ -169,7 +169,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
     @property
     def mapped_populations_sem_(self):
-        return np.std(self.mapped_populations_, axis=0)/self._succesfully_fit
+        return np.std(self.mapped_populations_, axis=0)/np.sqrt(self._succesfully_fit)
 
     @property
     def training_scores_mean_(self):
