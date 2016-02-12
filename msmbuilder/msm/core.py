@@ -206,7 +206,7 @@ class _CountsMSMMixin(object):
             self.mapping_ = mapping
             self.percent_retained_ = 100
         self.n_states_ = self.countsmat_.shape[0]
-        return ergodic_cutoff
+        return
 
 class _SampleMSMMixin(object):
     """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""

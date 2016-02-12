@@ -36,6 +36,7 @@ New Features
 
 Improvements
 ~~~~~~~~~~~~
+- Consistent counts setup across various flavors of Markov models(#718, #729).
 
 
 

@@ -156,7 +156,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
         None will not be counted. The mapping_ attribute will not include the
         NaN or None.
         """
-        _ = self._build_counts(sequences)
+        self._build_counts(sequences)
 
         # use a dict like a switch statement: dispatch to different
         # transition matrix estimators depending on the value of
