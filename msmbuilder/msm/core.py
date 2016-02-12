@@ -25,30 +25,6 @@ __all__ = [
 
 
 class _MappingTransformMixin(TransformerMixin):
-    def _setup(self, sequences, y=None):
-        sequences = list_of_1d(sequences)
-        # step 1. count the number of transitions
-        if int(self.lag_time) <= 0:
-            raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(
-                sequences, int(self.lag_time),
-                sliding_window=self.sliding_window)
-
-        ergodic_cutoff = self._parse_ergodic_cutoff()
-        if ergodic_cutoff > 0:
-            # step 2. restrict the counts to the maximal strongly ergodic
-            # subgraph
-            self.countsmat_, mapping2, self.percent_retained_ = \
-                _strongly_connected_subgraph(raw_counts, ergodic_cutoff,
-                                             self.verbose)
-            self.mapping_ = _dict_compose(mapping, mapping2)
-        else:
-            # no ergodic trimming. 
-            self.countsmat_ = raw_counts
-            self.mapping_ = mapping
-            self.percent_retained_ = 100
-        self.n_states_ = self.countsmat_.shape[0]
-        return ergodic_cutoff
 
     def partial_transform(self, sequence, mode='clip'):
         """Transform a sequence to internal indexing
@@ -205,6 +181,32 @@ class _MappingTransformMixin(TransformerMixin):
             result.append(f(y))
         return result
 
+class _CountsMSMMixin(object):
+    def _build_counts(self, sequences, y=None):
+        sequences = list_of_1d(sequences)
+        # step 1. count the number of transitions
+        if int(self.lag_time) < 1:
+            raise ValueError('Invalid lag_time: %s. \
+            Lag_time must be >= 1' % self.lag_time)
+        raw_counts, mapping = _transition_counts(
+                sequences, int(self.lag_time),
+                sliding_window=self.sliding_window)
+
+        ergodic_cutoff = self._parse_ergodic_cutoff()
+        if ergodic_cutoff >= 1:
+            # step 2. restrict the counts to the maximal strongly ergodic
+            # subgraph
+            self.countsmat_, mapping2, self.percent_retained_ = \
+                _strongly_connected_subgraph(raw_counts, ergodic_cutoff,
+                                             self.verbose)
+            self.mapping_ = _dict_compose(mapping, mapping2)
+        else:
+            # no ergodic trimming.
+            self.countsmat_ = raw_counts
+            self.mapping_ = mapping
+            self.percent_retained_ = 100
+        self.n_states_ = self.countsmat_.shape[0]
+        return ergodic_cutoff
 
 class _SampleMSMMixin(object):
     """Provides msm.sample() for drawing samples from continuous and discrete time MSMs."""

@@ -14,11 +14,12 @@ from ..base import BaseEstimator
 from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import (_MappingTransformMixin, _transition_counts, _dict_compose,
+from .core import (_MappingTransformMixin,_CountsMSMMixin, _transition_counts, _dict_compose,
                    _solve_ratemat_eigensystem, _strongly_connected_subgraph, _SampleMSMMixin)
 
 
-class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
+class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin,
+                        _CountsMSMMixin, _SampleMSMMixin):
     """Reversible first order master equation model
 
     This model fits a continuous-time Markov model (master equation) from
@@ -131,30 +132,6 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         self.right_eigenvectors_ = None
         self.percent_retained_ = None
 
-    def _build_counts(self, sequences):
-        sequences = list_of_1d(sequences)
-        lag_time = int(self.lag_time)
-        if lag_time < 1:
-            raise ValueError('lag_time must be >= 1')
-        raw_counts, mapping = _transition_counts(
-            sequences, int(lag_time), self.sliding_window)
-
-        if self.ergodic_cutoff >= 1:
-            # step 2. restrict the counts to the maximal strongly ergodic
-            # subgraph
-            countsmat, mapping2, self.percent_retained_ = _strongly_connected_subgraph(
-                lag_time * raw_counts, self.ergodic_cutoff, self.verbose)
-            mapping = _dict_compose(mapping, mapping2)
-        else:
-            # no ergodic trimming.
-            countsmat = raw_counts
-            self.percent_retained_ = 100
-
-        self.n_states_ = countsmat.shape[0]
-        self.countsmat_ = countsmat
-        self.mapping_ = mapping
-
-        return countsmat
 
     def fit(self, sequences, y=None):
         self._build_counts(sequences)
