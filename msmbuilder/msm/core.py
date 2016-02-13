@@ -192,7 +192,9 @@ class _CountsMSMMixin(object):
                 sequences, int(self.lag_time),
                 sliding_window=self.sliding_window)
 
+        #step 2. Get the ergodic cutoff
         ergodic_cutoff = self._parse_ergodic_cutoff()
+        # if sliding window, we are gonna have  a float cutoff
         if ergodic_cutoff > 0:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
