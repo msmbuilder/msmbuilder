@@ -193,7 +193,7 @@ class _CountsMSMMixin(object):
                 sliding_window=self.sliding_window)
 
         ergodic_cutoff = self._parse_ergodic_cutoff()
-        if ergodic_cutoff >= 1:
+        if ergodic_cutoff > 0:
             # step 2. restrict the counts to the maximal strongly ergodic
             # subgraph
             self.countsmat_, mapping2, self.percent_retained_ = \
