@@ -42,6 +42,7 @@ import warnings
 import numpy as np
 from ..base import BaseEstimator
 from .core import (_MappingTransformMixin,
+                   _CountsMSMMixin,
                    _solve_msm_eigensystem)
 from ._metzner_mcmc_fast import metzner_mcmc_fast
 from ._metzner_mcmc_slow import metzner_mcmc_slow
@@ -52,7 +53,8 @@ from ._metzner_mcmc_slow import metzner_mcmc_slow
 #-----------------------------------------------------------------------------
 
 
-class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
+class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin,
+                               _CountsMSMMixin):
     """Bayesian reversible Markov state model.
 
     Variant of ``MarkovStateModel`` which estimates a distribution over
@@ -171,7 +173,7 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin):
         self.percent_retained_ = None
 
     def fit(self, sequences, y=None):
-        self._setup(sequences)
+        self._build_counts(sequences)
         fit_method_map = {
             True: self._fit_reversible,
             False: self._fit_non_reversible}

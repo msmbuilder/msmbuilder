@@ -19,7 +19,8 @@ from sklearn.utils import check_random_state
 from ..utils import list_of_1d
 from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import (_MappingTransformMixin, _dict_compose,
+from .core import (_MappingTransformMixin, _CountsMSMMixin,
+                   _dict_compose,
                    _transition_counts,
                    _solve_msm_eigensystem, _SampleMSMMixin)
 
@@ -29,7 +30,8 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
+class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
+                        _SampleMSMMixin, _CountsMSMMixin):
     """Reversible Markov State Model
 
     This model fits a first-order Markov model to a dataset of integer-valued
@@ -154,7 +156,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         None will not be counted. The mapping_ attribute will not include the
         NaN or None.
         """
-        _ = self._setup(sequences)
+        self._build_counts(sequences)
 
         # use a dict like a switch statement: dispatch to different
         # transition matrix estimators depending on the value of
