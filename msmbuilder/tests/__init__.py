@@ -17,24 +17,8 @@ def my_warn(message, category=None, stacklevel=1):
     module = globals['__name__']
     filename = globals.get('__file__')
 
-    m = {
-        'argspec': 'inspect.getargspec() is deprecated'
-    }
-
-    if module == 'scipy._lib.decorator' and m['argspec'] in message:
+    if 'inspect.getargspec() is deprecated' in message:
         return
-
-    if module == 'mdtraj.formats.hdf5' and m['argspec'] in message:
-        return
-
-    if module == 'statsmodels.base.wrapper' and m['argspec'] in message:
-        return
-
-    if module == 'nose.util' and m['argspec'] in message:
-        return
-
-    print("Warning: module:  ", module)
-    print("Warning: message: ", message)
 
     # This explicit check is necessary for python  < 3.5 maybe??
     if category is None:
