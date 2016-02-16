@@ -7,18 +7,28 @@ from msmbuilder.featurizer import StrucRMSDFeaturizer
 def test_alanine_dipeptide():
     # This test takes the rmsd of the 0th set of alanine dipeptide
     # trajectories relative to the 0th frame of the dataset.
-    # The test asserts that the first rmsd calculated will be zero.
+    # The test asserts that the first rmsd calculated will be zero
+    # for both all atom indices and a subset of atom indices.
+    # It then verifies that the RMSD's calculated from the different
+    # sets of atom indices are not the same.
 
     dataset = fetch_alanine_dipeptide()
     trajectories = dataset["trajectories"]
-    featurizer = StrucRMSDFeaturizer(trajectories[0], trajectories[0][0],
+    featurizer = StrucRMSDFeaturizer(trajectories[0][0],
                                      np.arange(trajectories[0].n_atoms))
     data = featurizer.transform(trajectories[0])
 
     assert (data[0] < 1e-3)
 
+    featurizer = StrucRMSDFeaturizer(trajectories[0][0],
+                                     range(trajectories[0].n_atoms)[0:11])
+    data_sliced = featurizer.transform(trajectories[0])
+
+    assert (data_sliced[0] < 1e-3)
+    assert (data[1] is not data_sliced[1])
+
     # For some reason the rmsd of trajectories[0][0] with itself
-    # is 0.0001041; see
+    # is not exactly zero; see
     #
     #  $ ipython
     #  >>> import mdtraj as md
@@ -38,10 +48,12 @@ def test_two_refs():
 
     dataset = fetch_alanine_dipeptide()
     trajectories = dataset["trajectories"]
-    featurizer = StrucRMSDFeaturizer(trajectories[0], trajectories[0][0:2],
+    featurizer = StrucRMSDFeaturizer(trajectories[0][0:2],
                                      range(trajectories[0].n_atoms))
     data = featurizer.transform(trajectories[0])
 
     # TODO: Figure out why arrays are 3D
     assert (data[0][0][0] - data[1][0][1] < 1e-3)
     assert (data[1][0][0] - data[0][0][1] < 1e-3)
+
+

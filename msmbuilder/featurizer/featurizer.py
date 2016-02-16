@@ -201,7 +201,6 @@ class SuperposeFeaturizer(Featurizer):
         return x
 
 
-
 class StrucRMSDFeaturizer(Featurizer):
     """Featurizer based on RMSD to one or more reference structures.
 
@@ -212,22 +211,20 @@ class StrucRMSDFeaturizer(Featurizer):
 
     Parameters
     ----------
-    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
-        The indices of the atoms to superpose and compute the distances with
     reference_traj : md.Trajectory
         The reference conformation to superpose each frame with respect to
         (only the first frame in reference_traj is used)
-    superpose_atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
-        If not None, these atom_indices are used for the superposition
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with.
+        If not specified, all atoms are used.
     """
 
-    def __init__(self, atom_indices, reference_traj, superpose_atom_indices=None):
+    def __init__(self, reference_traj, atom_indices=None):
         self.atom_indices = atom_indices
-        if superpose_atom_indices is None:
-            self.superpose_atom_indices = atom_indices
+        if self.atom_indices is not None:
+            self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
         else:
-            self.superpose_atom_indices = superpose_atom_indices
-        self.reference_traj = reference_traj
+            self.sliced_reference_traj = reference_traj
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via distance
@@ -250,7 +247,11 @@ class StrucRMSDFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        result = libdistance.cdist(traj, self.reference_traj, 'rmsd')
+        if self.atom_indices is not None:
+            sliced_traj = traj.atom_slice(self.atom_indices)
+        else:
+            sliced_traj = traj
+        result = libdistance.cdist(sliced_traj, self.sliced_reference_traj, 'rmsd')
         return result
 
 
