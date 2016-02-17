@@ -29,6 +29,8 @@ API Changes
   ``msmbuilder.featurizer.subset`` (#738).
 - ``FirstSlicer`` has been removed. Use ``Slicer(first=x)`` for the same
   functionality (#738).
+- ``msmbuilder.featurizer.load`` has been removed. ``Featurizer.save``
+  has been removed. Please use ``utils.load``, ``utils.dump`` (#738).
 
 
 New Features

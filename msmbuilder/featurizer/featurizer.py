@@ -2,15 +2,11 @@
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
 #               Matthew Harrigan <matthew.p.harrigan@gmail.com>
 #               Brooke Husic <brookehusic@gmail.com>
-# Copyright (c) 2015, Stanford University and the Authors
+# Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
-#-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
 from __future__ import print_function, division, absolute_import
 
-from six.moves import cPickle
 import numpy as np
 import mdtraj as md
 from sklearn.base import TransformerMixin
@@ -19,10 +15,6 @@ from sklearn.externals.joblib import Parallel, delayed
 from msmbuilder import libdistance
 
 from ..base import BaseEstimator
-
-#-----------------------------------------------------------------------------
-# Code
-#-----------------------------------------------------------------------------
 
 
 def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
@@ -73,13 +65,6 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
-
-
-def load(filename):
-    """Load a featurizer from a cPickle file."""
-    with open(filename, 'rb') as f:
-        featurizer = cPickle.load(f)
-    return featurizer
 
 
 class Featurizer(BaseEstimator, TransformerMixin):
@@ -139,10 +124,6 @@ class Featurizer(BaseEstimator, TransformerMixin):
             (n_samples_i, n_features)
         """
         return [self.partial_transform(traj) for traj in traj_list]
-
-    def save(self, filename):
-        with open(filename, 'wb') as f:
-            cPickle.dump(self, f)
 
 
 class SuperposeFeaturizer(Featurizer):
