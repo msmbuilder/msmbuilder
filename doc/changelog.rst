@@ -24,6 +24,9 @@ API Changes
   ``pcca.microstate_mapping_`` for this functionality. 
 - ``UnionDataset`` has been removed after deprecation in 3.3. Please use
   ``FeatureUnion`` instead (#671).
+- ``SubsetFeaturizer`` and ilk have been removed from the
+  ``msmbuilder.featurizer`` namespace. Please import them from
+  ``msmbuilder.featurizer.subset`` (#738).
 
 
 New Features
