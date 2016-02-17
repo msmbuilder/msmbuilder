@@ -966,11 +966,7 @@ class DRIDFeaturizer(Featurizer):
 
 
 class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
-    """Mixtape version of sklearn.pipeline.FeatureUnion
-
-    Notes
-    -----
-    Works on lists of trajectories.
+    """sklearn.pipeline.FeatureUnion adapted for multiple sequences
     """
     def fit_transform(self, traj_list, y=None, **fit_params):
         """Fit all transformers using `trajectories`, transform the data
