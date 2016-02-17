@@ -27,6 +27,8 @@ API Changes
 - ``SubsetFeaturizer`` and ilk have been removed from the
   ``msmbuilder.featurizer`` namespace. Please import them from
   ``msmbuilder.featurizer.subset`` (#738).
+- ``FirstSlicer`` has been removed. Use ``Slicer(first=x)`` for the same
+  functionality (#738).
 
 
 New Features

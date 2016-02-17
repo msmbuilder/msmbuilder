@@ -1046,45 +1046,50 @@ class Slicer(Featurizer):
 
     Parameters
     ----------
-    index : list of integers, optional, default=None
-        These indices are the feature indices that will be selected
-        by the Slicer.transform() function.  
+    index : array_like of integer, optional
+        If given, extract only these features by index. This corresponds
+        to selecting these columns from the feature-trajectories.
+    first : int, optional
+        If given, extract the first this-many features. This is useful
+        when features are sorted like in PCA or tICA.
+
+    Notes
+    -----
+    You must give either index or first (but not both)
 
     """
 
-    def __init__(self, index=None):
-        self.index = index
+    def __init__(self, index=None, first=None):
 
-    def partial_transform(self, X):
+        if index is None and first is None:
+            raise ValueError("Please specify either index or first, "
+                             "not neither")
+        if index is not None and first is not None:
+            raise ValueError("Please specify either index or first, "
+                             "not both.")
+
+        self.index = index
+        self.first = first
+
+    def partial_transform(self, traj):
         """Slice a single input array along to select a subset of features.
 
         Parameters
         ----------
-        X : np.ndarray, shape=(n_samples, n_features)
+        traj : np.ndarray, shape=(n_samples, n_features)
             A sample to slice.
 
         Returns
         -------
-        X2 : np.ndarray shape=(n_samples, n_feature_subset)
-            Slice of X
+        sliced_traj : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of traj
         """
-        return X[:, self.index]
+        if self.index is not None:
+            return traj[:, self.index]
+        else:
+            return traj[:, :self.first]
 
 
-class FirstSlicer(Slicer):
-    """Extracts slices (e.g. subsets) from data along the feature dimension.
-
-    Parameters
-    ----------
-    first : int, optional, default=None
-        Select the first N features.  This is essentially a shortcut for
-        `Slicer(index=arange(first))`
-
-    """
-
-    def __init__(self, first=None):
-        self.first = first
-    
-    @property
-    def index(self):
-        return np.arange(self.first)
+class FirstSlicer(object):
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError("Please use Slicer(first=x)")
