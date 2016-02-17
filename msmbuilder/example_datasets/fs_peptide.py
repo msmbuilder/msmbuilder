@@ -75,7 +75,7 @@ class FsPeptide(Dataset):
     def get(self):
         if not self.cached:
             self.cache()
-        top = md.load(join(self.data_dir, 'fs_peptide.pdb'))
+        top = md.load(join(self.data_dir, 'fs_peptide.pdb'), no_boxchk=True)
         trajectories = []
         for fn in sorted(glob(join(self.data_dir, 'trajectory*.xtc'))):
             print('loading %s...' % basename(fn))

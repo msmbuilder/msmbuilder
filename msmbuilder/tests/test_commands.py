@@ -46,7 +46,7 @@ def setup_module():
     HMM.startprob_ = np.array([1, 1, 1, 1]) / 4.0
 
     # get a 1 atom topology
-    topology = md.load(get_mdtraj_fn('native.pdb')).restrict_atoms([1]).topology
+    topology = md.load(get_mdtraj_fn('native.pdb')).atom_slice([1]).topology
 
     # generate the trajectories and save them to disk
     for i in range(10):
