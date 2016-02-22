@@ -2,15 +2,11 @@
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
 #               Matthew Harrigan <matthew.p.harrigan@gmail.com>
 #               Brooke Husic <brookehusic@gmail.com>
-# Copyright (c) 2015, Stanford University and the Authors
+# Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
-#-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
 from __future__ import print_function, division, absolute_import
 
-from six.moves import cPickle
 import numpy as np
 import mdtraj as md
 from sklearn.base import TransformerMixin
@@ -19,10 +15,6 @@ from sklearn.externals.joblib import Parallel, delayed
 from msmbuilder import libdistance
 
 from ..base import BaseEstimator
-
-#-----------------------------------------------------------------------------
-# Code
-#-----------------------------------------------------------------------------
 
 
 def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
@@ -73,13 +65,6 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
-
-
-def load(filename):
-    """Load a featurizer from a cPickle file."""
-    with open(filename, 'rb') as f:
-        featurizer = cPickle.load(f)
-    return featurizer
 
 
 class Featurizer(BaseEstimator, TransformerMixin):
@@ -139,10 +124,6 @@ class Featurizer(BaseEstimator, TransformerMixin):
             (n_samples_i, n_features)
         """
         return [self.partial_transform(traj) for traj in traj_list]
-
-    def save(self, filename):
-        with open(filename, 'wb') as f:
-            cPickle.dump(self, f)
 
 
 class SuperposeFeaturizer(Featurizer):
@@ -985,11 +966,7 @@ class DRIDFeaturizer(Featurizer):
 
 
 class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
-    """Mixtape version of sklearn.pipeline.FeatureUnion
-
-    Notes
-    -----
-    Works on lists of trajectories.
+    """sklearn.pipeline.FeatureUnion adapted for multiple sequences
     """
     def fit_transform(self, traj_list, y=None, **fit_params):
         """Fit all transformers using `trajectories`, transform the data
@@ -1046,45 +1023,50 @@ class Slicer(Featurizer):
 
     Parameters
     ----------
-    index : list of integers, optional, default=None
-        These indices are the feature indices that will be selected
-        by the Slicer.transform() function.  
+    index : array_like of integer, optional
+        If given, extract only these features by index. This corresponds
+        to selecting these columns from the feature-trajectories.
+    first : int, optional
+        If given, extract the first this-many features. This is useful
+        when features are sorted like in PCA or tICA.
+
+    Notes
+    -----
+    You must give either index or first (but not both)
 
     """
 
-    def __init__(self, index=None):
-        self.index = index
+    def __init__(self, index=None, first=None):
 
-    def partial_transform(self, X):
+        if index is None and first is None:
+            raise ValueError("Please specify either index or first, "
+                             "not neither")
+        if index is not None and first is not None:
+            raise ValueError("Please specify either index or first, "
+                             "not both.")
+
+        self.index = index
+        self.first = first
+
+    def partial_transform(self, traj):
         """Slice a single input array along to select a subset of features.
 
         Parameters
         ----------
-        X : np.ndarray, shape=(n_samples, n_features)
+        traj : np.ndarray, shape=(n_samples, n_features)
             A sample to slice.
 
         Returns
         -------
-        X2 : np.ndarray shape=(n_samples, n_feature_subset)
-            Slice of X
+        sliced_traj : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of traj
         """
-        return X[:, self.index]
+        if self.index is not None:
+            return traj[:, self.index]
+        else:
+            return traj[:, :self.first]
 
 
-class FirstSlicer(Slicer):
-    """Extracts slices (e.g. subsets) from data along the feature dimension.
-
-    Parameters
-    ----------
-    first : int, optional, default=None
-        Select the first N features.  This is essentially a shortcut for
-        `Slicer(index=arange(first))`
-
-    """
-
-    def __init__(self, first=None):
-        self.first = first
-    
-    @property
-    def index(self):
-        return np.arange(self.first)
+class FirstSlicer(object):
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError("Please use Slicer(first=x)")

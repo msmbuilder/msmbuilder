@@ -67,9 +67,10 @@ def main(argv):
     args = parser.parse_args(argv)
 
     if not args.no_build:
-        site_dir = build_project(args)
+        site_dir, dst_dir = build_project(args)
         sys.path.insert(0, site_dir)
         os.environ['PYTHONPATH'] = site_dir
+        os.environ['PATH'] = dst_dir + "/bin:" + os.environ['PATH']
 
     if args.build_only:
         sys.exit(0)
@@ -190,7 +191,7 @@ def build_project(args):
         sys.exit(1)
 
     from distutils.sysconfig import get_python_lib
-    return get_python_lib(prefix=dst_dir, plat_specific=True)
+    return get_python_lib(prefix=dst_dir, plat_specific=True), dst_dir
 
 
 if __name__ == "__main__":
