@@ -493,9 +493,9 @@ class VonMisesFeaturizer(Featurizer):
             raise TypeError('kappa must be numeric.')
 
         self.loc = np.arange(0, 2*np.pi,
-                             2*np.pi/n_bins).reshape(-1, 1)
+                             2*np.pi/n_bins)
         self.kappa = kappa
-        self.bins = n_bins
+        self.n_bins = n_bins
 
         known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
         if not set(types).issubset(known):
@@ -560,8 +560,10 @@ class VonMisesFeaturizer(Featurizer):
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
             _, y = func(traj)
-            x.extend(vm.pdf(y, loc=self.loc, kappa=self.kappa))
+            x.extend(vm.pdf(y, loc=self.loc,
+                            kappa=self.kappa).reshape(self.n_bins, -1, 1))
         return np.hstack(x)
+
 
 class AlphaAngleFeaturizer(Featurizer):
     """Featurizer to extract alpha (dihedral) angles.
