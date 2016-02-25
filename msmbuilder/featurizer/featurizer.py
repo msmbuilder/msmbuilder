@@ -503,7 +503,7 @@ class VonMisesFeaturizer(Featurizer):
                              (str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the Dihderal features."""
+        """Return a list of dictionaries describing the von Mises features."""
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
@@ -537,7 +537,7 @@ class VonMisesFeaturizer(Featurizer):
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
-        of dihedral (torsion) angles
+        of soft-bins over dihdral angle space.
 
         Parameters
         ----------

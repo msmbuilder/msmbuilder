@@ -5,7 +5,7 @@ from mdtraj.testing import eq
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
-    RMSDFeaturizer, Slicer
+    RMSDFeaturizer, VonMisesFeaturizer, Slicer
 
 
 def test_function_featurizer():
@@ -51,6 +51,9 @@ def test_that_all_featurizers_run():
     X_all = featurizer.transform(trajectories)
 
     featurizer = DihedralFeaturizer(["phi", "psi"])
+    X_all = featurizer.transform(trajectories)
+
+    featurizer = VonMisesFeaturizer(["phi", "psi"])
     X_all = featurizer.transform(trajectories)
 
     # Below doesn't work on ALA dipeptide
