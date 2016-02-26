@@ -70,12 +70,13 @@ def test_von_mises_featurizer():
 
     featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=18)
     X_all = featurizer.transform(trajectories)
-    assert X_all[0].shape == (9999, 36), ("unexpected shape returned: (%s, %s)" %
+    n_frames = trajectories[0].n_frames
+    assert X_all[0].shape == (n_frames, 36), ("unexpected shape returned: (%s, %s)" %
                                           X_all[0].shape)
 
     featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=10)
     X_all = featurizer.transform(trajectories)
-    assert X_all[0].shape == (9999, 20), ("unexpected shape returned: (%s, %s)" %
+    assert X_all[0].shape == (n_frames, 20), ("unexpected shape returned: (%s, %s)" %
                                           X_all[0].shape)
 
 
