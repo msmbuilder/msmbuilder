@@ -64,6 +64,21 @@ def test_that_all_featurizers_run():
     X_all = featurizer.transform(trajectories)
 
 
+def test_von_mises_featurizer():
+    dataset = fetch_alanine_dipeptide()
+    trajectories = dataset["trajectories"]
+
+    featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=18)
+    X_all = featurizer.transform(trajectories)
+    assert X_all[0].shape == (9999, 36), ("unexpected shape returned: (%s, %s)" %
+                                          X_all[0].shape)
+
+    featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=10)
+    X_all = featurizer.transform(trajectories)
+    assert X_all[0].shape == (9999, 20), ("unexpected shape returned: (%s, %s)" %
+                                          X_all[0].shape)
+
+
 def test_slicer():
     X = ([np.random.normal(size=(50, 5), loc=np.arange(5))]
          + [np.random.normal(size=(10, 5), loc=np.arange(5))])
