@@ -5,7 +5,7 @@ from mdtraj.testing import eq
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
-    RMSDFeaturizer, Slicer
+    RMSDFeaturizer, VonMisesFeaturizer, Slicer
 
 
 def test_function_featurizer():
@@ -53,12 +53,31 @@ def test_that_all_featurizers_run():
     featurizer = DihedralFeaturizer(["phi", "psi"])
     X_all = featurizer.transform(trajectories)
 
+    featurizer = VonMisesFeaturizer(["phi", "psi"])
+    X_all = featurizer.transform(trajectories)
+
     # Below doesn't work on ALA dipeptide
     # featurizer = msmbuilder.featurizer.ContactFeaturizer()
     # X_all = featurizer.transform(trajectories)
 
     featurizer = RMSDFeaturizer(trj0)
     X_all = featurizer.transform(trajectories)
+
+
+def test_von_mises_featurizer():
+    dataset = fetch_alanine_dipeptide()
+    trajectories = dataset["trajectories"]
+
+    featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=18)
+    X_all = featurizer.transform(trajectories)
+    n_frames = trajectories[0].n_frames
+    assert X_all[0].shape == (n_frames, 36), ("unexpected shape returned: (%s, %s)" %
+                                          X_all[0].shape)
+
+    featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=10)
+    X_all = featurizer.transform(trajectories)
+    assert X_all[0].shape == (n_frames, 20), ("unexpected shape returned: (%s, %s)" %
+                                          X_all[0].shape)
 
 
 def test_slicer():

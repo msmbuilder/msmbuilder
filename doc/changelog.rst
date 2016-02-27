@@ -11,6 +11,7 @@ Version 3.4.0.dev0 is the current development release of MSMBuilder.
 API Changes
 ~~~~~~~~~~~
 
+- ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added.
 - Range-based slicing on dataset objects is no longer allowed. Keys in the
   dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
   loads all trajectories in a list (#610).
@@ -21,7 +22,7 @@ API Changes
   dictionary was actually keyed by *untrimmed* microstate labels.
   ``PCCA.transform`` would throw an exception when operating on a system
   with trimming because it was using this misleading dictionary. Please use
-  ``pcca.microstate_mapping_`` for this functionality. 
+  ``pcca.microstate_mapping_`` for this functionality.
 - ``UnionDataset`` has been removed after deprecation in 3.3. Please use
   ``FeatureUnion`` instead (#671).
 - ``SubsetFeaturizer`` and ilk have been removed from the
