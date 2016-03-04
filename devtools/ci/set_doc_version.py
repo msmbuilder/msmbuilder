@@ -1,10 +1,9 @@
 import os
 import shutil
+from msmbuilder import version
 
-import msmbuilder.version
-
-if msmbuilder.version.release:
-    docversion = msmbuilder.version.short_version
+if version.release:
+    docversion = version.short_version
 else:
     docversion = 'development'
 

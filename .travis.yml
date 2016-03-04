@@ -12,6 +12,7 @@ branches:
 
 install:
   - source devtools/ci/install_miniconda.sh
+  - conda config --add channels omnia
 
 script:
   conda build --quiet devtools/conda-recipe
@@ -22,9 +23,6 @@ env:
     - CONDA_PY=2.7 CONDA_NPY=1.10
     - CONDA_PY=3.4 CONDA_NPY=1.9
     - CONDA_PY=3.5 CONDA_NPY=1.10
-  global:
-    # $BINSTAR_TOKEN (for user mpharrigan, with access to omnia)
-    - secure: "DqDvfYriL3wYdQCp8pQM9huPQQ6U9dKWK02o0BhlAZque8mxU6MvZkp0GtajSqEPuVBjFeGOmFqzE5XgkLIs+vmniRyJ46hTDlOYIxgf2NA6AY6+xqVbqCIrq/xtIXPDPC0mXzASOdybAzdwv3VB/yq9G820o7qIWTg5yEg6qc0="
 
 deploy:
   - provider: s3

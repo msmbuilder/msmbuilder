@@ -6,7 +6,7 @@ set -ev
 # Install the built package
 conda create --yes -n docenv python=$CONDA_PY
 source activate docenv
-conda install --yes --use-local msmbuilder-dev
+conda install -yq --use-local msmbuilder-dev
 
 # TODO: Use conda
 # sphinx_rtd_theme's latest releases are not available
