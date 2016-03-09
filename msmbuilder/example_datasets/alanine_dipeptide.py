@@ -20,7 +20,7 @@ import mdtraj as md
 from .base import Bunch, Dataset
 from .base import get_data_home, retry
 
-DATA_URL = "http://downloads.figshare.com/article/public/1026131"
+DATA_URL = "https://ndownloader.figshare.com/articles/1026131/versions/8"
 TARGET_DIRECTORY = "alanine_dipeptide"
 
 
@@ -87,4 +87,3 @@ def fetch_alanine_dipeptide(data_home=None):
 
 
 fetch_alanine_dipeptide.__doc__ = AlanineDipeptide.__doc__
-

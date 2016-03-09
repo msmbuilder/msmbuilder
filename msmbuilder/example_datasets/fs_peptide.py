@@ -21,7 +21,7 @@ import mdtraj as md
 from .base import Bunch, Dataset
 from .base import get_data_home, retry
 
-DATA_URL = "http://downloads.figshare.com/article/public/1030363"
+DATA_URL = "https://ndownloader.figshare.com/articles/1030363/versions/1"
 TARGET_DIRECTORY = "fs_peptide"
 
 
