@@ -102,8 +102,8 @@ def test_atomindices():
         atoms = np.loadtxt('heavy.txt', int)
         pairs = np.loadtxt('heavy-pairs.txt', int)
         assert all(t.topology.atom(i).element.symbol != 'H' for i in atoms)
-        assert (sum(1 for a in t.topology.atoms if a.element.symbol != 'H')
-                == len(atoms))
+        assert (sum(1 for a in t.topology.atoms if a.element.symbol != 'H') ==
+                len(atoms))
         eq(np.array(list(itertools.combinations(atoms, 2))), pairs)
 
     with tempdir():
@@ -149,7 +149,7 @@ def test_superpose_featurizer_reftop():
         shell("msmb SuperposeFeaturizer "
               "--trjs '{data_home}/alanine_dipeptide/*.dcd'"
               " --transformed distances --atom_indices all.txt"
-              " --reference_traj {data_home}/alanine_dipeptide/trajectory_0.dcd"
+              " --reference_traj {data_home}/alanine_dipeptide/trajectory-0.dcd"
               " --top {data_home}/alanine_dipeptide/ala2.pdb"
               .format(data_home=get_data_home()))
         ds = dataset('distances')
@@ -186,14 +186,14 @@ def test_transform_command_1():
         eq(dataset('transformed.h5')[0], load('model.pkl').labels_[0])
 
     with tempdir():
-        shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory_0.dcd "
+        shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory-0.dcd "
               "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
               "--metric rmsd".format(data_home=get_data_home()))
 
 
 def test_transform_command_2():
     with tempdir():
-        shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory_0.dcd "
+        shell("msmb KCenters -i {data_home}/alanine_dipeptide/trajectory-0.dcd "
               "-o model.pkl --top {data_home}/alanine_dipeptide/ala2.pdb "
               "--metric rmsd "
               "--stride 2".format(data_home=get_data_home()))
