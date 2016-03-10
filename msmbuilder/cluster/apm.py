@@ -18,7 +18,7 @@ from . import MultiSequenceClusterMixin
 from ..base import BaseEstimator
 # ===============================================================================
 
-class APM(object, BaseEstimator):
+class APM(BaseEstimator):
     '''
     APM
     This Program is a python package which implements Automatic State Partitioning
