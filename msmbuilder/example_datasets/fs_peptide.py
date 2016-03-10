@@ -21,7 +21,7 @@ import mdtraj as md
 from .base import Bunch, Dataset
 from .base import get_data_home, retry
 
-DATA_URL = "http://downloads.figshare.com/article/public/1030363"
+DATA_URL = "https://ndownloader.figshare.com/articles/1030363/versions/1"
 TARGET_DIRECTORY = "fs_peptide"
 
 
@@ -75,7 +75,7 @@ class FsPeptide(Dataset):
     def get(self):
         if not self.cached:
             self.cache()
-        top = md.load(join(self.data_dir, 'fs_peptide.pdb'), no_boxchk=True)
+        top = md.load(join(self.data_dir, 'fs-peptide.pdb'), no_boxchk=True)
         trajectories = []
         for fn in sorted(glob(join(self.data_dir, 'trajectory*.xtc'))):
             print('loading %s...' % basename(fn))
