@@ -437,7 +437,8 @@ class MDTrajDataset(_BaseDataset):
         if isinstance(path, list):
             self.glob_matches = [expanduser(fn) for fn in path]
         else:
-            self.glob_matches = sorted(glob.glob(expanduser(path)), key=_keynat)
+            self.glob_matches = sorted(glob.glob(expanduser(path)),
+                                       key=_keynat)
 
         if topology is None:
             self._topology = None
