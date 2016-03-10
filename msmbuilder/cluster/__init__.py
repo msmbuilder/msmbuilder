@@ -17,11 +17,12 @@ from .agglomerative import LandmarkAgglomerative
 from .regularspatial import RegularSpatial
 from .kmedoids import KMedoids
 from .minibatchkmedoids import MiniBatchKMedoids
+from .apm import APM
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
            'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
-           'MiniBatchKMedoids', 'MultiSequenceClusterMixin']
+           'MiniBatchKMedoids', 'MultiSequenceClusterMixin', 'APM']
 
 
 def _replace_labels(doc):
