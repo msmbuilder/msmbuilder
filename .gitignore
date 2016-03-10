@@ -46,3 +46,5 @@ msmbuilder/version.py
 
 build.log
 
+# Other files
+.DS_Store
