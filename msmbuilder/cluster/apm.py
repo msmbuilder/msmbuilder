@@ -1,7 +1,10 @@
 from __future__ import absolute_import, print_function, division
+from builtins import range
+from builtins import object
+from past.utils import old_div
 __author__ = 'LIU Song <stephenliu1989@gmail.com>'
 __contributors__ = "Fu Kit SHEONG, Xuhui HUANG"
-__version__ = "0.9"
+__version__ = "0.91"
 # Copyright (c) 2015, Hong Kong University of Science and Technology (HKUST)
 # All rights reserved.
 # ===============================================================================
@@ -11,22 +14,19 @@ import copy
 import numpy as np
 # ===============================================================================
 # LOCAL IMPORTS:
-from msmbuilder.cluster import KCenters
-from msmbuilder.lumping import PCCA
-from msmbuilder.msm import MarkovStateModel
-
+from .kcenters import KCenters
+from ..lumping import PCCA
+from ..msm import MarkovStateModel
+from . import MultiSequenceClusterMixin
+from ..base import BaseEstimator
 # ===============================================================================
 
-__all__ = ['APM']
-
-
-class APM():
+class APM(object, BaseEstimator):
     '''
     APM
     This Program is a python package which implements Automatic State Partitioning
     for Multibody Systems (APM) algorithm to cluster trajectories and model the
     transitions based on a Markov State Model (MSM).
-
     Parameters
     ----------
     metric : {"euclidean", "sqeuclidean", "cityblock", "chebyshev", "canberra",

@@ -1,14 +1,10 @@
 from __future__ import print_function
 
 import mdtraj as md
-import mdtraj.testing
 import numpy as np
-import scipy.spatial.distance
 from mdtraj.testing import eq
 
-
-import msmbuilder.cluster
-from msmbuilder.apm import APM
+from msmbuilder.cluster import APM
 
 X1 = 0.3 * np.random.RandomState(0).randn(1000, 10).astype(np.double)
 X2 = 0.3 * np.random.RandomState(1).randn(1000, 10).astype(np.float32)
@@ -63,8 +59,9 @@ def test_dtype():
     eq(m1.fit_predict([X32])[0], m2.fit_predict([X64])[0])
     eq(m1.fit_predict([X32])[0], m1.MacroAssignments_[0])
 
+#Testing
 #if __name__ == "__main__":
 #    test_shapes()
 #    test_euclidean()
-#     test_euclidean_10000()
+#    test_euclidean_10000()
 #    test_rmsd()
