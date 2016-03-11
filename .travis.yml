@@ -11,12 +11,12 @@ branches:
     - master
 
 install:
-  - source devtools/ci/install_miniconda.sh
-  - conda config --add channels omnia
+    - source devtools/travis-ci/install_miniconda.sh
+    - conda config --add channels omnia
 
 script:
   conda build --quiet devtools/conda-recipe
-  && devtools/ci/build_docs.sh
+  && devtools/travis-ci/build_docs.sh
 
 env:
   matrix:
