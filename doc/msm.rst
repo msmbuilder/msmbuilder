@@ -19,7 +19,7 @@ Algorithms
 ----------
 
 .. autosummary::
-    :toctree: msm/
+    :toctree: _msm/
 
     MarkovStateModel
     BayesianMarkovStateModel

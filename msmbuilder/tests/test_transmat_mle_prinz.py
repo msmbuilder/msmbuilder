@@ -74,7 +74,7 @@ def test_1():
     _test(C)
 
 
-def test_2():
+def test_with_zero():
     # test with a zero in the symmetric count matrix
     C = np.array([
         [5.0, 0.0, 3.0],
@@ -84,7 +84,7 @@ def test_2():
     _test(C)
 
 
-def test_3():
+def test_with_zero_diagonal():
     # test with a zero on the diagonal
     C = np.array([
         [0.0, 0.0, 3.0],
@@ -94,14 +94,14 @@ def test_3():
     _test(C)
 
 
-def test_4():
+def test_tolerance():
     with np.testing.assert_raises(ValueError):
         _transmat_mle_prinz(np.zeros((3, 3)), tol=1e-10)
     with np.testing.assert_raises(ValueError):
         _transmat_mle_prinz(-1 * np.ones((3, 3)), tol=1e-10)
 
 
-def test_5():
+def test_floats():
     C = np.array([[0, 1], [1, 0]], dtype=float)
     transmat, populations = _transmat_mle_prinz(C)
     assert np.all(np.isfinite(transmat))
@@ -109,16 +109,16 @@ def test_5():
     np.testing.assert_array_equal(transmat, C)
 
 
-def test_6():
+def test_one_state():
     C = np.array([[1]], dtype=float)
     T, pi = _transmat_mle_prinz(C)
     np.testing.assert_array_equal(T, C)
 
 
-def test_7():
-    C = np.random.randint(10, size=(5,5)).astype(float)
+def test_counts_factor():
+    C = np.random.randint(10, size=(5, 5)).astype(float)
     transmat1, pi2 = _transmat_mle_prinz(C)
 
-    transmat2, pi1 = _transmat_mle_prinz(10*C)
+    transmat2, pi1 = _transmat_mle_prinz(10 * C)
     np.testing.assert_array_almost_equal(transmat1, transmat2)
     np.testing.assert_array_almost_equal(pi1, pi2)

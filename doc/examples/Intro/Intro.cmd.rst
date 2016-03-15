@@ -23,7 +23,7 @@ Plotting and custom analysis will generally still be done in Python.
     msmb FsPeptide --data_home ./
     ls fs_peptide/
 
-  You should see 28 ``.xtc`` trajectory files and an ``fs_peptide.pdb``
+  You should see 28 ``.xtc`` trajectory files and an ``fs-peptide.pdb``
   topology file.
 
 #. First, we need to turn the time-series of atomic coordinates we get from
@@ -35,7 +35,7 @@ Plotting and custom analysis will generally still be done in Python.
     msmb DihedralFeaturizer  \
         --out featurizer.pkl \
         --transformed diheds \
-        --top fs_peptide/fs_peptide.pdb \
+        --top fs_peptide/fs-peptide.pdb \
         --trjs "fs_peptide/*.xtc"
 
    We give the topology file, a 'glob' expression to all of our

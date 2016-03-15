@@ -37,7 +37,7 @@ of 2D numpy arrays, each of shape ``(length_of_trajecotry, n_features)``.
 
 
 .. autosummary::
-    :toctree: cluster/
+    :toctree: _cluster/
     :nosignatures:
 
     KCenters

@@ -1,7 +1,8 @@
 from __future__ import print_function, division, absolute_import
 
-from msmbuilder.utils import KDTree
 import numpy as np
+
+from msmbuilder.utils import KDTree
 
 X1 = 0.3 * np.random.RandomState(0).randn(500, 10)
 X2 = 0.3 * np.random.RandomState(1).randn(1000, 10) + 10

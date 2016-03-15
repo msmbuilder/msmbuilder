@@ -95,9 +95,9 @@ class PCCAPlus(PCCA):
 
         super(PCCAPlus, self).__init__(n_macrostates, **kwargs)
         obj_functions = dict(
-            crispness=crispness,
-            metastability=metastability,
-            crisp_metastability=crisp_metastability
+                crispness=crispness,
+                metastability=metastability,
+                crisp_metastability=crisp_metastability
         )
         try:
             self._objective_function = obj_functions[objective_function]
@@ -157,22 +157,22 @@ class PCCAPlus(PCCA):
 
         def obj(x):
             return -1 * self._objective_function(
-                x, self.transmat_, right_eigenvectors, square_map,
-                self.populations_
+                    x, self.transmat_, right_eigenvectors, square_map,
+                    self.populations_
             )
 
         alpha = scipy.optimize.basinhopping(
-            obj, alpha, niter_success=1000,
+                obj, alpha, niter_success=1000,
         )['x']
 
         alpha = scipy.optimize.fmin(
-            obj, alpha, full_output=True, xtol=1E-4, ftol=1E-4,
-            maxfun=5000, maxiter=100000
+                obj, alpha, full_output=True, xtol=1E-4, ftol=1E-4,
+                maxfun=5000, maxiter=100000
         )[0]
 
         if np.isneginf(obj(alpha)):
             raise ValueError(
-                "Error: minimization has not located a feasible point.")
+                    "Error: minimization has not located a feasible point.")
 
         A = to_square(alpha, square_map)
         return A
@@ -446,7 +446,7 @@ def index_search(right_eigenvectors):
 
     # first vertex: row with largest norm
     index[0] = np.argmax(
-        [norm(right_eigenvectors[i]) for i in range(num_micro)])
+            [norm(right_eigenvectors[i]) for i in range(num_micro)])
 
     ortho_sys = right_eigenvectors - np.outer(np.ones(num_micro),
                                               right_eigenvectors[index[0]])

@@ -44,3 +44,7 @@ msmbuilder/version.py
 *.swp
 *.swo
 
+build.log
+
+# Other files
+.DS_Store

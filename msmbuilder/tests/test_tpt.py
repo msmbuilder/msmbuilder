@@ -1,15 +1,14 @@
 from __future__ import print_function, division, absolute_import
 
+import numpy as np
+import numpy.testing as npt
+from mdtraj.utils.six.moves import xrange
+
 from msmbuilder import tpt
 from msmbuilder.msm import MarkovStateModel
 
-import numpy as np
-import numpy.testing as npt
-
-from mdtraj.utils.six.moves import xrange
 
 def test_paths():
-
     net_flux = np.array([[0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
                          [0.0, 0.0, 0.0, 0.3, 0.0, 0.2],
                          [0.0, 0.0, 0.0, 0.0, 0.5, 0.0],
@@ -21,12 +20,12 @@ def test_paths():
     sinks = np.array([4, 5])
 
     ref_paths = [[0, 2, 4],
-                 [0, 1, 3,  5],
+                 [0, 1, 3, 5],
                  [0, 1, 5]]
 
     ref_fluxes = np.array([0.5, 0.3, 0.2])
-    
-    res_bottle = tpt.paths(sources, sinks, net_flux, remove_path='bottleneck') 
+
+    res_bottle = tpt.paths(sources, sinks, net_flux, remove_path='bottleneck')
     res_subtract = tpt.paths(sources, sinks, net_flux, remove_path='subtract')
 
     for paths, fluxes in [res_bottle, res_subtract]:
@@ -36,9 +35,8 @@ def test_paths():
         for i in xrange(len(paths)):
             npt.assert_array_equal(paths[i], ref_paths[i])
 
-        
+
 def test_committors():
-    
     msm = MarkovStateModel(lag_time=1)
     assignments = np.random.randint(3, size=(10, 1000))
     msm.fit(assignments)
@@ -57,14 +55,14 @@ def test_committors():
     ref = np.power(tprob[1, 1], np.arange(1000)).sum() * tprob[1, 2]
     ref = np.array([0, ref, 1])
 
-    #print(committors, ref)
+    # print(committors, ref)
 
     npt.assert_array_almost_equal(ref, committors)
 
 
 def test_cond_committors():
     # depends on tpt.committors
-    
+
     msm = MarkovStateModel(lag_time=1)
     assignments = np.random.randint(4, size=(10, 1000))
     msm.fit(assignments)
@@ -80,11 +78,10 @@ def test_cond_committors():
     # compute them with a similar approximation as the forward committor
     # Since we want the other component of the forward committor, we
     # subtract that probability from the forward committor
-    ref = for_committors[1] - np.power(tprob[1, 1], np.arange(5000)).sum() * tprob[1, 3]
-    #print (ref / for_committors[1])
+    ref = (for_committors[1]
+           - np.power(tprob[1, 1], np.arange(5000)).sum()
+           * tprob[1, 3])
     ref = [0, ref, for_committors[2], 0]
-
-    #print(cond_committors, ref)
 
     npt.assert_array_almost_equal(ref, cond_committors)
 
@@ -96,12 +93,11 @@ def test_fluxes():
     assignments = np.random.randint(3, size=(10, 1000))
     msm.fit(assignments)
 
-
     tprob = msm.transmat_
     pop = msm.populations_
     # forward committors
     qplus = tpt.committors(0, 2, msm)
-    
+
     ref_fluxes = np.zeros((3, 3))
     ref_net_fluxes = np.zeros((3, 3))
     for i in xrange(3):
@@ -109,23 +105,26 @@ def test_fluxes():
             if i != j:
                 # Eq. 2.24 in Metzner et al. Transition Path Theory. 
                 # Multiscale Model. Simul. 2009, 7, 1192-1219.
-                ref_fluxes[i, j] = pop[i] * tprob[i, j] * (1 - qplus[i]) * qplus[j]
+                ref_fluxes[i, j] = (pop[i] * tprob[i, j]
+                                    * (1 - qplus[i]) * qplus[j])
 
     for i in xrange(3):
         for j in xrange(3):
-            ref_net_fluxes[i, j] = np.max([0, ref_fluxes[i, j] - ref_fluxes[j, i]])
+            ref_net_fluxes[i, j] = np.max([0, ref_fluxes[i, j]
+                                           - ref_fluxes[j, i]])
 
     fluxes = tpt.fluxes(0, 2, msm)
     net_fluxes = tpt.net_fluxes(0, 2, msm)
 
-    #print(fluxes)
-    #print(ref_fluxes)
+    # print(fluxes)
+    # print(ref_fluxes)
 
     npt.assert_array_almost_equal(ref_fluxes, fluxes)
     npt.assert_array_almost_equal(ref_net_fluxes, net_fluxes)
 
+
 def test_hubscore():
-    #Make an actual hub!
+    # Make an actual hub!
 
     tprob = np.array([[0.8, 0.0, 0.2, 0.0, 0.0],
                       [0.0, 0.8, 0.2, 0.0, 0.0],
@@ -148,14 +147,14 @@ def test_harder_hubscore():
     assignments = np.random.randint(10, size=(10, 1000))
     msm = MarkovStateModel(lag_time=1)
     msm.fit(assignments)
-    
+
     hub_scores = tpt.hub_scores(msm)
 
     ref_hub_scores = np.zeros(10)
     for A in xrange(10):
         for B in xrange(10):
             committors = tpt.committors(A, B, msm)
-            denom = msm.transmat_[A, :].dot(committors) #+ msm.transmat_[A, B]
+            denom = msm.transmat_[A, :].dot(committors)  # + msm.transmat_[A, B]
             for C in xrange(10):
                 if A == B or A == C or B == C:
                     continue
@@ -172,23 +171,22 @@ def test_harder_hubscore():
 
     ref_hub_scores /= (9 * 8)
 
-    #print(ref_hub_scores, hub_scores)
+    # print(ref_hub_scores, hub_scores)
 
     npt.assert_array_almost_equal(ref_hub_scores, hub_scores)
 
 
 def test_mfpt_match():
-
     assignments = np.random.randint(10, size=(10, 2000))
     msm = MarkovStateModel(lag_time=1)
     msm.fit(assignments)
 
     # these two do different things
     mfpts0 = np.vstack([tpt.mfpts(msm, i) for i in xrange(10)]).T
-    mfpts1 = tpt.mfpts(msm) 
+    mfpts1 = tpt.mfpts(msm)
 
-    #print(mfpts0)
-    #print(mfpts1)
+    # print(mfpts0)
+    # print(mfpts1)
 
     npt.assert_array_almost_equal(mfpts0, mfpts1)
 
@@ -196,7 +194,7 @@ def test_mfpt_match():
 def test_mfpt2():
     tprob = np.array([[0.90, 0.10],
                       [0.22, 0.78]])
-    
+
     pi0 = 1
     # pi1 T[1, 0] = pi0 T[0, 1]
     pi1 = pi0 * tprob[0, 1] / tprob[1, 0]
@@ -206,14 +204,13 @@ def test_mfpt2():
     msm.transmat_ = tprob
     msm.n_states_ = 2
     msm.populations_ = pops
-    
+
     mfpts = np.vstack([tpt.mfpts(msm, i) for i in xrange(2)]).T
 
-    #print(1 / (1 - tprob[0, 0]), mfpts[0, 1])
-    #print(1 / (1 - tprob[1, 1]), mfpts[1, 0])
+    # print(1 / (1 - tprob[0, 0]), mfpts[0, 1])
+    # print(1 / (1 - tprob[1, 1]), mfpts[1, 0])
 
     # since it's a 2x2 the mfpt from 0 -> 1 is the
     # same as the escape time of 0
     npt.assert_almost_equal(1 / (1 - tprob[0, 0]), mfpts[0, 1])
     npt.assert_almost_equal(1 / (1 - tprob[1, 1]), mfpts[1, 0])
-

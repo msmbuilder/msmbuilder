@@ -1,26 +1,21 @@
 # Author: Kyle A. Beauchamp <kyleabeauchamp@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
 #               Matthew Harrigan <matthew.p.harrigan@gmail.com>
-# Copyright (c) 2014, Stanford University and the Authors
+#               Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
-#-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
 from __future__ import print_function, division, absolute_import
 
-from six.moves import cPickle
 import numpy as np
 import mdtraj as md
 from sklearn.base import TransformerMixin
 import sklearn.pipeline
 from sklearn.externals.joblib import Parallel, delayed
+from scipy.stats import vonmises as vm
+from msmbuilder import libdistance
 
 from ..base import BaseEstimator
-
-#-----------------------------------------------------------------------------
-# Code
-#-----------------------------------------------------------------------------
 
 
 def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
@@ -64,20 +59,13 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
             n_frames = len(x)
 
             data.append(x)
-            indices.append(count + (stride*np.arange(n_frames)))
+            indices.append(count + (stride * np.arange(n_frames)))
             fns.extend([file] * n_frames)
-            count += (stride*n_frames)
+            count += (stride * n_frames)
     if len(data) == 0:
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
-
-
-def load(filename):
-    """Load a featurizer from a cPickle file."""
-    with open(filename, 'rb') as f:
-        featurizer = cPickle.load(f)
-    return featurizer
 
 
 class Featurizer(BaseEstimator, TransformerMixin):
@@ -138,10 +126,6 @@ class Featurizer(BaseEstimator, TransformerMixin):
         """
         return [self.partial_transform(traj) for traj in traj_list]
 
-    def save(self, filename):
-        with open(filename, 'wb') as f:
-            cPickle.dump(self, f)
-
 
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
@@ -192,11 +176,67 @@ class SuperposeFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        traj.superpose(self.reference_traj, atom_indices=self.superpose_atom_indices)
+        traj.superpose(self.reference_traj,
+                       atom_indices=self.superpose_atom_indices)
         diff2 = (traj.xyz[:, self.atom_indices] -
                  self.reference_traj.xyz[0, self.atom_indices]) ** 2
         x = np.sqrt(np.sum(diff2, axis=2))
         return x
+
+
+class StrucRMSDFeaturizer(Featurizer):
+    """Featurizer based on RMSD to one or more reference structures.
+
+    This featurizer inputs a trajectory to be analyzed ('traj') and a
+    reference trajectory ('ref') and outputs the RMSD of each frame of
+    traj with respect to each frame in ref. The output is a numpy array
+    with n_rows = traj.n_frames and n_columns = ref.n_frames.
+
+    Parameters
+    ----------
+    reference_traj : md.Trajectory
+        The reference conformation to superpose each frame with respect to
+        (only the first frame in reference_traj is used)
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with.
+        If not specified, all atoms are used.
+    """
+
+    def __init__(self, reference_traj, atom_indices=None):
+        self.atom_indices = atom_indices
+        if self.atom_indices is not None:
+            self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
+        else:
+            self.sliced_reference_traj = reference_traj
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via distance
+        after superposition
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        if self.atom_indices is not None:
+            sliced_traj = traj.atom_slice(self.atom_indices)
+        else:
+            sliced_traj = traj
+        result = libdistance.cdist(sliced_traj, self.sliced_reference_traj,
+                                   'rmsd')
+        return result
 
 
 class AtomPairsFeaturizer(Featurizer):
@@ -248,8 +288,79 @@ class AtomPairsFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        d = md.geometry.compute_distances(traj, self.pair_indices, periodic=self.periodic)
+        d = md.geometry.compute_distances(traj, self.pair_indices,
+                                          periodic=self.periodic)
         return d ** self.exponent
+
+
+class FunctionFeaturizer(Featurizer):
+    """Featurizer based on arbitrary functions.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector the output of the function.
+
+    Parameters
+    ----------
+    function : function
+        Instantiation of the function. The function should accept
+        a mdtraj.Trajectory object as the first argument.
+    func_args : dictionary
+        A dictionary of key word arguments(keys) and their values to
+        pass to the function. These should NOT include the trajectory
+        object which is passed in as the first argument.
+
+    Notes
+    ----------
+    This Featurizer assumes that the function takes in the trajectory object
+    as the first argument.
+
+    Examples
+    --------
+    >>> function = compute_dihedrals
+    >>> f = FunctionFeaturizer(function, func_args={indices: [[0,1,2,3]]})
+    >>> results = f.transform(dataset)
+    """
+
+    def __init__(self, function, func_args={}):
+        if callable(function):
+            self.function = function
+            self.func_args = func_args
+        else:
+            raise ValueError("Sorry but we "
+                             "couldn't use the "
+                             "provided function "
+                             "because it is not "
+                             "callable")
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory using the provided function.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+
+        Notes
+        -----
+        This method assumes that the function takes in the trajectory object
+        as the first argument.
+
+        """
+
+        return self.function(traj,  **self.func_args)
 
 
 class DihedralFeaturizer(Featurizer):
@@ -277,28 +388,29 @@ class DihedralFeaturizer(Featurizer):
 
         known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
         if not set(types).issubset(known):
-            raise ValueError('angles must be a subset of %s. you supplied %s' % (
-                str(known), str(types)))
+            raise ValueError('angles must be a subset of %s. you supplied %s' %
+                             (str(known), str(types)))
 
     def describe_features(self, traj):
         """Return a list of dictionaries describing the Dihderal features."""
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
-            aind, y = func(traj)
+            aind, _ = func(traj)
             n = len(aind)
 
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i])) for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i])) for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
-
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
+                      for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
+                     for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i]
+                        for i in resid]
 
             bigclass = ["dihedral"] * n
             smallclass = [a] * n
 
             if self.sincos:
-                #x.extend([np.sin(y), np.cos(y)])
-                aind =  list(aind) * 2
+                aind = list(aind) * 2
                 resnames = resnames * 2
                 resSeq = resSeq * 2
                 resid = resid * 2
@@ -309,8 +421,10 @@ class DihedralFeaturizer(Featurizer):
                 otherInfo = ["nosincos"] * n
 
             for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
-                           otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
+                d_i = dict(resname=resnames[i], atomind=aind[i],
+                           resSeq=resSeq[i], resid=resid[i],
+                           otherInfo=otherInfo[i], bigclass=bigclass[i],
+                           smallclass=smallclass[i])
                 x.append(d_i)
 
         return x
@@ -339,12 +453,210 @@ class DihedralFeaturizer(Featurizer):
         x = []
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
-            _,y = func(traj)
+            _, y = func(traj)
+
             if self.sincos:
                 x.extend([np.sin(y), np.cos(y)])
             else:
                 x.append(y)
+
         return np.hstack(x)
+
+
+class VonMisesFeaturizer(Featurizer):
+    """Featurizer based on dihedral angles soft-binned along the unit circle.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    as a vector containing n soft-bins for each dihedral angle. Soft-bins are
+    computed by arranging n equal-spaced von Mises distributions along the unit
+    circle and using the PDF of those distributions to define the bin value.
+
+    Parameters
+    ----------
+    types : list
+        One or more of ['phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4']
+    n_bins : int
+        Number of  von Mises distributions to be used.
+    kappa : int or float
+        Shape parameter for the von Mises distributions.
+    """
+
+    def __init__(self, types=['phi', 'psi'], n_bins=18, kappa=20.):
+        if isinstance(types, str):
+            types = [types]
+        self.types = list(types)  # force a copy
+
+        if not isinstance(n_bins, int):
+            raise TypeError('bins must be of type int.')
+        if not isinstance(kappa, (int, float)):
+            raise TypeError('kappa must be numeric.')
+
+        self.loc = np.arange(0, 2*np.pi,
+                             2*np.pi/n_bins)
+        self.kappa = kappa
+        self.n_bins = n_bins
+
+        known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
+        if not set(types).issubset(known):
+            raise ValueError('angles must be a subset of %s. you supplied %s' %
+                             (str(known), str(types)))
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the von Mises features."""
+        x = []
+        for a in self.types:
+            func = getattr(md, 'compute_%s' % a)
+            aind, _ = func(traj)
+            n = len(aind)
+
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
+                      for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
+                     for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i]
+                        for i in resid]
+
+            bigclass = ["dihedral"] * n * self.n_bins
+            smallclass = [a] * n * self.n_bins
+            aind = list(aind) * self.n_bins
+            resnames = resnames * self.n_bins
+            resSeq = resSeq * self.n_bins
+            resid = resid * self.n_bins
+            otherInfo = n * (self.n_bins*"vm%s," %
+                             tuple(range(self.n_bins))).split(',')[:-1]
+
+            for i in range(len(resnames)):
+                d_i = dict(resname=resnames[i], atomind=aind[i],
+                           resSeq=resSeq[i], resid=resid[i],
+                           otherInfo=otherInfo[i], bigclass=bigclass[i],
+                           smallclass=smallclass[i])
+                x.append(d_i)
+
+        return x
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via calculation
+        of soft-bins over dihdral angle space.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        x = []
+        for a in self.types:
+            func = getattr(md, 'compute_%s' % a)
+            _, y = func(traj)
+            x.extend(vm.pdf(y, loc=self.loc,
+                            kappa=self.kappa).reshape(self.n_bins, -1, 1))
+        return np.hstack(x)
+
+
+class AlphaAngleFeaturizer(Featurizer):
+    """Featurizer to extract alpha (dihedral) angles.
+
+    The alpha angle of residue `i` is the dihedral formed by the four CA atoms
+    of residues `i-1`, `i`, `i+1` and `i+2`.
+
+    Parameters
+    ----------
+    sincos : bool
+        Instead of outputting the angle, return the sine and cosine of the
+        angle as separate features.
+    """
+
+    def __init__(self, sincos=True):
+        self.sincos = sincos
+        self.atom_indices = None
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via calculation
+        of dihedral (torsion) angles of alpha carbon backbone
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        """
+
+        ca = [a.index for a in traj.top.atoms if a.name == 'CA']
+        if len(ca) < 4:
+            return np.zeros((len(traj), 0), dtype=np.float32)
+
+        alpha_indices = np.array(
+            [(ca[i - 1], ca[i], ca[i + 1], ca[i + 2]) for i in range(1, len(ca) - 2)])
+        result = md.compute_dihedrals(traj, alpha_indices)
+
+        x = []
+        if self.atom_indices is None:
+            self.atom_indices = np.vstack(alpha_indices)
+        if self.sincos:
+            x.extend([np.cos(result), np.sin(result)])
+        else:
+            x.append(result)
+        return np.hstack(x)
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the alpha dihedral angle features."""
+        x = []
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
+        if self.atom_indices is not None:
+            aind = self.atom_indices
+            n = len(aind)
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
+                      for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
+                     for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i]
+                        for i in resid]
+            bigclass = ["dihedral"] * n
+            smallclass = ["alpha"] * n
+
+            if self.sincos:
+                aind = list(aind) * 2
+                resnames = resnames * 2
+                resSeq = resSeq * 2
+                resid = resid * 2
+                otherInfo = (["sin"] * n) + (["cos"] * n)
+                bigclass = bigclass * 2
+                smallclass = smallclass * 2
+            else:
+                otherInfo = ["nosincos"] * n
+
+            for i in range(len(resnames)):
+                d_i = dict(resname=resnames[i], atomind=aind[i],
+                           resSeq=resSeq[i], resid=resid[i],
+                           otherInfo=otherInfo[i], bigclass=bigclass[i],
+                           smallclass=smallclass[i])
+                x.append(d_i)
+
+            return x
+        else:
+            raise UserWarning("Cannot describe features for trajectories with fewer than 4 alpha carbon\
+                              using AlphaAngleFeaturizer")
 
 
 class KappaAngleFeaturizer(Featurizer):
@@ -359,6 +671,7 @@ class KappaAngleFeaturizer(Featurizer):
     cos : bool
         Compute the cosine of the angle instead of the angle itself.
     """
+
     def __init__(self, cos=True):
         self.cos = cos
         self.atom_indices = None
@@ -383,14 +696,17 @@ class KappaAngleFeaturizer(Featurizer):
     def describe_features(self, traj):
         """Return a list of dictionaries describing the Kappa angle features."""
         x = []
-        #fill in the atom indices using just the first frame
-        res_ = self.partial_transform(traj[0])
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
         if self.atom_indices is not None:
             aind = self.atom_indices
             n = len(aind)
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i])) for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i])) for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
+            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
+                      for i in aind]
+            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
+                     for i in aind]
+            resnames = [[traj.topology.residue(j).name for j in i]
+                        for i in resid]
             bigclass = ["angle"] * n
             smallclass = ["kappa"] * n
 
@@ -399,12 +715,14 @@ class KappaAngleFeaturizer(Featurizer):
             else:
                 otherInfo = ["nocos"] * n
 
-            assert len(self.atom_indices)==len(resnames)
+            assert len(self.atom_indices) == len(resnames)
 
             for i in range(len(resnames)):
-                    d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
-                               otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
-                    x.append(d_i)
+                d_i = dict(resname=resnames[i], atomind=aind[i],
+                           resSeq=resSeq[i], resid=resid[i],
+                           otherInfo=otherInfo[i], bigclass=bigclass[i],
+                           smallclass=smallclass[i])
+                x.append(d_i)
 
             return x
         else:
@@ -435,9 +753,11 @@ class SASAFeaturizer(Featurizer):
     --------
     mdtraj.shrake_rupley
     """
+
     def __init__(self, mode='residue', **kwargs):
         self.mode = mode
         self.kwargs = kwargs
+
     def partial_transform(self, traj):
         return md.shrake_rupley(traj, mode=self.mode, **self.kwargs)
 
@@ -502,30 +822,37 @@ class ContactFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-        distances, _ = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
+        distances, _ = md.compute_contacts(traj, self.contacts,
+                                           self.scheme, self.ignore_nonprotein)
         return distances
 
     def describe_features(self, traj):
         """Return a list of dictionaries describing the features in Contacts."""
         x = []
-        #fill in the atom indices using just the first frame
-        distances,residue_indices = md.compute_contacts(traj, self.contacts, self.scheme, self.ignore_nonprotein)
+        # fill in the atom indices using just the first frame
+        distances, residue_indices = md.compute_contacts(traj, self.contacts,
+                                                         self.scheme,
+                                                         self.ignore_nonprotein
+                                                         )
         n = residue_indices.shape[0]
         aind = ["N/A"] * n
-        resSeq = [np.array([traj.top.residue(j).resSeq for j in i]) for i in residue_indices]
-        resid = [np.array([traj.top.residue(j).index for j in i]) for i in residue_indices]
-        resnames = [[traj.topology.residue(j).name for j in i ] for i in resid]
+        resSeq = [np.array([traj.top.residue(j).resSeq for j in i])
+                  for i in residue_indices]
+        resid = [np.array([traj.top.residue(j).index for j in i])
+                 for i in residue_indices]
+        resnames = [[traj.topology.residue(j).name for j in i] for i in resid]
         bigclass = [self.contacts] * n
         smallclass = [self.scheme] * n
-        otherInfo = [self.ignore_nonprotein]*n
+        otherInfo = [self.ignore_nonprotein] * n
 
         for i in range(n):
-            d_i = dict(resname=resnames[i], atomind=aind[i],resSeq=resSeq[i], resid=resid[i],\
-                               otherInfo=otherInfo[i], bigclass=bigclass[i], smallclass=smallclass[i])
+            d_i = dict(resname=resnames[i], atomind=aind[i],
+                       resSeq=resSeq[i], resid=resid[i],
+                       otherInfo=otherInfo[i], bigclass=bigclass[i],
+                       smallclass=smallclass[i])
             x.append(d_i)
 
         return x
-
 
 
 class GaussianSolventFeaturizer(Featurizer):
@@ -631,7 +958,6 @@ class RawPositionsFeaturizer(Featurizer):
         else:
             self.ref_traj = ref_traj
 
-
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space with the raw
         cartesian coordinates.
@@ -716,7 +1042,9 @@ class RMSDFeaturizer(Featurizer):
         X = np.zeros((traj.n_frames, self.n_features))
 
         for frame in range(self.n_features):
-            X[:, frame] = md.rmsd(traj, self.trj0, atom_indices=self.atom_indices, frame=frame)
+            X[:, frame] = md.rmsd(traj, self.trj0,
+                                  atom_indices=self.atom_indices,
+                                  frame=frame)
         return X
 
 
@@ -740,6 +1068,7 @@ class DRIDFeaturizer(Featurizer):
         Which atom indices to use during DRID featurization. If None,
         all atoms are used
     """
+
     def __init__(self, atom_indices=None):
         self.atom_indices = atom_indices
 
@@ -768,12 +1097,9 @@ class DRIDFeaturizer(Featurizer):
 
 
 class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
-    """Mixtape version of sklearn.pipeline.FeatureUnion
-
-    Notes
-    -----
-    Works on lists of trajectories.
+    """sklearn.pipeline.FeatureUnion adapted for multiple sequences
     """
+
     def fit_transform(self, traj_list, y=None, **fit_params):
         """Fit all transformers using `trajectories`, transform the data
         and concatenate results.
@@ -816,10 +1142,13 @@ class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
 
         """
         Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(sklearn.pipeline._transform_one)(trans, name, traj_list, self.transformer_weights)
+            delayed(sklearn.pipeline._transform_one)(trans, name, traj_list,
+                                                     self.transformer_weights)
             for name, trans in self.transformer_list)
 
-        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind] for feature_ind in range(len(Xs))]) for trj_ind in range(len(Xs[0]))]
+        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind]
+                       for feature_ind in range(len(Xs))])
+                       for trj_ind in range(len(Xs[0]))]
 
         return X_i_stacked
 
@@ -829,45 +1158,51 @@ class Slicer(Featurizer):
 
     Parameters
     ----------
-    index : list of integers, optional, default=None
-        These indices are the feature indices that will be selected
-        by the Slicer.transform() function.  
+    index : array_like of integer, optional
+        If given, extract only these features by index. This corresponds
+        to selecting these columns from the feature-trajectories.
+    first : int, optional
+        If given, extract the first this-many features. This is useful
+        when features are sorted like in PCA or tICA.
+
+    Notes
+    -----
+    You must give either index or first (but not both)
 
     """
 
-    def __init__(self, index=None):
-        self.index = index
+    def __init__(self, index=None, first=None):
 
-    def partial_transform(self, X):
+        if index is None and first is None:
+            raise ValueError("Please specify either index or first, "
+                             "not neither")
+        if index is not None and first is not None:
+            raise ValueError("Please specify either index or first, "
+                             "not both.")
+
+        self.index = index
+        self.first = first
+
+    def partial_transform(self, traj):
         """Slice a single input array along to select a subset of features.
 
         Parameters
         ----------
-        X : np.ndarray, shape=(n_samples, n_features)
+        traj : np.ndarray, shape=(n_samples, n_features)
             A sample to slice.
 
         Returns
         -------
-        X2 : np.ndarray shape=(n_samples, n_feature_subset)
-            Slice of X
+        sliced_traj : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of traj
         """
-        return X[:, self.index]
+        if self.index is not None:
+            return traj[:, self.index]
+        else:
+            return traj[:, :self.first]
 
 
-class FirstSlicer(Slicer):
-    """Extracts slices (e.g. subsets) from data along the feature dimension.
+class FirstSlicer(object):
 
-    Parameters
-    ----------
-    first : int, optional, default=None
-        Select the first N features.  This is essentially a shortcut for
-        `Slicer(index=arange(first))`
-
-    """
-
-    def __init__(self, first=None):
-        self.first = first
-    
-    @property
-    def index(self):
-        return np.arange(self.first)
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError("Please use Slicer(first=x)")

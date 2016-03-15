@@ -1,33 +1,29 @@
 from __future__ import print_function, division
-import os
 
 import numpy as np
 import numpy.testing as npt
 
 from msmbuilder.msm import MarkovStateModel
-from msmbuilder.utils import param_sweep
 from msmbuilder.msm import implied_timescales
+from msmbuilder.utils import param_sweep
 
 
 def test_both():
-    model = MarkovStateModel(
-        reversible_type='mle', lag_time=1, n_timescales=1) 
-
-    # note this might break it if we ask for more than 1 timescale
-    sequences = np.random.randint(20, size=(10, 1000))
+    sequences = [np.random.randint(20, size=1000) for _ in range(10)]
     lag_times = [1, 5, 10]
 
     models_ref = []
     for tau in lag_times:
-        msm = MarkovStateModel(
-            reversible_type='mle', lag_time=tau, n_timescales=10)
+        msm = MarkovStateModel(reversible_type='mle', lag_time=tau,
+                               n_timescales=10)
         msm.fit(sequences)
         models_ref.append(msm)
 
     timescales_ref = [m.timescales_ for m in models_ref]
 
-    models = param_sweep(msm, sequences, {'lag_time' : lag_times}, n_jobs=2)
-    timescales = implied_timescales(sequences, lag_times, msm=msm,
+    model = MarkovStateModel(reversible_type='mle', lag_time=1, n_timescales=10)
+    models = param_sweep(model, sequences, {'lag_time': lag_times}, n_jobs=2)
+    timescales = implied_timescales(sequences, lag_times, msm=model,
                                     n_timescales=10, n_jobs=2)
 
     print(timescales)
@@ -37,16 +33,16 @@ def test_both():
         raise Exception("you wrote a bad test.")
 
     for i in range(len(lag_times)):
-        models[i].lag_time = lag_times[i]
-        npt.assert_array_almost_equal(models[i].transmat_, models_ref[i].transmat_)
+        npt.assert_array_almost_equal(models[i].transmat_,
+                                      models_ref[i].transmat_)
         npt.assert_array_almost_equal(timescales_ref[i], timescales[i])
 
 
 def test_multi_params():
     msm = MarkovStateModel()
     param_grid = {
-        'lag_time' : [1, 2, 3],
-        'reversible_type' : ['mle', 'transpose']
+        'lag_time': [1, 2, 3],
+        'reversible_type': ['mle', 'transpose']
     }
 
     sequences = np.random.randint(20, size=(10, 1000))
@@ -58,7 +54,7 @@ def test_multi_params():
     params = []
     for m in models:
         params.append('%s%d' % (m.reversible_type, m.lag_time))
-    
+
     for l in param_grid['lag_time']:
         for s in param_grid['reversible_type']:
             assert ('%s%d' % (s, l)) in params
@@ -69,6 +65,6 @@ def test_multi_params():
 
 def test_ntimescales():
     # see issue #603
-    trajs = [np.random.randint(0,30,500) for _ in range(5)]
-    its = implied_timescales(trajs, [1,2,3], n_timescales=11)
+    trajs = [np.random.randint(0, 30, 500) for _ in range(5)]
+    its = implied_timescales(trajs, [1, 2, 3], n_timescales=11)
     assert its.shape[1] == 11

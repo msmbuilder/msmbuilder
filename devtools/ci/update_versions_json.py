@@ -24,3 +24,4 @@ versions.append({
 
 with open("doc/_deploy/versions.json", 'w') as versionf:
     json.dump(versions, versionf)
+

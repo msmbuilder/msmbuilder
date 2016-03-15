@@ -16,6 +16,7 @@ from os.path import exists
 import numpy as np
 from sklearn.utils import check_random_state
 from ..utils import verboseload, verbosedump
+from ..msm import _solve_msm_eigensystem
 
 from .base import Bunch, Dataset
 from .base import get_data_home
@@ -315,7 +316,5 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
         transmat[i, :] = transmat[i, :] / np.sum(transmat[i, :])
 
     transmat = np.linalg.matrix_power(transmat, lag_time)
-    u, v = scipy.linalg.eig(transmat)
-    order = np.argsort(np.real(u))[::-1]
-
-    return np.real_if_close(u[order]), np.real_if_close(v[:, order])
+    u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat)-1)
+    return u, rv

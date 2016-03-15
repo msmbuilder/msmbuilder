@@ -1,6 +1,7 @@
 # this file gets nose to find the tests that appear in the cython module
 from msmbuilder.tests import test_cyblas
 
+
 def test():
     count = 0
     for name in dir(test_cyblas):

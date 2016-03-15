@@ -19,8 +19,9 @@ from sklearn.utils import check_random_state
 from ..utils import list_of_1d
 from ..base import BaseEstimator
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import (_MappingTransformMixin, _dict_compose,
-                   _strongly_connected_subgraph, _transition_counts,
+from .core import (_MappingTransformMixin, _CountsMSMMixin,
+                   _dict_compose,
+                   _transition_counts,
                    _solve_msm_eigensystem, _SampleMSMMixin)
 
 __all__ = ['MarkovStateModel']
@@ -29,7 +30,8 @@ __all__ = ['MarkovStateModel']
 # Code
 #-----------------------------------------------------------------------------
 
-class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
+class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
+                        _SampleMSMMixin, _CountsMSMMixin):
     """Reversible Markov State Model
 
     This model fits a first-order Markov model to a dataset of integer-valued
@@ -132,20 +134,6 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         self.populations_ = None
         self.percent_retained_ = None
 
-    def _parse_ergodic_cutoff(self):
-        """Get a numeric value from the ergodic_cutoff input,
-        which can be 'on' or 'off'.
-        """
-        ec_is_str = isinstance(self.ergodic_cutoff, str)
-        if ec_is_str and self.ergodic_cutoff.lower() == 'on':
-            if self.sliding_window:
-                return 1.0 / self.lag_time
-            else:
-                return 1.0
-        elif ec_is_str and self.ergodic_cutoff.lower() == 'off':
-            return 0.0
-        else:
-            return self.ergodic_cutoff
 
     def fit(self, sequences, y=None):
         """Estimate model parameters.
@@ -168,27 +156,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin, _SampleMSMMixin):
         None will not be counted. The mapping_ attribute will not include the
         NaN or None.
         """
-        sequences = list_of_1d(sequences)
-        # step 1. count the number of transitions
-        if int(self.lag_time) <= 0:
-            raise ValueError('Invalid lag_time: %s' % self.lag_time)
-        raw_counts, mapping = _transition_counts(
-            sequences, int(self.lag_time), sliding_window=self.sliding_window)
-
-        ergodic_cutoff = self._parse_ergodic_cutoff()
-        if ergodic_cutoff > 0:
-            # step 2. restrict the counts to the maximal strongly ergodic
-            # subgraph
-            self.countsmat_, mapping2, self.percent_retained_ = \
-                _strongly_connected_subgraph(raw_counts, ergodic_cutoff,
-                                             self.verbose)
-            self.mapping_ = _dict_compose(mapping, mapping2)
-        else:
-            # no ergodic trimming.
-            self.countsmat_ = raw_counts
-            self.mapping_ = mapping
-            self.percent_retained_ = 100
-        self.n_states_ = self.countsmat_.shape[0]
+        self._build_counts(sequences)
 
         # use a dict like a switch statement: dispatch to different
         # transition matrix estimators depending on the value of

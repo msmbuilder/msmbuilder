@@ -38,9 +38,9 @@ test:
     - nose
     - munkres
     - numdifftools
-    - matplotlib
     - statsmodels
     - hmmlearn
+    - cvxpy # [not win]
   imports:
     - msmbuilder
   commands:

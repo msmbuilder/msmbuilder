@@ -11,12 +11,27 @@ Version 3.4.0.dev0 is the current development release of MSMBuilder.
 API Changes
 ~~~~~~~~~~~
 
+- ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added.
 - Range-based slicing on dataset objects is no longer allowed. Keys in the
   dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
   loads all trajectories in a list (#610).
 - Ward clustering has been renamed AgglomerativeClustering in scikit-learn.
   Please use the new msmbuilder wrapper class AgglomerativeClustering. An
   alias for Ward has been made available.
+- ``PCCA.trimmed_microstates_to_macrostates`` has been removed. This
+  dictionary was actually keyed by *untrimmed* microstate labels.
+  ``PCCA.transform`` would throw an exception when operating on a system
+  with trimming because it was using this misleading dictionary. Please use
+  ``pcca.microstate_mapping_`` for this functionality.
+- ``UnionDataset`` has been removed after deprecation in 3.3. Please use
+  ``FeatureUnion`` instead (#671).
+- ``SubsetFeaturizer`` and ilk have been removed from the
+  ``msmbuilder.featurizer`` namespace. Please import them from
+  ``msmbuilder.featurizer.subset`` (#738).
+- ``FirstSlicer`` has been removed. Use ``Slicer(first=x)`` for the same
+  functionality (#738).
+- ``msmbuilder.featurizer.load`` has been removed. ``Featurizer.save``
+  has been removed. Please use ``utils.load``, ``utils.dump`` (#738).
 
 
 New Features
@@ -29,6 +44,7 @@ New Features
 
 Improvements
 ~~~~~~~~~~~~
+- Consistent counts setup across various flavors of Markov models(#718, #729).
 
 
 

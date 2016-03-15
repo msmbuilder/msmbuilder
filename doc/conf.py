@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'MSMBuilder'
-copyright = '2015, Stanford University and the Authors'
+copyright = '2016, Stanford University and the Authors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
