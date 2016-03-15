@@ -27,9 +27,11 @@ def compute_centroid(frames):
     return np.where(centroid_scores == np.min(centroid_scores))[0][0]
 
 
-def make_gens_file(trj_paths, featurized_trjs, topology, stride, padded_labels, n_samples):
+def make_gens_file(trj_paths, featurized_trjs, topology, stride, padded_labels, n_samples, states):
     # Compute centroid from featurized trajectories
-    for i in range(0, int(np.amax(padded_labels)) + 1):
+    if states == '-1':
+        states = range(0, int(np.amax(padded_labels)) + 1)
+    for i in states:
         choices = np.where(padded_labels == i)
         for j in range(n_samples):
             select = random.choice(range(len(choices)))
@@ -69,12 +71,16 @@ if __name__ == '__main__':
     parser.add_argument('-T', '--topology', type=str, help='''Topology file for loading the raw data, if needed.''', default='-1')
     parser.add_argument('-l', '--labels', type=str, help='''"labels_" attribute from a featurization object, e.g. KMeans.labels_, saved as a npy file.''')
     parser.add_argument('-n', '--n_samples', type=str, help='''How many frames from each state do you want to pull from the raw data to compute the representative "centroid" structure, which is defined as the one with the minimum total RMSD to all other structures.''', default='-1')
+    parser.add_argument('-S', '--states' type=str, help='''Pull structures from a select set of states (e.g. only those surviving after ergodic trimming)
+    This should be a single column text file of state indices.''', default='-1')
     parser.add_argument('-o', '--output', type=str, help='''Name of the output structures file.''')
     args = parser.parse_args()
     
     trj_paths = open(args.trj_paths).read().splitlines()
     padded_labels = pad_labels(np.load(args.labels))
     featurized_trjs = np.load(args.featurized_trjs)
-    centroids = make_gens_file(trj_paths, featurized_trjs, args.topology, int(args.stride), padded_labels, int(args.n_samples))   
+    if args.states != '-1':
+        args.states = np.loadtxt(args.states)
+    centroids = make_gens_file(trj_paths, featurized_trjs, args.topology, int(args.stride), padded_labels, int(args.n_samples), args.states)   
     centroids.save_xtc(args.output)
 
