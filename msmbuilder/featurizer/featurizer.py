@@ -428,9 +428,10 @@ class DihedralFeaturizer(Featurizer):
             resids = []
             resnames = []
             for ainds in aind_tuples:
-                resseqs += [set(top.atom(ai).residue.resSeq for ai in ainds)]
-                resids += [set(top.atom(ai).residue.index for ai in ainds)]
-                resnames += [set(top.atom(ai).residue.name for ai in ainds)]
+                resid = set(top.atom(ai).residue.index for ai in ainds)
+                resids += [list(resid)]
+                resseqs += [[top.residue(ri).resSeq for ri in resid]]
+                resnames += [[top.residue(ri).name for ri in resid]]
 
             zippy = zip(aind_tuples, resseqs, resids, resnames)
             if self.sincos:
