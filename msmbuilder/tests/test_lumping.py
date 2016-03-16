@@ -74,16 +74,16 @@ def test_from_msm():
 
 def test_ntimescales_1():
     # see issue #603
-    trajs = [np.random.randint(0, 30, size=500) for _ in range(5)]
-    pccap = PCCAPlus(n_macrostates=11).fit(trajs)
+    trajs = [np.random.randint(0, 30, size=500) for _ in range(15)]
 
+    pccap = PCCAPlus(n_macrostates=11).fit(trajs)
     lumped_trajs = pccap.transform(trajs)
     assert len(np.unique(lumped_trajs)) == 11
 
 
 def test_ntimescales_2():
     # see issue #603
-    trajs = [np.random.randint(0, 30, size=500) for _ in range(5)]
+    trajs = [np.random.randint(0, 30, size=500) for _ in range(15)]
     msm = MarkovStateModel().fit(trajs)
 
     pccap = PCCAPlus.from_msm(msm, 11)
@@ -93,7 +93,7 @@ def test_ntimescales_2():
 
 def test_ntimescales_3():
     # see issue #603
-    trajs = [np.random.randint(0, 30, size=500) for _ in range(5)]
+    trajs = [np.random.randint(0, 30, size=500) for _ in range(15)]
     msm = MarkovStateModel(n_timescales=10).fit(trajs)
 
     pccap = PCCAPlus.from_msm(msm, 11)
