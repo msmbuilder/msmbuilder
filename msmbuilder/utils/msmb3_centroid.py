@@ -71,7 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('-T', '--topology', type=str, help='''Topology file for loading the raw data, if needed.''', default='-1')
     parser.add_argument('-l', '--labels', type=str, help='''"labels_" attribute from a featurization object, e.g. KMeans.labels_, saved as a npy file.''')
     parser.add_argument('-n', '--n_samples', type=str, help='''How many frames from each state do you want to pull from the raw data to compute the representative "centroid" structure, which is defined as the one with the minimum total RMSD to all other structures.''', default='-1')
-    parser.add_argument('-S', '--states' type=str, help='''Pull structures from a select set of states (e.g. only those surviving after ergodic trimming)
+    parser.add_argument('-S', '--states', type=str, help='''Pull structures from a select set of states (e.g. only those surviving after ergodic trimming)
     This should be a single column text file of state indices.''', default='-1')
     parser.add_argument('-o', '--output', type=str, help='''Name of the output structures file.''')
     args = parser.parse_args()
