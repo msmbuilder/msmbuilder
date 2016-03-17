@@ -209,6 +209,7 @@ class RMSDFeaturizer(Featurizer):
         if trj0 is not None:
             warnings.warn("trj0 is deprecated. Please use reference_traj",
                           DeprecationWarning)
+            reference_traj = trj0
         else:
             if reference_traj is None:
                 raise ValueError("Please specify a reference trajectory")

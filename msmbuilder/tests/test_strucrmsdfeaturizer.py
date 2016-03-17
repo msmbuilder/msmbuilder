@@ -1,5 +1,6 @@
 import mdtraj as md
 import numpy as np
+import warnings
 
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 from msmbuilder.featurizer import Featurizer
@@ -181,15 +182,15 @@ def _random_trajs():
     top = md.Topology()
     c = top.add_chain()
     r = top.add_residue('HET', c)
-    for _ in range(10):
+    for _ in range(101):
         top.add_atom('CA', md.element.carbon, r)
-    traj1 = md.Trajectory(xyz=np.random.uniform(size=(100, 10, 3)),
+    traj1 = md.Trajectory(xyz=np.random.uniform(size=(100, 101, 3)),
                           topology=top,
                           time=np.arange(100))
-    traj2 = md.Trajectory(xyz=np.random.uniform(size=(100, 10, 3)),
+    traj2 = md.Trajectory(xyz=np.random.uniform(size=(100, 101, 3)),
                           topology=top,
                           time=np.arange(100))
-    ref = md.Trajectory(xyz=np.random.uniform(size=(7, 10, 3)),
+    ref = md.Trajectory(xyz=np.random.uniform(size=(7, 101, 3)),
                         topology=top,
                         time=np.arange(7))
     return traj1, traj2, ref
@@ -198,7 +199,10 @@ def _random_trajs():
 def test_api_still_works_names():
     traj1, traj2, ref = _random_trajs()
     old = OldRMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
-    new = RMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
+    with warnings.catch_warnings(record=True) as w:
+        new = RMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
+        assert "deprecated" in str(w[-1].message)
+        assert "trj0" in str(w[-1].message)
 
     data_old = old.fit_transform([traj1, traj2])
     data_new = new.fit_transform([traj1, traj2])
