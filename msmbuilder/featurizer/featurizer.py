@@ -197,8 +197,7 @@ class RMSDFeaturizer(Featurizer):
     Parameters
     ----------
     reference_traj : md.Trajectory
-        The reference conformation to superpose each frame with respect to
-        (only the first frame in reference_traj is used)
+        The reference conformations to superpose each frame with respect to
     atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
         The indices of the atoms to superpose and compute the distances with.
         If not specified, all atoms are used.
@@ -231,11 +230,10 @@ class RMSDFeaturizer(Featurizer):
 
         Returns
         -------
-        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
-            A featurized trajectory is a 2D array of shape
-            `(length_of_trajectory x n_features)` where each `features[i]`
-            vector is computed by applying the featurization function
-            to the `i`th snapshot of the input trajectory.
+        features : np.ndarray, shape=(n_frames, n_ref_frames)
+            The RMSD value of each frame of the input trajectory to be
+            featurized versus each frame in the reference trajectory. The
+            number of features is the number of reference frames.
 
         See Also
         --------
