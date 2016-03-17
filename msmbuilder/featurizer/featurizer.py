@@ -503,8 +503,7 @@ class VonMisesFeaturizer(Featurizer):
         if not isinstance(kappa, (int, float)):
             raise TypeError('kappa must be numeric.')
 
-        self.loc = np.arange(0, 2*np.pi,
-                             2*np.pi/n_bins)
+        self.loc = np.linspace(0, 2*np.pi, n_bins)
         self.kappa = kappa
         self.n_bins = n_bins
 
@@ -571,8 +570,9 @@ class VonMisesFeaturizer(Featurizer):
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
             _, y = func(traj)
-            x.extend(vm.pdf(y, loc=self.loc,
-                            kappa=self.kappa).reshape(self.n_bins, -1, 1))
+            x.extend(vm.pdf(y[..., None], loc=self.loc,
+                            kappa=self.kappa).reshape(1, -1,
+                                                      self.n_bins*y.shape[1]))
         return np.hstack(x)
 
 
