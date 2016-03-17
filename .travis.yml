@@ -35,4 +35,4 @@ deploy:
     local_dir: docs/_deploy/
     on:
       branch: master
-      condition: "$CONDA_PY = 3.4"
+      condition: "$CONDA_PY = 3.5"
