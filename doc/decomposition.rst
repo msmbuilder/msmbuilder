@@ -24,19 +24,19 @@ it is somewhat similar to PCA.  However whereas PCA finds high-variance
 linear combinations of the input degrees of freedom, tICA finds
 high-autocorrelation linear combinations of the input degrees of freedom.
 
-The tICA method has one obvious drawback: the solution,
-our approximate natural reaction coordinate, is
-a linear combination of all your degrees of freedom, and their
-relative weights typically non-zero. This makes the solutions
+The tICA method has one obvious drawback: its solution is
+a linear combination of all input degrees of freedom, and their
+relative weights typically non-zero. This makes each independent component
 difficult to interpret in a algorithmic fashion, because
-hundreds or thousands of different interatomic distances
-and/or torsion angles, for example, could be combined together
-into a single collective variable. Because an important
-property of reaction coordinates is their role in facilitating
-physical interpretation of the underlying molecular
+hundreds or thousands of different metrics
+could be combined together into a single collective variable.
+Because an important property of reaction coordinates is their
+role in facilitating physical interpretation of the underlying molecular
 system, we consider it desirable to reduce the number of
-explicitly used variables. SparseTICA[#f2]_ uses a sparse approximation
-to the eigenvalue problem found in tICA, allowing for more interpretability.
+explicitly used variables. SparseTICA[#f2]_ attempts to resolve this
+interpretability issue by using a sparse approximation to
+the eigenvalue problem found in tICA and returning independent components
+comprised of only the most relevant degrees of freedom.
 
 
 PCA
