@@ -177,7 +177,7 @@ def test_two_refs_different_indices():
     assert sum(data_first_half[0][:, 1]) != sum(data_second_half[0][:, 1])
 
 
-def test_works_the_same_as_old():
+def _random_trajs():
     top = md.Topology()
     c = top.add_chain()
     r = top.add_residue('HET', c)
@@ -192,40 +192,43 @@ def test_works_the_same_as_old():
     ref = md.Trajectory(xyz=np.random.uniform(size=(7, 10, 3)),
                         topology=top,
                         time=np.arange(7))
+    return traj1, traj2, ref
 
-    def test_api_still_works_names():
-        old = OldRMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
-        new = RMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
 
-        data_old = old.fit_transform([traj1, traj2])
-        data_new = new.fit_transform([traj1, traj2])
+def test_api_still_works_names():
+    traj1, traj2, ref = _random_trajs()
+    old = OldRMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
+    new = RMSDFeaturizer(trj0=ref, atom_indices=np.arange(50))
 
-        for do, dn in zip(data_old, data_new):
-            np.testing.assert_array_almost_equal(do, dn)
-            assert dn.shape == (100, 7)
+    data_old = old.fit_transform([traj1, traj2])
+    data_new = new.fit_transform([traj1, traj2])
 
-    def test_api_still_works_order():
-        old = OldRMSDFeaturizer(ref, atom_indices=np.arange(50))
-        new = RMSDFeaturizer(ref, atom_indices=np.arange(50))
+    for do, dn in zip(data_old, data_new):
+        np.testing.assert_array_almost_equal(do, dn)
+        assert dn.shape == (100, 7)
 
-        data_old = old.fit_transform([traj1, traj2])
-        data_new = new.fit_transform([traj1, traj2])
 
-        for do, dn in zip(data_old, data_new):
-            np.testing.assert_array_almost_equal(do, dn)
-            assert dn.shape == (100, 7)
+def test_api_still_works_order():
+    traj1, traj2, ref = _random_trajs()
+    old = OldRMSDFeaturizer(ref, atom_indices=np.arange(50))
+    new = RMSDFeaturizer(ref, atom_indices=np.arange(50))
 
-    def test_api_still_works_allframes():
-        old = OldRMSDFeaturizer(ref)
-        new = RMSDFeaturizer(ref)
+    data_old = old.fit_transform([traj1, traj2])
+    data_new = new.fit_transform([traj1, traj2])
 
-        data_old = old.fit_transform([traj1, traj2])
-        data_new = new.fit_transform([traj1, traj2])
+    for do, dn in zip(data_old, data_new):
+        np.testing.assert_array_almost_equal(do, dn)
+        assert dn.shape == (100, 7)
 
-        for do, dn in zip(data_old, data_new):
-            np.testing.assert_array_almost_equal(do, dn)
-            assert dn.shape == (100, 7)
 
-    yield test_api_still_works_names
-    yield test_api_still_works_order
-    yield test_api_still_works_allframes
+def test_api_still_works_allframes():
+    traj1, traj2, ref = _random_trajs()
+    old = OldRMSDFeaturizer(ref)
+    new = RMSDFeaturizer(ref)
+
+    data_old = old.fit_transform([traj1, traj2])
+    data_new = new.fit_transform([traj1, traj2])
+
+    for do, dn in zip(data_old, data_new):
+        np.testing.assert_array_almost_equal(do, dn)
+        assert dn.shape == (100, 7)
