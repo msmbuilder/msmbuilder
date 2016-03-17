@@ -206,10 +206,13 @@ class RMSDFeaturizer(Featurizer):
         Deprecated. Please use reference_traj.
     """
 
-    def __init__(self, reference_traj, atom_indices=None, trj0=None):
+    def __init__(self, reference_traj=None, atom_indices=None, trj0=None):
         if trj0 is not None:
             warnings.warn("trj0 is deprecated. Please use reference_traj",
                           DeprecationWarning)
+        else:
+            if reference_traj is None:
+                raise ValueError("Please specify a reference trajectory")
 
         self.atom_indices = atom_indices
         if self.atom_indices is not None:
