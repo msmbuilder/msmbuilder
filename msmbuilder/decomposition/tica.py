@@ -321,7 +321,7 @@ class tICA(BaseEstimator, TransformerMixin):
             X_transformed = np.dot(X, self.components_.T)
 
             if self.weighted_transform:
-                X_transformed *= self.timescales_
+                X_transformed *= self.eigenvalues_
 
             sequences_new.append(X_transformed)
 
