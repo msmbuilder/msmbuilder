@@ -25,7 +25,7 @@ def list_of_1d(y):
 def check_iter_of_sequences(sequences, allow_trajectory=False, ndim=2,
                             max_iter=None):
     """Check that ``sequences`` is a iterable of trajectory-like sequences,
-    suitable as input to ``fit()`` for estimators following the Mixtape
+    suitable as input to ``fit()`` for estimators following the MSMBuilder
     API.
 
     Parameters

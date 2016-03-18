@@ -11,20 +11,18 @@ branches:
     - master
 
 install:
-  - source devtools/ci/install_miniconda.sh
+    - source devtools/travis-ci/install_miniconda.sh
+    - conda config --add channels omnia
 
 script:
   conda build --quiet devtools/conda-recipe
-  && devtools/ci/build_docs.sh
+  && devtools/travis-ci/build_docs.sh
 
 env:
   matrix:
     - CONDA_PY=2.7 CONDA_NPY=1.10
     - CONDA_PY=3.4 CONDA_NPY=1.9
     - CONDA_PY=3.5 CONDA_NPY=1.10
-  global:
-    # $BINSTAR_TOKEN (for user mpharrigan, with access to omnia)
-    - secure: "DqDvfYriL3wYdQCp8pQM9huPQQ6U9dKWK02o0BhlAZque8mxU6MvZkp0GtajSqEPuVBjFeGOmFqzE5XgkLIs+vmniRyJ46hTDlOYIxgf2NA6AY6+xqVbqCIrq/xtIXPDPC0mXzASOdybAzdwv3VB/yq9G820o7qIWTg5yEg6qc0="
 
 deploy:
   - provider: s3
@@ -34,7 +32,7 @@ deploy:
       secure: "V9R4Nid8E19iymAPqpc5RIPB9Nkvx5N2iB66lQrHGyn2nZjoo6Cp+mbon/Ow/Ot9BWWa7NA1ihJUvs+in3WKIDPfiPiN6qgCE6j35VZJaDqeU5SW/6mbd6CqZEEFy3mA0EDeIIFFvWLnuLyStOJPFKPI/vkrkLxzNhcENSDIc4Q="
     bucket: "msmbuilder.org"
     skip_cleanup: true
-    local_dir: doc/_deploy/
+    local_dir: docs/_deploy/
     on:
       branch: master
-      condition: "$CONDA_PY = 3.4"
+      condition: "$CONDA_PY = 3.5"

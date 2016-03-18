@@ -283,7 +283,7 @@ class _BaseDataset(Sequence):
 
 
 class NumpyDirDataset(_BaseDataset):
-    """Mixtape dataset container
+    """MSMBuilder dataset container
 
     Parameters
     ----------

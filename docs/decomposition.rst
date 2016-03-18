@@ -24,13 +24,26 @@ it is somewhat similar to PCA.  However whereas PCA finds high-variance
 linear combinations of the input degrees of freedom, tICA finds
 high-autocorrelation linear combinations of the input degrees of freedom.
 
+The tICA method has one obvious drawback: its solution is
+a linear combination of all input degrees of freedom, and their
+relative weights are typically non-zero. This makes each independent component
+difficult to interpret in a algorithmic fashion, because
+it could comprise hundreds or thousands of different metrics.
+Because an important property of reaction coordinates is their
+role in facilitating physical interpretation of the underlying molecular
+system, we consider it desirable to reduce the number of
+explicitly used variables. SparseTICA[#f2]_ attempts to resolve this
+interpretability issue by using a sparse approximation to
+the eigenvalue problem found in tICA and returning independent components
+composed of only the most relevant degrees of freedom.
+
 
 PCA
 ---
 
 Principal component analysis (PCA) is a method for finding the most
 highly-varying degrees of freedom in a data set (not necessarily a time
-series). PCA is useful as a dimensionality reduction method. 
+series). PCA is useful as a dimensionality reduction method.
 
 
 Algorithms
@@ -65,5 +78,6 @@ References
 .. [#f1] Schwantes, Christian R., and Vijay S. Pande. `Improvements in Markov State Model Construction Reveal Many Non-Native Interactions in the Folding of NTL9 <http://dx.doi.org/10.1021/ct300878a>`_ J. Chem Theory Comput. 9.4 (2013): 2000-2009.
 .. [#f2] Perez-Hernandez, Guillermo, et al. `Identification of slow molecular order parameters for Markov model construction <http://dx.doi.org/10.1063/1.4811489>`_ J Chem. Phys (2013): 015102.
 .. [#f3] Naritomi, Yusuke, and Sotaro Fuchigami. `Slow dynamics in protein fluctuations revealed by time-structure based independent component analysis: The case of domain motions <http://dx.doi.org/10.1063/1.3554380>`_ J. Chem. Phys. 134.6 (2011): 065101.
+.. [#f4] McGibbon, R. T. & Pande, V. S. `Identification of simple reaction coordinates from complex dynamics <http://arxiv.org/abs/1602.08776>`_ ArXiv 16 (2016).
 
 .. vim: tw=75

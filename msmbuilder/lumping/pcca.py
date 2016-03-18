@@ -103,7 +103,7 @@ class PCCA(MarkovStateModel):
 
         Parameters
         ----------
-        msm : Mixtape.msm.MarkovStateModel
+        msm : MarkovStateModel
             The input microstate msm to use.
         n_macrostates : int
             The number of macrostates

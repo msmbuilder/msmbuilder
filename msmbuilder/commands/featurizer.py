@@ -13,7 +13,7 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
                           ContactFeaturizer, GaussianSolventFeaturizer,
                           KappaAngleFeaturizer, AlphaAngleFeaturizer,
-                          StrucRMSDFeaturizer)
+                          RMSDFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -109,8 +109,8 @@ class AtomPairsFeaturizerCommand(FeaturizerCommand):
         return np.loadtxt(fn, dtype=int, ndmin=2)
 
 
-class StrucRMSDFeaturizerCommand(FeaturizerCommand):
-    klass = StrucRMSDFeaturizer
+class RMSDFeaturizerCommand(FeaturizerCommand):
+    klass = RMSDFeaturizer
     _concrete = True
 
     def _reference_traj_type(self, fn):

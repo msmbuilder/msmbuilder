@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator as SklearnBaseEstimator
 
 
 class BaseEstimator(SklearnBaseEstimator):
-    # http://msmbuilder-mixtape.s3-website-us-west-1.amazonaws.com/latest/apipatterns.html
+    # http://msmbuilder.org/development/apipatterns.html
 
     def summarize(self):
         """Return some diagnostic summary statistics about this Markov model"""

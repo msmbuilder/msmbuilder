@@ -11,6 +11,5 @@ rm -f $MINICONDA
 
 export PATH=$HOME/miniconda3/bin:$PATH
 
-conda update --yes conda
-conda config --add channels omnia
-conda install --yes conda-build jinja2
+conda update -yq conda
+conda install -yq conda-build jinja2
