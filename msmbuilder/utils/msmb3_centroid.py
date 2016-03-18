@@ -67,7 +67,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='''Computes a representative structure for each state in an MSM and returns the structures, as a single xtc file. Used to get a visual interpretation of the MSM states, reminiscent of the "Gens" file in MSMBuilder 2.''')
     parser.add_argument('-t', '--trj_paths', type=str, help='''A text file with raw trajectory paths, the order they were loaded while you were building the MSM.''')
     parser.add_argument('-f', '--featurized_trjs', type=str, help='''Featurized trajectories file in .npy format.''')
-    parser.add_argument('-s', '--stride', type=str, help='''If you strided your data before featurizing it to build your MSM, use that corresopnding stride here.''', default='1')
+    parser.add_argument('-s', '--stride', type=str, help='''If you strided your data before featurizing it to build your MSM, use that corresponding stride here.''', default='1')
     parser.add_argument('-T', '--topology', type=str, help='''Topology file for loading the raw data, if needed.''', default='-1')
     parser.add_argument('-l', '--labels', type=str, help='''"labels_" attribute from a featurization object, e.g. KMeans.labels_, saved as a npy file.''')
     parser.add_argument('-n', '--n_samples', type=str, help='''How many frames from each state do you want to pull from the raw data to compute the representative "centroid" structure, which is defined as the one with the minimum total RMSD to all other structures.''')
