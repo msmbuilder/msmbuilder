@@ -11,6 +11,9 @@ Version 3.4.0.dev0 is the current development release of MSMBuilder.
 API Changes
 ~~~~~~~~~~~
 
+- ``kinetic_mapping`` has been added as an option to
+  ``msmbuilder.decomposition.tICA``. Please note that ``weighted_transform``
+  is now deprecated and will be removed in future versions.
 - ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added.
 - Range-based slicing on dataset objects is no longer allowed. Keys in the
   dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
