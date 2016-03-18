@@ -45,7 +45,7 @@ class tICA(BaseEstimator, TransformerMixin):
         Deprecated. Please use kinetic_mapping.
     kinetic_mapping : bool, default=False
         If True, weigh the projections by the tICA eigenvalues, yielding
-         kinetic distances.
+         kinetic distances as described in [6].
 
     Attributes
     ----------
@@ -97,6 +97,8 @@ class tICA(BaseEstimator, TransformerMixin):
     .. [4] Molgedey, Lutz, and Heinz Georg Schuster. Phys. Rev. Lett. 72.23
        (1994): 3634.
     .. [5] Chen, Yilun, Ami Wiesel, and Alfred O. Hero III. ICASSP (2009)
+    .. [6] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph]
+           (2015)
     """
 
     def __init__(self, n_components=None, lag_time=1, shrinkage=None,
@@ -324,11 +326,15 @@ class tICA(BaseEstimator, TransformerMixin):
                 X = X - self.means_
             X_transformed = np.dot(X, self.components_.T)
 
-            if self.weighted_transform:
+            if self.weighted_transform and self.kinetic_mapping:
+                ValueError('weighted_transform and kinetic_mapping cannot'
+                           'both be set to True')
+            elif self.weighted_transform:
                 warnings.warn("weighted_transform is deprecated. "
                               "Please use kinetic_mapping",
                               DeprecationWarning)
                 X_transformed *= self.timescales_
+
             elif self.kinetic_mapping:
                 X_transformed *= self.eigenvalues_
 
@@ -457,7 +463,7 @@ n_components        : {n_components}
 shrinkage           : {shrinkage}
 lag_time            : {lag_time}
 weighted_transform  : {weighted_transform}
-kinetic_mapping : {kinetic_mapping}
+kinetic_mapping     : {kinetic_mapping}
 
 Top 5 timescales :
 {timescales}
