@@ -42,8 +42,10 @@ class tICA(BaseEstimator, TransformerMixin):
         specified (the default) it is estimated using an analytic formula
         (the Rao-Blackwellized Ledoit-Wolf estimator) introduced in [5].
     weighted_transform : bool, default=False
-        If True, weight the projections by the implied timescales, giving
-        a quantity that has units [Time].
+        Deprecated. Please use kinetic_mapping.
+    kinetic_mapping : bool, default=False
+        If True, weigh the projections by the tICA eigenvalues, yielding
+         kinetic distances.
 
     Attributes
     ----------
@@ -97,12 +99,14 @@ class tICA(BaseEstimator, TransformerMixin):
     .. [5] Chen, Yilun, Ami Wiesel, and Alfred O. Hero III. ICASSP (2009)
     """
 
-    def __init__(self, n_components=None, lag_time=1, shrinkage=None, weighted_transform=False):
+    def __init__(self, n_components=None, lag_time=1, shrinkage=None,
+                 weighted_transform=False, kinetic_mapping=False):
         self.n_components = n_components
         self.lag_time = lag_time
         self.shrinkage = shrinkage
         self.shrinkage_ = None
         self.weighted_transform = weighted_transform
+        self.kinetic_mapping = kinetic_mapping
 
         self.n_features = None
         self.n_observations_ = None
@@ -321,6 +325,11 @@ class tICA(BaseEstimator, TransformerMixin):
             X_transformed = np.dot(X, self.components_.T)
 
             if self.weighted_transform:
+                warnings.warn("weighted_transform is deprecated. "
+                              "Please use kinetic_mapping",
+                              DeprecationWarning)
+                X_transformed *= self.timescales_
+            elif self.kinetic_mapping:
                 X_transformed *= self.eigenvalues_
 
             sequences_new.append(X_transformed)
@@ -448,6 +457,7 @@ n_components        : {n_components}
 shrinkage           : {shrinkage}
 lag_time            : {lag_time}
 weighted_transform  : {weighted_transform}
+kinetic_mapping : {kinetic_mapping}
 
 Top 5 timescales :
 {timescales}
@@ -456,7 +466,8 @@ Top 5 eigenvalues :
 {eigenvalues}
 """.format(n_components=self.n_components, lag_time=self.lag_time,
            shrinkage=self.shrinkage_, weighted_transform=self.weighted_transform,
-           timescales=self.timescales_[:5], eigenvalues=self.eigenvalues_[:5])
+           kinetic_mapping=self.kinetic_mapping, timescales=self.timescales_[:5],
+           eigenvalues=self.eigenvalues_[:5])
 
 
 def rao_blackwell_ledoit_wolf(S, n):
