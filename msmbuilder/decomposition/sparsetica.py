@@ -112,10 +112,12 @@ class SparseTICA(tICA):
     """
 
     def __init__(self, n_components=None, lag_time=1, rho=0.01,
-                 weighted_transform=True, epsilon=1e-6, shrinkage=None,
+                 weighted_transform=False, kinetic_mapping=False,
+                 epsilon=1e-6, shrinkage=None,
                  tolerance=1e-6, maxiter=10000, verbose=False):
         super(SparseTICA, self).__init__(n_components, lag_time=lag_time,
-            weighted_transform=weighted_transform)
+                                         weighted_transform=weighted_transform,
+                                         kinetic_mapping=kinetic_mapping)
         self.rho = rho
         self.epsilon = epsilon
         self.shrinkage = shrinkage
