@@ -148,6 +148,11 @@ class SparseTICA(tICA):
             self._eigenvectors_[:, i] = v
             A = scdeflate(A, v)
 
+        # sort in order of decreasing value
+        ind = np.argsort(self._eigenvalues_)[::-1]
+        self._eigenvalues_ = self._eigenvalues_[ind]
+        self._eigenvectors_ = self._eigenvectors_[:, ind]
+
         self._is_dirty = False
 
     def summarize(self):
