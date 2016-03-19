@@ -1,0 +1,1 @@
+This directory contains templates for setting up an msmbuilder project.
