@@ -750,38 +750,63 @@ class KappaAngleFeaturizer(Featurizer):
         assert result.shape == (traj.n_frames, traj.n_residues - 4)
         return result
 
+
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the Kappa angle features."""
-        x = []
+        """Return a list of dictionaries describing the dihderal features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: KappaAngle
+                - featuregroup: the type of dihedral angle and whether
+                  cos has been applied.
+        """
+        feature_descs = []
         # fill in the atom indices using just the first frame
         self.partial_transform(traj[0])
+        top = traj.topology
         if self.atom_indices is not None:
-            aind = self.atom_indices
-            n = len(aind)
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
-            bigclass = ["angle"] * n
-            smallclass = ["kappa"] * n
+            aind_tuples = self.atom_indices
+            resseqs = []
+            resids = []
+            resnames = []
+            for ainds in aind_tuples:
+                resid = set(top.atom(ai).residue.index for ai in ainds)
+                resids += [list(resid)]
+                resseqs += [[top.residue(ri).resSeq for ri in resid]]
+                resnames += [[top.residue(ri).name for ri in resid]]
 
+            zippy = zip(aind_tuples, resseqs, resids, resnames)
             if self.cos:
-                otherInfo = (["cos"] * n)
+                zippy = itertools.product(['cos'], zippy)
             else:
-                otherInfo = ["nocos"] * n
+                zippy = itertools.product(['nocos'], zippy)
 
-            assert len(self.atom_indices) == len(resnames)
+            for cos, info in zippy:
+                ainds, resseq, resid, resname = info
+                feature_descs += [dict(
+                    resnames=resname,
+                    atominds=ainds,
+                    resseqs=resseq,
+                    resids=resid,
+                    featurizer="Kappa",
+                    featuregroup="{}".format(cos),
+                )]
 
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
 
-            return x
+            return feature_descs
         else:
             raise UserWarning("Cannot describe features for trajectories with fewer than 5 alpha carbon\
                               using KappaAngle Featurizer")
