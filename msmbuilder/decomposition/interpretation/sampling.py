@@ -1,4 +1,5 @@
 # Author: Muneeb Sultan <msultan@stanford.edu>
+# Contributors: Matthew Harrigan <matthew.harrigan@outlook.com>
 # Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
@@ -7,86 +8,79 @@ import numpy as np
 from ...utils import KDTree
 
 
-def sample_dimension(data, dimension, n_frames, scheme="linear"):
-    """Function to sample a dimension of the data
-    using one of 3 schemes. All other dimensions are ignored.
+def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
+    """Sample a dimension of the data.
+
+    This method uses one of 3 schemes. All other dimensions are ignored, so
+    this might result in a really "jumpy" sampled trajectory.
 
     Parameters
     ----------
-    data : list of lists
-        List of low dimensional data(output of tica)
+    trajs : sequence of np.ndarray
+        List of tica-transformed trajectories
     dimension : int
         dimension to sample on
-    n_frames: int
+    n_frames : int
         Number of frames required
-    scheme: string
-        One of either "linear", "random" or "edges". Linear
-        samples the tic linearly, random samples randomly
-        thereby taking approximate free energies into account,
-        and edges samples the edges of the tic only.
+    scheme : {'linear', 'random', 'edges'}
+        'linear' samples the tic linearly, 'random' samples randomly
+        (thereby taking approximate free energies into account),
+        and 'edges' samples the edges of the tic only.
 
     Returns
     -------
-       list of tuples where first number is the trajectory index and
-       second is the frame index
+    inds : list of tuples
+       Tuples of (trajectory_index, frame_index)
     """
-    d_data = [i[:,dimension][:,np.newaxis] for i in data]
+    trajs = [traj[:, [dimension]] for traj in trajs]
 
-    #sort it because all three sampling schemes use it
-
+    # sort it because all three sampling schemes use it
     all_vals = []
-    for i in d_data:
-        all_vals.extend(i)
+    for traj in trajs:
+        all_vals.extend(traj)
     all_vals = np.sort(all_vals)
 
-    #get lineraly placed points
-    if scheme=="linear":
+    if scheme == "linear":
         max_val = all_vals[-1]
         min_val = all_vals[0]
         spaced_points = np.linspace(min_val, max_val, n_frames)
-
-    elif scheme=="random":
+    elif scheme == "random":
         spaced_points = np.sort(np.random.choice(all_vals, n_frames))
-
-    elif scheme=="edge":
-        _cut_point = np.int(n_frames / 2)
-        spaced_points = np.hstack((all_vals[:_cut_point], all_vals[-_cut_point:]))
+    elif scheme == "edge":
+        _cut_point = n_frames // 2
+        spaced_points = np.hstack((all_vals[:_cut_point],
+                                   all_vals[-_cut_point:]))
     else:
         raise ValueError("Scheme has be to one of linear, random or edge")
 
-    tree = KDTree(d_data)
-
-    return_vec = []
-    for pt in spaced_points:
-        dis, ind = tree.query([pt])
-        return_vec.append(ind)
-
-    return return_vec
+    tree = KDTree(trajs)
+    dists, inds = tree.query(spaced_points)
+    return inds
 
 
-def sample_region(data, pt_dict, n_frames,):
-    """Function to sample a region of the data.
+def sample_region(trajs, pt_dict, n_frames, ):
+    """Sample a region of the data.
 
     Parameters
     ----------
-    data : list of lists
-        List of low dimensional data(output of tica)
+    trajs : sequence of np.ndarray
+        List of tica-transformed trajectories
     pt_dict : dict
         Dictionary where the keys are the dimensions and the
         value is the value of the dimension.
-        pt = {0:0.15, 4:0.2}
+        E.g., ``pt = {0: 0.15, 4: 0.2}``
     n_frames: int
         Number of frames required
 
     Returns
     -------
-       list of tuples where first number is the trajectory index and
-       second is the frame index
+    inds : list of tuples
+       Tuples of (trajectory_index, frame_index)
     """
     dimensions = list(pt_dict.keys())
-    d_data = [i[:, dimensions] for i in data]
+    trajs = [traj[:, dimensions] for traj in trajs]
 
-    tree = KDTree(d_data)
+    tree = KDTree(trajs)
     pt = [pt_dict[i] for i in dimensions]
-    dis, ind = tree.query(pt, n_frames)
-    return ind
+    dists, inds = tree.query(pt, n_frames)
+    return inds
