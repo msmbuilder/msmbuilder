@@ -883,6 +883,7 @@ class ContactFeaturizer(Featurizer):
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
 
+
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via of residue-residue
         distances
@@ -908,33 +909,60 @@ class ContactFeaturizer(Featurizer):
                                            self.scheme, self.ignore_nonprotein)
         return distances
 
+
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the features in Contacts."""
-        x = []
+        """Return a list of dictionaries describing the contacts features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Contact
+                - featuregroup: ca, heavy etc.
+        """
+        feature_descs = []
         # fill in the atom indices using just the first frame
         distances, residue_indices = md.compute_contacts(traj, self.contacts,
                                                          self.scheme,
                                                          self.ignore_nonprotein
                                                          )
-        n = residue_indices.shape[0]
-        aind = ["N/A"] * n
-        resSeq = [np.array([traj.top.residue(j).resSeq for j in i])
-                  for i in residue_indices]
-        resid = [np.array([traj.top.residue(j).index for j in i])
-                 for i in residue_indices]
-        resnames = [[traj.topology.residue(j).name for j in i] for i in resid]
-        bigclass = [self.contacts] * n
-        smallclass = [self.scheme] * n
-        otherInfo = [self.ignore_nonprotein] * n
+        top = traj.topology
 
-        for i in range(n):
-            d_i = dict(resname=resnames[i], atomind=aind[i],
-                       resSeq=resSeq[i], resid=resid[i],
-                       otherInfo=otherInfo[i], bigclass=bigclass[i],
-                       smallclass=smallclass[i])
-            x.append(d_i)
+        aind = []
+        resseqs = []
+        resnames = []
+        for resid_ids in residue_indices:
+            aind += ["N/A"]
+            resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
+            resnames += [[top.residue(ri).name for ri in resid_ids]]
 
-        return x
+
+        zippy = zip(aind, resseqs, residue_indices, resnames)
+
+        zippy = itertools.product([self.scheme], zippy)
+
+        for schm, info in zippy:
+            ainds, resseq, resid, resname = info
+            feature_descs += [dict(
+                    resnames=resname,
+                    atominds=ainds,
+                    resseqs=resseq,
+                    resids=resid,
+                    featurizer="Contact-Ignore_Protein {}".format(self.ignore_nonprotein),
+                    featuregroup="{}".format(schm),
+            )]
+        return feature_descs
 
 
 class GaussianSolventFeaturizer(Featurizer):
