@@ -7,15 +7,18 @@
 
 from __future__ import print_function, division, absolute_import
 
-import numpy as np
+import warnings
+
 import mdtraj as md
-from sklearn.base import TransformerMixin
+import numpy as np
 import sklearn.pipeline
-from sklearn.externals.joblib import Parallel, delayed
 from scipy.stats import vonmises as vm
 from msmbuilder import libdistance
 import itertools
+from sklearn.base import TransformerMixin
+from sklearn.externals.joblib import Parallel, delayed
 
+from msmbuilder import libdistance
 from ..base import BaseEstimator
 
 
@@ -185,7 +188,7 @@ class SuperposeFeaturizer(Featurizer):
         return x
 
 
-class StrucRMSDFeaturizer(Featurizer):
+class RMSDFeaturizer(Featurizer):
     """Featurizer based on RMSD to one or more reference structures.
 
     This featurizer inputs a trajectory to be analyzed ('traj') and a
@@ -196,14 +199,23 @@ class StrucRMSDFeaturizer(Featurizer):
     Parameters
     ----------
     reference_traj : md.Trajectory
-        The reference conformation to superpose each frame with respect to
-        (only the first frame in reference_traj is used)
+        The reference conformations to superpose each frame with respect to
     atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
         The indices of the atoms to superpose and compute the distances with.
         If not specified, all atoms are used.
+    trj0
+        Deprecated. Please use reference_traj.
     """
 
-    def __init__(self, reference_traj, atom_indices=None):
+    def __init__(self, reference_traj=None, atom_indices=None, trj0=None):
+        if trj0 is not None:
+            warnings.warn("trj0 is deprecated. Please use reference_traj",
+                          DeprecationWarning)
+            reference_traj = trj0
+        else:
+            if reference_traj is None:
+                raise ValueError("Please specify a reference trajectory")
+
         self.atom_indices = atom_indices
         if self.atom_indices is not None:
             self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
@@ -221,11 +233,10 @@ class StrucRMSDFeaturizer(Featurizer):
 
         Returns
         -------
-        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
-            A featurized trajectory is a 2D array of shape
-            `(length_of_trajectory x n_features)` where each `features[i]`
-            vector is computed by applying the featurization function
-            to the `i`th snapshot of the input trajectory.
+        features : np.ndarray, shape=(n_frames, n_ref_frames)
+            The RMSD value of each frame of the input trajectory to be
+            featurized versus each frame in the reference trajectory. The
+            number of features is the number of reference frames.
 
         See Also
         --------
@@ -235,8 +246,9 @@ class StrucRMSDFeaturizer(Featurizer):
             sliced_traj = traj.atom_slice(self.atom_indices)
         else:
             sliced_traj = traj
-        result = libdistance.cdist(sliced_traj, self.sliced_reference_traj,
-                                   'rmsd')
+        result = libdistance.cdist(
+            sliced_traj, self.sliced_reference_traj, 'rmsd'
+        )
         return result
 
 
@@ -515,8 +527,7 @@ class VonMisesFeaturizer(Featurizer):
         if not isinstance(kappa, (int, float)):
             raise TypeError('kappa must be numeric.')
 
-        self.loc = np.arange(0, 2*np.pi,
-                             2*np.pi/n_bins)
+        self.loc = np.linspace(0, 2*np.pi, n_bins)
         self.kappa = kappa
         self.n_bins = n_bins
 
@@ -583,8 +594,9 @@ class VonMisesFeaturizer(Featurizer):
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
             _, y = func(traj)
-            x.extend(vm.pdf(y, loc=self.loc,
-                            kappa=self.kappa).reshape(self.n_bins, -1, 1))
+            x.extend(vm.pdf(y[..., None], loc=self.loc,
+                            kappa=self.kappa).reshape(1, -1,
+                                                      self.n_bins*y.shape[1]))
         return np.hstack(x)
 
 
@@ -1020,55 +1032,6 @@ class RawPositionsFeaturizer(Featurizer):
         # Get the positions and reshape.
         value = p_traj.xyz.reshape(len(p_traj), -1)
         return value
-
-
-class RMSDFeaturizer(Featurizer):
-    """Featurizer based on RMSD to a series of reference frames.
-
-    Parameters
-    ----------
-    trj0 : mdtraj.Trajectory
-        Reference trajectory.  trj0.n_frames gives the number of features
-        in this Featurizer.
-    atom_indices : np.ndarray, default=None
-        Which atom indices to use during RMSD calculation.  If None, MDTraj
-        should default to all atoms.
-
-    """
-
-    def __init__(self, trj0, atom_indices=None):
-        self.n_features = trj0.n_frames
-        self.trj0 = trj0
-        self.atom_indices = atom_indices
-
-    def partial_transform(self, traj):
-        """Featurize an MD trajectory into a vector space by calculating
-        the RMSD to each frame in a reference trajectory.
-
-        Parameters
-        ----------
-        traj : mdtraj.Trajectory
-            A molecular dynamics trajectory to featurize.
-
-        Returns
-        -------
-        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
-            A featurized trajectory is a 2D array of shape
-            `(length_of_trajectory x n_features)` where each `features[i]`
-            vector is computed by applying the featurization function
-            to the `i`th snapshot of the input trajectory.
-
-        See Also
-        --------
-        transform : simultaneously featurize a collection of MD trajectories
-        """
-        X = np.zeros((traj.n_frames, self.n_features))
-
-        for frame in range(self.n_features):
-            X[:, frame] = md.rmsd(traj, self.trj0,
-                                  atom_indices=self.atom_indices,
-                                  frame=frame)
-        return X
 
 
 class DRIDFeaturizer(Featurizer):

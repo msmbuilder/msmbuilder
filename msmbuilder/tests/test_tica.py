@@ -86,3 +86,16 @@ def test_multiple_components():
 
     eq(Y1.flatten(), Y3[:, 0])
     eq(Y3, Y4[:, :3])
+
+
+def test_kinetic_mapping():
+    np.random.seed(42)
+    X = np.random.randn(10, 3)
+
+    tica1 = tICA(n_components=2, lag_time=1)
+    tica2 = tICA(n_components=2, lag_time=1, kinetic_mapping=True)
+
+    y1 = tica1.fit_transform([np.copy(X)])[0]
+    y2 = tica2.fit_transform([np.copy(X)])[0]
+
+    assert eq(y2, y1*tica1.eigenvalues_)

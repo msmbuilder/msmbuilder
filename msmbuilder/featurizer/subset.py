@@ -153,7 +153,7 @@ class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 
 
 class SubsetFeatureUnion(TrajFeatureUnion):
-    """Mixtape version of sklearn.pipeline.FeatureUnion with feature subset selection.
+    """MSMBuilder version of sklearn.pipeline.FeatureUnion with feature subset selection.
 
     Notes
     -----
