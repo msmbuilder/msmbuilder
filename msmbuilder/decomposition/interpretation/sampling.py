@@ -2,8 +2,9 @@
 # Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
+from __future__ import absolute_import
 import numpy as np
-from msmbuilder.utils.nearest import KDTree
+from ...utils import KDTree
 
 
 def sample_dimension(data, dimension, n_frames, scheme="linear"):
