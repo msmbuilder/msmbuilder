@@ -40,7 +40,7 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
     # sort it because all three sampling schemes use it
     all_vals = []
     for traj in trajs:
-        all_vals.extend(traj)
+        all_vals.extend(traj[:,0])
     all_vals = np.sort(all_vals)
 
     if scheme == "linear":
@@ -48,7 +48,7 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
         min_val = all_vals[0]
         spaced_points = np.linspace(min_val, max_val, n_frames)
     elif scheme == "random":
-        spaced_points = np.sort(np.random.choice(all_vals, n_frames))
+        spaced_points = np.sort(np.random.choice(all_vals, n_frames))[:, np.newaxis]
     elif scheme == "edge":
         _cut_point = n_frames // 2
         spaced_points = np.hstack((all_vals[:_cut_point],
