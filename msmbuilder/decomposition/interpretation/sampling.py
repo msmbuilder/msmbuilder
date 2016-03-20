@@ -16,8 +16,9 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
 
     Parameters
     ----------
-    trajs : sequence of np.ndarray
-        List of tica-transformed trajectories
+    trajs : dictionary of np.ndarray
+        Dictionary of tica-transformed trajectories, keyed by arbitrary keys.
+        The resulting trajectory indices will use these keys.
     dimension : int
         dimension to sample on
     n_frames : int
@@ -30,9 +31,11 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
     Returns
     -------
     inds : list of tuples
-       Tuples of (trajectory_index, frame_index)
+       Tuples of (trajectory_index, frame_index), where trajectory_index is
+       in the domain of the keys of the input dictionary.
     """
-    trajs = [traj[:, [dimension]] for traj in trajs]
+    fixed_indices = list(trajs.keys())
+    trajs = [trajs[k][:, [dimension]] for k in fixed_indices]
 
     # sort it because all three sampling schemes use it
     all_vals = []
@@ -55,7 +58,7 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
 
     tree = KDTree(trajs)
     dists, inds = tree.query(spaced_points)
-    return inds
+    return [(fixed_indices[i], j) for i, j in inds]
 
 
 def sample_region(trajs, pt_dict, n_frames, ):
