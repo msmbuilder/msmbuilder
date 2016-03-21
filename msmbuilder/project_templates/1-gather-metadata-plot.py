@@ -9,9 +9,11 @@ from msmbuilder.dataset2 import load_meta
 sns.set_style('ticks')
 colors = sns.color_palette()
 
+## Load
 meta = load_meta()
 
 
+## Plot logic
 def plot_lengths(ax):
     lengths_ns = meta['nframes'] / meta['step_ps'] / 1000
     ax.hist(lengths_ns)
@@ -29,6 +31,7 @@ def plot_lengths(ax):
                 )
 
 
+## Plot
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_lengths(ax)
 fig.tight_layout()

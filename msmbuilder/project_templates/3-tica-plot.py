@@ -9,11 +9,13 @@ from msmbuilder.dataset2 import load_trajs, load_generic
 sns.set_style('ticks')
 colors = sns.color_palette()
 
+## Load
 tica = load_generic('tica.pickl')
 meta, ttrajs = load_trajs('ttrajs')
 txx = np.concatenate(list(ttrajs.values()))
 
 
+## Heatmap
 def plot_heatmap(ax):
     ax.hexbin(txx[:, 0], txx[:, 1],
               cmap=sns.cubehelix_palette(as_cmap=True),
@@ -24,6 +26,7 @@ def plot_heatmap(ax):
     ax.set_ylabel("tIC 2", fontsize=16)
 
 
+## Timescales
 def plot_timescales(ax):
     timestep = meta['step_ps'].unique()
     assert len(timestep) == 1, timestep
@@ -41,12 +44,14 @@ def plot_timescales(ax):
     ax.set_xlim((0, 1))
 
 
+## Plot 1
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_heatmap(ax)
 fig.tight_layout()
 fig.savefig('tica-heatmap.pdf')
 run(['xdg-open', 'tica-heatmap.pdf'])
 
+## Plot 2
 fig, ax = plt.subplots(figsize=(3, 5))
 plot_timescales(ax)
 fig.tight_layout()

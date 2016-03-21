@@ -20,7 +20,7 @@ for p in paragraphs:
 
 warnings = 0
 
-# Test for python 3.5
+## Test for python 3.5
 import sys
 
 if sys.version_info < (3, 5):
@@ -36,6 +36,7 @@ if sys.version_info < (3, 5):
     print()
     warnings += 1
 
+## Test for matplotlib
 try:
     import matplotlib as plt
 except ImportError:
@@ -46,6 +47,7 @@ except ImportError:
     print()
     warnings += 1
 
+## Test for seaborn
 try:
     import seaborn as sns
 except ImportError:
@@ -59,6 +61,7 @@ except ImportError:
     print()
     warnings += 1
 
+## Test for xdg-open
 try:
     import subprocess
 
@@ -71,6 +74,7 @@ except:
     ))
     warnings += 1
 
+## Report results
 if warnings == 0:
     print("I didn't find any problems with your installation! Good job.")
     print()

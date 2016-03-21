@@ -9,6 +9,7 @@ from msmbuilder.dataset2 import load_trajs, load_generic
 sns.set_style('ticks')
 colors = sns.color_palette()
 
+## Load
 meta, ttrajs = load_trajs('ttrajs')
 txx = np.concatenate(list(ttrajs.values()))
 
@@ -19,6 +20,7 @@ for traj_i, frame_i in inds:
 straj = np.asarray(straj)
 
 
+## Overlay sampled trajectory on histogram
 def plot_sampled_traj(ax):
     ax.hexbin(txx[:, 0], txx[:, 1],
               cmap=sns.cubehelix_palette(as_cmap=True),
@@ -34,6 +36,7 @@ def plot_sampled_traj(ax):
     ax.legend(loc='best')
 
 
+## Plot
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_sampled_traj(ax)
 fig.tight_layout()

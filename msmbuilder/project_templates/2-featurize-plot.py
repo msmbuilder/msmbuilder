@@ -9,10 +9,12 @@ from msmbuilder.dataset2 import load_trajs
 sns.set_style('ticks')
 colors = sns.color_palette()
 
+## Load
 meta, ftrajs = load_trajs('diheds')
 vmxx = np.concatenate(list(ftrajs.values()))
 
 
+## Box and whisker plot
 def plot_box(ax):
     n_feats_plot = min(vmxx.shape[1], 100)
     ax.boxplot(vmxx[::100, :100],
@@ -38,6 +40,7 @@ def plot_box(ax):
     ax.set_ylabel("Feature Value", fontsize=16)
 
 
+## Plot
 fig, ax = plt.subplots(figsize=(15, 5))
 plot_box(ax)
 fig.tight_layout()

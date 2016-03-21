@@ -8,6 +8,7 @@ import pandas as pd
 from msmbuilder.dataset2 import save_meta
 
 
+## Set up parsing of functions
 def parse_fn(fn):
     # Modify this function!
     # Include any and all metadata you want
@@ -25,10 +26,12 @@ def parse_fn(fn):
     return meta
 
 
+## Construct and save the dataframe
 meta = pd.DataFrame(parse_fn(fn) for fn in glob.glob("data/*.xtc"))
 meta = meta.set_index('run').sort_index()
 save_meta(meta)
 
+## Print a summary
 print(meta.head())
 print("...")
 print(meta.tail())
