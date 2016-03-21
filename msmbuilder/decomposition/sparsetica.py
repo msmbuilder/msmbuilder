@@ -29,13 +29,19 @@ class SparseTICA(tICA):
     of the input features which decorrelate most slowly. These can be
     used for feature selection and/or dimensionality reduction.
 
-    This model requires the additional python package `cvxpy`, which can be
-    installed from `PyPI <https://pypi.python.org/pypi/cvxpy/>`_.
-
     .. warning::
 
         This model is currently  experimental, and may undergo significant
         changes or bug fixes in upcoming releases.
+
+    .. note::
+
+        Unlike (dense) tICA, the sparse solver isn't guaranteed to find
+        the best global solution. The eigenvalues (timescales) aren't
+        necessarily going to be found from slowest to fastest. Although
+        this class sorts by eigenvalue after running the solver, by
+        increasing n_components, you could theoretically find more slow
+        processes.
 
     Parameters
     ----------
@@ -105,17 +111,19 @@ class SparseTICA(tICA):
     ----------
     .. [1] McGibbon, R. T. and V. S. Pande "Identification of sparse, slow
        reaction coordinates from molular dynamics simulations" In preparation.
-    .. [1] Sriperumbudur, B. K., D. A. Torres, and G. R. Lanckriet.
+    .. [2] Sriperumbudur, B. K., D. A. Torres, and G. R. Lanckriet.
        "A majorization-minimization approach to the sparse generalized eigenvalue
        problem." Machine learning 85.1-2 (2011): 3-39.
     .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
     """
 
     def __init__(self, n_components=None, lag_time=1, rho=0.01,
-                 weighted_transform=True, epsilon=1e-6, shrinkage=None,
+                 weighted_transform=False, kinetic_mapping=False,
+                 epsilon=1e-6, shrinkage=None,
                  tolerance=1e-6, maxiter=10000, verbose=False):
         super(SparseTICA, self).__init__(n_components, lag_time=lag_time,
-            weighted_transform=weighted_transform)
+                                         weighted_transform=weighted_transform,
+                                         kinetic_mapping=kinetic_mapping)
         self.rho = rho
         self.epsilon = epsilon
         self.shrinkage = shrinkage
@@ -145,6 +153,11 @@ class SparseTICA(tICA):
             self._eigenvalues_[i] = u
             self._eigenvectors_[:, i] = v
             A = scdeflate(A, v)
+
+        # sort in order of decreasing value
+        ind = np.argsort(self._eigenvalues_)[::-1]
+        self._eigenvalues_ = self._eigenvalues_[ind]
+        self._eigenvectors_ = self._eigenvectors_[:, ind]
 
         self._is_dirty = False
 
