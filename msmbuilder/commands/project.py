@@ -7,17 +7,18 @@
 # All rights reserved.
 
 from __future__ import print_function, division, absolute_import
-from ..cmdline import Command, argument
 
-from jinja2 import Environment, PackageLoader
 import os
+import re
 import stat
 import textwrap
 from datetime import datetime
-import re
 
 import nbformat
+from jinja2 import Environment, PackageLoader
 from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
+
+from ..cmdline import Command, argument
 
 
 def chmod_plus_x(fn):
