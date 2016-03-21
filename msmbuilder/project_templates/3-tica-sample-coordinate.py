@@ -1,25 +1,18 @@
-from msmbuilder.dataset2 import load
-from msmbuilder.utils import dump
-from msmbuilder.decomposition.interpretation import sample_dimension
 import mdtraj as md
 
-meta, ttrajs = load("meta.pandas.pickl", 'ttrajs')
+from msmbuilder.dataset2 import load_trajs, save_generic, preload_top, backup
+from msmbuilder.decomposition.interpretation import sample_dimension
+
+meta, ttrajs = load_trajs('ttrajs')
 
 inds = sample_dimension(ttrajs,
                         dimension=0,
                         n_frames=200, scheme='random')
 
-dump(inds, "tica-dimension-0-inds.pickl")
+save_generic(inds, "tica-dimension-0-inds.pickl")
+top = preload_top(meta)
 
-
-def preload_top():
-    top_fns = set(meta['top_fn'])
-    assert len(top_fns) == 1, "You can only have 1 top when sampling"
-    return md.load(top_fns.pop())
-
-
-top = preload_top()
-
+# TODO: Make this more elegant, perhaps in mdtraj
 traj = None
 for traj_i, frame_i in inds:
     frame = md.load_frame(meta.loc[traj_i]['traj_fn'], index=frame_i, top=top)
@@ -28,5 +21,6 @@ for traj_i, frame_i in inds:
     else:
         traj += frame
 
-# TODO: backup
-traj.save("tica-dimension-0.xtc")
+traj_fn = "tica-dimension-0.xtc"
+backup(traj_fn)
+traj.save(traj_fn)

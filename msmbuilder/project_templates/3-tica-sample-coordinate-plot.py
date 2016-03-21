@@ -1,17 +1,18 @@
+from subprocess import run
+
+import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+
+from msmbuilder.dataset2 import load_trajs, load_generic
 
 sns.set_style('ticks')
 colors = sns.color_palette()
 
-from msmbuilder.dataset2 import load
-from msmbuilder.utils import load as dload
-import numpy as np
-
-meta, ttrajs = load('meta.pandas.pickl', 'ttrajs')
+meta, ttrajs = load_trajs('ttrajs')
 txx = np.concatenate(list(ttrajs.values()))
 
-inds = dload("tica-dimension-0-inds.pickl")
+inds = load_generic("tica-dimension-0-inds.pickl")
 straj = []
 for traj_i, frame_i in inds:
     straj += [ttrajs[traj_i][frame_i, :]]
@@ -37,3 +38,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_sampled_traj(ax)
 fig.tight_layout()
 fig.savefig('tica-dimension-0-heatmap.pdf')
+run(['xdg-open', 'tica-dimension-0-heatmap.pdf'])

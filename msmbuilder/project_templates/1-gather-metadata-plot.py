@@ -1,12 +1,15 @@
+from subprocess import run
+
 import numpy as np
-import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+
+from msmbuilder.dataset2 import load_meta
 
 sns.set_style('ticks')
 colors = sns.color_palette()
 
-meta = pd.read_pickle("meta.pandas.pickl")
+meta = load_meta()
 
 
 def plot_lengths(ax):
@@ -30,3 +33,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_lengths(ax)
 fig.tight_layout()
 fig.savefig("lengths.pdf")
+run(['xdg-open', 'lengths.pdf'])

@@ -1,25 +1,12 @@
 import mdtraj as md
-import pandas as pd
 
-from msmbuilder.dataset2 import save
+from msmbuilder.dataset2 import (load_meta, preload_tops,
+                                 save_trajs, save_generic)
 from msmbuilder.featurizer import DihedralFeaturizer
-from msmbuilder.utils import dump
 
+meta = load_meta()
+tops = preload_tops(meta)
 dihed_feat = DihedralFeaturizer()
-
-meta = pd.read_pickle("meta.pandas.pickl")
-
-
-# TODO: refactor into dataset2
-def preload_tops():
-    top_fns = set(meta['top_fn'])
-    tops = {}
-    for tfn in top_fns:
-        tops[tfn] = md.load(tfn)
-    return tops
-
-
-tops = preload_tops()
 
 
 # TODO: refactor into dataset2
@@ -37,5 +24,5 @@ for i, traj in trajectories():
 print(dihed_feat.summarize())
 
 # Save
-save(meta, dihed_trajs, 'diheds')
-dump(dihed_feat, 'diheds.pickl')
+save_trajs(dihed_trajs, 'diheds', meta)
+save_generic(dihed_feat, 'diheds.pickl')

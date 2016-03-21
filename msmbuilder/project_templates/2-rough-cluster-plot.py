@@ -1,13 +1,15 @@
+from subprocess import run
+
+import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+
+from msmbuilder.dataset2 import load_trajs
 
 sns.set_style('ticks')
 colors = sns.color_palette()
 
-from msmbuilder.dataset2 import load
-import numpy as np
-
-meta, ktrajs = load("meta.pandas.pickl", "rmsd-ktrajs")
+meta, ktrajs = load_trajs('rmsd-ktrajs')
 kxx = np.concatenate(list(ktrajs.values()))
 
 
@@ -39,8 +41,10 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_num_per_state(ax)
 fig.tight_layout()
 fig.savefig('rmsd-ktrajs-statecount.pdf')
+run(['xdg-open', 'rmsd-ktrajs-statecount.pdf'])
 
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_num_per_state_hist(ax)
 fig.tight_layout()
 fig.savefig('rmsd-ktrajs-statehist.pdf')
+run(['xdg-open', 'rmsd-ktrajs-statehist.pdf'])

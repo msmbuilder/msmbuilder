@@ -5,6 +5,8 @@ import re
 import mdtraj as md
 import pandas as pd
 
+from msmbuilder.dataset2 import save_meta
+
 
 def parse_fn(fn):
     # Modify this function!
@@ -25,7 +27,7 @@ def parse_fn(fn):
 
 meta = pd.DataFrame(parse_fn(fn) for fn in glob.glob("data/*.xtc"))
 meta = meta.set_index('run').sort_index()
-meta.to_pickle("meta.pandas.pickl")
+save_meta(meta)
 
 print(meta.head())
 print("...")

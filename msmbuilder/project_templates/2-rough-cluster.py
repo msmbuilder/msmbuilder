@@ -1,9 +1,8 @@
 import mdtraj as md
-import pandas as pd
 
 from msmbuilder.cluster import MiniBatchKMedoids
-from msmbuilder.utils import dump
-from msmbuilder.dataset2 import save
+from msmbuilder.dataset2 import (load_meta, preload_tops,
+                                 save_trajs, save_generic)
 
 # Set parameters here
 kmed = MiniBatchKMedoids(
@@ -12,18 +11,8 @@ kmed = MiniBatchKMedoids(
 )
 
 # Load
-meta = pd.read_pickle("meta.pandas.pickl")
-
-
-def preload_tops():
-    top_fns = set(meta['top_fn'])
-    tops = {}
-    for tfn in top_fns:
-        tops[tfn] = md.load(tfn)
-    return tops
-
-
-tops = preload_tops()
+meta = load_meta()
+tops = preload_tops(meta)
 
 
 def trajectories(stride=1):
@@ -54,5 +43,5 @@ for i, traj in trajectories():
 print(kmed.summarize())
 
 # Save
-save(meta, ktrajs, 'rmsd-ktrajs')
-dump(kmed, 'rmsd-kmedoids.pickl')
+save_trajs(ktrajs, 'rmsd-ktrajs', meta)
+save_generic(kmed, 'rmsd-kmedoids.pickl')
