@@ -29,9 +29,6 @@ class SparseTICA(tICA):
     of the input features which decorrelate most slowly. These can be
     used for feature selection and/or dimensionality reduction.
 
-    This model requires the additional python package `cvxpy`, which can be
-    installed from `PyPI <https://pypi.python.org/pypi/cvxpy/>`_.
-
     .. warning::
 
         This model is currently  experimental, and may undergo significant
@@ -114,7 +111,7 @@ class SparseTICA(tICA):
     ----------
     .. [1] McGibbon, R. T. and V. S. Pande "Identification of sparse, slow
        reaction coordinates from molular dynamics simulations" In preparation.
-    .. [1] Sriperumbudur, B. K., D. A. Torres, and G. R. Lanckriet.
+    .. [2] Sriperumbudur, B. K., D. A. Torres, and G. R. Lanckriet.
        "A majorization-minimization approach to the sparse generalized eigenvalue
        problem." Machine learning 85.1-2 (2011): 3-39.
     .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
