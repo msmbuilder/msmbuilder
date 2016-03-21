@@ -80,7 +80,6 @@ class SetUpProject(Command):
     def start(self):
         env = Environment(loader=PackageLoader('msmbuilder',
                                                'project_templates'))
-        print(env.list_templates())
         for templ_fn in env.list_templates():
             ext = templ_fn.split('.')[-1]
             if ext not in self.write_funcs:
