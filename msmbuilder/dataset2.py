@@ -1,3 +1,8 @@
+# Author: Matthew Harrigan <matthew.harrigan@outlook.com>
+# Contributors:
+# Copyright (c) 2016, Stanford University
+# All rights reserved.
+
 import os
 import pickle
 import shutil
