@@ -7,8 +7,8 @@ colors = sns.color_palette()
 from msmbuilder.dataset2 import load
 import numpy as np
 
-meta, vmtrajs = load('meta.pandas.pickl', 'vmtrajs')
-vmxx = np.concatenate(list(vmtrajs.values()))
+meta, ftrajs = load('meta.pandas.pickl', 'diheds')
+vmxx = np.concatenate(list(ftrajs.values()))
 
 
 def plot_box(ax):
@@ -28,4 +28,4 @@ def plot_box(ax):
 fig, ax = plt.subplots(figsize=(15, 5))
 plot_box(ax)
 fig.tight_layout()
-fig.savefig("vmtrajs-box.pdf")
+fig.savefig("ftrajs-box.pdf")

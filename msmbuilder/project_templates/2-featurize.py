@@ -2,14 +2,15 @@ import mdtraj as md
 import pandas as pd
 
 from msmbuilder.dataset2 import save
-from msmbuilder.featurizer import VonMisesFeaturizer
+from msmbuilder.featurizer import DihedralFeaturizer
 from msmbuilder.utils import dump
 
-vmfeat = VonMisesFeaturizer()
+dihed_feat = DihedralFeaturizer()
 
 meta = pd.read_pickle("meta.pandas.pickl")
 
 
+# TODO: refactor into dataset2
 def preload_tops():
     top_fns = set(meta['top_fn'])
     tops = {}
@@ -21,6 +22,7 @@ def preload_tops():
 tops = preload_tops()
 
 
+# TODO: refactor into dataset2
 def trajectories(stride=1):
     for i, row in meta.iterrows():
         yield i, md.load(row['traj_fn'],
@@ -28,12 +30,12 @@ def trajectories(stride=1):
                          stride=stride)
 
 
-vmtrajs = {}
+dihed_trajs = {}
 for i, traj in trajectories():
-    vmtrajs[i] = vmfeat.partial_transform(traj)
+    dihed_trajs[i] = dihed_feat.partial_transform(traj)
 
-print(vmfeat.summarize())
+print(dihed_feat.summarize())
 
 # Save
-save(meta, vmtrajs, 'vmtrajs')
-dump(vmfeat, 'vmfeat.pickl')
+save(meta, dihed_trajs, 'diheds')
+dump(dihed_feat, 'diheds.pickl')

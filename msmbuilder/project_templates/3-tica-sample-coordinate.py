@@ -7,7 +7,7 @@ meta, ttrajs = load("meta.pandas.pickl", 'ttrajs')
 
 inds = sample_dimension(ttrajs,
                         dimension=0,
-                        n_frames=20, scheme='random')
+                        n_frames=200, scheme='random')
 
 dump(inds, "tica-dimension-0-inds.pickl")
 
@@ -28,4 +28,5 @@ for traj_i, frame_i in inds:
     else:
         traj += frame
 
+# TODO: backup
 traj.save("tica-dimension-0.xtc")

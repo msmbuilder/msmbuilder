@@ -3,12 +3,12 @@ from msmbuilder.utils import dump
 from msmbuilder.decomposition import tICA
 
 tica = tICA(n_components=5, lag_time=10, kinetic_mapping=True)
-meta, vmtrajs = load("meta.pandas.pickl", "vmtrajs")
+meta, ftrajs = load("meta.pandas.pickl", "diheds")
 
-tica.fit(vmtrajs.values())
+tica.fit(ftrajs.values())
 
 ttrajs = {}
-for k, v in vmtrajs.items():
+for k, v in ftrajs.items():
     ttrajs[k] = tica.partial_transform(v)
 
 save(meta, ttrajs, "ttrajs")

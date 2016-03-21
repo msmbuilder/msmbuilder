@@ -7,6 +7,8 @@ import pandas as pd
 
 
 def parse_fn(fn):
+    # Modify this function!
+    # Include any and all metadata you want
     ma = re.search(r"trajectory-([0-9]+)\.xtc", fn)
     run = int(ma.group(1))
     meta = {

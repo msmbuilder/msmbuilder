@@ -1,5 +1,6 @@
 import seaborn as sns
 from matplotlib import pyplot as plt
+from subprocess import run
 
 sns.set_style('ticks')
 colors = sns.color_palette()
@@ -25,3 +26,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_heatmap(ax)
 fig.tight_layout()
 fig.savefig('tica-heatmap.pdf')
+run(['xdg-open', 'tica-heatmap.pdf'])

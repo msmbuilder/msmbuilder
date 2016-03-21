@@ -13,6 +13,7 @@ from jinja2 import Environment, PackageLoader
 import os
 import stat
 import textwrap
+from datetime import datetime
 
 
 def chmod_plus_x(fn):
@@ -42,6 +43,7 @@ class SetUpProject(Command):
                     header=self.get_header(),
                     topology_fn='data/fs-peptide.pdb',
                     timestep=10,
+                    date=datetime.now().isoformat(),
                 ))
 
             if templ_fn.endswith(".sh"):
