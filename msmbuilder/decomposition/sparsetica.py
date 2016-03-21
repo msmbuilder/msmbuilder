@@ -37,6 +37,15 @@ class SparseTICA(tICA):
         This model is currently  experimental, and may undergo significant
         changes or bug fixes in upcoming releases.
 
+    .. note::
+
+        Unlike (dense) tICA, the sparse solver isn't guaranteed to find
+        the best global solution. The eigenvalues (timescales) aren't
+        necessarily going to be found from slowest to fastest. Although
+        this class sorts by eigenvalue after running the solver, by
+        increasing n_components, you could theoretically find more slow
+        processes.
+
     Parameters
     ----------
     n_components : int
