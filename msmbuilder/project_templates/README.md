@@ -10,3 +10,6 @@ Keep notes about your project here.
  - meta - pandas dataframe of trajectory metadata
  - ftrajs - dictionary of featurized trajectories
  - ttrajs - dictionary of dimensionality-reduced, tica trajectories
+ - ktrajs - cluster indices
+ - microktrajs - trimmed cluster indices
+ - macroktrajs - macrostate indices
