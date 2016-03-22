@@ -537,37 +537,66 @@ class VonMisesFeaturizer(Featurizer):
                              (str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the von Mises features."""
-        x = []
-        for a in self.types:
-            func = getattr(md, 'compute_%s' % a)
-            aind, _ = func(traj)
-            n = len(aind)
+        """Return a list of dictionaries describing the dihderal features.
 
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
 
-            bigclass = ["dihedral"] * n * self.n_bins
-            smallclass = [a] * n * self.n_bins
-            aind = list(aind) * self.n_bins
-            resnames = resnames * self.n_bins
-            resSeq = resSeq * self.n_bins
-            resid = resid * self.n_bins
-            otherInfo = n * (self.n_bins*"vm%s," %
-                             tuple(range(self.n_bins))).split(',')[:-1]
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Dihedral
+                - featuregroup: The bin index(0..nbins-1)
+                and dihedral type(phi/psi/chi1 etc )
+        """
+        feature_descs = []
+        for dihed_type in self.types:
+            # TODO: Don't recompute dihedrals, just get the indices
+            func = getattr(md, 'compute_%s' % dihed_type)
+            # ainds is a list of four-tuples of atoms participating
+            # in each dihedral
+            aind_tuples, _ = func(traj)
 
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
+            top = traj.topology
+            bin_info =[]
+            resseqs = []
+            resids = []
+            resnames = []
+            all_aind = []
+            #its phi1-bin0, phi1-bin1...phi2-bin0
+            for ainds in aind_tuples:
+                for bin_index in range(self.n_bins):
+                    resid = set(top.atom(ai).residue.index for ai in ainds)
+                    all_aind.append(ainds)
+                    bin_info += ["vm%s"%bin_index]
+                    resids += [list(resid)]
+                    resseqs += [[top.residue(ri).resSeq for ri in resid]]
+                    resnames += [[top.residue(ri).name for ri in resid]]
 
-        return x
+            zippy = zip(bin_info, all_aind, resseqs, resids, resnames)
+            #fast check to make sure we have the right number of features
+            assert len(bin_info)==len(aind_tuples) * self.n_bins
+            for info in zippy:
+                bin_info, ainds, resseq, resid, resname = info
+                feature_descs += [dict(
+                    resnames=resname,
+                    atominds=ainds,
+                    resseqs=resseq,
+                    resids=resid,
+                    featurizer="Vonmises",
+                    featuregroup="{}-{}".format(bin_info, dihed_type),
+                )]
+        return feature_descs
+
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
