@@ -94,6 +94,9 @@ def test_von_mises_featurizer():
     for frame in all_phi:
         for dihedral_value in frame:
             all_res.extend(vm.pdf(dihedral_value,loc=feat.loc, kappa=feat.kappa))
+
+    #this checks 10 random dihedrals to make sure that they appear in the right columns
+    #for the vonmises bins
     for k in range(10):
         rndint=np.random.randint(np.shape(X_all[0])[0])
         assert(X_all[0][rndint,:10]==all_res[rndint*10:10+rndint*10]).all()
