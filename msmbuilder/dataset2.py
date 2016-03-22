@@ -114,6 +114,7 @@ def save_meta(meta, meta_fn='meta.pandas.pickl'):
     meta_fn : str
         The filename
     """
+    backup(meta_fn)
     pd.to_pickle(meta, meta_fn)
 
 
