@@ -20,7 +20,7 @@ def plot_lengths(ax):
     ax.set_xlabel("Lenths / ns", fontsize=16)
     ax.set_ylabel("Count", fontsize=16)
 
-    total_label = ("Total length: {us}"
+    total_label = ("Total length: {us:.2e}"
                    .format(us=np.sum(lengths_ns) / 1000))
     total_label += r" / $\mathrm{\mu s}$"
     ax.annotate(total_label,

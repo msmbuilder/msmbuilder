@@ -35,12 +35,7 @@ def parse_fn(fn):
         'step_ps': {{timestep}},
     }
     with md.open(fn) as f:
-        try:
-            meta['nframes'] = len(f)
-        except Exception as e:
-            print("WARNING: {proj} {run} {clone} {gen} "
-                  "could not open xtc file: {e}"
-                  .format(e=e, **meta))
+        meta['nframes'] = len(f)
     return meta
 
 

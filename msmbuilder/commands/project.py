@@ -36,8 +36,9 @@ class SetUpProject(Command):
                      help="Write IPython / Jupyter notebooks instead of "
                           "Python scripts")
 
-    fah = argument('--fah', default=False, action='store_true',
-                   help="Expect FAH-style trajectory input.")
+    flavor = argument('--flavor', choices=['generic', 'fah'],
+                      default='generic',
+                      help="Which flavor of scripts to write.")
 
     steps = argument('--steps', nargs='+', type=int, default=[],
                      help="Only make files for these steps in the process.")
@@ -56,11 +57,7 @@ class SetUpProject(Command):
             # remove xdg-open
             self.write_funcs['py'] = self.write_ipython
 
-        if args.fah:
-            self.flavor = 'fah'
-        else:
-            self.flavor = 'generic'
-
+        self.flavor = args.flavor
         self.steps = args.steps
 
     def get_header(self):
