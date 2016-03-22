@@ -1,6 +1,7 @@
 import numpy as np
 from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq
+from scipy.stats import vonmises as vm
 
 from msmbuilder.example_datasets import fetch_alanine_dipeptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
@@ -84,6 +85,21 @@ def test_von_mises_featurizer():
     X_all = featurizer.transform(trajectories)
     assert X_all[0].shape == (n_frames, 20), ("unexpected shape returned: (%s, %s)" %
                                               X_all[0].shape)
+
+    #test to make sure results are being put in the right order
+    feat = VonMisesFeaturizer(["phi"], n_bins=10)
+    _, all_phi = md.compute_psi(trajectories[0])
+    X_all = feat.transform(trajectories)
+    all_res=[]
+    for frame in all_phi:
+        for dihedral_value in frame:
+            all_res.extend(vm.pdf(dihedral_value,loc=feat.loc, kappa=feat.kappa))
+
+    for k in range(10):
+        rndint=np.random.randint(np.shape(X_all[0])[0])
+        X_all[0][rndint,:]==all_res[rndint*10:10+rndint*10]
+        assert (X_all == all_res).all()
+
 
 
 def test_slicer():
