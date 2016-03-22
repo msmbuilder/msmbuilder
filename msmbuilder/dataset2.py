@@ -32,7 +32,7 @@ def backup(fn):
 def get_fn(base_fn, key):
     dfmt = "{}"
     ffmt = "{}.npy"
-    if isinstance(key, tuple):  # TODO: check multiindex
+    if isinstance(key, tuple):
         paths = [dfmt.format(k) for k in key[:-1]]
         paths += [ffmt.format(key[-1])]
         return os.path.join(base_fn, *paths)

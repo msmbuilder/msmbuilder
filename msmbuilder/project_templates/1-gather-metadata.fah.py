@@ -22,7 +22,14 @@ def parse_fn(fn):
     ma_prc = re.search(r"(PROJ(\d+))/RUN(\d+)/CLONE(\d+)", fn)
     ma_gen1 = re.search(r"frame(\d+)\.xtc", fn)
     ma_gen2 = re.search(r"results-(\d\d\d)/positions\.xtc", fn)
-    ma_gen = ma_gen1 if ma_gen1 is not None else ma_gen2
+    if ma_gen1 is not None:
+        overlapping_frame = True
+        ma_gen = ma_gen1
+    elif ma_gen2 is not None:
+        overlapping_frame = False
+        ma_gen = ma_gen2
+    else:
+        raise ValueError()
     meta = {
         'projstr': ma_prc.group(1),
         'proj': int(ma_prc.group(2)),
@@ -33,6 +40,7 @@ def parse_fn(fn):
         'top_fn': "{{topology_fn}}",
         'top_abs_fn': os.path.abspath("{{topology_fn}}"),
         'step_ps': {{timestep}},
+        'overlapping_frame': overlapping_frame,
     }
     with md.open(fn) as f:
         meta['nframes'] = len(f)
@@ -48,8 +56,7 @@ def chain_glob():
 
 ## Construct and save the dataframe
 meta = pd.DataFrame(parse_fn(fn) for fn in chain_glob())
-meta = meta.set_index('run').sort_index()
-# TODO: groupby
+meta = meta.set_index(['proj', 'run', 'clone', 'gen']).sort_index()
 save_meta(meta)
 
 ## Print a summary
