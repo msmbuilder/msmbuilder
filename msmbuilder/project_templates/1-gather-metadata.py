@@ -8,7 +8,7 @@ import pandas as pd
 from msmbuilder.dataset2 import save_meta
 
 
-## Set up parsing of functions
+## Set up parsing of filenames
 def parse_fn(fn):
     # Modify this function!
     # Include any and all metadata you want
