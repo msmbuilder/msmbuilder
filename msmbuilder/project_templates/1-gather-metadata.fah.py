@@ -12,8 +12,8 @@ xa4_glob = 'RUN*/CLONE*/frame*.xtc'
 x21_glob = 'RUN*/CLONE*/results-???/positions.xtc'
 
 projects = {
-    'PROJ9700': xa4_glob,
-    'PROJ9701': x21_glob,
+    'PROJ9704': x21_glob,
+    'PROJ9752': xa4_glob,
 }
 
 
@@ -41,7 +41,7 @@ def parse_fn(fn):
 
 ## Find multiple projects
 def chain_glob():
-    for proj, globstr in projects:
+    for proj, globstr in projects.items():
         yield from glob.iglob("{proj}/{globstr}"
                               .format(proj=proj, globstr=globstr))
 
