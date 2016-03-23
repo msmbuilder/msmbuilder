@@ -3,7 +3,7 @@ from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 
-from msmbuilder.example_datasets import fetch_alanine_dipeptide
+from msmbuilder.example_datasets import fetch_alanine_dipeptide, fetch_fs_peptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
     RMSDFeaturizer, VonMisesFeaturizer, Slicer
@@ -21,7 +21,7 @@ def test_function_featurizer():
     f = FunctionFeaturizer(func, func_args={"indices": atom_ind})
     res1 = f.transform([trj0])
 
-    # test with function in a fucntion without any args
+    # test with function in a function without any args
     def funcception(trj):
         return compute_phi(trj)[1]
 
@@ -86,6 +86,8 @@ def test_von_mises_featurizer():
     assert X_all[0].shape == (n_frames, 20), ("unexpected shape returned: (%s, %s)" %
                                               X_all[0].shape)
 
+    dataset = fetch_fs_peptide()
+    trajectories = dataset["trajectories"]
     #test to make sure results are being put in the right order
     feat = VonMisesFeaturizer(["phi","psi"], n_bins=10)
     _, all_phi = compute_phi(trajectories[0])
@@ -95,11 +97,25 @@ def test_von_mises_featurizer():
         for dihedral_value in frame:
             all_res.extend(vm.pdf(dihedral_value,loc=feat.loc, kappa=feat.kappa))
 
+    print(len(all_res))
+
     #this checks 10 random dihedrals to make sure that they appear in the right columns
     #for the vonmises bins
-    for k in range(10):
-        rndint=np.random.randint(np.shape(X_all[0])[0])
-        assert(X_all[0][rndint,:10]==all_res[rndint*10:10+rndint*10]).all()
+    n_phi = all_phi.shape[1]
+    for k in range(5):
+        #pick a random phi dihedral
+        rndint=np.random.choice(range(n_phi))
+        #figure out where we expect it to be in X_all
+        indices_to_expect =[]
+        for i in range(10):
+            indices_to_expect += [n_phi*i + rndint]
+
+        #we know the results in all_res are dihedral1(bin1-bin10) dihedral2(bin1 to bin10)
+        # we are checking if X is alldihedrals(bin1) then all dihedrals(bin2)
+
+        expected_res = all_res[rndint*10:10+rndint*10]
+
+        assert(np.array([X_all[0][0,i] for i in indices_to_expect])==expected_res).all()
 
 
 

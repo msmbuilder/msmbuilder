@@ -21,6 +21,31 @@ from sklearn.externals.joblib import Parallel, delayed
 from msmbuilder import libdistance
 from ..base import BaseEstimator
 
+def zippy_maker(aind_tuples, top):
+    resseqs = []
+    resids = []
+    resnames = []
+    for ainds in aind_tuples:
+        resid = set(top.atom(ai).residue.index for ai in ainds)
+        resids += [list(resid)]
+        resseqs += [[top.residue(ri).resSeq for ri in resid]]
+        resnames += [[top.residue(ri).name for ri in resid]]
+
+    return zip(aind_tuples, resseqs, resids, resnames)
+
+def dict_maker(zippy, feature_descs):
+    for featurizer, featuregroup, other_info, feature_info in zippy:
+        ainds, resseq, resid, resname = feature_info
+        feature_descs += [dict(
+            resnames=resname,
+            atominds=ainds,
+            resseqs=resseq,
+            resids=resid,
+            featurizer=featurizer,
+            featuregroup="{}".format(featuregroup),
+            otherinfo ="{}".format(other_info)
+        )]
+    return feature_descs
 
 def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
     """Load and featurize many trajectory files.
@@ -70,7 +95,6 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
-
 
 class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
@@ -434,33 +458,15 @@ class DihedralFeaturizer(Featurizer):
             # ainds is a list of four-tuples of atoms participating
             # in each dihedral
             aind_tuples, _ = func(traj)
-
             top = traj.topology
-            resseqs = []
-            resids = []
-            resnames = []
-            for ainds in aind_tuples:
-                resid = set(top.atom(ai).residue.index for ai in ainds)
-                resids += [list(resid)]
-                resseqs += [[top.residue(ri).resSeq for ri in resid]]
-                resnames += [[top.residue(ri).name for ri in resid]]
+            zippy = zippy_maker(aind_tuples, top)
 
-            zippy = zip(aind_tuples, resseqs, resids, resnames)
             if self.sincos:
-                zippy = itertools.product(['sin', 'cos'], zippy)
+                zippy = itertools.product(['Dihedral'],[dihed_type], ['sin', 'cos'], zippy)
             else:
-                zippy = itertools.product(['nosincos'], zippy)
+                zippy = itertools.product(['Dihedral'],[dihed_type], ['nosincos'], zippy)
 
-            for sincos, info in zippy:
-                ainds, resseq, resid, resname = info
-                feature_descs += [dict(
-                    resnames=resname,
-                    atominds=ainds,
-                    resseqs=resseq,
-                    resids=resid,
-                    featurizer="Dihedral",
-                    featuregroup="{}-{}".format(sincos, dihed_type),
-                )]
+            feature_descs = dict_maker(zippy, feature_descs)
 
         return feature_descs
 
@@ -572,29 +578,24 @@ class VonMisesFeaturizer(Featurizer):
             resids = []
             resnames = []
             all_aind = []
-            #its phi1-bin0, phi1-bin1...phi2-bin0
-            for ainds in aind_tuples:
-                for bin_index in range(self.n_bins):
+            #its bin0---all phis bin1--all_phis
+            for bin_index in range(self.n_bins):
+                for ainds in aind_tuples:
                     resid = set(top.atom(ai).residue.index for ai in ainds)
                     all_aind.append(ainds)
-                    bin_info += ["vm%s"%bin_index]
+                    bin_info += ["bin-%d"%bin_index]
                     resids += [list(resid)]
                     resseqs += [[top.residue(ri).resSeq for ri in resid]]
                     resnames += [[top.residue(ri).name for ri in resid]]
 
-            zippy = zip(bin_info, all_aind, resseqs, resids, resnames)
+            zippy = zip(all_aind, resseqs, resids, resnames)
             #fast check to make sure we have the right number of features
             assert len(bin_info) == len(aind_tuples) * self.n_bins
-            for info in zippy:
-                bin_info, ainds, resseq, resid, resname = info
-                feature_descs += [dict(
-                    resnames=resname,
-                    atominds=ainds,
-                    resseqs=resseq,
-                    resids=resid,
-                    featurizer="Vonmises",
-                    featuregroup="{}-{}".format(bin_info, dihed_type),
-                )]
+
+            zippy = itertools.product(["VonMises"], [dihed_type], bin_info, zippy)
+
+            feature_descs = dict_maker(zippy, feature_descs)
+
         return feature_descs
 
 
@@ -623,9 +624,12 @@ class VonMisesFeaturizer(Featurizer):
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
             _, y = func(traj)
-            x.extend(vm.pdf(y[..., None], loc=self.loc,
-                            kappa=self.kappa).reshape(1, -1,
-                                                      self.n_bins*y.shape[1]))
+            res = vm.pdf(y[..., np.newaxis],
+                         loc=self.loc, kappa=self.kappa)
+            #we reshape the results using a  Fortran-like index order,
+            #so that it goes over the columns first. This should put the results
+            #phi dihedrals(all bin0 then all bin1), psi dihedrals(all_bin1)
+            x.extend(np.reshape(res, (1, -1, self.n_bins*y.shape[1]), order='F'))
         return np.hstack(x)
 
 
@@ -682,8 +686,6 @@ class AlphaAngleFeaturizer(Featurizer):
             x.append(result)
         return np.hstack(x)
 
-
-
     def describe_features(self, traj):
         """Return a list of dictionaries describing the dihderal features.
 
@@ -717,31 +719,15 @@ class AlphaAngleFeaturizer(Featurizer):
                               "using AlphaAngleFeaturizer.")
 
         aind_tuples = self.atom_indices
-        resseqs = []
-        resids = []
-        resnames = []
-        for ainds in aind_tuples:
-            resid = set(top.atom(ai).residue.index for ai in ainds)
-            resids += [list(resid)]
-            resseqs += [[top.residue(ri).resSeq for ri in resid]]
-            resnames += [[top.residue(ri).name for ri in resid]]
 
-        zippy = zip(aind_tuples, resseqs, resids, resnames)
+        zippy = zippy_maker(aind_tuples, top)
+
         if self.sincos:
-            zippy = itertools.product(['sin', 'cos'], zippy)
+            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['sin', 'cos'], zippy)
         else:
-            zippy = itertools.product(['nosincos'], zippy)
+            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['nosincos'], zippy)
 
-        for sincos, info in zippy:
-            ainds, resseq, resid, resname = info
-            feature_descs += [dict(
-                resnames=resname,
-                atominds=ainds,
-                resseqs=resseq,
-                resids=resid,
-                featurizer="AlphaAngle",
-                featuregroup="{}".format(sincos),
-            )]
+        feature_descs = dict_maker(zippy, feature_descs)
 
         return feature_descs
 
@@ -812,31 +798,14 @@ class KappaAngleFeaturizer(Featurizer):
                              "with fewer than 5 alpha carbon"
                              "using KappaAngle Featurizer")
         aind_tuples = self.atom_indices
-        resseqs = []
-        resids = []
-        resnames = []
-        for ainds in aind_tuples:
-            resid = set(top.atom(ai).residue.index for ai in ainds)
-            resids += [list(resid)]
-            resseqs += [[top.residue(ri).resSeq for ri in resid]]
-            resnames += [[top.residue(ri).name for ri in resid]]
-
-        zippy = zip(aind_tuples, resseqs, resids, resnames)
+        zippy = zippy_maker(aind_tuples, top)
         if self.cos:
-            zippy = itertools.product(['cos'], zippy)
+            zippy = itertools.product(["Kappa"],["N/A"], ['cos'], zippy)
         else:
-            zippy = itertools.product(['nocos'], zippy)
+            zippy = itertools.product(["Kappa"],["N/A"], ['nocos'], zippy)
 
-        for cos, info in zippy:
-            ainds, resseq, resid, resname = info
-            feature_descs += [dict(
-                resnames=resname,
-                atominds=ainds,
-                resseqs=resseq,
-                resids=resid,
-                featurizer="Kappa",
-                featuregroup="{}".format(cos),
-            )]
+        feature_descs = dict_maker(zippy, feature_descs)
+
 
         return feature_descs
 
@@ -977,19 +946,12 @@ class ContactFeaturizer(Featurizer):
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
 
-        zippy = itertools.product([self.scheme],
+        zippy = itertools.product(["Contact"], [self.scheme],
+                                  ["Ignore_Protein {}".format(self.ignore_nonprotein)],
                                   zip(aind, resseqs, residue_indices, resnames))
 
-        for schm, info in zippy:
-            ainds, resseq, resid, resname = info
-            feature_descs += [dict(
-                    resnames=resname,
-                    atominds=ainds,
-                    resseqs=resseq,
-                    resids=resid,
-                    featurizer="Contact-Ignore_Protein {}".format(self.ignore_nonprotein),
-                    featuregroup="{}".format(schm),
-            )]
+        feature_descs = dict_maker(zippy, feature_descs)
+
         return feature_descs
 
 
