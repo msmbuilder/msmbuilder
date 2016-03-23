@@ -34,7 +34,7 @@ def make_gens_file(trj_paths, featurized_trjs, topology, stride, padded_labels, 
     for i in states:
         choices = np.where(padded_labels == i)
         for j in range(n_samples):
-            select = random.choice(range(len(choices)))
+            select = random.choice(range(len(choices[0])))
             choice = [choices[0][select], choices[1][select]]
             state_frame = featurized_trjs[choice[0]][choice[1]]
             if j == 0:
