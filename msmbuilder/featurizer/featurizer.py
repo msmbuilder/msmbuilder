@@ -584,7 +584,7 @@ class VonMisesFeaturizer(Featurizer):
 
             zippy = zip(bin_info, all_aind, resseqs, resids, resnames)
             #fast check to make sure we have the right number of features
-            assert len(bin_info)==len(aind_tuples) * self.n_bins
+            assert len(bin_info) == len(aind_tuples) * self.n_bins
             for info in zippy:
                 bin_info, ainds, resseq, resid, resname = info
                 feature_descs += [dict(
@@ -710,39 +710,40 @@ class AlphaAngleFeaturizer(Featurizer):
         # fill in the atom indices using just the first frame
         self.partial_transform(traj[0])
         top = traj.topology
-        if self.atom_indices is not None:
-            aind_tuples = self.atom_indices
-            resseqs = []
-            resids = []
-            resnames = []
-            for ainds in aind_tuples:
-                resid = set(top.atom(ai).residue.index for ai in ainds)
-                resids += [list(resid)]
-                resseqs += [[top.residue(ri).resSeq for ri in resid]]
-                resnames += [[top.residue(ri).name for ri in resid]]
+        if self.atom_indices is None:
+            raise ValueError("Cannot describe features for "
+                             "trajectories with "
+                              "fewer than 4 alpha carbon"
+                              "using AlphaAngleFeaturizer.")
 
-            zippy = zip(aind_tuples, resseqs, resids, resnames)
-            if self.sincos:
-                zippy = itertools.product(['sin', 'cos'], zippy)
-            else:
-                zippy = itertools.product(['nosincos'], zippy)
+        aind_tuples = self.atom_indices
+        resseqs = []
+        resids = []
+        resnames = []
+        for ainds in aind_tuples:
+            resid = set(top.atom(ai).residue.index for ai in ainds)
+            resids += [list(resid)]
+            resseqs += [[top.residue(ri).resSeq for ri in resid]]
+            resnames += [[top.residue(ri).name for ri in resid]]
 
-            for sincos, info in zippy:
-                ainds, resseq, resid, resname = info
-                feature_descs += [dict(
-                    resnames=resname,
-                    atominds=ainds,
-                    resseqs=resseq,
-                    resids=resid,
-                    featurizer="AlphaAngle",
-                    featuregroup="{}".format(sincos),
-                )]
-
-            return feature_descs
+        zippy = zip(aind_tuples, resseqs, resids, resnames)
+        if self.sincos:
+            zippy = itertools.product(['sin', 'cos'], zippy)
         else:
-            raise UserWarning("Cannot describe features for trajectories with "
-                              "fewer than 4 alpha carbon\
-                              using AlphaAngleFeaturizer")
+            zippy = itertools.product(['nosincos'], zippy)
+
+        for sincos, info in zippy:
+            ainds, resseq, resid, resname = info
+            feature_descs += [dict(
+                resnames=resname,
+                atominds=ainds,
+                resseqs=resseq,
+                resids=resid,
+                featurizer="AlphaAngle",
+                featuregroup="{}".format(sincos),
+            )]
+
+        return feature_descs
 
 
 class KappaAngleFeaturizer(Featurizer):
@@ -806,39 +807,39 @@ class KappaAngleFeaturizer(Featurizer):
         # fill in the atom indices using just the first frame
         self.partial_transform(traj[0])
         top = traj.topology
-        if self.atom_indices is not None:
-            aind_tuples = self.atom_indices
-            resseqs = []
-            resids = []
-            resnames = []
-            for ainds in aind_tuples:
-                resid = set(top.atom(ai).residue.index for ai in ainds)
-                resids += [list(resid)]
-                resseqs += [[top.residue(ri).resSeq for ri in resid]]
-                resnames += [[top.residue(ri).name for ri in resid]]
+        if self.atom_indices is None:
+            raise ValueError("Cannot describe features for trajectories "
+                             "with fewer than 5 alpha carbon"
+                             "using KappaAngle Featurizer")
+        aind_tuples = self.atom_indices
+        resseqs = []
+        resids = []
+        resnames = []
+        for ainds in aind_tuples:
+            resid = set(top.atom(ai).residue.index for ai in ainds)
+            resids += [list(resid)]
+            resseqs += [[top.residue(ri).resSeq for ri in resid]]
+            resnames += [[top.residue(ri).name for ri in resid]]
 
-            zippy = zip(aind_tuples, resseqs, resids, resnames)
-            if self.cos:
-                zippy = itertools.product(['cos'], zippy)
-            else:
-                zippy = itertools.product(['nocos'], zippy)
-
-            for cos, info in zippy:
-                ainds, resseq, resid, resname = info
-                feature_descs += [dict(
-                    resnames=resname,
-                    atominds=ainds,
-                    resseqs=resseq,
-                    resids=resid,
-                    featurizer="Kappa",
-                    featuregroup="{}".format(cos),
-                )]
-
-
-            return feature_descs
+        zippy = zip(aind_tuples, resseqs, resids, resnames)
+        if self.cos:
+            zippy = itertools.product(['cos'], zippy)
         else:
-            raise UserWarning("Cannot describe features for trajectories with fewer than 5 alpha carbon\
-                              using KappaAngle Featurizer")
+            zippy = itertools.product(['nocos'], zippy)
+
+        for cos, info in zippy:
+            ainds, resseq, resid, resname = info
+            feature_descs += [dict(
+                resnames=resname,
+                atominds=ainds,
+                resseqs=resseq,
+                resids=resid,
+                featurizer="Kappa",
+                featuregroup="{}".format(cos),
+            )]
+
+        return feature_descs
+
 
 
 class SASAFeaturizer(Featurizer):
@@ -962,7 +963,7 @@ class ContactFeaturizer(Featurizer):
         """
         feature_descs = []
         # fill in the atom indices using just the first frame
-        distances, residue_indices = md.compute_contacts(traj, self.contacts,
+        distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
                                                          self.ignore_nonprotein
                                                          )
@@ -976,10 +977,8 @@ class ContactFeaturizer(Featurizer):
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
 
-
-        zippy = zip(aind, resseqs, residue_indices, resnames)
-
-        zippy = itertools.product([self.scheme], zippy)
+        zippy = itertools.product([self.scheme],
+                                  zip(aind, resseqs, residue_indices, resnames))
 
         for schm, info in zippy:
             ainds, resseq, resid, resname = info
