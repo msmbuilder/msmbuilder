@@ -593,7 +593,10 @@ class VonMisesFeaturizer(Featurizer):
             #fast check to make sure we have the right number of features
             assert len(bin_info) == len(aind_tuples) * self.n_bins
 
-            zippy = itertools.product(["VonMises"], [dihed_type], bin_info, zippy)
+            zippy = zip(["VonMises"]*len(bin_info),
+                        [dihed_type]*len(bin_info),
+                        bin_info,
+                        zippy)
 
             feature_descs.extend(dict_maker(zippy))
 

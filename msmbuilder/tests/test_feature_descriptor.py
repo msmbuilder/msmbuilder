@@ -7,7 +7,7 @@ from scipy.stats import vonmises as vm
 
 from msmbuilder.example_datasets import fetch_fs_peptide
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer,\
-    KappaAngleFeaturizer,ContactFeaturizer
+    KappaAngleFeaturizer,ContactFeaturizer,VonMisesFeaturizer
 
 
 """
@@ -124,6 +124,30 @@ def test_KappaFeaturizer_describe_features():
             feature_value = func(feature_value)
 
         assert (features[0][:,f_index] == feature_value.flatten()).all()
+
+def test_VonMisesFeaturizer_describe_features():
+
+    feat = VonMisesFeaturizer()
+
+    rnd_traj = np.random.randint(len(trajectories))
+
+    features = feat.transform([trajectories[rnd_traj]])
+
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+
+    for f in range(25):
+        f_index = np.random.choice(len(df))
+
+        atom_inds = df.iloc[f_index].atominds
+        bin_index = int(df.iloc[f_index].otherinfo.strip('bin-'))
+
+        dihedral_value = md.compute_dihedrals(trajectories[rnd_traj],[atom_inds])
+
+        feature_value = [vm.pdf(i, loc=feat.loc, kappa=feat.kappa)[bin_index]
+                         for i in dihedral_value]
+
+        assert (features[0][:,f_index] == feature_value).all()
+
 
 def test_ContactFeaturizer_describe_features():
 
