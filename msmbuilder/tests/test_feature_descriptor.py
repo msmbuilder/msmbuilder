@@ -1,7 +1,5 @@
 import numpy as np
 import mdtraj as md
-from mdtraj import compute_dihedrals, compute_phi
-from mdtraj.testing import eq
 import pandas as pd
 from scipy.stats import vonmises as vm
 

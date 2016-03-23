@@ -1,7 +1,8 @@
 # Author: Kyle A. Beauchamp <kyleabeauchamp@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
 #               Matthew Harrigan <matthew.p.harrigan@gmail.com>
-#               Brooke Husic <brookehusic@gmail.com>
+#               Brooke Husic <brookehusic@gmail.com>,
+#               Muneeb Sultan <msultan@stanford.edu>
 # Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
