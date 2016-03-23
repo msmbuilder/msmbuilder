@@ -33,7 +33,8 @@ def zippy_maker(aind_tuples, top):
 
     return zip(aind_tuples, resseqs, resids, resnames)
 
-def dict_maker(zippy, feature_descs):
+def dict_maker(zippy):
+    feature_descs = []
     for featurizer, featuregroup, other_info, feature_info in zippy:
         ainds, resseq, resid, resname = feature_info
         feature_descs += [dict(
@@ -466,7 +467,7 @@ class DihedralFeaturizer(Featurizer):
             else:
                 zippy = itertools.product(['Dihedral'],[dihed_type], ['nosincos'], zippy)
 
-            feature_descs = dict_maker(zippy, feature_descs)
+            feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
 
@@ -594,7 +595,7 @@ class VonMisesFeaturizer(Featurizer):
 
             zippy = itertools.product(["VonMises"], [dihed_type], bin_info, zippy)
 
-            feature_descs = dict_maker(zippy, feature_descs)
+            feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
 
@@ -723,11 +724,11 @@ class AlphaAngleFeaturizer(Featurizer):
         zippy = zippy_maker(aind_tuples, top)
 
         if self.sincos:
-            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['sin', 'cos'], zippy)
+            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['cos', 'sin'], zippy)
         else:
             zippy = itertools.product(["AlphaAngle"], ["N/A"], ['nosincos'], zippy)
 
-        feature_descs = dict_maker(zippy, feature_descs)
+        feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
 
@@ -804,7 +805,7 @@ class KappaAngleFeaturizer(Featurizer):
         else:
             zippy = itertools.product(["Kappa"],["N/A"], ['nocos'], zippy)
 
-        feature_descs = dict_maker(zippy, feature_descs)
+        feature_descs.extend(dict_maker(zippy))
 
 
         return feature_descs
@@ -950,7 +951,7 @@ class ContactFeaturizer(Featurizer):
                                   ["Ignore_Protein {}".format(self.ignore_nonprotein)],
                                   zip(aind, resseqs, residue_indices, resnames))
 
-        feature_descs = dict_maker(zippy, feature_descs)
+        feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
 
