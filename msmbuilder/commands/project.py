@@ -20,6 +20,7 @@ from jinja2 import Environment, PackageLoader
 from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 from ..cmdline import Command, argument
+from ..dataset2 import backup
 
 
 def chmod_plus_x(fn):
@@ -74,19 +75,23 @@ class SetUpProject(Command):
         nb = new_notebook(cells=cells,
                           metadata={'kernelspec': {'name': 'python3',
                                                    'display_name': 'Python 3'}})
+        backup(templ_ipynb_fn)
         with open(templ_ipynb_fn, 'w') as f:
             nbformat.write(nb, f)
 
     def write_python(self, templ_fn, rendered):
+        backup(templ_fn)
         with open(templ_fn, 'w') as f:
             f.write(rendered)
 
     def write_shell(self, templ_fn, rendered):
+        backup(templ_fn)
         with open(templ_fn, 'w') as f:
             f.write(rendered)
         chmod_plus_x(templ_fn)
 
     def write_generic(self, templ_fn, rendered):
+        backup(templ_fn)
         with open(templ_fn, 'w') as f:
             f.write(rendered)
 
