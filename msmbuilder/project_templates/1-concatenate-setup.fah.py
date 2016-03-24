@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from msmbuilder.dataset2 import load_meta, save_meta
+from msmbuilder.io import load_meta, save_meta
 
 ## Load
 meta = load_meta()

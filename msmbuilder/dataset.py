@@ -5,25 +5,30 @@
 
 from __future__ import absolute_import, print_function, division
 
-import sys
+import getpass
+import glob
 import os
 import re
-import glob
-from os.path import join, exists, expanduser
 import socket
-import getpass
-from datetime import datetime
+import sys
+import warnings
 from collections import Sequence
+from datetime import datetime
+from os.path import join, exists, expanduser
 
-import tables
 import mdtraj as md
-from mdtraj.core.trajectory import _parse_topology
 import numpy as np
+import tables
+from mdtraj.core.trajectory import _parse_topology
+
 from . import version
 
 _PYTABLES_DISABLE_COMPRESSION = tables.Filters(complevel=0)
 
 __all__ = ['dataset']
+
+warnings.warn("This module might be deprecated in favor of msmbuilder.io",
+              PendingDeprecationWarning)
 
 
 def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):

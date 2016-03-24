@@ -6,7 +6,7 @@ from multiprocessing import Pool
 
 import pandas as pd
 
-from msmbuilder.dataset2 import load_trajs
+from msmbuilder.io import load_trajs
 from msmbuilder.msm import MarkovStateModel
 
 ## Load

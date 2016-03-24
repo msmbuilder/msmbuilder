@@ -4,8 +4,7 @@
 """
 import mdtraj as md
 
-from msmbuilder.dataset2 import (load_meta, preload_tops,
-                                 save_trajs, save_generic)
+from msmbuilder.io import load_meta, preload_tops, save_trajs, save_generic
 from msmbuilder.featurizer import DihedralFeaturizer
 
 ## Load
@@ -15,7 +14,7 @@ dihed_feat = DihedralFeaturizer()
 
 
 ## Logic for lazy-loading trajectories
-# TODO: refactor into dataset2
+# TODO: refactor into msmbuilder.io
 def trajectories(stride=1):
     for i, row in meta.iterrows():
         yield i, md.load(row['traj_fn'],

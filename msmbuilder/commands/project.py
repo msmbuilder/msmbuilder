@@ -20,7 +20,7 @@ from jinja2 import Environment, PackageLoader
 from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 from ..cmdline import Command, argument
-from ..dataset2 import backup
+from ..io import backup
 
 
 def chmod_plus_x(fn):

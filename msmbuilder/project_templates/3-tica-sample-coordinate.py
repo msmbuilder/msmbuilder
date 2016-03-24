@@ -5,7 +5,7 @@
 
 import mdtraj as md
 
-from msmbuilder.dataset2 import load_trajs, save_generic, preload_top, backup
+from msmbuilder.io import load_trajs, save_generic, preload_top, backup
 from msmbuilder.decomposition.interpretation import sample_dimension
 
 ## Load

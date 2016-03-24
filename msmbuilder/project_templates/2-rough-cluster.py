@@ -5,8 +5,7 @@
 import mdtraj as md
 
 from msmbuilder.cluster import MiniBatchKMedoids
-from msmbuilder.dataset2 import (load_meta, preload_tops,
-                                 save_trajs, save_generic)
+from msmbuilder.io import load_meta, preload_tops, save_trajs, save_generic
 
 ## Set up parameters
 kmed = MiniBatchKMedoids(

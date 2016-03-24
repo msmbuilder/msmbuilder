@@ -2,7 +2,7 @@
 
 {{header}}
 """
-from msmbuilder.dataset2 import load_trajs, save_trajs, save_generic
+from msmbuilder.io import load_trajs, save_trajs, save_generic
 from msmbuilder.cluster import MiniBatchKMeans
 
 ## Load

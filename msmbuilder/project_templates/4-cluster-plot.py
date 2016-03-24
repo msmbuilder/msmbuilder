@@ -8,7 +8,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from msmbuilder.dataset2 import load_trajs, load_generic
+from msmbuilder.io import load_trajs, load_generic
 
 sns.set_style('ticks')
 colors = sns.color_palette()

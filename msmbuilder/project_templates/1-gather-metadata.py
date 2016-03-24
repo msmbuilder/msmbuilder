@@ -9,7 +9,7 @@ import re
 import mdtraj as md
 import pandas as pd
 
-from msmbuilder.dataset2 import save_meta
+from msmbuilder.io import save_meta
 
 
 ## Set up parsing of filenames

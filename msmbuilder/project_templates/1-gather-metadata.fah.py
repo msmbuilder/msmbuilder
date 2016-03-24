@@ -5,7 +5,7 @@ import re
 import mdtraj as md
 import pandas as pd
 
-from msmbuilder.dataset2 import save_meta
+from msmbuilder.io import save_meta
 
 ## Specify where to find our projects
 xa4_glob = 'RUN*/CLONE*/frame*.xtc'
