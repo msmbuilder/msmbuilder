@@ -23,7 +23,7 @@ top = md.load(dirname+"/fs-peptide.pdb")
 if np.random.choice([True, False]):
     atom_ind=[i.index for i in top.top.atoms if i.residue.is_protein
           and (i.residue.index in range(15) or i.residue.index in range(20,23))]
-else:
+else: 
     atom_ind =[i.index for i in top.top.atoms]
 
 trajectories = [md.load(fn, stride=100, top=top,atom_indices=atom_ind) for fn in
