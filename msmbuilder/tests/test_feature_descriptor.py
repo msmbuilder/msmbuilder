@@ -1,9 +1,11 @@
 import numpy as np
 import mdtraj as md
 import pandas as pd
+import glob
+import os
 from scipy.stats import vonmises as vm
 
-from msmbuilder.example_datasets import fetch_fs_peptide
+from msmbuilder.example_datasets import fetch_fs_peptide,FsPeptide
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer,\
     KappaAngleFeaturizer,ContactFeaturizer,VonMisesFeaturizer
 
@@ -12,8 +14,13 @@ from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer,\
 Series of tests to make sure all the describe features are putting the right features in the
 right place
 """
-dataset = fetch_fs_peptide()
-trajectories = dataset["trajectories"]
+
+fs = FsPeptide()
+fs.cache()
+dirname = fs.data_dir
+top = md.load(dirname+"/fs-peptide.pdb")
+trajectories = [md.load(fn, stride=100, top=top) for fn in
+                glob.glob(os.path.join(dirname,"trajectory*.xtc"))]
 
 def test_DihedralFeaturizer_describe_features():
 
