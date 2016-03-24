@@ -112,7 +112,11 @@ class SetUpProject(Command):
             if trial_fn in fns:
                 templates[k, ext] = trial_fn
             else:
-                templates[k, ext] = "{k}.{ext}".format(k=k, ext=ext)
+                trial_fn = "{k}.{ext}".format(k=k, ext=ext)
+                if trial_fn in fns:
+                    templates[k, ext] = trial_fn
+                else:
+                    continue
         return templates
 
     def start(self):
