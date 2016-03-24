@@ -53,9 +53,7 @@ class SetUpProject(Command):
         })
 
         if args.ipynb:
-            # TODO: modify plotting boilerplate
-            # add matplotlib inline
-            # remove xdg-open
+            # TODO: modify plotting boilerplate (matplotlib inline, xdg-open)
             self.write_funcs['py'] = self.write_ipython
 
         self.flavor = args.flavor
