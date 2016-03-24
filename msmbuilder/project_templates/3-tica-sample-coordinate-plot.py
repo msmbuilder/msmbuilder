@@ -1,3 +1,8 @@
+"""Plot the result of sampling a tICA coordinate
+
+{{header}}
+"""
+
 from subprocess import run
 
 import numpy as np

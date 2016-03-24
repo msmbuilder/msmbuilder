@@ -1,3 +1,8 @@
+"""Plot implied timescales vs lagtime
+
+{{header}}
+"""
+
 from subprocess import run
 
 import numpy as np

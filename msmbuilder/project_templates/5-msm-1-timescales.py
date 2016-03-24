@@ -1,3 +1,7 @@
+"""Calculate implied timescales vs. lagtime
+
+{{header}}
+"""
 from multiprocessing import Pool
 
 import pandas as pd

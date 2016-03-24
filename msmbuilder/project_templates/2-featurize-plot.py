@@ -1,3 +1,7 @@
+"""Plot diagnostic feature info
+
+{{header}}
+"""
 from subprocess import run
 
 import numpy as np

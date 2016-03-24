@@ -1,3 +1,7 @@
+"""Get sample data for testing and experimenting
+
+{{header}}
+"""
 import os
 
 from msmbuilder.example_datasets import FsPeptide

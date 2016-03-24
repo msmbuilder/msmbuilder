@@ -1,3 +1,7 @@
+"""Plot cluster centers on tICA coordinates
+
+{{header}}
+"""
 from subprocess import run
 
 import numpy as np

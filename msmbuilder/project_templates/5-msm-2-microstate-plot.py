@@ -1,3 +1,8 @@
+"""Plot populations and eigvectors from microstate MSM
+
+{{header}}
+"""
+
 from subprocess import run
 
 import numpy as np

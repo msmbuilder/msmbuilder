@@ -1,3 +1,7 @@
+"""Plot statistics from RMSD clustering
+
+{{header}}
+"""
 from subprocess import run
 
 import numpy as np

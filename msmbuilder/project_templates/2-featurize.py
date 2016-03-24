@@ -1,3 +1,7 @@
+"""Turn trajectories into dihedral features
+
+{{header}}
+"""
 import mdtraj as md
 
 from msmbuilder.dataset2 import (load_meta, preload_tops,

@@ -1,3 +1,8 @@
+"""Reduce dimensionality with tICA
+
+{{header}}
+"""
+
 from msmbuilder.dataset2 import load_trajs, save_trajs, save_generic
 from msmbuilder.decomposition import tICA
 

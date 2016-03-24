@@ -8,6 +8,8 @@ on the same page and to allow developers to exploit more helper libraries.
 You can modify the template scripts to work for your particular set-up,
 but it's probably easier to install `conda` and get the packages we
 recommend.
+
+{{header}}
 """
 
 import textwrap

@@ -1,3 +1,8 @@
+"""Make a microstate MSM
+
+{{header}}
+"""
+
 from msmbuilder.dataset2 import load_trajs, save_trajs, save_generic
 from msmbuilder.msm import MarkovStateModel
 

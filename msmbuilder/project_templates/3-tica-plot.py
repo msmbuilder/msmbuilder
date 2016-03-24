@@ -1,3 +1,8 @@
+"""Plot tICA-transformed coordinates
+
+{{header}}
+"""
+
 from subprocess import run
 
 import numpy as np

@@ -1,3 +1,8 @@
+"""Sample tICA coordinates
+
+{{header}}
+"""
+
 import mdtraj as md
 
 from msmbuilder.dataset2 import load_trajs, save_generic, preload_top, backup

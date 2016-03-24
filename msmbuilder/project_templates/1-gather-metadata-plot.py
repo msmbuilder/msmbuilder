@@ -1,3 +1,7 @@
+"""Plot metadata info
+
+{{header}}
+"""
 from subprocess import run
 
 import numpy as np

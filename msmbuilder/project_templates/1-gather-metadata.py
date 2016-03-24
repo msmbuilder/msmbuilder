@@ -1,3 +1,7 @@
+"""Find trajectories and associated metadata
+
+{{header}}
+"""
 import glob
 import os
 import re

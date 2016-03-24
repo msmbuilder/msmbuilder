@@ -1,3 +1,7 @@
+"""Cluster based on RMSD between conformations
+
+{{header}}
+"""
 import mdtraj as md
 
 from msmbuilder.cluster import MiniBatchKMedoids
