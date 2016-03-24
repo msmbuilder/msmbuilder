@@ -19,7 +19,14 @@ fs = FsPeptide()
 fs.cache()
 dirname = fs.data_dir
 top = md.load(dirname+"/fs-peptide.pdb")
-trajectories = [md.load(fn, stride=100, top=top) for fn in
+
+if np.random.choice([True, False]):
+    atom_ind=[i.index for i in top.top.atoms if i.residue.is_protein
+          and (i.residue.index in range(15) or i.residue.index in range(20,23))]
+else:
+    atom_ind =[i.index for i in top.top.atoms]
+
+trajectories = [md.load(fn, stride=100, top=top,atom_indices=atom_ind) for fn in
                 glob.glob(os.path.join(dirname,"trajectory*.xtc"))]
 
 def test_DihedralFeaturizer_describe_features():
@@ -152,7 +159,6 @@ def test_VonMisesFeaturizer_describe_features():
                          for i in dihedral_value]
 
         assert (features[0][:,f_index] == feature_value).all()
-
 
 def test_ContactFeaturizer_describe_features():
 

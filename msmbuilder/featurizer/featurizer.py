@@ -29,8 +29,10 @@ def zippy_maker(aind_tuples, top):
     for ainds in aind_tuples:
         resid = set(top.atom(ai).residue.index for ai in ainds)
         resids += [list(resid)]
-        resseqs += [[top.residue(ri).resSeq for ri in resid]]
-        resnames += [[top.residue(ri).name for ri in resid]]
+        reseq = set(top.atom(ai).residue.resSeq for ai in ainds)
+        resseqs += [list(reseq)]
+        resname = set(top.atom(ai).residue.name for ai in ainds)
+        resnames += [list(resname)]
 
     return zip(aind_tuples, resseqs, resids, resnames)
 
@@ -587,8 +589,10 @@ class VonMisesFeaturizer(Featurizer):
                     all_aind.append(ainds)
                     bin_info += ["bin-%d"%bin_index]
                     resids += [list(resid)]
-                    resseqs += [[top.residue(ri).resSeq for ri in resid]]
-                    resnames += [[top.residue(ri).name for ri in resid]]
+                    reseq = set(top.atom(ai).residue.resSeq for ai in ainds)
+                    resseqs += [list(reseq)]
+                    resname = set(top.atom(ai).residue.name for ai in ainds)
+                    resnames += [list(resname)]
 
             zippy = zip(all_aind, resseqs, resids, resnames)
             #fast check to make sure we have the right number of features
