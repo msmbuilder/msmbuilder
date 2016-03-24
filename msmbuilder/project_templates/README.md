@@ -13,3 +13,8 @@ Keep notes about your project here.
  - ktrajs - cluster indices
  - microktrajs - trimmed cluster indices
  - macroktrajs - macrostate indices
+
+## License
+
+These templates are licensed under the MIT license. Do whatever
+you want with them.
