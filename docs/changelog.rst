@@ -48,6 +48,8 @@ New Features
 - ``KapaAngleFeaturizer`` is available via the command line (#681).
 - ``MarkovStateModel`` has a new attribute, ``percent_retained_``, for
   ergodic trimming (#689).
+- ``AlphaAngleFeaturizer`` computes the dihedral angles between alpha
+  carbons (#691).
 
 
 Improvements
