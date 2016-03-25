@@ -25,7 +25,7 @@ API Changes
   dictionary was actually keyed by *untrimmed* microstate labels.
   ``PCCA.transform`` would throw an exception when operating on a system
   with trimming because it was using this misleading dictionary. Please use
-  ``pcca.microstate_mapping_`` for this functionality.
+  ``pcca.microstate_mapping_`` for this functionality (#709).
 - ``UnionDataset`` has been removed after deprecation in 3.3. Please use
   ``FeatureUnion`` instead (#671).
 - ``SubsetFeaturizer`` and ilk have been removed from the
