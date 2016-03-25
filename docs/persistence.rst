@@ -20,7 +20,7 @@ formats
 - A sequence may be a ``numpy`` 2D array with shape ``n_frames x
   n_features``, representing the projection of each frame in molecular
   dynamics trajectory into some vector space of dimension
-  :math:`\mathbb{R}^{n_{features}}`. The leading dimension with length
+  :math:`\mathbb{R}^{n_{features}}`. The leading dimension of length
   ``n_frames`` indexes over the timeseries. For example,
   :ref:`featurization<featurization>` takes a list of trajectories and returns a
   list of feature arrays.
@@ -41,7 +41,7 @@ sensible option for you.
 With HDF5, the dataset containing all of the trajectories is contained in a
 single file on disk. This is generally the most convenient, but can be
 unwieldy for large datasets. The transformed output of ``msmb tICA``,
-``msmb PCA``, and clustering commands are stored in HDF5 format.
+``msmb PCA``, and clustering commands is stored in HDF5 format.
 
 The ``dir-npy`` format stores the dataset as a collection of uncompressed
 numpy ``.npy`` files in a directory on disk. This is the most suitable for
