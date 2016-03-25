@@ -52,6 +52,8 @@ New Features
   carbons (#691).
 - ``FunctionFeaturizer`` computes features based on an arbitrary Python
   function or callable (#717).
+- Automatic State Partitioning (APM) uses kinetic information to cluster
+  conformations (#748).
 
 
 Improvements
