@@ -62,7 +62,7 @@ Combination with MSM
 
 While the tICs are themselves approximations to the dominant eigenfunctions
 of the propagator / transfer operator, the approach taken in [#f1]_ and
-[#f2]_ is to "stack" tICA with :ref:`msm`. For example, in [#f2]_,
+[#f2]_ is to "stack" tICA with :ref:`MSMs<msm>`. For example, in [#f2]_,
 Perez-Hernandez et al.  first measured the 66 atom-atom distances between a
 set of atoms in each frame of their MD trajectories, and then used tICA to
 find the slowest 1, 4, and 10 linear combinations of these degrees of
