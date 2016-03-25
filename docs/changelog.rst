@@ -55,6 +55,7 @@ Improvements
 
 - Consistent counts setup across various flavors of Markov models (#718,
   #729).
+- Tests no longer depend on ``sklearn.hmm``, which has been removed (#690).
 
 
 
