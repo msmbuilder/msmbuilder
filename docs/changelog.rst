@@ -14,7 +14,7 @@ API Changes
 - ``kinetic_mapping`` has been added as an option to
   ``msmbuilder.decomposition.tICA``. Please note that ``weighted_transform``
   is now deprecated and will be removed in future versions (#766).
-- ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added.
+- ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added (#744).
 - Range-based slicing on dataset objects is no longer allowed. Keys in the
   dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
   loads all trajectories in a list (#610).
