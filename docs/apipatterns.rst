@@ -8,7 +8,7 @@ Models in msmbuilder inherit from base classes in `scikit-learn
 <http://scikit-learn.org/stable/>`_, and follow a similar API. Like
 sklearn, each type of model is a python class. Models are "fit" on data,
 and can then "transform" data into a different representation. Unlike
-sklearn, the data here is a *list* (or `dataset<dataset>`) of time-series
+sklearn, the data here is a *list* (or :ref:`dataset<persistence>`) of time-series
 arrays or trajectories.
 
 Hyperparameters
@@ -97,7 +97,7 @@ Many models also implement a ``transform()`` method, which converts an
 input dataset to an alternative representation. For example, the
 ``transform`` method of :ref:`featurizers<featurization>` takes as input a
 list of trajectories and returns a list of 2D feature arrays.
-:ref:`Clustering<clustering>` takes a list of 2D feature arrays and returns
+:ref:`Clustering<cluster>` takes a list of 2D feature arrays and returns
 a list of 1D sequences.
 
 Pipelines
