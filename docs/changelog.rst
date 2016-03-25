@@ -46,6 +46,8 @@ New Features
   alternate representation of dihedral angles (#744).
 - ``MarkovStateModel`` has a ``partial_transform()`` method (#707).
 - ``KapaAngleFeaturizer`` is available via the command line (#681).
+- ``MarkovStateModel`` has a new attribute, ``percent_retained_``, for
+  ergodic trimming (#689).
 
 
 Improvements
