@@ -55,8 +55,8 @@ New Features
 Improvements
 ~~~~~~~~~~~~
 
-- Consistent counts setup across various flavors of Markov models (#718,
-  #729).
+- Consistent counts setup and ergodic cutoff across various flavors of
+  Markov models (#718, #729, #701).
 - Tests no longer depend on ``sklearn.hmm``, which has been removed (#690).
 
 
