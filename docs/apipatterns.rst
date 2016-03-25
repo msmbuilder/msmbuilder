@@ -6,7 +6,7 @@ API Patterns
 
 Models in msmbuilder inherit from base classes in `scikit-learn
 <http://scikit-learn.org/stable/>`_, and follow a similar API. Like
-sklearn, each type of model is a python class. Models are "fit" on data,
+sklearn, each type of model is a python class. Models are "fit" to data,
 and can then "transform" data into a different representation. Unlike
 sklearn, the data here is a *list* (or :ref:`dataset<persistence>`) of time-series
 arrays or trajectories.
@@ -27,7 +27,7 @@ the ``__init__`` method and set as instance attributes.
 Fit
 ---
 
-The estimation of model parameters is done in ``fit()``. In msmbuilder the
+The estimation of model parameters is done in ``fit()``. In msmbuilder, the
 ``fit()`` method always accepts a ``list`` or
 :func:`~msmbuilder.dataset.dataset` of 2-dimensional arrays as input data,
 where each array represents a single timeseries (trajectory) and has a
@@ -48,7 +48,7 @@ list of arrays.
 
     This is different from sklearn. In sklearn, estimators take a **single**
     2D array as input in ``fit()``. Here we use a list of arrays or
-    trajectories.  However, for many models it's still quite easy to go
+    trajectories.  However, for many models, it's still quite easy to go
     between sklearn-style input and msmbuilder-style input, as shown in
     the following code block.
 
@@ -72,14 +72,14 @@ list of arrays.
 
 Some models like :class:`~tica.tICA` only require a single pass over the
 data. In this case, use the ``partial_fit`` method, which can incrementally
-learn the model one trajectory at a time. It may be more memory-efficient.
+learn the model one trajectory at a time and be more memory-efficient.
 
 Attributes
 ----------
 
 Parameters of the model which are **learned or estimated** during ``fit()``
 are always set as instance attributes that are named with a trailing
-underscore. This is merely convention, and not a special Python syntax.
+underscore. This is merely a convention, and not a special Python syntax.
 
 .. code-block:: python
 
