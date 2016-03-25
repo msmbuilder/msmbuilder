@@ -44,6 +44,7 @@ New Features
   ``weighted_transform`` is deprecated (#766).
 - ``VonMisesFeaturizer`` uses soft bins around the unit-circle to give an
   alternate representation of dihedral angles (#744).
+- ``MarkovStateModel`` has a ``partial_transform()`` method (#707).
 
 
 Improvements
