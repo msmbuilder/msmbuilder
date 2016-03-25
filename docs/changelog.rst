@@ -63,6 +63,8 @@ Improvements
 - Improvements to ``RSMDFeaturizer`` (#695, #764).
 - ``SparseTICA`` is completely re-written with large performance
   improvements when dealing with large numbers of features (#704).
+- Links for downloading example data are un-broken after figshare
+  changed URLs (#751).
 
 
 
