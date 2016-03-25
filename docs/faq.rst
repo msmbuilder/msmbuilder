@@ -4,8 +4,7 @@ FAQs
 ====
 
 
-How should I get started?
--------------------------
+**How should I get started?**
 
 #. If you have a lot of data, use a subset of it to get started.  You will
    be able to iterate much more quickly and explore the impact of different
@@ -21,15 +20,13 @@ How should I get started?
    <https://github.com/msmbuilder/msmbuilder/issues>`_.
 
 
-How do I report a bug?
-----------------------
+**How do I report a bug?**
 
 Post a note on the `github issue tracker
 <https://github.com/msmbuilder/msmbuilder/issues>`_.
 
 
-How do I contribute a new feature?
-----------------------------------
+**How do I contribute a new feature?**
 
 File a pull request on `github
 <https://github.com/msmbuilder/msmbuilder/>`_. If you're not familiar
@@ -37,8 +34,7 @@ with github, there are some instructions on the scikit-learn site `here
 <http://scikit-learn.org/stable/developers/index.html#how-to-contribute>`_.
 
 
-Where should I start with the MSM literature?
----------------------------------------------
+**Where should I start with the MSM literature?**
 
 Some of the key PIs involved in research on Markov modeling of biomolecular
 conformational dynamics include
@@ -110,8 +106,7 @@ Some particularly notable recent applications of MSMs include
   <http://dx.doi.org/10.1038/nchem.1821>`_ Nat. Chem. 6.1 (2014): 15-21.
 
 
-What is the relationship between MSMBuilder and other packages?
----------------------------------------------------------------
+**What is the relationship between MSMBuilder and other packages?**
 
 Another software packages that performs similar analyses is `EMMA
 <http://emma-project.org>`_.  MSMBuilder inherits a lot of ideas about API
@@ -120,8 +115,7 @@ design, machine learning, and software engineering from `scikit-learn
 dependencies. See the :ref:`installation` page for details.
 
 
-How much MD sampling do I need to build an MSM?
------------------------------------------------
+**How much MD sampling do I need to build an MSM?**
 
 There's no definitive way to answer this question -- in general reasoning
 about the convergence of any stochastic sampling is very tricky. We can't
@@ -143,8 +137,7 @@ they give totally different results from one another, you don't have enough
 sampling.
 
 
-How can I validate an MSM?
---------------------------
+**How can I validate an MSM?**
 
 The gold standard is to use your MSM to make predictions about experimental
 observables for a real molecular system that can tested in the lab. The
@@ -168,8 +161,7 @@ different lag time (which should converge). See the validation section of
 [#f4]_.
 
 
-How can statistical models like MSMs be used to accelerate MD?
---------------------------------------------------------------
+**How can statistical models like MSMs be used to accelerate MD?**
 
 See Bowman, G R., D. L. Ensign, and S. S. Pande. `Enhanced modeling via 
 network theory: Adaptive sampling of markov state models. <http://dx.doi.org/10.1021/ct900620b>`_
@@ -179,14 +171,14 @@ binding by high-throughput molecular simulations. <http://dx.doi.org/10.1021/ct4
 J. Chem. Theory Comput. (2014).
 
 
-What are the tradeoffs between running a large number of short MD simulations vs. a few long ones?
---------------------------------------------------------------------------------------------------
+**What are the tradeoffs between running a large number
+of short MD simulations vs. a few long ones?**
 
 Thats a good question.
 
 
-My simulations use replica exchange, aMD, or metadynamics. Can I use these tools to analyze them?
--------------------------------------------------------------------------------------------------
+**My simulations use replica exchange, aMD, or metadynamics.
+Can I use these tools to analyze them?**
 
 Yes, but you're going to have to be careful. Replica exchange, aMD,
 meta-dynamics, and other related thermodynamic sampling methods sacrifice
@@ -197,8 +189,7 @@ transition matrix of an MSM, or tICA eigenvalues. With clustering you're
 fine.
 
 
-Why am I getting MemoryErrors?
-------------------------------
+**Why am I getting MemoryErrors?**
 
 .. code-block:: guess
 
@@ -226,8 +217,7 @@ of MD data sampled at a picosecond frequency, consider subsampling (e.g.
 only analyze every 100th or 10,000th snapshot from your simulations).
 
 
-How can I cite MSMBuilder?
---------------------------
+**How can I cite MSMBuilder?**
 
 Please cite `MSMBuilder2: Modeling Conformational Dynamics on the
 Picosecond to Millisecond Scale
@@ -239,6 +229,7 @@ the appropriate references listed.
 
 References
 ----------
+
 .. [#f1] Of course, this is merely an opinion
 .. [#f2] Zhuang, W, et al. `Simulating the T-jump-triggered unfolding dynamics of trpzip2 peptide and its time-resolved IR and two-dimensional IR signals using the Markov state model approach. <http://pubs.acs.org/doi/abs/10.1021/jp109592b>`_ J. Phys. Chem. B 115.18 (2011): 5415-5424.
 .. [#f3] Baiz, C. R., et al. `A Molecular Interpretation of 2D IR Protein Folding Experiments with Markov State Models. <http://dx.doi.org/10.1016/j.bpj.2014.02.008>`_ Biophysical journal 106.6 (2014): 1359-1370.
