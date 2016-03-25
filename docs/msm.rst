@@ -6,7 +6,7 @@ Markov state models (MSMs)
 
 Markov state models (MSMs) are a class of models for modeling the
 long-timescale dynamics of molecular systems. They model the dynamics of a
-system as a series of memoryless, probabalistic jumps between a set of
+system as a series of memoryless, probabilistic jumps between a set of
 states. Practically, the model consists of (1) a set of conformational
 states, and (2) a matrix of transition probabilities between each pair of
 states.
