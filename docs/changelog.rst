@@ -40,14 +40,16 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
-- Dataset objects have a method, ``fit_transform_with`` to simplify the common
-  pattern of applying an estimator to a dataset object to produce a new dataset
-  object (#610).
+- Dataset objects have a method, ``fit_transform_with`` to simplify the
+  common pattern of applying an estimator to a dataset object to produce a
+  new dataset object (#610).
 
 
 Improvements
 ~~~~~~~~~~~~
-- Consistent counts setup across various flavors of Markov models(#718, #729).
+
+- Consistent counts setup across various flavors of Markov models (#718,
+  #729).
 
 
 
