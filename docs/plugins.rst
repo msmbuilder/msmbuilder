@@ -1,7 +1,7 @@
 .. _plugins:
 
-Extending MSMBuilder with Plugins
-=================================
+Writing Plugins
+===============
 
 You can easily extend MSMBuilder by subclassing ``BaseEstimator`` or any of
 its children. You can even build your plugin to work with the ``msmb``
