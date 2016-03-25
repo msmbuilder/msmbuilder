@@ -50,6 +50,8 @@ New Features
   ergodic trimming (#689).
 - ``AlphaAngleFeaturizer`` computes the dihedral angles between alpha
   carbons (#691).
+- ``FunctionFeaturizer`` computes features based on an arbitrary Python
+  function or callable (#717).
 
 
 Improvements
