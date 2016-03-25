@@ -22,11 +22,11 @@ formats
   dynamics trajectory into some vector space of dimension
   :math:`\mathbb{R}^{n_{features}}`. The leading dimension with length
   ``n_frames`` indexes over the timeseries. For example,
-  `featurization<featurization>` takes a list of trajectories and returns a
+  :ref:`featurization<featurization>` takes a list of trajectories and returns a
   list of feature arrays.
 
 - A sequence may be an integer-valued 1D array with shape ``n_frames``.
-  For example, `clustering<clustering>` takes a list of feature arrays and
+  For example, :ref:`clustering<cluster>` takes a list of feature arrays and
   returns a list of sequences of state indices.
 
 

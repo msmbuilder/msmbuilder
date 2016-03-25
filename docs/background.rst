@@ -1,7 +1,7 @@
 .. _background:
 
-Background and Motivation
--------------------------
+Motivation
+==========
 
 The aim of this package is to provide software tools for predictive
 modeling of the long timescale dynamics of biomolecular systems using
@@ -14,7 +14,7 @@ quantitative predictions about the system?
 
 
 Workflow
-~~~~~~~~
+--------
 
 To build a dynamical model, we apply (stepwise) a series of dimensionality
 reductions. The basic set of steps is outlined below. Note that most steps
