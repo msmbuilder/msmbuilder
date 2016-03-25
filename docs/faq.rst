@@ -140,7 +140,7 @@ sampling.
 **How can I validate an MSM?**
 
 The gold standard is to use your MSM to make predictions about experimental
-observables for a real molecular system that can tested in the lab. The
+observables for a real molecular system that can be tested in the lab. The
 relaxation timescales which are calculated by MSMs, tICA, HMMs, and other
 types of kinetic models correspond to approximations for the relaxation
 timescales that should be observed in experiments like T-jump spectroscopy.
@@ -207,7 +207,7 @@ To debug this kind of issue, you need really to reason about the size of
 the arrays that are being created, which means thinking about the number of
 data points in your dataset, the number of features, etc. Some algorithms,
 like :class:`~msmbuilder.cluster.LandmarkHierarchical` let you trace off
-the memory memory requirement against accuracy.
+the memory requirement against accuracy.
 
 If you're trying to build models with thousands of features, consider
 running a dimensionality reduction algorithm like
