@@ -58,6 +58,7 @@ Improvements
 - Consistent counts setup and ergodic cutoff across various flavors of
   Markov models (#718, #729, #701).
 - Tests no longer depend on ``sklearn.hmm``, which has been removed (#690).
+- Improvements to ``RSMDFeaturizer`` (#695, #764).
 
 
 
