@@ -36,13 +36,14 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
-- Dataset objects have a method, ``fit_transform_with`` to simplify the
+- Dataset objects can call, ``fit_transform_with()`` to simplify the
   common pattern of applying an estimator to a dataset object to produce a
   new dataset object (#610).
-- ``kinetic_mapping`` has been added as an option to
-  ``msmbuilder.decomposition.tICA``. Please note that ``weighted_transform``
-  is now deprecated and will be removed in future versions (#766).
-- ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added (#744).
+- ``kinetic_mapping`` is a new option to ``tICA``. It's similar to
+  ``weighted_transform``, but based on a better theoretical framework.
+  ``weighted_transform`` is deprecated (#766).
+- ``VonMisesFeaturizer`` uses soft bins around the unit-circle to give an
+  alternate representation of dihedral angles (#744).
 
 
 Improvements
