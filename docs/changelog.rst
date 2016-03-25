@@ -20,7 +20,7 @@ API Changes
   loads all trajectories in a list (#610).
 - Ward clustering has been renamed AgglomerativeClustering in scikit-learn.
   Please use the new msmbuilder wrapper class AgglomerativeClustering. An
-  alias for Ward has been made available.
+  alias for Ward has been made available (#685).
 - ``PCCA.trimmed_microstates_to_macrostates`` has been removed. This
   dictionary was actually keyed by *untrimmed* microstate labels.
   ``PCCA.transform`` would throw an exception when operating on a system
