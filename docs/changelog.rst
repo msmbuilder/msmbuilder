@@ -59,6 +59,8 @@ Improvements
   Markov models (#718, #729, #701).
 - Tests no longer depend on ``sklearn.hmm``, which has been removed (#690).
 - Improvements to ``RSMDFeaturizer`` (#695, #764).
+- ``SparseTICA`` is completely re-written with large performance
+  improvements when dealing with large numbers of features (#704).
 
 
 
