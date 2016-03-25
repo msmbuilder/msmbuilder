@@ -10,7 +10,7 @@ vector space. This includes :class:`~msmbuilder.cluster.KMeans` clustering,
 :class:`~msmbuilder.decomposition.tICA`, and others.
 
 Since there's usually no special rotational or translational reference
-frame in a MD simulation, it's often desirable to remove rotational and
+frame in an MD simulation, it's often desirable to remove rotational and
 translational motion via featurization that is insensitive to rotations and
 translations. 
 
