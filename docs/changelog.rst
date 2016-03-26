@@ -11,21 +11,17 @@ Version 3.4.0.dev0 is the current development release of MSMBuilder.
 API Changes
 ~~~~~~~~~~~
 
-- ``kinetic_mapping`` has been added as an option to
-  ``msmbuilder.decomposition.tICA``. Please note that ``weighted_transform``
-  is now deprecated and will be removed in future versions.
-- ``msmbuilder.featurizer.VonMisesFeaturizer`` has been added.
 - Range-based slicing on dataset objects is no longer allowed. Keys in the
   dataset object don't have to be continuous. The empty slice, e.g. ``ds[:]``
   loads all trajectories in a list (#610).
 - Ward clustering has been renamed AgglomerativeClustering in scikit-learn.
   Please use the new msmbuilder wrapper class AgglomerativeClustering. An
-  alias for Ward has been made available.
+  alias for Ward has been made available (#685).
 - ``PCCA.trimmed_microstates_to_macrostates`` has been removed. This
   dictionary was actually keyed by *untrimmed* microstate labels.
   ``PCCA.transform`` would throw an exception when operating on a system
   with trimming because it was using this misleading dictionary. Please use
-  ``pcca.microstate_mapping_`` for this functionality.
+  ``pcca.microstate_mapping_`` for this functionality (#709).
 - ``UnionDataset`` has been removed after deprecation in 3.3. Please use
   ``FeatureUnion`` instead (#671).
 - ``SubsetFeaturizer`` and ilk have been removed from the
@@ -40,14 +36,37 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
-- Dataset objects have a method, ``fit_transform_with`` to simplify the common
-  pattern of applying an estimator to a dataset object to produce a new dataset
-  object (#610).
+- Dataset objects can call, ``fit_transform_with()`` to simplify the
+  common pattern of applying an estimator to a dataset object to produce a
+  new dataset object (#610).
+- ``kinetic_mapping`` is a new option to ``tICA``. It's similar to
+  ``weighted_transform``, but based on a better theoretical framework.
+  ``weighted_transform`` is deprecated (#766).
+- ``VonMisesFeaturizer`` uses soft bins around the unit-circle to give an
+  alternate representation of dihedral angles (#744).
+- ``MarkovStateModel`` has a ``partial_transform()`` method (#707).
+- ``KapaAngleFeaturizer`` is available via the command line (#681).
+- ``MarkovStateModel`` has a new attribute, ``percent_retained_``, for
+  ergodic trimming (#689).
+- ``AlphaAngleFeaturizer`` computes the dihedral angles between alpha
+  carbons (#691).
+- ``FunctionFeaturizer`` computes features based on an arbitrary Python
+  function or callable (#717).
+- Automatic State Partitioning (APM) uses kinetic information to cluster
+  conformations (#748).
 
 
 Improvements
 ~~~~~~~~~~~~
-- Consistent counts setup across various flavors of Markov models(#718, #729).
+
+- Consistent counts setup and ergodic cutoff across various flavors of
+  Markov models (#718, #729, #701, #705).
+- Tests no longer depend on ``sklearn.hmm``, which has been removed (#690).
+- Improvements to ``RSMDFeaturizer`` (#695, #764).
+- ``SparseTICA`` is completely re-written with large performance
+  improvements when dealing with large numbers of features (#704).
+- Links for downloading example data are un-broken after figshare
+  changed URLs (#751).
 
 
 
