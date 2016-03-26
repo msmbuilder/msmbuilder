@@ -28,8 +28,9 @@ first-order Markov jump process between a discrete set of states. The
 difference is that the states in the HMM are not associated with discrete
 non-overlapping regions of phase space defined by clustering -- instead, the
 states are Gaussian distributions. Because the Gaussian distribution has
-infinite support, there is no unique and unambiguous state mapping to
-a given conformation. Each state is a distribution over all conformations.
+infinite support, there is no unique and unambiguous mapping from a given
+conformation to a single state. Each state is a distribution over all
+conformations.
 
 HMMs have been widely used in many fields, from speech processing to
 bioinformatics. Many good reviews have been written, such as [#f1]_.
