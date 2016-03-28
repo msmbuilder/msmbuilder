@@ -40,6 +40,8 @@ How to do a release
 - Update the version number in `setup.py`, change `ISRELEASED` to `False`.
 - Update the version number in `devtools/conda-recipe/meta.yaml`.
 - Commit and push to master.
+- Update this file (`devtools/README.md`) with anything you learned or
+  changed during this release creation.
 
 ### Point releases
 
