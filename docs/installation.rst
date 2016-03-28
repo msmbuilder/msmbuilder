@@ -44,7 +44,7 @@ operating like /usr/bin/python?**
 
 You can have multiple ``python`` installations on your computer which do
 not interact with one another at all. The system python interpreter is used
-by your operating system for some of its own programs, but is not the best
+by your operating system for some of its own programs but is not the best
 choice for data analysis or science.
 
 We strongly recommend that you install Anaconda or Miniconda python

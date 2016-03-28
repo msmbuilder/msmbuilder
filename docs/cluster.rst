@@ -4,7 +4,7 @@
 Clustering
 ==========
 
-Clustering MD trajectories groups the the data [#f1]_ into a set of
+Clustering MD trajectories groups the data [#f1]_ into a set of
 clusters such that conformations in the same cluster are structurally
 similar to one another, and conformations in different clusters are
 structurally distinct. The questions that arise are
@@ -16,13 +16,13 @@ structurally distinct. The questions that arise are
    cluster the data?
 
 On point 1, there is no consensus in the protein MD literature. Popular
-distance metrics include cartesian root-mean squared deviation of atomic
+distance metrics include cartesian root-mean-squared deviation of atomic
 positions (RMSD) [#f3]_, distances based on the number of native contacts
 formed, distances based on the difference in backbone dihedral angles, and
 probably others.
 
 On point 2, "Optimal" clustering is NP-hard [#f2]_, so there's usually a
-tradeoff between clustering quality and computational cost. For that reason
+tradeoff between clustering quality and computational cost. For that reason,
 MSMBuilder has a variety of different clustering algorithms implemented.
 
 Algorithms

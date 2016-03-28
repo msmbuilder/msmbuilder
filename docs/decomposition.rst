@@ -19,15 +19,15 @@ finding the slowest-relaxing degrees of freedom in a time series data set
 which can be formed from linear combinations from a set of input degrees of
 freedom.
 
-tICA can be used as a dimensionality reduction method, and in that capacity
-it is somewhat similar to PCA.  However whereas PCA finds high-variance
+tICA can be used as a dimensionality reduction method and, in that capacity,
+is somewhat similar to PCA.  However whereas PCA finds high-variance
 linear combinations of the input degrees of freedom, tICA finds
 high-autocorrelation linear combinations of the input degrees of freedom.
 
 The tICA method has one obvious drawback: its solution is
 a linear combination of all input degrees of freedom, and their
 relative weights are typically non-zero. This makes each independent component
-difficult to interpret in a algorithmic fashion, because
+difficult to interpret in an algorithmic fashion because
 it could comprise hundreds or thousands of different metrics.
 Because an important property of reaction coordinates is their
 role in facilitating physical interpretation of the underlying molecular
@@ -42,7 +42,7 @@ PCA
 ---
 
 Principal component analysis (PCA) is a method for finding the most
-highly-varying degrees of freedom in a data set (not necessarily a time
+highly varying degrees of freedom in a data set (not necessarily a time
 series). PCA is useful as a dimensionality reduction method.
 
 
