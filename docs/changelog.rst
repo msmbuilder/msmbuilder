@@ -19,6 +19,8 @@ New Features
 Improvements
 ~~~~~~~~~~~~
 
+ - Fix a compilation error on gcc 5 (#783)
+
 
 
 v3.4 (March 29, 2016)
