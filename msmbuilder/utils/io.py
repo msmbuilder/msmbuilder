@@ -1,11 +1,16 @@
 from __future__ import print_function, division, absolute_import
+
 import contextlib
-import numpy as np
-import warnings
 import pickle
+import warnings
+
+import numpy as np
 from sklearn.externals.joblib import load as jl_load
 
 __all__ = ['printoptions', 'verbosedump', 'verboseload', 'dump', 'load']
+
+warnings.warn("This module might be deprecated in favor of msmbuilder.io",
+              PendingDeprecationWarning)
 
 
 @contextlib.contextmanager
