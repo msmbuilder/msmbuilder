@@ -1,7 +1,7 @@
-import numpy as np
 import pandas as pd
 
 from msmbuilder.io import load_meta, save_meta
+from msmbuilder.utils.fah import continuous_gens
 
 ## Load
 meta = load_meta()
@@ -10,17 +10,10 @@ meta = load_meta()
 meta['true_nframes'] = meta['nframes'] - meta['overlapping_frame']
 
 ## Make sure we have continuous gens
-to_remove = []
-for (proj, run, clone), group in meta.groupby(level=['proj', 'run', 'clone']):
-    gens = group.index.get_level_values('gen')
-    gens_should_be = np.arange(len(gens)) + gens.min()
-    bad_positions = gens[gens != gens_should_be]
-    if len(bad_positions > 0):
-        print("WARNING: Discontinuous gens in", proj, run, clone,
-              "...Removing gens >=", bad_positions[0])
-        for bp in bad_positions:
-            to_remove += [(proj, run, clone, bp)]
-meta = meta.drop(to_remove)
+meta, problematic = continuous_gens(meta, ['proj', 'run', 'clone'], 'gen')
+for pr in problematic:
+    print("WARNING! Droping gens from {p[index]} after {p[last_good]}"
+          .format(p=pr))
 
 ## Set up striding
 want_step_ns = 0.960
