@@ -36,6 +36,7 @@ requirements:
 test:
   requires:
     - nose
+    - nose-timer
     - munkres
     - numdifftools
     - statsmodels
@@ -45,7 +46,7 @@ test:
     - msmbuilder
   commands:
     - msmb -h
-    - nosetests msmbuilder -v
+    - nosetests msmbuilder -v --with-timer
 
 
 about:
