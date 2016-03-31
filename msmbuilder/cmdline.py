@@ -232,6 +232,9 @@ class Command(with_metaclass(abc.ABCMeta, object)):
     # Set _concrete to true for all final classes in the heirarchy
     _concrete = False
 
+    def __init__(self, args):
+        pass
+
     @classmethod
     def _get_name(cls):
         if hasattr(cls, 'name'):

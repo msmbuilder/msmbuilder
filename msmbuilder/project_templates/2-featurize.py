@@ -4,8 +4,8 @@
 """
 import mdtraj as md
 
-from msmbuilder.io import load_meta, preload_tops, save_trajs, save_generic
 from msmbuilder.featurizer import DihedralFeaturizer
+from msmbuilder.io import load_meta, preload_tops, save_trajs, save_generic
 
 ## Load
 meta = load_meta()
@@ -26,9 +26,6 @@ def trajectories(stride=1):
 dihed_trajs = {}
 for i, traj in trajectories():
     dihed_trajs[i] = dihed_feat.partial_transform(traj)
-
-## Summary
-print(dihed_feat.summarize())
 
 ## Save
 save_trajs(dihed_trajs, 'diheds', meta)
