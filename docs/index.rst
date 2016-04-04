@@ -71,6 +71,7 @@ the GNU LGPL (v2.1 or later).
     ratematrix
     hmm
     persistence
+    io
     apipatterns
     plugins
     faq
