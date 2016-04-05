@@ -8,7 +8,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from msmbuilder.io import load_meta
+from msmbuilder.io import load_meta, render_meta
 
 sns.set_style('ticks')
 colors = sns.color_palette()
@@ -41,3 +41,6 @@ plot_lengths(ax)
 fig.tight_layout()
 fig.savefig("lengths.pdf")
 run(['xdg-open', 'lengths.pdf'])
+
+## Save metadata as html table
+render_meta(meta, 'meta.pandas.html')

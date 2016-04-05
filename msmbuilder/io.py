@@ -135,6 +135,31 @@ def save_meta(meta, meta_fn='meta.pandas.pickl'):
     pd.to_pickle(meta, meta_fn)
 
 
+def render_meta(meta, fn="meta.pandas.html",
+                title="Project Metadata - MSMBuilder", pandas_kwargs=None):
+    if pandas_kwargs is None:
+        pandas_kwargs = {}
+
+    kwargs_with_defaults = {
+        'classes': ('table', 'table-condensed', 'table-hover'),
+    }
+    kwargs_with_defaults.update(**pandas_kwargs)
+
+    env = Environment(loader=PackageLoader('msmbuilder', 'io_templates'))
+    templ = env.get_template("twitter-bootstrap.html")
+    rendered = templ.render(
+        title=title,
+        content=meta.to_html(**kwargs_with_defaults)
+    )
+
+    # Ugh, pandas hardcodes border="1"
+    rendered = re.sub(r' border="1"', '', rendered)
+
+    backup(fn)
+    with open(fn, 'w') as f:
+        f.write(rendered)
+
+
 def save_generic(obj, fn):
     """Save Python objects, including msmbuilder Estimators.
 
