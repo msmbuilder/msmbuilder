@@ -3,13 +3,13 @@
 {{header}}
 """
 
-from msmbuilder.io import gather_metadata, GenericParser, save_meta
+from msmbuilder.io import gather_metadata, save_meta, NumberedRunsParser
 
 ## Construct and save the dataframe
-parser = GenericParser(r'trajectory-([0-9]+)\.xtc', 'fs-peptide.pdb')
-meta = gather_metadata("data/*.xtc", parser)
+parser = NumberedRunsParser(
+    traj_fmt="trajectory-{run}.xtc",
+    top_fn="fs_peptide/fs-peptide.pdb",
+    step_ps=50,
+)
+meta = gather_metadata("fs_peptide/*.xtc", parser)
 save_meta(meta)
-
-## Print a summary
-print(meta.head())
-print("Total trajectories:", len(meta))

@@ -25,21 +25,25 @@ class _Parser(object):
 class GenericParser(_Parser):
     def __init__(self,
                  fn_re,
+                 transforms,
                  top_fn,
                  step_ps,
                  ):
         self.fn_re = re.compile(fn_re)
         self.top_fn = top_fn
         self.step_ps = step_ps
+        self.transforms = transforms
+        try:
+            assert os.path.exists(top_fn)
+        except:
+            warnings.warn("Topology file doesn't actually exist! "
+                          "You may (will) run into issues later when you "
+                          "try to load it.")
 
     @property
     def index(self):
-        return self.fn_re.groupindex.keys()
+        return list(self.fn_re.groupindex.keys())
 
-    def get_indices(self, fn):
-        ma = re.search(self.fn_re, fn)
-        run = int(ma.group(1))
-        return {'run': run}
 
     def parse_fn(self, fn):
         meta = {
@@ -62,23 +66,29 @@ class GenericParser(_Parser):
         if ma is None:
             raise ValueError("Filename {} did not match the "
                              "regular rexpression {}".format(fn, self.fn_re))
-        meta.update(ma.groupdict())
+        meta.update({k: self.transforms[k](v)
+                     for k, v in ma.groupdict().items()})
         return meta
 
 
 class NumberedRunsParser(GenericParser):
-    def __init__(self, filename_format="trajectory-{run}.xtc", top_fn="",
+    def __init__(self, traj_fmt="trajectory-{run}.xtc", top_fn="",
                  step_ps=None):
         # Test the input
-        assert (isinstance(filename_format.format(run=0), str),
-                "Invalid format string {}".format(filename_format))
+        try:
+            traj_fmt.format(run=0)
+        except:
+            raise ValueError("Invalid format string {}".format(traj_fmt))
         # Build a regex from format string
-        s1, s2 = re.split(r'\{run\}', filename_format)
+        s1, s2 = re.split(r'\{run\}', traj_fmt)
         capture_group = r'(?P<run>\d+)'
         fn_re = re.escape(s1) + capture_group + re.escape(s2)
 
+        transforms = {'run': int}
+
         # Call generic
-        super(GenericParser, self).__init__(fn_re, top_fn, step_ps)
+        super(NumberedRunsParser, self).__init__(fn_re, transforms,
+                                                 top_fn, step_ps)
 
 
 class HeirarchyParser(GenericParser):
@@ -92,7 +102,9 @@ class HeirarchyParser(GenericParser):
         fn_re = r'\/'.join(r'(?P<{lvl}>[a-zA-Z0-9_\.\-]+)'.format(lvl=lvl)
                            for lvl in levels)
 
-        super(HeirarchyParser, self).__init__(fn_re, top_fn, step_ps)
+        transforms = {k: str for k in levels}
+        super(HeirarchyParser, self).__init__(fn_re, transforms, top_fn,
+                                              step_ps)
 
 
 class GenericSplitParser(GenericParser):
