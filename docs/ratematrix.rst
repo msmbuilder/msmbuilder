@@ -1,8 +1,8 @@
 .. _ratematrix:
 .. currentmodule:: msmbuilder.msm
 
-Continuous-time Markov State Model
-==================================
+Continuous-time MSMs
+====================
 
 :class:`MarkovStateModel` estimates a series of
 transition *probabilities* among states that depend on the discrete

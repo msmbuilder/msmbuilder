@@ -11,7 +11,8 @@ if not version.release:
     exit(0)
 
 URL = 'http://www.msmbuilder.org'
-versions = json.load(urlopen(URL + '/versions.json'))
+data = urlopen(URL + '/versions.json').read().decode()
+versions = json.loads(data)
 
 # new release so all the others are now old
 for i in range(len(versions)):
@@ -23,6 +24,6 @@ versions.append({
     'url': "{base}/{version}".format(base=URL, version=version.short_version),
     'latest': True})
 
-with open("doc/_deploy/versions.json", 'w') as versionf:
-    json.dump(versions, versionf)
+with open("docs/_deploy/versions.json", 'w') as versionf:
+    json.dump(versions, versionf, indent=2)
 

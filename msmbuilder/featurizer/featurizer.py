@@ -1,7 +1,8 @@
 # Author: Kyle A. Beauchamp <kyleabeauchamp@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>,
 #               Matthew Harrigan <matthew.p.harrigan@gmail.com>
-#               Brooke Husic <brookehusic@gmail.com>
+#               Brooke Husic <brookehusic@gmail.com>,
+#               Muneeb Sultan <msultan@stanford.edu>
 # Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
@@ -13,12 +14,42 @@ import mdtraj as md
 import numpy as np
 import sklearn.pipeline
 from scipy.stats import vonmises as vm
+from msmbuilder import libdistance
+import itertools
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
 
 from msmbuilder import libdistance
 from ..base import BaseEstimator
 
+def zippy_maker(aind_tuples, top):
+    resseqs = []
+    resids = []
+    resnames = []
+    for ainds in aind_tuples:
+        resid = set(top.atom(ai).residue.index for ai in ainds)
+        resids += [list(resid)]
+        reseq = set(top.atom(ai).residue.resSeq for ai in ainds)
+        resseqs += [list(reseq)]
+        resname = set(top.atom(ai).residue.name for ai in ainds)
+        resnames += [list(resname)]
+
+    return zip(aind_tuples, resseqs, resids, resnames)
+
+def dict_maker(zippy):
+    feature_descs = []
+    for featurizer, featuregroup, other_info, feature_info in zippy:
+        ainds, resseq, resid, resname = feature_info
+        feature_descs += [dict(
+            resnames=resname,
+            atominds=ainds,
+            resseqs=resseq,
+            resids=resid,
+            featurizer=featurizer,
+            featuregroup="{}".format(featuregroup),
+            otherinfo ="{}".format(other_info)
+        )]
+    return feature_descs
 
 def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
     """Load and featurize many trajectory files.
@@ -68,7 +99,6 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
-
 
 class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
@@ -403,42 +433,46 @@ class DihedralFeaturizer(Featurizer):
                              (str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the Dihderal features."""
-        x = []
-        for a in self.types:
-            func = getattr(md, 'compute_%s' % a)
-            aind, _ = func(traj)
-            n = len(aind)
+        """Return a list of dictionaries describing the dihderal features.
 
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
 
-            bigclass = ["dihedral"] * n
-            smallclass = [a] * n
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Dihedral
+                - featuregroup: the type of dihedral angle and whether sin or
+                  cos has been applied.
+        """
+
+        feature_descs = []
+        for dihed_type in self.types:
+            # TODO: Don't recompute dihedrals, just get the indices
+            func = getattr(md, 'compute_%s' % dihed_type)
+            # ainds is a list of four-tuples of atoms participating
+            # in each dihedral
+            aind_tuples, _ = func(traj)
+            top = traj.topology
+            zippy = zippy_maker(aind_tuples, top)
 
             if self.sincos:
-                aind = list(aind) * 2
-                resnames = resnames * 2
-                resSeq = resSeq * 2
-                resid = resid * 2
-                otherInfo = (["sin"] * n) + (["cos"] * n)
-                bigclass = bigclass * 2
-                smallclass = smallclass * 2
+                zippy = itertools.product(['Dihedral'],[dihed_type], ['sin', 'cos'], zippy)
             else:
-                otherInfo = ["nosincos"] * n
+                zippy = itertools.product(['Dihedral'],[dihed_type], ['nosincos'], zippy)
 
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
+            feature_descs.extend(dict_maker(zippy))
 
-        return x
+        return feature_descs
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
@@ -513,37 +547,66 @@ class VonMisesFeaturizer(Featurizer):
                              (str(known), str(types)))
 
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the von Mises features."""
-        x = []
-        for a in self.types:
-            func = getattr(md, 'compute_%s' % a)
-            aind, _ = func(traj)
-            n = len(aind)
+        """Return a list of dictionaries describing the dihderal features.
 
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
 
-            bigclass = ["dihedral"] * n * self.n_bins
-            smallclass = [a] * n * self.n_bins
-            aind = list(aind) * self.n_bins
-            resnames = resnames * self.n_bins
-            resSeq = resSeq * self.n_bins
-            resid = resid * self.n_bins
-            otherInfo = n * (self.n_bins*"vm%s," %
-                             tuple(range(self.n_bins))).split(',')[:-1]
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Dihedral
+                - featuregroup: The bin index(0..nbins-1)
+                and dihedral type(phi/psi/chi1 etc )
+        """
+        feature_descs = []
+        for dihed_type in self.types:
+            # TODO: Don't recompute dihedrals, just get the indices
+            func = getattr(md, 'compute_%s' % dihed_type)
+            # ainds is a list of four-tuples of atoms participating
+            # in each dihedral
+            aind_tuples, _ = func(traj)
 
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
+            top = traj.topology
+            bin_info =[]
+            resseqs = []
+            resids = []
+            resnames = []
+            all_aind = []
+            #its bin0---all phis bin1--all_phis
+            for bin_index in range(self.n_bins):
+                for ainds in aind_tuples:
+                    resid = set(top.atom(ai).residue.index for ai in ainds)
+                    all_aind.append(ainds)
+                    bin_info += ["bin-%d"%bin_index]
+                    resids += [list(resid)]
+                    reseq = set(top.atom(ai).residue.resSeq for ai in ainds)
+                    resseqs += [list(reseq)]
+                    resname = set(top.atom(ai).residue.name for ai in ainds)
+                    resnames += [list(resname)]
 
-        return x
+            zippy = zip(all_aind, resseqs, resids, resnames)
+            #fast check to make sure we have the right number of features
+            assert len(bin_info) == len(aind_tuples) * self.n_bins
+
+            zippy = zip(["VonMises"]*len(bin_info),
+                        [dihed_type]*len(bin_info),
+                        bin_info,
+                        zippy)
+
+            feature_descs.extend(dict_maker(zippy))
+
+        return feature_descs
+
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
@@ -570,9 +633,12 @@ class VonMisesFeaturizer(Featurizer):
         for a in self.types:
             func = getattr(md, 'compute_%s' % a)
             _, y = func(traj)
-            x.extend(vm.pdf(y[..., None], loc=self.loc,
-                            kappa=self.kappa).reshape(1, -1,
-                                                      self.n_bins*y.shape[1]))
+            res = vm.pdf(y[..., np.newaxis],
+                         loc=self.loc, kappa=self.kappa)
+            #we reshape the results using a  Fortran-like index order,
+            #so that it goes over the columns first. This should put the results
+            #phi dihedrals(all bin0 then all bin1), psi dihedrals(all_bin1)
+            x.extend(np.reshape(res, (1, -1, self.n_bins*y.shape[1]), order='F'))
         return np.hstack(x)
 
 
@@ -630,44 +696,49 @@ class AlphaAngleFeaturizer(Featurizer):
         return np.hstack(x)
 
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the alpha dihedral angle features."""
-        x = []
+        """Return a list of dictionaries describing the dihderal features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Alpha Angle
+                - featuregroup: the type of dihedral angle and whether sin or
+                  cos has been applied.
+        """
+        feature_descs = []
         # fill in the atom indices using just the first frame
         self.partial_transform(traj[0])
-        if self.atom_indices is not None:
-            aind = self.atom_indices
-            n = len(aind)
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
-            bigclass = ["dihedral"] * n
-            smallclass = ["alpha"] * n
+        top = traj.topology
+        if self.atom_indices is None:
+            raise ValueError("Cannot describe features for "
+                             "trajectories with "
+                              "fewer than 4 alpha carbon"
+                              "using AlphaAngleFeaturizer.")
 
-            if self.sincos:
-                aind = list(aind) * 2
-                resnames = resnames * 2
-                resSeq = resSeq * 2
-                resid = resid * 2
-                otherInfo = (["sin"] * n) + (["cos"] * n)
-                bigclass = bigclass * 2
-                smallclass = smallclass * 2
-            else:
-                otherInfo = ["nosincos"] * n
+        aind_tuples = self.atom_indices
 
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
+        zippy = zippy_maker(aind_tuples, top)
 
-            return x
+        if self.sincos:
+            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['cos', 'sin'], zippy)
         else:
-            raise UserWarning("Cannot describe features for trajectories with fewer than 4 alpha carbon\
-                              using AlphaAngleFeaturizer")
+            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['nosincos'], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+        return feature_descs
 
 
 class KappaAngleFeaturizer(Featurizer):
@@ -704,41 +775,49 @@ class KappaAngleFeaturizer(Featurizer):
         assert result.shape == (traj.n_frames, traj.n_residues - 4)
         return result
 
+
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the Kappa angle features."""
-        x = []
+        """Return a list of dictionaries describing the dihderal features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: KappaAngle
+                - featuregroup: the type of dihedral angle and whether
+                  cos has been applied.
+        """
+        feature_descs = []
         # fill in the atom indices using just the first frame
         self.partial_transform(traj[0])
-        if self.atom_indices is not None:
-            aind = self.atom_indices
-            n = len(aind)
-            resSeq = [(np.unique([traj.top.atom(j).residue.resSeq for j in i]))
-                      for i in aind]
-            resid = [(np.unique([traj.top.atom(j).residue.index for j in i]))
-                     for i in aind]
-            resnames = [[traj.topology.residue(j).name for j in i]
-                        for i in resid]
-            bigclass = ["angle"] * n
-            smallclass = ["kappa"] * n
-
-            if self.cos:
-                otherInfo = (["cos"] * n)
-            else:
-                otherInfo = ["nocos"] * n
-
-            assert len(self.atom_indices) == len(resnames)
-
-            for i in range(len(resnames)):
-                d_i = dict(resname=resnames[i], atomind=aind[i],
-                           resSeq=resSeq[i], resid=resid[i],
-                           otherInfo=otherInfo[i], bigclass=bigclass[i],
-                           smallclass=smallclass[i])
-                x.append(d_i)
-
-            return x
+        top = traj.topology
+        if self.atom_indices is None:
+            raise ValueError("Cannot describe features for trajectories "
+                             "with fewer than 5 alpha carbon"
+                             "using KappaAngle Featurizer")
+        aind_tuples = self.atom_indices
+        zippy = zippy_maker(aind_tuples, top)
+        if self.cos:
+            zippy = itertools.product(["Kappa"],["N/A"], ['cos'], zippy)
         else:
-            raise UserWarning("Cannot describe features for trajectories with fewer than 5 alpha carbon\
-                              using KappaAngle Featurizer")
+            zippy = itertools.product(["Kappa"],["N/A"], ['nocos'], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+
+        return feature_descs
+
 
 
 class SASAFeaturizer(Featurizer):
@@ -812,6 +891,7 @@ class ContactFeaturizer(Featurizer):
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
 
+
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via of residue-residue
         distances
@@ -837,33 +917,51 @@ class ContactFeaturizer(Featurizer):
                                            self.scheme, self.ignore_nonprotein)
         return distances
 
+
     def describe_features(self, traj):
-        """Return a list of dictionaries describing the features in Contacts."""
-        x = []
+        """Return a list of dictionaries describing the contacts features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Contact
+                - featuregroup: ca, heavy etc.
+        """
+        feature_descs = []
         # fill in the atom indices using just the first frame
-        distances, residue_indices = md.compute_contacts(traj, self.contacts,
+        distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
                                                          self.ignore_nonprotein
                                                          )
-        n = residue_indices.shape[0]
-        aind = ["N/A"] * n
-        resSeq = [np.array([traj.top.residue(j).resSeq for j in i])
-                  for i in residue_indices]
-        resid = [np.array([traj.top.residue(j).index for j in i])
-                 for i in residue_indices]
-        resnames = [[traj.topology.residue(j).name for j in i] for i in resid]
-        bigclass = [self.contacts] * n
-        smallclass = [self.scheme] * n
-        otherInfo = [self.ignore_nonprotein] * n
+        top = traj.topology
 
-        for i in range(n):
-            d_i = dict(resname=resnames[i], atomind=aind[i],
-                       resSeq=resSeq[i], resid=resid[i],
-                       otherInfo=otherInfo[i], bigclass=bigclass[i],
-                       smallclass=smallclass[i])
-            x.append(d_i)
+        aind = []
+        resseqs = []
+        resnames = []
+        for resid_ids in residue_indices:
+            aind += ["N/A"]
+            resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
+            resnames += [[top.residue(ri).name for ri in resid_ids]]
 
-        return x
+        zippy = itertools.product(["Contact"], [self.scheme],
+                                  ["Ignore_Protein {}".format(self.ignore_nonprotein)],
+                                  zip(aind, resseqs, residue_indices, resnames))
+
+        feature_descs.extend(dict_maker(zippy))
+
+        return feature_descs
 
 
 class GaussianSolventFeaturizer(Featurizer):

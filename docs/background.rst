@@ -1,7 +1,7 @@
 .. _background:
 
-Background and Motivation
--------------------------
+Motivation
+==========
 
 The aim of this package is to provide software tools for predictive
 modeling of the long timescale dynamics of biomolecular systems using
@@ -14,7 +14,7 @@ quantitative predictions about the system?
 
 
 Workflow
-~~~~~~~~
+--------
 
 To build a dynamical model, we apply (stepwise) a series of dimensionality
 reductions. The basic set of steps is outlined below. Note that most steps
@@ -30,10 +30,10 @@ clear as you continue reading the documentation.
 
 2. :ref:`Featurize<featurization>` trajectories into an appropriate vector
    of features. The full :math:`3N` set of atomic coordinates is
-   potentially unwieldy and redundant. It likely does not repsect the
+   potentially unwieldy and redundant. It likely does not respect the
    rotational or translational symmetry of your system either. We commonly
    use backbone dihedral angles as our features, although this depends
-   highly on the system being modelled.
+   highly on the system being modeled.
 
 3. :ref:`Decompose<decomposition>` your features into a new basis that
    preserves the relevant information in your data with fewer dimensions.

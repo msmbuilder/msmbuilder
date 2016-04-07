@@ -1,6 +1,6 @@
 package:
   name: msmbuilder-dev
-  version: "3.4.0.dev0"
+  version: "3.5.0.dev0"
 
 source:
   path: ../../
@@ -36,6 +36,7 @@ requirements:
 test:
   requires:
     - nose
+    - nose-timer
     - munkres
     - numdifftools
     - statsmodels
@@ -45,7 +46,7 @@ test:
     - msmbuilder
   commands:
     - msmb -h
-    - nosetests msmbuilder -v
+    - nosetests msmbuilder -v --with-timer
 
 
 about:
