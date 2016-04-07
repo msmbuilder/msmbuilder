@@ -1,4 +1,5 @@
 from __future__ import absolute_import
-from .tica import tICA
-from .pca import PCA
+
+from .pca import PCA, SparsePCA, MiniBatchSparsePCA
 from .sparsetica import SparseTICA
+from .tica import tICA
