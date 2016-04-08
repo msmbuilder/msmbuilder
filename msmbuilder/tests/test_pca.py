@@ -3,7 +3,7 @@ from sklearn.decomposition import PCA as PCAr
 from sklearn.pipeline import Pipeline
 
 from msmbuilder.cluster import KCenters
-from msmbuilder.decomposition import PCA
+from msmbuilder.decomposition import PCA, SparsePCA, MiniBatchSparsePCA
 
 random = np.random.RandomState(42)
 trajs = [random.randn(10, 3) for _ in range(5)]
@@ -61,3 +61,15 @@ def test_generator():
     np.testing.assert_array_almost_equal(pca.n_components_, pcar.n_components_)
     np.testing.assert_array_almost_equal(pca.noise_variance_,
                                          pcar.noise_variance_)
+
+
+def test_sparse():
+    pca = SparsePCA()
+    pca.fit_transform(trajs)
+    pca.summarize()
+
+
+def test_minibatch_sparse():
+    pca = MiniBatchSparsePCA()
+    pca.fit_transform(trajs)
+    pca.summarize()

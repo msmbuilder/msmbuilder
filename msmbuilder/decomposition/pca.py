@@ -1,27 +1,49 @@
-# Author: Matthew Harrigan <matthew.p.harrigan@gmail.com>
+# Author: Matthew Harrigan <matthew.harrigan@outlook.com>
 # Contributors:
-# Copyright (c) 2014, Stanford University and the Authors
+# Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
 from __future__ import print_function, division, absolute_import
+
 from sklearn import decomposition
-import numpy as np
 
 from .base import MultiSequenceDecompositionMixin
 
-from ..utils import check_iter_of_sequences
+__all__ = ['PCA', 'SparsePCA']
 
-__all__ = ['PCA']
 
 class PCA(MultiSequenceDecompositionMixin, decomposition.PCA):
     __doc__ = decomposition.PCA.__doc__
 
     def summarize(self):
-        return """Principal Components Analysis (PCA)
------------------------------------
-Number of components : {n_components}
-Fraction explained variance : {expl_var}
-Noise variance : {noise_var}
-""".format(n_components=self.n_components_, 
-           expl_var=self.explained_variance_ratio_,
-           noise_var=self.noise_variance_)
+        return '\n'.join([
+            "Principal Components Analysis (PCA)",
+            "----------",
+            "Number of components:    {n_components}",
+            "explained variance raio: {explained_variance_ratio_}",
+            "Noise variance:          {noise_variance_}",
+        ]).format(**self.__dict__)
+
+
+class SparsePCA(MultiSequenceDecompositionMixin, decomposition.SparsePCA):
+    __doc__ = decomposition.SparsePCA.__doc__
+
+    def summarize(self):
+        return '\n'.join([
+            "Sparse PCA",
+            "----------",
+            "Number of components:    {n_components}",
+        ]).format(**self.__dict__)
+
+
+class MiniBatchSparsePCA(MultiSequenceDecompositionMixin,
+                         decomposition.MiniBatchSparsePCA):
+    __doc__ = decomposition.MiniBatchSparsePCA.__doc__
+
+    def summarize(self):
+        return '\n'.join([
+            "MiniBatch Sparse PCA",
+            "--------------------",
+            "Number of components:    {n_components}",
+            "Batch size:              {batch_size}"
+        ]).format(**self.__dict__)

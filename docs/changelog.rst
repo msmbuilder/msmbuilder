@@ -15,6 +15,9 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
+ - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
+   ``decomposition`` module (#791).
+
 
 Improvements
 ~~~~~~~~~~~~
