@@ -7,16 +7,20 @@ from __future__ import print_function, division, absolute_import
 
 from sklearn import preprocessing
 
-from .base import MultiSequencePreprocessingMixin
+from .base import (MultiSequencePreprocessingMixin,
+                   MultiSequenceOnlinePreprocessingMixin)
 
 
 class Binarizer(MultiSequencePreprocessingMixin, preprocessing.Binarizer):
     __doc__ = preprocessing.Binarizer.__doc__
 
 
-class FunctionTransformer(MultiSequencePreprocessingMixin,
-                          preprocessing.FunctionTransformer):
-    __doc__ = preprocessing.FunctionTransformer.__doc__
+try:
+    class FunctionTransformer(MultiSequencePreprocessingMixin,
+                              preprocessing.FunctionTransformer):
+        __doc__ = preprocessing.FunctionTransformer.__doc__
+except AttributeError:
+    pass
 
 
 class Imputer(MultiSequencePreprocessingMixin, preprocessing.Imputer):
@@ -38,26 +42,31 @@ class MultiLabelBinarizer(MultiSequencePreprocessingMixin,
     __doc__ = preprocessing.MultiLabelBinarizer.__doc__
 
 
-class MinMaxScaler(MultiSequencePreprocessingMixin,
+class MinMaxScaler(MultiSequenceOnlinePreprocessingMixin,
                    preprocessing.MinMaxScaler):
     __doc__ = preprocessing.MinMaxScaler.__doc__
 
-
-class MaxAbsScaler(MultiSequencePreprocessingMixin,
-                   preprocessing.MaxAbsScaler):
-    __doc__ = preprocessing.MaxAbsScaler.__doc__
+try:
+    class MaxAbsScaler(MultiSequenceOnlinePreprocessingMixin,
+                       preprocessing.MaxAbsScaler):
+        __doc__ = preprocessing.MaxAbsScaler.__doc__
+except AttributeError:
+    pass
 
 
 class Normalizer(MultiSequencePreprocessingMixin, preprocessing.Normalizer):
     __doc__ = preprocessing.Normalizer.__doc__
 
 
-class RobustScaler(MultiSequencePreprocessingMixin,
-                   preprocessing.RobustScaler):
-    __doc__ = preprocessing.RobustScaler.__doc__
+try:
+    class RobustScaler(MultiSequencePreprocessingMixin,
+                       preprocessing.RobustScaler):
+        __doc__ = preprocessing.RobustScaler.__doc__
+except AttributeError:
+    pass
 
 
-class StandardScaler(MultiSequencePreprocessingMixin,
+class StandardScaler(MultiSequenceOnlinePreprocessingMixin,
                      preprocessing.StandardScaler):
     __doc__ = preprocessing.StandardScaler.__doc__
 
