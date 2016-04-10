@@ -1,23 +1,42 @@
-from msmbuilder.preprocessing import (Binarizer, FunctionTransformer, Imputer,
-                                      KernelCenterer, LabelBinarizer,
-                                      MultiLabelBinarizer, MinMaxScaler,
-                                      MaxAbsScaler, Normalizer, RobustScaler,
-                                      StandardScaler, PolynomialFeatures)
+import numpy as np
+from numpy.testing.decorators import skipif
+
+try:
+    from sklearn.preprocessing import (FunctionTransformer as
+                                       FunctionTransformerR)
+    from msmbuilder.preprocessing import FunctionTransformer
+    HAVE_FT = True
+except:
+    HAVE_FT = False
+
+try:
+    from sklearn.preprocessing import MaxAbsScaler as MaxAbsScalerR
+    from msmbuilder.preprocessing import MaxAbsScaler
+    HAVE_MAS = True
+except:
+    HAVE_MAS = False
+
+try:
+    from sklearn.preprocessing import RobustScaler as RobustScalerR
+    from msmbuilder.preprocessing import RobustScaler
+    HAVE_RS = True
+except:
+    HAVE_RS = False
+
 
 from sklearn.preprocessing import (Binarizer as BinarizerR,
-                                   FunctionTransformer as FunctionTransformerR,
                                    Imputer as ImputerR,
                                    KernelCenterer as KernelCentererR,
                                    LabelBinarizer as LabelBinarizerR,
                                    MultiLabelBinarizer as MultiLabelBinarizerR,
                                    MinMaxScaler as MinMaxScalerR,
-                                   MaxAbsScaler as MaxAbsScalerR,
                                    Normalizer as NormalizerR,
-                                   RobustScaler as RobustScalerR,
                                    StandardScaler as StandardScalerR,
                                    PolynomialFeatures as PolynomialFeaturesR)
 
-import numpy as np
+from ..preprocessing import (Binarizer, Imputer, KernelCenterer,
+                             LabelBinarizer, MultiLabelBinarizer, MinMaxScaler,
+                             Normalizer, StandardScaler, PolynomialFeatures)
 
 
 random = np.random.RandomState(42)
@@ -42,6 +61,7 @@ def test_binarizer_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
+@skipif(not HAVE_FT, 'this test requires sklearn >0.17.0')
 def test_functiontransformer_vs_sklearn():
     # Compare msmbuilder.preprocessing.FunctionTransformer
     # with sklearn.preprocessing.FunctionTransformer
@@ -122,6 +142,7 @@ def test_multilabelbinarizer_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
+@skipif(not HAVE_MAS, 'this test requires sklearn >0.17.0')
 def test_minmaxscaler_vs_sklearn():
     # Compare msmbuilder.preprocessing.MinMaxScaler
     # with sklearn.preprocessing.MinMaxScaler
@@ -138,6 +159,7 @@ def test_minmaxscaler_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
+@skipif(not HAVE_MAS, 'this test requires sklearn >0.17.0')
 def test_maxabsscaler_vs_sklearn():
     # Compare msmbuilder.preprocessing.MaxAbsScaler
     # with sklearn.preprocessing.MaxAbsScaler
@@ -170,6 +192,7 @@ def test_normalizer_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
+@skipif(not HAVE_RS, 'this test requires sklearn >0.17.0')
 def test_robustscaler_vs_sklearn():
     # Compare msmbuilder.preprocessing.RobustScaler
     # with sklearn.preprocessing.RobustScaler
@@ -186,6 +209,7 @@ def test_robustscaler_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
+@skipif(not HAVE_MAS, 'this test requires sklearn >0.17.0')
 def test_standardscaler_vs_sklearn():
     # Compare msmbuilder.preprocessing.StandardScaler
     # with sklearn.preprocessing.StandardScaler
