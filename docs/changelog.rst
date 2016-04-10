@@ -18,6 +18,11 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
+ - ``BinaryContactFeaturizer`` featurizes a trajectory into a
+    boolean array corresponding to whether each residue-residue
+    distance is below a cutoff (#798).
+ - ``LogisticContactFeaturizer`` produces a logistic transform
+    of residue-residue distances about a center distance (#798).
 
 Improvements
 ~~~~~~~~~~~~
@@ -109,7 +114,7 @@ New Features
 - ``VonMisesFeaturizer`` uses soft bins around the unit-circle to give an
   alternate representation of dihedral angles (#744).
 - ``MarkovStateModel`` has a ``partial_transform()`` method (#707).
-- ``KapaAngleFeaturizer`` is available via the command line (#681).
+- ``KappaAngleFeaturizer`` is available via the command line (#681).
 - ``MarkovStateModel`` has a new attribute, ``percent_retained_``, for
   ergodic trimming (#689).
 - ``AlphaAngleFeaturizer`` computes the dihedral angles between alpha
