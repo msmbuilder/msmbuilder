@@ -10,6 +10,13 @@ except:
     HAVE_FT = False
 
 try:
+    from sklearn.preprocessing import MinMaxScaler as MinMaxScalerR
+    from msmbuilder.preprocessing import MinMaxScaler
+    HAVE_MMS = True
+except:
+    HAVE_MMS = False
+
+try:
     from sklearn.preprocessing import MaxAbsScaler as MaxAbsScalerR
     from msmbuilder.preprocessing import MaxAbsScaler
     HAVE_MAS = True
@@ -23,20 +30,24 @@ try:
 except:
     HAVE_RS = False
 
+try:
+    from sklearn.preprocessing import StandardScaler as StandardScalerR
+    from msmbuilder.preprocessing import StandardScaler
+    HAVE_SS = True
+except:
+    HAVE_SS = False
 
 from sklearn.preprocessing import (Binarizer as BinarizerR,
                                    Imputer as ImputerR,
                                    KernelCenterer as KernelCentererR,
                                    LabelBinarizer as LabelBinarizerR,
                                    MultiLabelBinarizer as MultiLabelBinarizerR,
-                                   MinMaxScaler as MinMaxScalerR,
                                    Normalizer as NormalizerR,
-                                   StandardScaler as StandardScalerR,
                                    PolynomialFeatures as PolynomialFeaturesR)
 
 from ..preprocessing import (Binarizer, Imputer, KernelCenterer,
-                             LabelBinarizer, MultiLabelBinarizer, MinMaxScaler,
-                             Normalizer, StandardScaler, PolynomialFeatures)
+                             LabelBinarizer, MultiLabelBinarizer,
+                             Normalizer, PolynomialFeatures)
 
 
 random = np.random.RandomState(42)
@@ -142,7 +153,7 @@ def test_multilabelbinarizer_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
-@skipif(not HAVE_MAS, 'this test requires sklearn >0.17.0')
+@skipif(not HAVE_MMS, 'this test requires sklearn >0.17.0')
 def test_minmaxscaler_vs_sklearn():
     # Compare msmbuilder.preprocessing.MinMaxScaler
     # with sklearn.preprocessing.MinMaxScaler
@@ -209,7 +220,7 @@ def test_robustscaler_vs_sklearn():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
-@skipif(not HAVE_MAS, 'this test requires sklearn >0.17.0')
+@skipif(not HAVE_SS, 'this test requires sklearn >0.17.0')
 def test_standardscaler_vs_sklearn():
     # Compare msmbuilder.preprocessing.StandardScaler
     # with sklearn.preprocessing.StandardScaler

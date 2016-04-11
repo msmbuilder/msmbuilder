@@ -14,13 +14,11 @@ from .base import (MultiSequencePreprocessingMixin,
 class Binarizer(MultiSequencePreprocessingMixin, preprocessing.Binarizer):
     __doc__ = preprocessing.Binarizer.__doc__
 
-
-try:
+# Older versions of sklearn might not have this
+if hasattr(preprocessing, 'FunctionTransformer'):
     class FunctionTransformer(MultiSequencePreprocessingMixin,
                               preprocessing.FunctionTransformer):
         __doc__ = preprocessing.FunctionTransformer.__doc__
-except AttributeError:
-    pass
 
 
 class Imputer(MultiSequencePreprocessingMixin, preprocessing.Imputer):
@@ -41,34 +39,33 @@ class MultiLabelBinarizer(MultiSequencePreprocessingMixin,
                           preprocessing.MultiLabelBinarizer):
     __doc__ = preprocessing.MultiLabelBinarizer.__doc__
 
+# Older versions of sklearn might not have this
+if hasattr(preprocessing.MinMaxScaler, 'partial_fit'):
+    class MinMaxScaler(MultiSequenceOnlinePreprocessingMixin,
+                       preprocessing.MinMaxScaler):
+        __doc__ = preprocessing.MinMaxScaler.__doc__
 
-class MinMaxScaler(MultiSequenceOnlinePreprocessingMixin,
-                   preprocessing.MinMaxScaler):
-    __doc__ = preprocessing.MinMaxScaler.__doc__
-
-try:
+# Older versions of sklearn might not have this
+if hasattr(preprocessing, 'MaxAbsScaler'):
     class MaxAbsScaler(MultiSequenceOnlinePreprocessingMixin,
                        preprocessing.MaxAbsScaler):
         __doc__ = preprocessing.MaxAbsScaler.__doc__
-except AttributeError:
-    pass
 
 
 class Normalizer(MultiSequencePreprocessingMixin, preprocessing.Normalizer):
     __doc__ = preprocessing.Normalizer.__doc__
 
-
-try:
+# Older versions of sklearn might not have this
+if hasattr(preprocessing, 'RobustScaler'):
     class RobustScaler(MultiSequencePreprocessingMixin,
                        preprocessing.RobustScaler):
         __doc__ = preprocessing.RobustScaler.__doc__
-except AttributeError:
-    pass
 
-
-class StandardScaler(MultiSequenceOnlinePreprocessingMixin,
-                     preprocessing.StandardScaler):
-    __doc__ = preprocessing.StandardScaler.__doc__
+# Older versions of sklearn might not have this
+if hasattr(preprocessing.StandardScaler, 'partial_fit'):
+    class StandardScaler(MultiSequenceOnlinePreprocessingMixin,
+                         preprocessing.StandardScaler):
+        __doc__ = preprocessing.StandardScaler.__doc__
 
 
 class PolynomialFeatures(MultiSequencePreprocessingMixin,
