@@ -18,6 +18,12 @@ New Features
  - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
    ``decomposition`` module (#791).
 
+ - ``Binarizer``, ``FunctionTransformer``, ``Imputer``, ``KernelCenterer``,
+   ``LabelBinarizer``, ``MultiLabelBinarizer``, ``MinMaxScaler``,
+   ``MaxAbsScaler``, ``Normalizer``, ``RobustScaler``, ``StandardScaler``,
+   and ``PolynomialFeatures`` are available in the ``preprocessing``
+   module (#796).
+
 
 Improvements
 ~~~~~~~~~~~~
