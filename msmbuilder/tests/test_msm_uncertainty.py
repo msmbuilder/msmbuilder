@@ -48,7 +48,7 @@ def test_eigenvalue_partials():
 
 
 def test_doublewell():
-    X = load_doublewell(random_state=0)['trajectories']
+    X = load_doublewell(random_state=2)['trajectories']
     for i in range(3):
         Y = NDGrid(n_bins_per_feature=10).fit_transform([X[i]])
         model1 = MarkovStateModel(verbose=False).fit(Y)
