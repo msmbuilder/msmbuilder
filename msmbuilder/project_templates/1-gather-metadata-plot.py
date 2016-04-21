@@ -19,7 +19,7 @@ meta = load_meta()
 
 ## Plot logic
 def plot_lengths(ax):
-    lengths_ns = meta['nframes'] / meta['step_ps'] / 1000
+    lengths_ns = meta['nframes'] * (meta['step_ps'] / 1000)
     ax.hist(lengths_ns)
     ax.set_xlabel("Lenths / ns", fontsize=16)
     ax.set_ylabel("Count", fontsize=16)
