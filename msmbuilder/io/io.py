@@ -22,7 +22,8 @@ from jinja2 import Environment, PackageLoader
 from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 __all__ = ['backup', 'preload_top', 'preload_tops', 'load_meta', 'load_generic',
-           'load_trajs', 'save_meta', 'save_generic', 'save_trajs']
+           'load_trajs', 'save_meta', 'save_generic', 'save_trajs',
+           'ProjectTemplatej']
 
 
 def backup(fn):

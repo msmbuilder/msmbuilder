@@ -36,6 +36,10 @@ class GenericParser(_Parser):
             meta['nframes'] = len(f)
         return meta
 
+    @property
+    def key(self):
+        return "run"
+
 
 class FAHParser(_Parser):
     # FAH projects share a folder structure for project, run clone
@@ -82,6 +86,11 @@ class FAHParser(_Parser):
             meta['nframes'] = len(f)
         return meta
 
+    @property
+    def key(self):
+        return ['proj', 'run', 'clone', 'gen']
+
 
 def gather_metadata(fn_glob, parser):
-    return pd.DataFrame(parser.parse_fn(fn) for fn in glob.iglob(fn_glob))
+    meta = pd.DataFrame(parser.parse_fn(fn) for fn in glob.iglob(fn_glob))
+    return meta.set_index(parser.key).sort_index()
