@@ -22,23 +22,44 @@ class GenericParser(_Parser):
         self.fn_re = fn_re
         self.top_fn = top_fn
 
-    def parse_fn(self, fn):
+    def get_indices(self, fn):
         ma = re.search(self.fn_re, fn)
         run = int(ma.group(1))
+        return {'run': run}
+
+    @property
+    def index(self):
+        return "run"
+
+    def parse_fn(self, fn):
         meta = {
-            'run': run,
             'traj_fn': fn,
             'top_fn': self.top_fn,
             'top_abs_fn': os.path.abspath(self.top_fn),
-            'step_ps': 0,
         }
         with md.open(fn) as f:
             meta['nframes'] = len(f)
+        meta.update(self.get_indices(fn))
         return meta
 
+
+class GenericSplitParser(GenericParser):
+    def __init__(self, fn_re=r'trajectory-([0-9]+)-([0-9]+)\.xtc', top_fn=""):
+        self.fn_re = fn_re
+        self.top_fn = top_fn
+
+    def get_indices(self, fn):
+        ma = re.search(self.fn_re, fn)
+        run = int(ma.group(1))
+        part = int(ma.group(1))
+        return {
+            'run': run,
+            'part': part
+        }
+
     @property
-    def key(self):
-        return "run"
+    def index(self):
+        return ["run", 'part']
 
 
 class FAHParser(_Parser):
@@ -87,10 +108,10 @@ class FAHParser(_Parser):
         return meta
 
     @property
-    def key(self):
+    def index(self):
         return ['proj', 'run', 'clone', 'gen']
 
 
 def gather_metadata(fn_glob, parser):
     meta = pd.DataFrame(parser.parse_fn(fn) for fn in glob.iglob(fn_glob))
-    return meta.set_index(parser.key).sort_index()
+    return meta.set_index(parser.index).sort_index()
