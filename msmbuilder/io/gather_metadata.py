@@ -58,7 +58,7 @@ class GenericSplitParser(GenericParser):
     def get_indices(self, fn):
         ma = re.search(self.fn_re, fn)
         run = int(ma.group(1))
-        part = int(ma.group(1))
+        part = int(ma.group(2))
         return {
             'run': run,
             'part': part
