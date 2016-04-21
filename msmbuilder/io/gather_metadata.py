@@ -18,9 +18,11 @@ class _Parser(object):
 
 
 class GenericParser(_Parser):
-    def __init__(self, fn_re=r'trajectory-([0-9]+)\.xtc', top_fn=""):
+    def __init__(self, fn_re=r'trajectory-([0-9]+)\.xtc', top_fn="",
+                 step_ps=None):
         self.fn_re = fn_re
         self.top_fn = top_fn
+        self.step_ps = step_ps
 
     def get_indices(self, fn):
         ma = re.search(self.fn_re, fn)
@@ -39,14 +41,19 @@ class GenericParser(_Parser):
         }
         with md.open(fn) as f:
             meta['nframes'] = len(f)
+
+        if self.step_ps is not None:
+            meta['step_ps'] = self.step_ps
+
         meta.update(self.get_indices(fn))
         return meta
 
 
 class GenericSplitParser(GenericParser):
-    def __init__(self, fn_re=r'trajectory-([0-9]+)-([0-9]+)\.xtc', top_fn=""):
-        self.fn_re = fn_re
-        self.top_fn = top_fn
+    def __init__(self, fn_re=r'trajectory-([0-9]+)-([0-9]+)\.xtc', top_fn="",
+                 step_ps=None):
+        super(GenericSplitParser, self).__init__(fn_re=fn_re, step_ps=step_ps,
+                                                 top_fn=top_fn)
 
     def get_indices(self, fn):
         ma = re.search(self.fn_re, fn)
