@@ -3,7 +3,7 @@
 # Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import
 
 from .base import MultiSequenceFeatureSelectionMixin
 from .featureselector import FeatureSelector
