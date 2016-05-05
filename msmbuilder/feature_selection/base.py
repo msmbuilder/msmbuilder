@@ -6,6 +6,8 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import collections
+from warnings import warn
+from sklearn.utils import safe_mask
 
 from ..base import BaseEstimator
 from ..utils import check_iter_of_sequences
@@ -40,7 +42,7 @@ class MultiSequenceFeatureSelectionMixin(BaseEstimator):
         -------
         self
         """
-        check_iter_of_sequences(sequences)
+        check_iter_of_sequences(sequences, allow_trajectory=True)
         s = super(MultiSequenceFeatureSelectionMixin, self)
         s.fit(self._concat(sequences))
 
@@ -81,7 +83,7 @@ class MultiSequenceFeatureSelectionMixin(BaseEstimator):
         -------
         sequence_new : list of array-like, each of shape (n_samples_i, n_components)
         """
-        check_iter_of_sequences(sequences)
+        check_iter_of_sequences(sequences, allow_trajectory=True)
         transforms = []
         for X in sequences:
             transforms.append(self.partial_transform(X))
@@ -105,15 +107,22 @@ class MultiSequenceFeatureSelectionMixin(BaseEstimator):
 
         return transforms
 
-    def partial_transform(self, sequence):
+    def partial_transform(self, X):
         """Apply feature selection to single sequence
         Parameters
         ----------
-        sequence: array like, shape (n_samples, n_features)
+        X: array like, shape (n_samples, n_features)
             A single sequence to transform
         Returns
         -------
         out : array like, shape (n_samples, n_features)
         """
-        return super(MultiSequenceFeatureSelectionMixin,
-                     self).transform(sequence)
+        mask = self.get_support()
+        if not mask.any():
+            warn("No features were selected: either the data is"
+                 " too noisy or the selection test too strict.",
+                 UserWarning)
+            return np.empty(0).reshape((X.shape[0], 0))
+        if len(mask) != X.shape[1]:
+            raise ValueError("X has a different shape than during fitting.")
+        return X[:, safe_mask(X, mask)]

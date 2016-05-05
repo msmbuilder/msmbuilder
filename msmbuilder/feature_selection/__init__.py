@@ -9,11 +9,12 @@ from .base import MultiSequenceFeatureSelectionMixin
 from .featureselector import FeatureSelector
 
 from sklearn import feature_selection
+from sklearn import pipeline
 
 
-class GenericUnivariateSelect(MultiSequenceFeatureSelectionMixin,
-                              feature_selection.GenericUnivariateSelect):
-    __doc__ = feature_selection.GenericUnivariateSelect.__doc__
+class FeatureUnion(MultiSequenceFeatureSelectionMixin,
+                   pipeline.FeatureUnion):
+    __doc__ = pipeline.FeatureUnion.__doc__
 
 
 class RFE(MultiSequenceFeatureSelectionMixin, feature_selection.RFE):
@@ -22,31 +23,6 @@ class RFE(MultiSequenceFeatureSelectionMixin, feature_selection.RFE):
 
 class RFECV(MultiSequenceFeatureSelectionMixin, feature_selection.RFECV):
     __doc__ = feature_selection.RFECV.__doc__
-
-
-class SelectFdr(MultiSequenceFeatureSelectionMixin,
-                feature_selection.SelectFdr):
-    __doc__ = feature_selection.SelectFdr.__doc__
-
-
-class SelectFpr(MultiSequenceFeatureSelectionMixin,
-                feature_selection.SelectFpr):
-    __doc__ = feature_selection.SelectFpr.__doc__
-
-
-class SelectFwe(MultiSequenceFeatureSelectionMixin,
-                feature_selection.SelectFwe):
-    __doc__ = feature_selection.SelectFwe.__doc__
-
-
-class SelectKBest(MultiSequenceFeatureSelectionMixin,
-                  feature_selection.SelectKBest):
-    __doc__ = feature_selection.SelectKBest.__doc__
-
-
-class SelectPercentile(MultiSequenceFeatureSelectionMixin,
-                       feature_selection.SelectPercentile):
-    __doc__ = feature_selection.SelectPercentile.__doc__
 
 
 class VarianceThreshold(MultiSequenceFeatureSelectionMixin,
