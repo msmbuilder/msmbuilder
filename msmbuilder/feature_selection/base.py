@@ -6,8 +6,6 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import collections
-from warnings import warn
-from sklearn.utils import safe_mask
 
 from ..base import BaseEstimator
 from ..utils import check_iter_of_sequences
@@ -107,22 +105,15 @@ class MultiSequenceFeatureSelectionMixin(BaseEstimator):
 
         return transforms
 
-    def partial_transform(self, X):
+    def partial_transform(self, sequence):
         """Apply feature selection to single sequence
         Parameters
         ----------
-        X: array like, shape (n_samples, n_features)
+        sequence: array like, shape (n_samples, n_features)
             A single sequence to transform
         Returns
         -------
         out : array like, shape (n_samples, n_features)
         """
-        mask = self.get_support()
-        if not mask.any():
-            warn("No features were selected: either the data is"
-                 " too noisy or the selection test too strict.",
-                 UserWarning)
-            return np.empty(0).reshape((X.shape[0], 0))
-        if len(mask) != X.shape[1]:
-            raise ValueError("X has a different shape than during fitting.")
-        return X[:, safe_mask(X, mask)]
+        return super(MultiSequenceFeatureSelectionMixin,
+                     self).transform(sequence)

@@ -9,12 +9,6 @@ from .base import MultiSequenceFeatureSelectionMixin
 from .featureselector import FeatureSelector
 
 from sklearn import feature_selection
-from sklearn import pipeline
-
-
-class FeatureUnion(MultiSequenceFeatureSelectionMixin,
-                   pipeline.FeatureUnion):
-    __doc__ = pipeline.FeatureUnion.__doc__
 
 
 class RFE(MultiSequenceFeatureSelectionMixin, feature_selection.RFE):
