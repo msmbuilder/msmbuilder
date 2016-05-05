@@ -6,6 +6,7 @@
 from __future__ import print_function, division, absolute_import
 
 from .base import MultiSequenceFeatureSelectionMixin
+from .featureselector import FeatureSelector
 
 from sklearn import feature_selection
 
