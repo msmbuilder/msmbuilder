@@ -11,7 +11,7 @@ This is the current development version of MSMBuilder
 API Changes
 ~~~~~~~~~~~
 
-- ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please used
+- ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please use
   ``msmbuilder.feature_selection.FeatureSelector`` instead (#799).
 
 - ``msmbuilder.feature_extraction`` has been added to conform to the

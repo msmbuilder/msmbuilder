@@ -51,10 +51,6 @@ class FeatureSelector(MultiSequenceFeatureSelectionMixin):
             `(length_of_trajectory x n_features)` where each `features[i]`
             vector is computed by applying the featurization function
             to the `i`th snapshot of the input trajectory.
-
-        See Also
-        --------
-        transform : simultaneously featurize a collection of MD trajectories
         """
         return np.concatenate([self.feats[feat].partial_transform(traj)
                                for feat in self.which_feat], axis=1)
