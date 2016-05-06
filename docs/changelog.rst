@@ -11,9 +11,20 @@ This is the current development version of MSMBuilder
 API Changes
 ~~~~~~~~~~~
 
+- ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please used
+  ``msmbuilder.feature_selection.FeatureSelector`` instead (#799).
+
+- ``msmbuilder.feature_extraction`` has been added to conform to the
+  ``scikit-learn`` API. This is essentially an alias of
+  ``msmbuilder.featurizer`` (#799).
+
+
 
 New Features
 ~~~~~~~~~~~~
+
+ - ``FeatureSelector`` and ``VarianceThreshold`` are available in the
+   ``feature_selection`` module (#799)
 
  - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
    ``decomposition`` module (#791).
