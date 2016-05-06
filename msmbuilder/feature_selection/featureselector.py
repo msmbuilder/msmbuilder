@@ -14,6 +14,9 @@ class FeatureSelector(MultiSequenceFeatureSelectionMixin):
     concatenates the results. This is useful to combine several feature
     extraction mechanisms into a single transformer.
 
+    Note: Users should consider using `msmbuilder.preprocessing.StandardScaler`
+    to normalize their data after combining feature sets.
+
     Parameters
     ----------
     features : list of (str, msmbuilder.feature_extraction) tuples
