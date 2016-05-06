@@ -8,6 +8,21 @@ from .base import MultiSequenceFeatureSelectionMixin
 
 
 class FeatureSelector(MultiSequenceFeatureSelectionMixin):
+    """Concatenates results of multiple feature extraction objects.
+
+    This estimator applies a list of feature_extraction objects then
+    concatenates the results. This is useful to combine several feature
+    extraction mechanisms into a single transformer.
+
+    Parameters
+    ----------
+    features : list of (str, msmbuilder.feature_extraction) tuples
+        List of feature_extraction objects to be applied to the data.
+        The first half of each tuple is the name of the feature_extraction.
+    which_feat : list or str
+        Either a string or a list of strings of features to include in the
+        transformer.
+    """
     def __init__(self, features, which_feat=None):
         self.feats = dict(features)
         self.feat_list = list(self.feats)
@@ -22,5 +37,24 @@ class FeatureSelector(MultiSequenceFeatureSelectionMixin):
         self.which_feat = which_feat
 
     def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
         return np.concatenate([self.feats[feat].partial_transform(traj)
                                for feat in self.which_feat], axis=1)
