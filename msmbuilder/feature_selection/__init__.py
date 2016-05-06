@@ -10,20 +10,6 @@ from .featureselector import FeatureSelector
 
 from sklearn import feature_selection
 
-
-class RFE(MultiSequenceFeatureSelectionMixin, feature_selection.RFE):
-    __doc__ = feature_selection.RFE.__doc__
-
-
-class RFECV(MultiSequenceFeatureSelectionMixin, feature_selection.RFECV):
-    __doc__ = feature_selection.RFECV.__doc__
-
-
 class VarianceThreshold(MultiSequenceFeatureSelectionMixin,
                         feature_selection.VarianceThreshold):
     __doc__ = feature_selection.VarianceThreshold.__doc__
-
-if hasattr(feature_selection, 'SelectFromModel'):
-    class SelectFromModel(MultiSequenceFeatureSelectionMixin,
-                          feature_selection.SelectFromModel):
-        __doc__ = feature_selection.SelectFromModel.__doc__
