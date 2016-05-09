@@ -12,7 +12,6 @@ from sklearn import kernel_approximation
 from sklearn.metrics.pairwise import pairwise_kernels
 
 from .base import MultiSequenceDecompositionMixin
-from ..utils import check_iter_of_sequences
 
 
 __all__ = ['Nystroem', 'LandmarkNystroem']
@@ -90,11 +89,7 @@ class LandmarkNystroem(Nystroem):
         super(LandmarkNystroem, self).__init__(**kwargs)
 
     def fit(self, sequences, y=None):
-        check_iter_of_sequences(sequences)
-        X = self._concat(sequences)
         if self.landmarks is not None:
-            self.components_ = self.landmarks
-
             basis_kernel = pairwise_kernels(self.landmarks, metric=self.kernel,
                                             filter_params=True,
                                             **self._get_kernel_params())
@@ -102,7 +97,9 @@ class LandmarkNystroem(Nystroem):
             U, S, V = svd(basis_kernel)
             S = np.maximum(S, 1e-12)
             self.normalization_ = np.dot(U * 1. / np.sqrt(S), V)
+            self.components_ = self.landmarks
+            self.component_indices_ = None
 
             return self
 
-        super(Nystroem, self).fit(X, y=y)
+        super(Nystroem, self).fit(sequences, y=y)

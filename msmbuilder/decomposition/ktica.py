@@ -3,12 +3,20 @@
 # Copyright (c) 2015, Stanford University and the Authors
 # All rights reserved.
 
+# -----------------------------------------------------------------------------
+# Imports
+# -----------------------------------------------------------------------------
+
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
 from .tica import tICA
-from .kernel_approx import LandmarkNystroem
+from .kernel_approximation import LandmarkNystroem
+
+# -----------------------------------------------------------------------------
+# Code
+# -----------------------------------------------------------------------------
 
 
 class KernelTICA(tICA):
@@ -33,29 +41,29 @@ class KernelTICA(tICA):
     kinetic_mapping : bool, default=False
         If True, weigh the projections by the tICA eigenvalues, yielding
          kinetic distances as described in [6].
-    kernel : str or callable
+    kernel : str or callable (default='rbf')
         Kernel map to be approximated using the Nystroem approximation.
         It must be one of:
             - 'linear' : linear kernel (dot product in the input space)
             - 'poly' : polynomial kernel
             - 'rbf' : radial basis function
             - 'sigmoid' : sigmoid kernel
-            - ‘laplacian’ : laplacian kernel
+            - 'laplacian' : laplacian kernel
             - 'cosine' : cosine similarity kernel
             - callable : A callable should accept two arguments
             and the keyword arguments passed to this object as kernel_params,
             and should return a floating point number.
-    degree : int, optional
+    degree : int, optional (default=3)
         Degree of the polynomial kernel. This is only used if kernel
         is 'poly'.
-    gamma : float, optional
+    gamma : float, optional (default=None)
         Kernel coefficient for 'rbf', 'poly', and 'sigmoid'. If gamma == 0.0,
         then will use 1 / n_features.
-    coef0 : float, optional
+    coef0 : float, optional (default=1.)
         Independent term in 'poly' and 'sigmoid'.
-    landmarks : ndarray, optional
+    landmarks : ndarray, optional (default=None)
         Custom landmark points for the Nyostroem approximation
-    stride : int, optional
+    stride : int, optional (default=1)
         Only sample pairs of points from the data according to this stride
 
     Attributes
@@ -92,17 +100,19 @@ class KernelTICA(tICA):
 
     References
     ----------
-    .. [1] Schwantes, Christian R., and Vijay S. Pande. J.
-       Chem Theory Comput. 11.2 (2015): 600–608.
+    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600–608.
     """
+
     def __init__(self, kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
-                 landmarks=None, kernel_params=None, **kwargs):
+                 landmarks=None, random_state=None, kernel_params=None,
+                 **kwargs):
         self.kernel = kernel
         self.degree = degree
         self.gamma = gamma
         self.coef0 = coef0
         self.stride = 1
         self.landmarks = landmarks
+        self.random_state = random_state
         self.kernel_params = kernel_params
         if kernel_params is None:
             self.kernel_params = {
@@ -110,26 +120,28 @@ class KernelTICA(tICA):
                                   'degree': self.degree,
                                   'gamma': self.gamma,
                                   'coef0': self.coef0,
+                                  'random_state': self.random_state
                                   }
         super(KernelTICA, self).__init__(**kwargs)
 
     def _gen_landmarks(self, sequences):
-        X_0 = []
-        X_t = []
+        X = []
         for seq in sequences:
-            seq_t = seq[self.lag_time::self.stride]
-            seq_0 = seq[::self.stride][:seq_t.shape[0]]
-            X_0.append(seq_0)
-            X_t.append(seq_t)
-        return np.concatenate([np.concatenate(X_0), np.concatenate(X_t)])
+            u = np.arange(seq.shape[0])[self.lag_time::self.stride]
+            v = np.arange(seq.shape[0])[::self.stride][:u.shape[0]]
+
+            X.append(seq[np.unique((u, v))])
+
+        return np.concatenate(X, axis=0)
 
     def fit(self, sequences, y=None):
         if self.landmarks is None:
             self.landmarks = self._gen_landmarks(sequences)
         self._nystroem = LandmarkNystroem(landmarks=self.landmarks,
                                           **self.kernel_params)
-        self._nystroem.fit(sequences)
-        super(KernelTICA, self).fit(sequences, y=y)
+        ksequences = self._nystroem.fit_transform(sequences)
+
+        super(KernelTICA, self).fit(ksequences, y=y)
 
     def partial_fit(self, X):
         if self.landmarks is None:
@@ -139,5 +151,10 @@ class KernelTICA(tICA):
                                               **self.kernel_params)
             self._nystroem.partial_fit(X)
 
-        self._fit(self.kernel.partial_transform(X))
-        return self
+        Y = self._nystroem.partial_transform(X)
+
+        super(KernelTICA, self).partial_fit(Y)
+
+    def transform(self, sequences):
+        ksequences = self._nystroem.transform(sequences)
+        return super(KernelTICA, self).transform(ksequences)
