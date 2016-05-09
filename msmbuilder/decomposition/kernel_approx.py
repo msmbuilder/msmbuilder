@@ -24,9 +24,11 @@ class Nystroem(MultiSequenceDecompositionMixin, kernel_approximation.Nystroem):
 
 class LandmarkNystroem(Nystroem):
     """Approximate a kernel map using a subset of the training data.
+
     Constructs an approximate feature map for an arbitrary kernel
     using a subset of the data as basis.
     Read more in the :ref:`User Guide <nystroem_kernel_approx>`.
+
     Parameters
     ----------
     landmarks : ndarray of shape (n_frames, n_features)
@@ -54,6 +56,7 @@ class LandmarkNystroem(Nystroem):
     random_state : {int, RandomState}, optional
         If int, random_state is the seed used by the random number generator;
         if RandomState instance, random_state is the random number generator.
+
     Attributes
     ----------
     components_ : array, shape (n_components, n_features)
@@ -63,15 +66,17 @@ class LandmarkNystroem(Nystroem):
     normalization_ : array, shape (n_components, n_components)
         Normalization matrix needed for embedding.
         Square root of the kernel matrix on ``components_``.
+
     References
     ----------
-    * Williams, C.K.I. and Seeger, M.
-      "Using the Nystroem method to speed up kernel machines",
-      Advances in neural information processing systems 2001
-    * T. Yang, Y. Li, M. Mahdavi, R. Jin and Z. Zhou
-      "Nystroem Method vs Random Fourier Features: A Theoretical and Empirical
-      Comparison",
-      Advances in Neural Information Processing Systems 2012
+    .. [1] Williams, C.K.I. and Seeger, M.
+       "Using the Nystroem method to speed up kernel machines",
+       Advances in neural information processing systems 2001
+    .. [2] T. Yang, Y. Li, M. Mahdavi, R. Jin and Z. Zhou
+       "Nystroem Method vs Random Fourier Features: A Theoretical and Empirical
+       Comparison",
+       Advances in Neural Information Processing Systems 2012
+
     See also
     --------
     Nystroem : Approximate a kernel map using a subset of the training data.

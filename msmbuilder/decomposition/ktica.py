@@ -57,6 +57,7 @@ class KernelTICA(tICA):
         Custom landmark points for the Nyostroem approximation
     stride : int, optional
         Only sample pairs of points from the data according to this stride
+
     Attributes
     ----------
     components_ : array-like, shape (n_components, n_features)
@@ -91,8 +92,8 @@ class KernelTICA(tICA):
 
     References
     ----------
-    .. [1] Schwantes, Christian R. and Vijay S. Pande. "Modeling Molecular
-           Kinetics with tICA and the Kernel Trick." In Review. (2014)
+    .. [1] Schwantes, Christian R., and Vijay S. Pande. J.
+       Chem Theory Comput. 11.2 (2015): 600–608.
     """
     def __init__(self, kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
                  landmarks=None, kernel_params=None, **kwargs):
