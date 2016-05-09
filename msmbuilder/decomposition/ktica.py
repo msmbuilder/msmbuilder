@@ -53,8 +53,8 @@ class KernelTICA(tICA):
         then will use 1 / n_features.
     coef0 : float, optional
         Independent term in 'poly' and 'sigmoid'.
-    basis : ndarray, optional
-        Custom basis for Nyostroem approximation
+    landmarks : ndarray, optional
+        Custom landmark points for the Nyostroem approximation
     stride : int, optional
         Only sample pairs of points from the data according to this stride
     Attributes
@@ -95,22 +95,24 @@ class KernelTICA(tICA):
            Kinetics with tICA and the Kernel Trick." In Review. (2014)
     """
     def __init__(self, kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
-                 basis=None, **kwargs):
+                 landmarks=None, kernel_params=None, **kwargs):
         self.kernel = kernel
         self.degree = degree
         self.gamma = gamma
         self.coef0 = coef0
         self.stride = 1
-        self.basis = basis
-        self.kernel_params = {
-                              'kernel': self.kernel,
-                              'degree': self.degree,
-                              'gamma': self.gamma,
-                              'coef0': self.coef0,
-                              }
+        self.landmarks = landmarks
+        self.kernel_params = kernel_params
+        if kernel_params is None:
+            self.kernel_params = {
+                                  'kernel': self.kernel,
+                                  'degree': self.degree,
+                                  'gamma': self.gamma,
+                                  'coef0': self.coef0,
+                                  }
         super(KernelTICA, self).__init__(**kwargs)
 
-    def _gen_basis(self, sequences):
+    def _gen_landmarks(self, sequences):
         X_0 = []
         X_t = []
         for seq in sequences:
@@ -121,18 +123,18 @@ class KernelTICA(tICA):
         return np.concatenate([np.concatenate(X_0), np.concatenate(X_t)])
 
     def fit(self, sequences, y=None):
-        if self.basis is None:
-            self.basis = self._gen_basis(sequences)
-        self._nystroem = LandmarkNystroem(basis=self.basis,
+        if self.landmarks is None:
+            self.landmarks = self._gen_landmarks(sequences)
+        self._nystroem = LandmarkNystroem(landmarks=self.landmarks,
                                           **self.kernel_params)
         self._nystroem.fit(sequences)
         super(KernelTICA, self).fit(sequences, y=y)
 
     def partial_fit(self, X):
-        if self.basis is None:
-            self.basis = self._gen_basis([X])
+        if self.landmarks is None:
+            self.landmarks = self._gen_landmarks([X])
         if self._nystroem is None:
-            self._nystroem = LandmarkNystroem(basis=self.basis,
+            self._nystroem = LandmarkNystroem(landmarks=self.landmarks,
                                               **self.kernel_params)
             self._nystroem.partial_fit(X)
 
