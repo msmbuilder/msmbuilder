@@ -4,10 +4,10 @@
 # All rights reserved.
 import numpy as np
 
-from .base import MultiSequenceFeatureSelectionMixin
+from ..featurizer import Featurizer
 
 
-class FeatureSelector(MultiSequenceFeatureSelectionMixin):
+class FeatureSelector(Featurizer):
     """Concatenates results of multiple feature extraction objects.
 
     This estimator applies a list of feature_extraction objects then
