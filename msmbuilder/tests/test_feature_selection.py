@@ -26,6 +26,17 @@ def test_featureselector():
     np.testing.assert_array_almost_equal(y_ref1, y1)
 
 
+def test_featureselector_transform():
+    dataset = fetch_data()
+    trajectories = dataset["trajectories"]
+
+    fs = FeatureSelector(FEATS, which_feat='psi')
+
+    y1 = fs.transform(trajectories)
+
+    assert len(y1) == len(trajectories)
+
+
 def test_variancethreshold_vs_sklearn():
     dataset = fetch_data()
     trajectories = dataset["trajectories"]
