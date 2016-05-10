@@ -14,6 +14,8 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
+ - ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
+   ``decomposition`` module (#807).
 
  - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
    ``decomposition`` module (#791).
