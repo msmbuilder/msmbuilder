@@ -4,10 +4,10 @@
 # All rights reserved.
 import numpy as np
 
-from .base import MultiSequenceFeatureSelectionMixin
+from ..featurizer import Featurizer
 
 
-class FeatureSelector(MultiSequenceFeatureSelectionMixin):
+class FeatureSelector(Featurizer):
     """Concatenates results of multiple feature extraction objects.
 
     This estimator applies a list of feature_extraction objects then
@@ -26,16 +26,24 @@ class FeatureSelector(MultiSequenceFeatureSelectionMixin):
         Either a string or a list of strings of features to include in the
         transformer.
     """
+
+    @property
+    def which_feat(self):
+        return self._which_feat
+
+    @which_feat.setter
+    def which_feat(self, value):
+        if not isinstance(value, list):
+            value = [value]
+        elif not all([feat in self.feat_list for feat in value]):
+            raise ValueError('Not a valid feature')
+        self._which_feat = value
+
     def __init__(self, features, which_feat=None):
-        self.feats = dict(features)
-        self.feat_list = list(self.feats)
+        self.features = dict(features)
+        self.feat_list = list(self.features)
 
         which_feat = which_feat if which_feat else self.feat_list[:]
-
-        if not isinstance(which_feat, list):
-            which_feat = [which_feat]
-        elif not all([feat in self.feat_list for feat in which_feat]):
-            raise ValueError('Not a valid feature')
 
         self.which_feat = which_feat
 
@@ -55,5 +63,5 @@ class FeatureSelector(MultiSequenceFeatureSelectionMixin):
             vector is computed by applying the featurization function
             to the `i`th snapshot of the input trajectory.
         """
-        return np.concatenate([self.feats[feat].partial_transform(traj)
+        return np.concatenate([self.features[feat].partial_transform(traj)
                                for feat in self.which_feat], axis=1)
