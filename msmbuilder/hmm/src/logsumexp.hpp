@@ -1,5 +1,5 @@
 /*****************************************************************/
-/*    Copyright (c) 2013, Stanford University and the Authors    */
+/*    Copyright (c) 2016, Stanford University and the Authors    */
 /*    Author: Robert McGibbon <rmcgibbo@gmail.com>               */
 /*    Contributors:                                              */
 /*                                                               */
@@ -11,6 +11,9 @@
 #include "float.h"
 #include <stdio.h>
 #include <math.h>
+
+// Please define USE_SSE2 before using sse_mathfun.h
+#define USE_SSE2
 #include "sse_mathfun.h"
 
 #if defined(_MSC_VER)

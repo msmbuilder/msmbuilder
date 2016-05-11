@@ -124,6 +124,10 @@ static v4sf log_ps(v4sf x) {
 #ifndef USE_SSE2
   /* part 1: x = frexpf(x, &e); */
   COPY_XMM_TO_MM(x, mm0, mm1);
+  On appveyor, these functions arent defined
+  You should probably be using SSE2. If you really want
+  MMX, delete these lines (which trigger a syntax error even
+  on platforms that support MMX)
   mm0 = _mm_srli_pi32(mm0, 23);
   mm1 = _mm_srli_pi32(mm1, 23);
 #else
