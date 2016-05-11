@@ -40,8 +40,8 @@ class FeatureSelector(Featurizer):
         self._which_feat = value
 
     def __init__(self, features, which_feat=None):
-        self.feats = dict(features)
-        self.feat_list = list(self.feats)
+        self.features = dict(features)
+        self.feat_list = list(self.features)
 
         which_feat = which_feat if which_feat else self.feat_list[:]
 
@@ -63,5 +63,5 @@ class FeatureSelector(Featurizer):
             vector is computed by applying the featurization function
             to the `i`th snapshot of the input trajectory.
         """
-        return np.concatenate([self.feats[feat].partial_transform(traj)
+        return np.concatenate([self.features[feat].partial_transform(traj)
                                for feat in self.which_feat], axis=1)
