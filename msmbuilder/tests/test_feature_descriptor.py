@@ -6,9 +6,10 @@ import os
 from scipy.stats import vonmises as vm
 
 from msmb_data import fetch_fs_peptide,FsPeptide
+from mdtraj.testing import eq
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer,\
     KappaAngleFeaturizer,ContactFeaturizer,VonMisesFeaturizer
-
+from msmbuilder.feature_selection import FeatureSelector
 
 """
 Series of tests to make sure all the describe features are putting the right features in the
@@ -179,3 +180,28 @@ def test_ContactFeaturizer_describe_features():
                                             scheme='ca',ignore_nonprotein=True,)
 
         assert (features[0][:,f_index] == feature_value.flatten()).all()
+
+def test_FeatureSelector_describe_features():
+    rnd_traj = np.random.randint(len(trajectories))
+
+    f_ca = ContactFeaturizer(scheme='CA',ignore_nonprotein=True)
+    f1 = f_ca.transform([trajectories[rnd_traj]])
+    df1 = pd.DataFrame(f_ca.describe_features(trajectories[rnd_traj]))
+    
+    f_dih = DihedralFeaturizer()
+    f2 = f_dih.transform([trajectories[rnd_traj]])
+    df2 = pd.DataFrame(f_dih.describe_features(trajectories[rnd_traj]))
+    
+    df_dict = {}
+    df_dict["ca"] = df1
+    df_dict["dih"] = df2
+
+    f_comb = FeatureSelector([('ca',f_ca),('dih',f_dih)])
+    f3 = f_comb.transform([trajectories[rnd_traj]])
+    df3 = pd.DataFrame(f_comb.describe_features(trajectories[rnd_traj]))
+    assert len(df3) == len(df1)+len(df2)
+    df4=pd.concat([df_dict[i] for i in f_comb.feat_list])
+    #lets randomly compare 40 features
+    for i in np.random.choice(range(len(df3)), 40):
+        for j in df3.columns:
+            assert eq(df3.iloc[i][j],df4.iloc[i][j])
