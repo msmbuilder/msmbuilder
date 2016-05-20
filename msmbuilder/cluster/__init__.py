@@ -19,6 +19,9 @@ from .kmedoids import KMedoids
 from .minibatchkmedoids import MiniBatchKMedoids
 from .apm import APM
 
+# workaround for sklearn emitting too many warnings
+warnings.filterwarnings("ignore", '', DeprecationWarning, r'^sklearn\.')
+
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
            'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
