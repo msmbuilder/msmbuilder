@@ -26,6 +26,10 @@ __all__ = ['backup', 'preload_top', 'preload_tops', 'load_meta', 'load_generic',
            'save_trajs', 'ProjectTemplatej']
 
 
+class BackupWarning(UserWarning):
+    pass
+
+
 def backup(fn):
     if not os.path.exists(fn):
         return
@@ -38,7 +42,8 @@ def backup(fn):
         trial_fn = backfmt.format(fn=fn, backnum=backnum)
 
     warnings.warn("{fn} exists. Moving it to {newfn}"
-                  .format(fn=fn, newfn=trial_fn))
+                  .format(fn=fn, newfn=trial_fn),
+                  BackupWarning)
     shutil.move(fn, trial_fn)
 
 
