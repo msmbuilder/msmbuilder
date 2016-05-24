@@ -62,6 +62,27 @@ def get_fn(base_fn, key):
     return os.path.join(base_fn, ffmt.format(key))
 
 
+def default_key_to_path(key, dfmt="{}", ffmt="{}.npy"):
+    if isinstance(key, tuple):
+        paths = [dfmt.format(k) for k in key[:-1]]
+        paths += [ffmt.format(key[-1])]
+        return os.path.join(*paths)
+    else:
+        return ffmt.format(key)
+
+
+def validate_keys(keys, key_to_path_func=None,
+                  valid_re=r"[a-zA-Z0-9_\-\.]+(\/[a-zA-Z0-9_\-\.]+)*"):
+    if key_to_path_func is None:
+        key_to_path_func = default_key_to_path
+    for k in keys:
+        ks = key_to_path_func(k)
+        assert isinstance(ks, str), "Key must convert to a string"
+        assert (re.match(valid_re, ks),
+                "Key must match regular expression {}".format(valid_re))
+
+
+
 def preload_tops(meta):
     """Load all topology files into memory.
 
