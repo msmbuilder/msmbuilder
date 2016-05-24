@@ -16,6 +16,10 @@ class _Parser(object):
     def parse_fn(self, fn):
         raise NotImplementedError
 
+    @property
+    def index(self):
+        raise NotImplementedError
+
 
 class GenericParser(_Parser):
     def __init__(self, fn_re=r'trajectory-([0-9]+)\.xtc', top_fn="",
@@ -52,7 +56,8 @@ class GenericParser(_Parser):
 class GenericSplitParser(GenericParser):
     def __init__(self, fn_re=r'trajectory-([0-9]+)-([0-9]+)\.xtc', top_fn="",
                  step_ps=None):
-        super(GenericSplitParser, self).__init__(fn_re=fn_re, step_ps=step_ps,
+        super(GenericSplitParser, self).__init__(fn_re=fn_re,
+                                                 step_ps=step_ps,
                                                  top_fn=top_fn)
 
     def get_indices(self, fn):
