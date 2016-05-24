@@ -7,6 +7,7 @@
 import glob
 import os
 import re
+import warnings
 
 import mdtraj as md
 import pandas as pd
@@ -22,20 +23,23 @@ class _Parser(object):
 
 
 class GenericParser(_Parser):
-    def __init__(self, fn_re=r'trajectory-([0-9]+)\.xtc', top_fn="",
-                 step_ps=None):
-        self.fn_re = fn_re
+    def __init__(self,
+                 fn_re,
+                 top_fn,
+                 step_ps,
+                 ):
+        self.fn_re = re.compile(fn_re)
         self.top_fn = top_fn
         self.step_ps = step_ps
+
+    @property
+    def index(self):
+        return self.fn_re.groupindex.keys()
 
     def get_indices(self, fn):
         ma = re.search(self.fn_re, fn)
         run = int(ma.group(1))
         return {'run': run}
-
-    @property
-    def index(self):
-        return "run"
 
     def parse_fn(self, fn):
         meta = {
@@ -43,14 +47,52 @@ class GenericParser(_Parser):
             'top_fn': self.top_fn,
             'top_abs_fn': os.path.abspath(self.top_fn),
         }
-        with md.open(fn) as f:
-            meta['nframes'] = len(f)
+        try:
+            with md.open(fn) as f:
+                meta['nframes'] = len(f)
+        except Exception as e:
+            warnings.warn("Could not determine the number of frames for {}: {}"
+                          .format(fn, e))
 
         if self.step_ps is not None:
             meta['step_ps'] = self.step_ps
 
-        meta.update(self.get_indices(fn))
+        # Get indices
+        ma = self.fn_re.search(fn)
+        if ma is None:
+            raise ValueError("Filename {} did not match the "
+                             "regular rexpression {}".format(fn, self.fn_re))
+        meta.update(ma.groupdict())
         return meta
+
+
+class NumberedRunsParser(GenericParser):
+    def __init__(self, filename_format="trajectory-{run}.xtc", top_fn="",
+                 step_ps=None):
+        # Test the input
+        assert (isinstance(filename_format.format(run=0), str),
+                "Invalid format string {}".format(filename_format))
+        # Build a regex from format string
+        s1, s2 = re.split(r'\{run\}', filename_format)
+        capture_group = r'(?P<run>\d+)'
+        fn_re = re.escape(s1) + capture_group + re.escape(s2)
+
+        # Call generic
+        super(GenericParser, self).__init__(fn_re, top_fn, step_ps)
+
+
+class HeirarchyParser(GenericParser):
+    def __init__(self, levels=None, n_levels=None, top_fn="", step_ps=None):
+        if (levels is None) == (n_levels is None):
+            raise ValueError("Please specify levels or n_levels, but not both")
+
+        if levels is None:
+            levels = ["i{i}".format(i=i) for i in range(n_levels)]
+
+        fn_re = r'\/'.join(r'(?P<{lvl}>[a-zA-Z0-9_\.\-]+)'.format(lvl=lvl)
+                           for lvl in levels)
+
+        super(HeirarchyParser, self).__init__(fn_re, top_fn, step_ps)
 
 
 class GenericSplitParser(GenericParser):
