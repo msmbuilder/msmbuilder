@@ -6,7 +6,7 @@ from .base import MultiSequencePreprocessingMixin
 
 class Butterworth(MultiSequencePreprocessingMixin):
 
-    def __init__(self, width=2, order=3, analog=True):
+    def __init__(self, width=5, order=3, analog=True):
         """Smooth time-series data using a low-pass, zero-delay Butterworth filter.
 
         Parameters
@@ -21,9 +21,6 @@ class Butterworth(MultiSequencePreprocessingMixin):
             The order of the filter. A small odd number is recommended. Higher
             order filters cutoff more quickly, but have worse numerical
             properties.
-        analog : bool, optional, default=True
-            When True, use an analog filter, otherwise a digital filter is
-            used.
 
         References
         ----------
@@ -41,8 +38,7 @@ class Butterworth(MultiSequencePreprocessingMixin):
         self.order = order
 
         # Use lfilter_zi to choose the initial condition of the filter.
-        self._num, self._denom = butter(self.order, 2.0 / self.width,
-                                        analog=analog)
+        self._num, self._denom = butter(self.order, 2.0 / self.width)
         self._zi = lfilter_zi(self._num, self._denom)
 
     def partial_transform(self, sequence):
