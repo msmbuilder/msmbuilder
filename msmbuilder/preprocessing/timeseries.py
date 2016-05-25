@@ -6,7 +6,7 @@ from .base import MultiSequencePreprocessingMixin
 
 class Butterworth(MultiSequencePreprocessingMixin):
 
-    def __init__(self, width=2, order=3, analog=False):
+    def __init__(self, width=2, order=3, analog=True):
         """Smooth time-series data using a low-pass, zero-delay Butterworth filter.
 
         Parameters
@@ -21,7 +21,7 @@ class Butterworth(MultiSequencePreprocessingMixin):
             The order of the filter. A small odd number is recommended. Higher
             order filters cutoff more quickly, but have worse numerical
             properties.
-        analog : bool, optional, default=False
+        analog : bool, optional, default=True
             When True, use an analog filter, otherwise a digital filter is
             used.
 
