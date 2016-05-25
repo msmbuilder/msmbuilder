@@ -47,13 +47,23 @@ from sklearn.preprocessing import (Binarizer as BinarizerR,
 
 from ..preprocessing import (Binarizer, Imputer, KernelCenterer,
                              LabelBinarizer, MultiLabelBinarizer,
-                             Normalizer, PolynomialFeatures)
+                             Normalizer, PolynomialFeatures, Butterworth)
 
 
 random = np.random.RandomState(42)
 trajs = [random.randn(10, 3) for _ in range(5)]
 labels = [random.randint(low=0, high=5, size=10).reshape(-1, 1)
           for _ in range(5)]
+
+
+def test_butterworth():
+    butterworth = Butterworth()
+
+    y1 = butterworth.transform(trajs)
+
+    assert len(y1) == len(trajs)
+
+    assert any(np.abs(y1[0] - trajs[0]).ravel() > 1E-5)
 
 
 def test_binarizer_vs_sklearn():

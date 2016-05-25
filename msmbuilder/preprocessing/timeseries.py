@@ -6,12 +6,12 @@ from .base import MultiSequencePreprocessingMixin
 
 class Butterworth(MultiSequencePreprocessingMixin):
 
-    def __init__(self, width, order=3):
-        """Smooth time-series data using a zero-delay Butterworth filter.
+    def __init__(self, width=2, order=3, analog=False):
+        """Smooth time-series data using a low-pass, zero-delay Butterworth filter.
 
         Parameters
         ----------
-        width : int
+        width : int, optional, default=5
             This acts very similar to the window size in a moving average
             smoother. In this implementation, the frequency of the low-pass
             filter is taken to be two over this width, so it's like
@@ -21,6 +21,9 @@ class Butterworth(MultiSequencePreprocessingMixin):
             The order of the filter. A small odd number is recommended. Higher
             order filters cutoff more quickly, but have worse numerical
             properties.
+        analog : bool, optional, default=False
+            When True, use an analog filter, otherwise a digital filter is
+            used.
 
         References
         ----------
@@ -29,6 +32,8 @@ class Butterworth(MultiSequencePreprocessingMixin):
 
         if width < 2.0 or not isinstance(width, int):
             raise ValueError('width must be an integer greater than 1.')
+        if not isinstance(order, int):
+            raise ValueError('order must be an integer')
 
         # find nearest odd integer
         self.width = int(np.ceil((width + 1) / 2) * 2 - 1)
@@ -36,7 +41,8 @@ class Butterworth(MultiSequencePreprocessingMixin):
         self.order = order
 
         # Use lfilter_zi to choose the initial condition of the filter.
-        self._num, self._denom = butter(self.order, 2.0 / self.pad)
+        self._num, self._denom = butter(self.order, 2.0 / self.pad,
+                                        analog=analog)
         self._zi = lfilter_zi(self._num, self._denom)
 
     def partial_transform(self, sequence):
