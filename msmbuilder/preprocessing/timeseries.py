@@ -1,6 +1,8 @@
+import numpy as np
 from scipy.signal import lfilter, lfilter_zi, filtfilt, butter
 
 from .base import MultiSequencePreprocessingMixin
+
 
 class Butterworth(MultiSequencePreprocessingMixin):
 
@@ -25,7 +27,6 @@ class Butterworth(MultiSequencePreprocessingMixin):
         .. [1] "FiltFilt". Scipy Cookbook. SciPy. <http://www.scipy.org/Cookbook/FiltFilt>.
         """
 
-
         if width < 2.0 or not isinstance(width, int):
             raise ValueError('width must be an integer greater than 1.')
 
@@ -35,8 +36,8 @@ class Butterworth(MultiSequencePreprocessingMixin):
         self.order = order
 
         # Use lfilter_zi to choose the initial condition of the filter.
-        self._num, self._denom =  butter(self.order, 2.0 / self.pad)
-        self._zi = lfilter_zi(b, a)
+        self._num, self._denom = butter(self.order, 2.0 / self.pad)
+        self._zi = lfilter_zi(self._num, self._denom)
 
     def partial_transform(self, sequence):
 
@@ -56,6 +57,6 @@ class Butterworth(MultiSequencePreprocessingMixin):
             # Use filtfilt to apply the filter.
             filtered = filtfilt(self._num, self._denom, padded)
 
-            output[:, i] = filtered[(self.width - 1) : -(self.width - 1)]
+            output[:, i] = filtered[(self.width - 1):-(self.width - 1)]
 
         return output
