@@ -37,6 +37,12 @@ interpretability issue by using a sparse approximation to
 the eigenvalue problem found in tICA and returning independent components
 composed of only the most relevant degrees of freedom.
 
+Another limitation of tICA is that it is constrained to finding linear
+correlations between input coordinates. The KernelTICA method [#f5]_
+provides a natural extension to nonlinear functions by utilizing the kernel
+trick and represents a substantial improvement in estimating the
+eigenfunctions of the transfer operator directly.
+
 
 PCA
 ---
@@ -101,7 +107,7 @@ by:
 
 Given this solution, we can use the tICA method to define a reduced
 dimensionality representation of each :math:`\mathbf{X}(t)` by
-projecting the vector onto the slowest :math:`n` tICs. 
+projecting the vector onto the slowest :math:`n` tICs.
 
 Hyperparameters
 ~~~~~~~~~~~~~~~
@@ -146,5 +152,6 @@ References
 .. [#f2] Perez-Hernandez, Guillermo, et al. `Identification of slow molecular order parameters for Markov model construction <http://dx.doi.org/10.1063/1.4811489>`_ J Chem. Phys (2013): 015102.
 .. [#f3] Naritomi, Yusuke, and Sotaro Fuchigami. `Slow dynamics in protein fluctuations revealed by time-structure based independent component analysis: The case of domain motions <http://dx.doi.org/10.1063/1.3554380>`_ J. Chem. Phys. 134.6 (2011): 065101.
 .. [#f4] McGibbon, R. T. & Pande, V. S. `Identification of simple reaction coordinates from complex dynamics <http://arxiv.org/abs/1602.08776>`_ ArXiv 16 (2016).
+.. [#f5] Schwantes, Christian R., and Vijay S. Pande. `Modeling Molecular Kinetics with tICA and the Kernel Trick <http://dx.doi.org/10.1021/ct5007357>`_ J. Chem Theory Comput. 11.2 (2015): 600–608.
 
 .. vim: tw=75

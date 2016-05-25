@@ -6,10 +6,15 @@
 from ..base import BaseEstimator
 from sklearn.base import TransformerMixin
 import numpy as np
+import warnings
 
 
 class FeatureUnion(BaseEstimator, TransformerMixin):
     def __init__(self, normalize):
+        warnings.warn("msmbuilder.featurizer.FeatureUnion is deprecated. "
+                      "Please see "
+                      "msmbuilder.feature_selection.FeatureSelector",
+                      DeprecationWarning)
         self.normalize = normalize
         self._traj_lens = None
 
