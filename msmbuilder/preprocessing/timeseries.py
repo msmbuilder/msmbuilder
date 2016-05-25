@@ -41,7 +41,7 @@ class Butterworth(MultiSequencePreprocessingMixin):
         self.order = order
 
         # Use lfilter_zi to choose the initial condition of the filter.
-        self._num, self._denom = butter(self.order, 2.0 / self.pad,
+        self._num, self._denom = butter(self.order, 2.0 / self.width,
                                         analog=analog)
         self._zi = lfilter_zi(self._num, self._denom)
 
