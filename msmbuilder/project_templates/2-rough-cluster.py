@@ -50,3 +50,30 @@ print(kmed.summarize())
 ## Save
 save_trajs(ktrajs, 'rmsd-ktrajs', meta)
 save_generic(kmed, 'rmsd-kmedoids.pickl')
+
+## Save centroids
+from functools import reduce
+from operator import add
+
+
+def frame(traj_i, frame_i):
+    # Note: kmedoids does 0-based, contiguous integers so we use .iloc
+    row = meta.iloc[traj_i]
+    return md.load_frame(row['traj_fn'], frame_i, top=row['top_fn'])
+
+
+centroids = reduce(add, (frame(ti, fi) for ti, fi in kmed.cluster_ids_))
+centroids.save("rmsd-centroids.xtc")
+
+## Kernel
+SIGMA = 0.5  # nm
+from msmbuilder.featurizer import RMSDFeaturizer
+import numpy as np
+
+featurizer = RMSDFeaturizer(centroids)
+lfeats = {}
+for i, traj in trajectories():
+    lfeat = featurizer.partial_transform(traj)
+    lfeat = np.exp(lfeat ** 2 / (2 * (SIGMA ** 2)))
+    lfeats[i] = lfeat
+save_trajs(lfeats, 'lfeats', meta)
