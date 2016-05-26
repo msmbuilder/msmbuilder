@@ -22,11 +22,14 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
+ - ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
+   ``preprocessing`` module (#818).
+
  - ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
    ``decomposition`` module (#807).
 
  - ``FeatureSelector`` and ``VarianceThreshold`` are available in the
-   ``feature_selection`` module (#799)
+   ``feature_selection`` module (#799).
 
  - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
    ``decomposition`` module (#791).
