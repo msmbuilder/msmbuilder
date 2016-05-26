@@ -68,7 +68,7 @@ def test_butterworth():
 
 
 def test_ewma():
-    ewma = EWMA()
+    ewma = EWMA(span=5)
 
     y1 = ewma.transform(trajs)
 
@@ -78,7 +78,7 @@ def test_ewma():
 
 
 def test_doubleewma():
-    dewma = DoubleEWMA()
+    dewma = DoubleEWMA(span=5)
 
     y1 = dewma.transform(trajs)
 
