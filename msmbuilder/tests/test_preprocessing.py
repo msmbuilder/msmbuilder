@@ -47,7 +47,8 @@ from sklearn.preprocessing import (Binarizer as BinarizerR,
 
 from ..preprocessing import (Binarizer, Imputer, KernelCenterer,
                              LabelBinarizer, MultiLabelBinarizer,
-                             Normalizer, PolynomialFeatures, Butterworth)
+                             Normalizer, PolynomialFeatures, Butterworth,
+                             EWMA, DoubleEWMA)
 
 
 random = np.random.RandomState(42)
@@ -60,6 +61,26 @@ def test_butterworth():
     butterworth = Butterworth()
 
     y1 = butterworth.transform(trajs)
+
+    assert len(y1) == len(trajs)
+
+    assert any(np.abs(y1[0] - trajs[0]).ravel() > 1E-5)
+
+
+def test_ewma():
+    ewma = EWMA()
+
+    y1 = ewma.transform(trajs)
+
+    assert len(y1) == len(trajs)
+
+    assert any(np.abs(y1[0] - trajs[0]).ravel() > 1E-5)
+
+
+def test_doubleewma():
+    dewma = DoubleEWMA()
+
+    y1 = dewma.transform(trajs)
 
     assert len(y1) == len(trajs)
 
