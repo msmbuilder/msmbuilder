@@ -28,7 +28,7 @@ straj = np.asarray(straj)
 ## Overlay sampled trajectory on histogram
 def plot_sampled_traj(ax):
     ax.hexbin(txx[:, 0], txx[:, 1],
-              cmap=sns.cubehelix_palette(as_cmap=True),
+              cmap='magma_r',
               mincnt=1,
               bins='log',
               alpha=0.8,

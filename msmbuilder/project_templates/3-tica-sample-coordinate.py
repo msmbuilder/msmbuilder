@@ -5,8 +5,8 @@
 
 import mdtraj as md
 
-from msmbuilder.io import load_trajs, save_generic, preload_top, backup
 from msmbuilder.decomposition.interpretation import sample_dimension
+from msmbuilder.io import load_trajs, save_generic, preload_top, backup
 
 ## Load
 meta, ttrajs = load_trajs('ttrajs')
@@ -21,14 +21,10 @@ save_generic(inds, "tica-dimension-0-inds.pickl")
 ## Make trajectory
 top = preload_top(meta)
 
-# TODO: Make this more elegant, perhaps in mdtraj
-traj = None
-for traj_i, frame_i in inds:
-    frame = md.load_frame(meta.loc[traj_i]['traj_fn'], index=frame_i, top=top)
-    if traj is None:
-        traj = frame
-    else:
-        traj += frame
+traj = md.join(
+    md.load_frame(meta.loc[traj_i]['traj_fn'], index=frame_i, top=top)
+    for traj_i, frame_i in inds
+)
 
 ## Save
 traj_fn = "tica-dimension-0.xtc"
