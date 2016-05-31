@@ -23,7 +23,7 @@ from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 __all__ = ['backup', 'preload_top', 'preload_tops', 'load_meta', 'load_generic',
            'load_trajs', 'save_meta', 'render_meta', 'save_generic',
-           'save_trajs', 'ProjectTemplatej']
+           'itertrajs', 'save_trajs', 'ProjectTemplatej']
 
 
 class BackupWarning(UserWarning):
@@ -82,7 +82,6 @@ def validate_keys(keys, key_to_path_func=None,
                 "Key must match regular expression {}".format(valid_re))
 
 
-
 def preload_tops(meta):
     """Load all topology files into memory.
 
@@ -129,6 +128,14 @@ def preload_top(meta):
     if len(top_fns) != 1:
         raise ValueError("More than one topology is used in this project!")
     return md.load(top_fns.pop())
+
+
+def itertrajs(meta, stride=1):
+    tops = preload_tops(meta)
+    for i, row in meta.iterrows():
+        yield i, md.load(row['traj_fn'],
+                         top=tops[row['top_fn']],
+                         stride=stride)
 
 
 def load_meta(meta_fn='meta.pandas.pickl'):
