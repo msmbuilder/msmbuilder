@@ -42,6 +42,8 @@ Improvements
 ~~~~~~~~~~~~
 
  - Fix a compilation error on gcc 5 (#783)
+ - Fix pickle-ing of ``ContinuousTimeMSM``. The ``optimizer_state_``
+   parameter is not saved (#822).
 
 
 
