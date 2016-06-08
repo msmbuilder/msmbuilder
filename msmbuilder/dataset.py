@@ -5,20 +5,23 @@
 
 from __future__ import absolute_import, print_function, division
 
-import sys
+import errno
+import getpass
+import glob
 import os
 import re
-import glob
-from os.path import join, exists, expanduser
 import socket
-import getpass
-from datetime import datetime
+import sys
+import warnings
 from collections import Sequence
+from datetime import datetime
+from os.path import join, exists, expanduser
 
-import tables
 import mdtraj as md
-from mdtraj.core.trajectory import _parse_topology
 import numpy as np
+import tables
+from mdtraj.core.trajectory import _parse_topology
+
 from . import version
 
 _PYTABLES_DISABLE_COMPRESSION = tables.Filters(complevel=0)
@@ -65,7 +68,7 @@ def dataset(path, mode='r', fmt=None, verbose=False, **kwargs):
         raise ValueError('mode="%s", but no fmt. fmt=%s' % (mode, fmt))
 
     if fmt == 'dir-npy':
-        return NumpyDirDataset(path, mode=mode, verbose=verbose)
+        return NumpyDirDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'mdtraj':
         return MDTrajDataset(path, mode=mode, verbose=verbose, **kwargs)
     elif fmt == 'hdf5':
@@ -163,7 +166,7 @@ class _BaseDataset(Sequence):
         estimator
             The fit estimator.
         """
-        estimator.fit(self)
+        estimator.fit(self[:])
         return estimator
 
     def transform_with(self, estimator, out_ds, fmt=None):
@@ -238,7 +241,7 @@ class _BaseDataset(Sequence):
         raise NotImplementedError('implemented in subclass')
 
     def __len__(self):
-        return sum(1 for xx in self.keys())
+        return sum(1 for _ in self.keys())
 
     def __getitem__(self, i):
         if isinstance(i, slice):
@@ -283,7 +286,7 @@ class _BaseDataset(Sequence):
 
 
 class NumpyDirDataset(_BaseDataset):
-    """MSMBuilder dataset container
+    """A dataset consisting of a directory full of binary numpy files
 
     Parameters
     ----------
@@ -291,21 +294,72 @@ class NumpyDirDataset(_BaseDataset):
     mode : {'r', 'w', 'a'}
         Read, write, or append. If mode is set to 'a' or 'w',
         duplicate keys will be overwritten.
+    verbose : bool, default=False
+        Whether to print saving and loading status to stdout
+    zero_pad : bool, default=True
+        Whether to pad filenames with zeros so lexicographical sort works.
+        If set to false, you must do a "version sort" or "natural sort" when
+        interacting with the files from outside a dataset object. For example,
+        use `ls -v` in bash. Note that the dataset object will always sort
+        files and directories correctly by casting their filename to an
+        integer. Not that to read from a dataset without zero padding,
+        this option must be set to False.
 
     Examples
     --------
-    for X in Dataset('path/to/dataset'):
-        print X
+    with NumpyDirDataset("path", 'w') as ds:
+        ds[4] = np.arange(30)
     """
 
-    _ITEM_FORMAT = '%08d.npy'
-    _ITEM_RE = re.compile('(\d{8}).npy')
-    _PROVENANCE_FILE = 'PROVENANCE.txt'
+    provenance_fn = 'PROVENANCE.txt'
+
+    def __init__(self, path, mode='r', verbose=False, zero_pad=True):
+        super(NumpyDirDataset, self).__init__(path, mode=mode, verbose=verbose)
+
+        # Starting in v3.4, we allow an arbitrary depth of nested integer
+        # indices (for example project/run/clone in foldingathome)
+        # Use self.inter_* variables to configure this
+
+        if zero_pad:
+            # We write out padded to 8 places. If the number does not fit into
+            # this width, it will spill over and not truncate (good)
+            # We formulate the regex to accept 8 or more digits
+            self.item_fmt = "{index:08d}.npy"
+            self.inter_fmt = "{index:05d}"
+            self.item_re = re.compile(r'(\d{8}\d*).npy$')
+            self.inter_re = re.compile(r'(\d{5}\d*)$')
+        else:
+            self.item_fmt = "{index:d}.npy"
+            self.inter_fmt = "{index:d}"
+            # In our regex, make sure there's no zero padding
+            # but add a special case for the single number 0
+            self.item_re = re.compile(r'([1-9]\d*|0).npy$')
+            self.inter_re = re.compile(r'([1-9]\d*|0)$')
+
+    def _get_filename(self, index, make_dirs=False):
+        # Handle tuples
+        try:
+            filename = join(self.path, *[self.inter_fmt.format(index=i)
+                                         for i in index[:-1]])
+            i = index[-1]
+
+            if make_dirs:
+                try:
+                    os.makedirs(filename)
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+        except TypeError:
+            filename = self.path
+            i = index
+
+        filename = join(filename, self.item_fmt.format(index=i))
+        return filename
 
     def get(self, i, mmap=False):
         mmap_mode = 'r' if mmap else None
 
-        filename = join(self.path, self._ITEM_FORMAT % i)
+        filename = self._get_filename(i)
         if self.verbose:
             print('[NumpydirDataset] loading %s' % filename)
         try:
@@ -316,28 +370,62 @@ class NumpyDirDataset(_BaseDataset):
     def set(self, i, x):
         if self.mode not in 'wa':
             raise IOError('Dataset not opened for writing')
-        filename = join(self.path, self._ITEM_FORMAT % i)
+
+        filename = self._get_filename(i, make_dirs=True)
         if self.verbose:
             print('[NumpydirDataset] saving %s' % filename)
         return np.save(filename, x)
 
+    def _keys_recurse(self, curdir, inds):
+        for fn in os.listdir(curdir):
+            full_fn = join(curdir, fn)
+            if fn == self.provenance_fn:
+                # Prevent warnings for provenance file
+                continue
+
+            if os.path.isdir(full_fn):
+                match = self.inter_re.match(fn)
+                if match is not None:
+                    newinds = inds + (int(match.group(1)),)
+                    newdir = full_fn
+                    # wish we had yield from...
+                    for ret in self._keys_recurse(newdir, newinds):
+                        yield ret
+                else:
+                    warnings.warn("Unknown directory found in '{}': '{}'"
+                                  .format(curdir, fn))
+                continue
+
+            # What if there is a file with the same index as a directory?
+            # I think this is ok
+            match = self.item_re.match(fn)
+            if match is not None:
+                key = int(match.group(1))
+                if len(inds) > 0:
+                    yield inds + (key,)
+                else:
+                    yield key
+            else:
+                warnings.warn("Unknown file found in '{}': '{}'"
+                              .format(curdir, fn))
+
     def keys(self):
-        for fn in sorted(os.listdir(os.path.expanduser(self.path)),
-                         key=_keynat):
-            match = self._ITEM_RE.match(fn)
-            if match:
-                yield int(match.group(1))
+        root = os.path.expanduser(self.path)
+        # wish we had yield from...
+        for key in sorted(self._keys_recurse(root, tuple()),
+                          key=_tuples_and_ints):
+            yield key
 
     @property
     def provenance(self):
         try:
-            with open(join(self.path, self._PROVENANCE_FILE), 'r') as f:
+            with open(join(self.path, self.provenance_fn), 'r') as f:
                 return f.read()
         except IOError:
             return 'No available provenance'
 
     def _write_provenance(self, previous=None, comments=''):
-        with open(join(self.path, self._PROVENANCE_FILE), 'w') as f:
+        with open(join(self.path, self.provenance_fn), 'w') as f:
             p = self._build_provenance(previous=previous, comments=comments)
             f.write(p)
 
@@ -481,6 +569,13 @@ class MDTrajDataset(_BaseDataset):
         return self._PROVENANCE_TEMPLATE.format(
             path=self.path, topology=self.topology,
             atom_indices=self.atom_indices, stride=self.stride)
+
+
+def _tuples_and_ints(x):
+    try:
+        return tuple(x)
+    except TypeError:
+        return (x,)
 
 
 def _dim_match(arr):
