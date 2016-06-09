@@ -257,7 +257,9 @@ def save_trajs(trajs, fn, meta, key_to_path=None):
     os.mkdir(fn)
     for k in meta.index:
         v = trajs[k]
-        np.save(os.path.join(fn, key_to_path(k)), v)
+        npy_fn = os.path.join(fn, key_to_path(k))
+        os.makedirs(os.path.dirname(npy_fn), exist_ok=True)
+        np.save(npy_fn, v)
 
 
 def load_trajs(fn, meta='meta.pandas.pickl', key_to_path=None):
