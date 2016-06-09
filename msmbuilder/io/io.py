@@ -61,11 +61,12 @@ def validate_keys(keys, key_to_path_func=None,
                   valid_re=r"[a-zA-Z0-9_\-\.]+(\/[a-zA-Z0-9_\-\.]+)*"):
     if key_to_path_func is None:
         key_to_path_func = default_key_to_path
+
+    err = "Key must match regular expression {}".format(valid_re)
     for k in keys:
         ks = key_to_path_func(k)
         assert isinstance(ks, str), "Key must convert to a string"
-        assert (re.match(valid_re, ks),
-                "Key must match regular expression {}".format(valid_re))
+        assert re.match(valid_re, ks), err
 
 
 def preload_tops(meta):
