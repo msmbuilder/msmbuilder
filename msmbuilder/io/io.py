@@ -57,6 +57,7 @@ def get_fn(base_fn, key):
     ffmt = "{}.npy"
     if isinstance(key, tuple):
         paths = [dfmt.format(k) for k in key[:-1]]
+        os.makedirs(os.path.join(base_fn, *paths), exist_ok=True)
         paths += [ffmt.format(key[-1])]
         return os.path.join(base_fn, *paths)
     return os.path.join(base_fn, ffmt.format(key))
