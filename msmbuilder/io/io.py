@@ -52,17 +52,6 @@ def chmod_plus_x(fn):
     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
-def get_fn(base_fn, key):
-    dfmt = "{}"
-    ffmt = "{}.npy"
-    if isinstance(key, tuple):
-        paths = [dfmt.format(k) for k in key[:-1]]
-        os.makedirs(os.path.join(base_fn, *paths), exist_ok=True)
-        paths += [ffmt.format(key[-1])]
-        return os.path.join(base_fn, *paths)
-    return os.path.join(base_fn, ffmt.format(key))
-
-
 def default_key_to_path(key, dfmt="{}", ffmt="{}.npy"):
     if isinstance(key, tuple):
         paths = [dfmt.format(k) for k in key[:-1]]
@@ -241,7 +230,7 @@ def load_generic(fn):
         return pickle.load(f)
 
 
-def save_trajs(trajs, fn, meta):
+def save_trajs(trajs, fn, meta, key_to_path=None):
     """Save trajectory-like data
 
     Data is stored in individual numpy binary files in the
@@ -260,14 +249,18 @@ def save_trajs(trajs, fn, meta):
     meta : pd.DataFrame
         The DataFrame of metadata
     """
+    if key_to_path is None:
+        key_to_path = default_key_to_path
+
+    validate_keys(meta.index, key_to_path)
     backup(fn)
     os.mkdir(fn)
     for k in meta.index:
         v = trajs[k]
-        np.save(get_fn(fn, k), v)
+        np.save(os.path.join(fn, key_to_path(k)), v)
 
 
-def load_trajs(fn, meta='meta.pandas.pickl'):
+def load_trajs(fn, meta='meta.pandas.pickl', key_to_path=None):
     """Load trajectory-like data
 
     Data is expected to be stored as if saved by ``save_trajs``.
@@ -298,11 +291,14 @@ def load_trajs(fn, meta='meta.pandas.pickl'):
         Dictionary of trajectory-like np.ndarray's keyed on the values
         of ``meta.index``.
     """
+    if key_to_path is None:
+        key_to_path = default_key_to_path
+
     if isinstance(meta, str):
         meta = load_meta(meta_fn=meta)
     trajs = {}
     for k in meta.index:
-        trajs[k] = np.load(get_fn(fn, k))
+        trajs[k] = np.load(os.path.join(fn, key_to_path(k)))
     return meta, trajs
 
 
