@@ -21,6 +21,7 @@ save_generic(inds, "tica-dimension-0-inds.pickl")
 ## Make trajectory
 top = preload_top(meta)
 
+# Use loc because sample_dimension is nice
 traj = md.join(
     md.load_frame(meta.loc[traj_i]['traj_fn'], index=frame_i, top=top)
     for traj_i, frame_i in inds
