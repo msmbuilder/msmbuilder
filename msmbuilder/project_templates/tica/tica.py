@@ -1,6 +1,11 @@
 """Reduce dimensionality with tICA
 
 {{header}}
+Meta
+----
+depends:
+  - ftrajs
+  - meta.pandas.pickl
 """
 
 from msmbuilder.io import load_trajs, save_trajs, save_generic
@@ -8,7 +13,7 @@ from msmbuilder.decomposition import tICA
 
 ## Load
 tica = tICA(n_components=5, lag_time=10, kinetic_mapping=True)
-meta, ftrajs = load_trajs("diheds")
+meta, ftrajs = load_trajs("ftrajs")
 
 ## Fit
 tica.fit(ftrajs.values())

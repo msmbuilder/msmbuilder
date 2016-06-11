@@ -1,6 +1,13 @@
 """Turn trajectories into dihedral features
 
 {{header}}
+
+Meta
+----
+depends:
+  - meta.pandas.pickl
+  - trajs
+  - top.pdb
 """
 import mdtraj as md
 
@@ -27,5 +34,5 @@ with Pool() as pool:
     dihed_trajs = dict(pool.imap_unordered(feat, meta.iterrows()))
 
 ## Save
-save_trajs(dihed_trajs, 'diheds', meta)
-save_generic(dihed_feat, 'diheds.pickl')
+save_trajs(dihed_trajs, 'ftrajs', meta)
+save_generic(dihed_feat, 'featurizer.pickl')

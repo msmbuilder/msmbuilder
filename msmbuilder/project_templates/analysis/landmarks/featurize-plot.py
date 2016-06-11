@@ -14,7 +14,7 @@ sns.set_style('ticks')
 colors = sns.color_palette()
 
 ## Load
-meta, ktrajs = load_trajs('rmsd-ktrajs')
+meta, ktrajs = load_trajs('ktrajs')
 kxx = np.concatenate(list(ktrajs.values()))
 
 
@@ -49,12 +49,12 @@ def plot_dist_histogram(ax):
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_num_per_state(ax)
 fig.tight_layout()
-fig.savefig('rmsd-ktrajs-statecount.pdf')
-run(['xdg-open', 'rmsd-ktrajs-statecount.pdf'])
+fig.savefig('ktrajs-statecount.pdf')
+run(['xdg-open', 'ktrajs-statecount.pdf'])
 
 ## Plot 2
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_num_per_state_hist(ax)
 fig.tight_layout()
-fig.savefig('rmsd-ktrajs-statehist.pdf')
-run(['xdg-open', 'rmsd-ktrajs-statehist.pdf'])
+fig.savefig('ktrajs-statehist.pdf')
+run(['xdg-open', 'ktrajs-statehist.pdf'])

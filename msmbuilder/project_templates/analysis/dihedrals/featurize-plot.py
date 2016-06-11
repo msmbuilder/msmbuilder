@@ -14,7 +14,7 @@ sns.set_style('ticks')
 colors = sns.color_palette()
 
 ## Load
-meta, ftrajs = load_trajs('diheds')
+meta, ftrajs = load_trajs('ftrajs')
 vmxx = np.concatenate(list(ftrajs.values()))
 
 

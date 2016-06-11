@@ -10,5 +10,5 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
 from .fit import GaussianHMMCommand
 from .fit_transform import KMeansCommand, KCentersCommand
 from .implied_timescales import ImpliedTimescales
-from .project import ProjectTemplateCommand
+from .project import TemplateProjectCommand
 from .transform import TransformCommand

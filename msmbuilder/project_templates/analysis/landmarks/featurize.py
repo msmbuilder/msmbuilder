@@ -1,6 +1,13 @@
 """Cluster based on RMSD between conformations
 
 {{header}}
+
+Meta
+----
+depends:
+  - meta.pandas.pickl
+  - trajs
+  - top.pdb
 """
 import mdtraj as md
 
@@ -39,8 +46,8 @@ for i, traj in itertrajs(meta):
 print(kmed.summarize())
 
 ## Save
-save_trajs(ktrajs, 'rmsd-ktrajs', meta)
-save_generic(kmed, 'rmsd-kmedoids.pickl')
+save_trajs(ktrajs, 'ktrajs', meta)
+save_generic(kmed, 'clusterer.pickl')
 
 ## Save centroids
 def frame(traj_i, frame_i):
@@ -50,7 +57,7 @@ def frame(traj_i, frame_i):
 
 
 centroids = md.join(frame(ti, fi) for ti, fi in kmed.cluster_ids_)
-centroids.save("rmsd-centroids.xtc")
+centroids.save("centroids.xtc")
 
 ## Kernel
 SIGMA = 0.5  # nm
@@ -63,4 +70,4 @@ for i, traj in itertrajs(meta):
     lfeat = featurizer.partial_transform(traj)
     lfeat = np.exp(lfeat ** 2 / (2 * (SIGMA ** 2)))
     lfeats[i] = lfeat
-save_trajs(lfeats, 'lfeats', meta)
+save_trajs(lfeats, 'ftrajs', meta)

@@ -1,6 +1,12 @@
 """Sample tICA coordinates
 
 {{header}}
+
+Meta
+----
+depends:
+  - ../top.pdb
+  - ../trajs
 """
 
 import mdtraj as md

@@ -13,7 +13,7 @@ import stat
 import textwrap
 
 from ..cmdline import NumpydocClassCommand
-from ..io import ProjectTemplate
+from ..io import TemplateProject
 
 
 def chmod_plus_x(fn):
@@ -21,14 +21,14 @@ def chmod_plus_x(fn):
     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
-class ProjectTemplateCommand(NumpydocClassCommand):
+class TemplateProjectCommand(NumpydocClassCommand):
     _group = '0-Support'
     _concrete = True
     description = __doc__
-    klass = ProjectTemplate
+    klass = TemplateProject
 
     def start(self):
-        self.instance.write_all()
+        self.instance.do()
 
         print('\n'.join(textwrap.wrap(
             "Ok, I wrote out a bunch of Python files that can guide you "
