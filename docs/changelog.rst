@@ -3,48 +3,44 @@
 Changelog
 =========
 
-v3.5 (Development)
-------------------
+v3.5 (June 14, 2016)
+--------------------
 
-This is the current development version of MSMBuilder
+We're pleased to announce the release of MSMBuilder 3.5. This release
+wraps more relevant ``sklearn`` estimators and transformers. There are
+also some bugfixes and API hygiene improvements. We recommend all users
+upgrade to MSMBuilder 3.5.
 
 API Changes
 ~~~~~~~~~~~
 
 - ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please use
   ``msmbuilder.feature_selection.FeatureSelector`` instead (#799).
-
 - ``msmbuilder.feature_extraction`` has been added to conform to the
   ``scikit-learn`` API. This is essentially an alias of
   ``msmbuilder.featurizer`` (#799).
 
-
-
 New Features
 ~~~~~~~~~~~~
- - ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
-   ``decomposition`` module (#807).
 
- - ``FeatureSelector`` and ``VarianceThreshold`` are available in the
-   ``feature_selection`` module (#799)
-
- - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
-   ``decomposition`` module (#791).
-
- - ``Binarizer``, ``FunctionTransformer``, ``Imputer``, ``KernelCenterer``,
-   ``LabelBinarizer``, ``MultiLabelBinarizer``, ``MinMaxScaler``,
-   ``MaxAbsScaler``, ``Normalizer``, ``RobustScaler``, ``StandardScaler``,
-   and ``PolynomialFeatures`` are available in the ``preprocessing``
-   module (#796).
-
+- ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
+  ``decomposition`` module (#807).
+- ``FeatureSelector`` and ``VarianceThreshold`` are available in the
+  ``feature_selection`` module (#799)
+- ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
+  ``decomposition`` module (#791).
+- ``Binarizer``, ``FunctionTransformer``, ``Imputer``, ``KernelCenterer``,
+  ``LabelBinarizer``, ``MultiLabelBinarizer``, ``MinMaxScaler``,
+  ``MaxAbsScaler``, ``Normalizer``, ``RobustScaler``, ``StandardScaler``,
+  and ``PolynomialFeatures`` are available in the ``preprocessing``
+  module (#796).
 
 Improvements
 ~~~~~~~~~~~~
 
- - Fix a compilation error on gcc 5 (#783)
- - Fix pickle-ing of ``ContinuousTimeMSM``. The ``optimizer_state_``
-   parameter is not saved (#822).
-
+- Fix a compilation error on gcc 5 (#783)
+- Fix pickle-ing of ``ContinuousTimeMSM``. The ``optimizer_state_``
+  parameter is not saved (#822).
 
 
 v3.4 (March 29, 2016)
