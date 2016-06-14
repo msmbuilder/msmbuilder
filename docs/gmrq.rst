@@ -1,4 +1,5 @@
 .. _gmrq:
+.. currentmodule:: msmbuilder
 
 Model Selection using GMRQ
 ==========================
@@ -24,6 +25,18 @@ model given a supplied data set. This allows for the use of separate testing
 and training data sets to quantify and avoid statistical overfitting.
 This method extends these tools, making it possible to score trained models on
 new datasets and to perform hyperparameter selection.
+
+Algorithms
+----------
+
+.. autosummary::
+    :toctree: _gmrq/
+
+    decomposition.tICA.score
+    msm.MarkovStateModel.score
+    msm.ContinuousTimeMSM.score
+
+
 
 
 References
