@@ -1,10 +1,11 @@
 .. _gmrq:
 
 Model Selection using GMRQ
-======================
+==========================
 
 The generalized matrix Rayleigh quotient (GMRQ) is a specific application of
-the variational principle (adapted from `quantum mechanics <https://en.wikipedia.org/wiki/Variational_method_(quantum_mechanics)>_`)
+the variational principle (adapted from `quantum mechanics
+<https://en.wikipedia.org/wiki/Variational_method_(quantum_mechanics)>`_)
 for Markov state models and a useful tool for model parameter selection.
 
 The variational principle yields a rigorous way of comparing two different
