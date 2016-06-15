@@ -37,6 +37,19 @@ def plot_timescales(ax):
     ax.set_xscale('log')
     ax.set_yscale('log')
 
+## Percent trimmed vs lagtime
+def plot_trimmed(ax):
+    ax.plot(timescales['lag_time'],
+            timescales['percent_retained'],
+            'o-',
+            label=None,  # pandas be interfering
+            )
+    ax.axhline(100, color='k', ls='--', label='100%')
+    ax.legend(loc='best', fontsize=14)
+    ax.set_xlabel('Lag Time / todo:units', fontsize=18)
+    ax.set_ylabel('Retained / %', fontsize=18)
+    ax.set_xscale('log')
+    ax.set_ylim((0, 110))
 
 ## Plot
 fig, ax = plt.subplots(figsize=(7, 5))
