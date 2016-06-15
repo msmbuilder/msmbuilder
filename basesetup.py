@@ -272,13 +272,12 @@ release = {release}
         git_revision = 'Unknown'
 
     # short_version, full_version
+    short_version = ".".join(version.split(".")[:2])
     if isreleased:
         full_version = version
-        short_version = version
     else:
         full_version = ("{version}+{git_revision}"
                         .format(version=version, git_revision=git_revision))
-        short_version = version
 
     with open(filename, 'w') as f:
         f.write(cnt.format(version=version,
