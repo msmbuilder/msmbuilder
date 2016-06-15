@@ -11,6 +11,7 @@ This is the current development version of MSMBuilder
 API Changes
 ~~~~~~~~~~~
 
+- ``version.short_version`` is now 3.y instead of 3.y.z (#829).
 
 New Features
 ~~~~~~~~~~~~
