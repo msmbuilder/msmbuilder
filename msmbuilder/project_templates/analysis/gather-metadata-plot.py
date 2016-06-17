@@ -53,7 +53,7 @@ def plot_boxplot(ax):
     sns.boxplot(
         x='proj', # TODO: make general
         y='ns',
-        data=meta.reset_index(),
+        data=meta2.reset_index(),
         ax=ax,
     )
 

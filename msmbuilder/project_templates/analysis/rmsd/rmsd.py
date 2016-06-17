@@ -1,6 +1,14 @@
 """Check for abnormally high rmsd values to a reference structure
 
 {{header}}
+
+Meta
+-------
+depends:
+  - meta.pandas.pickl
+  - trajs
+  - top.pdb
+
 """
 
 import mdtraj as md

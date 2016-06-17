@@ -14,7 +14,7 @@ sns.set_style('ticks')
 colors = sns.color_palette()
 
 ## Load
-meta, rmsds = load_trajs('rmsd')
+meta, rmsds = load_trajs('rmsds')
 
 
 ## Plot box plot
@@ -23,7 +23,7 @@ def plot_boxplot(ax):
     sns.boxplot(catted * 10, ax=ax)
     ax.set_xlabel(r'RMSD / $\mathrm{\AA}$', fontsize=18)
     ax.set_yticks([])
-    ax.set_xticks(fontsize=16)
+    # ax.set_xticks(fontsize=16) #TODO: fontsize
 
 
 ## Report bad trajectories
@@ -45,6 +45,6 @@ fig.savefig("rmsd-boxplot.pdf")
 run(['xdg-open', 'rmsd-boxplot.pdf'])
 
 ## Bad trajectories
-for k, frame_is in bad_trajs():
+for k, frame_is in bad_trajs().items():
     print("Trajectory", k)
     print("Frames:", frame_is)
