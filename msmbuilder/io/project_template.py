@@ -57,6 +57,14 @@ def get_layout():
                 ],
                 [
                     TemplateDir(
+                        'rmsd',
+                        [
+                            'analysis/rmsd/rmsd.py',
+                            'analysis/rmsd/rmsd-plot.py',
+                        ],
+                        [],
+                    ),
+                    TemplateDir(
                         'landmarks',
                         [
                             'analysis/landmarks/featurize.py',
