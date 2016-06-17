@@ -28,16 +28,23 @@ def get_layout():
         ],
         [
             TemplateDir(
-                'msm',
+                'cluster',
                 [
-                    'tica/msm/cluster.py',
-                    'tica/msm/cluster-plot.py',
-                    # 'timescales.py',
-                    # 'timescales-plot.py',
-                    # 'microstate.py',
-                    # 'microstate-plot.py',
+                    'tica/cluster/cluster.py',
+                    'tica/cluster/cluster-plot.py'
                 ],
-                [],
+                [
+                    TemplateDir(
+                        'msm',
+                        [
+                            'tica/cluster/msm/msm-1-timescales.py',
+                            'tica/cluster/msm/msm-1-timescales-plot.py',
+                            'tica/cluster/msm/msm-2-microstate.py',
+                            'tica/cluster/msm/msm-2-microstate-plot.py',
+                        ],
+                        [],
+                    )
+                ]
             )
         ]
     )
