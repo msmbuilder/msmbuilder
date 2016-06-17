@@ -25,14 +25,16 @@ class _Parser(object):
 class GenericParser(_Parser):
     def __init__(self,
                  fn_re,
-                 transforms,
+                 group_names,
+                 group_transforms,
                  top_fn,
                  step_ps,
                  ):
         self.fn_re = re.compile(fn_re)
+        self.group_names = group_names
+        self.group_transforms = group_transforms
         self.top_fn = top_fn
         self.step_ps = step_ps
-        self.transforms = transforms
         try:
             assert os.path.exists(top_fn)
         except:
@@ -40,10 +42,12 @@ class GenericParser(_Parser):
                           "You may (will) run into issues later when you "
                           "try to load it.")
 
+        assert len(group_names) == len(group_transforms)
+        assert len(group_names) == self.fn_re.groups
+
     @property
     def index(self):
-        return list(self.fn_re.groupindex.keys())
-
+        return self.group_names
 
     def parse_fn(self, fn):
         meta = {
@@ -66,12 +70,21 @@ class GenericParser(_Parser):
         if ma is None:
             raise ValueError("Filename {} did not match the "
                              "regular rexpression {}".format(fn, self.fn_re))
-        meta.update({k: self.transforms[k](v)
-                     for k, v in ma.groupdict().items()})
+        meta.update({
+                        gn: transform(ma.group(gi))
+                        for gn, transform, gi in zip(self.group_names,
+                                                     self.group_transforms,
+                                                     range(1, len(
+                                                         self.group_names) + 1))
+                        })
         return meta
 
 
 class NumberedRunsParser(GenericParser):
+    """Parse trajectories that are numbered with integers.
+
+    """
+
     def __init__(self, traj_fmt="trajectory-{run}.xtc", top_fn="",
                  step_ps=None):
         # Test the input
@@ -81,17 +94,28 @@ class NumberedRunsParser(GenericParser):
             raise ValueError("Invalid format string {}".format(traj_fmt))
         # Build a regex from format string
         s1, s2 = re.split(r'\{run\}', traj_fmt)
-        capture_group = r'(?P<run>\d+)'
+        capture_group = r'(\d+)'
         fn_re = re.escape(s1) + capture_group + re.escape(s2)
 
-        transforms = {'run': int}
-
         # Call generic
-        super(NumberedRunsParser, self).__init__(fn_re, transforms,
-                                                 top_fn, step_ps)
+        super(NumberedRunsParser, self).__init__(
+            fn_re=fn_re,
+            group_names=['run'],
+            group_transforms=[int],
+            top_fn=top_fn,
+            step_ps=step_ps
+        )
 
 
 class HeirarchyParser(GenericParser):
+    """Parse a heirarchical index from files nested in directories
+
+    A trajectory with path:
+      PROJ9704/RUN4/CLONE10.xtc
+    will be given an index of
+      ('PROJ9704', 'RUN4', 'CLONE10')
+    """
+
     def __init__(self, levels=None, n_levels=None, top_fn="", step_ps=None):
         if (levels is None) == (n_levels is None):
             raise ValueError("Please specify levels or n_levels, but not both")
@@ -99,33 +123,16 @@ class HeirarchyParser(GenericParser):
         if levels is None:
             levels = ["i{i}".format(i=i) for i in range(n_levels)]
 
-        fn_re = r'\/'.join(r'(?P<{lvl}>[a-zA-Z0-9_\.\-]+)'.format(lvl=lvl)
-                           for lvl in levels)
+        fn_re = r'\/'.join(r'([a-zA-Z0-9_\.\-]+)' for _ in levels)
 
         transforms = {k: str for k in levels}
-        super(HeirarchyParser, self).__init__(fn_re, transforms, top_fn,
-                                              step_ps)
-
-
-class GenericSplitParser(GenericParser):
-    def __init__(self, fn_re=r'trajectory-([0-9]+)-([0-9]+)\.xtc', top_fn="",
-                 step_ps=None):
-        super(GenericSplitParser, self).__init__(fn_re=fn_re,
-                                                 step_ps=step_ps,
-                                                 top_fn=top_fn)
-
-    def get_indices(self, fn):
-        ma = re.search(self.fn_re, fn)
-        run = int(ma.group(1))
-        part = int(ma.group(2))
-        return {
-            'run': run,
-            'part': part
-        }
-
-    @property
-    def index(self):
-        return ["run", 'part']
+        super(HeirarchyParser, self).__init__(
+            fn_re=fn_re,
+            group_names=levels,
+            group_transforms=[str for _ in levels],
+            top_fn=top_fn,
+            step_ps=step_ps
+        )
 
 
 class FAHParser(_Parser):
@@ -144,6 +151,8 @@ class FAHParser(_Parser):
             raise ValueError("Unknown core type: {}".format(core_type))
 
         self.top_fn = top_fn
+
+        raise NotImplementedError("This class doesn't work yet.")
 
     def parse_fn(self, fn):
         ma_prc = self.prc_re.search(fn)
