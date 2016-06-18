@@ -78,7 +78,7 @@ def main(argv):
     if args.ipython:
         commands = ['ipython']
     else:
-        commands = ['nosetests', '--with-timer']
+        commands = ['nosetests', '--with-timer', '--timer-top-n', '5']
 
         if args.verbose > 0 and not args.no_verbose:
             verbosity = "-{vs}".format(vs="v" * args.verbose)

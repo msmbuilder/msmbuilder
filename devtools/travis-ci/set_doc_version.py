@@ -3,7 +3,7 @@ import shutil
 from msmbuilder import version
 
 if version.release:
-    docversion = version.short_version
+    docversion = version.version
 else:
     docversion = 'development'
 

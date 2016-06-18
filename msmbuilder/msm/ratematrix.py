@@ -4,18 +4,18 @@
 # All rights reserved.
 
 from __future__ import print_function, division
-import time
+
 import numpy as np
 import scipy.linalg
 import scipy.optimize
 from six.moves import cStringIO
 
-from ..base import BaseEstimator
-from ..utils import list_of_1d, printoptions, experimental
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
-from .core import (_MappingTransformMixin,_CountsMSMMixin, _transition_counts, _dict_compose,
-                   _solve_ratemat_eigensystem, _strongly_connected_subgraph, _SampleMSMMixin)
+from .core import (_MappingTransformMixin, _CountsMSMMixin, _dict_compose,
+                   _solve_ratemat_eigensystem, _SampleMSMMixin)
+from ..base import BaseEstimator
+from ..utils import printoptions
 
 
 class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin,
@@ -131,6 +131,11 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin,
         self.left_eigenvectors_ = None
         self.right_eigenvectors_ = None
         self.percent_retained_ = None
+
+    def __getstate__(self):
+        # gh-713
+        return {k: v for k, v in self.__dict__.items()
+                if k != 'optimizer_state_'}
 
 
     def fit(self, sequences, y=None):

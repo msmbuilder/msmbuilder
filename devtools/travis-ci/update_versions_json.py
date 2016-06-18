@@ -19,10 +19,11 @@ for i in range(len(versions)):
     versions[i]['latest'] = False
 
 versions.append({
-    'version': version.short_version,
+    'version': version.version,
     'display': version.short_version,
-    'url': "{base}/{version}".format(base=URL, version=version.short_version),
-    'latest': True})
+    'url': "{base}/{version}".format(base=URL, version=version.version),
+    'latest': True,
+})
 
 with open("docs/_deploy/versions.json", 'w') as versionf:
     json.dump(versions, versionf, indent=2)
