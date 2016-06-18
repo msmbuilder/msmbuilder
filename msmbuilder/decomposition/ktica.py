@@ -103,9 +103,16 @@ class KernelTICA(tICA):
     .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600–608.
     """
 
-    def __init__(self, kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
+    def __init__(self, n_components=None, lag_time=1, shrinkage=None,
+                 weighted_transform=False, kinetic_mapping=False,
+                 kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
                  landmarks=None, random_state=None, kernel_params=None,
                  **kwargs):
+        self.n_components = n_components
+        self.lag_time = lag_time
+        self.shrinkage = shrinkage
+        self.weighted_transform = weighted_transform
+        self.kinetic_mapping = kinetic_mapping
         self.kernel = kernel
         self.degree = degree
         self.gamma = gamma
