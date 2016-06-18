@@ -36,11 +36,9 @@ class KernelTICA(tICA):
         The covariance shrinkage intensity (range 0-1). If shrinkage is not
         specified (the default) it is estimated using an analytic formula
         (the Rao-Blackwellized Ledoit-Wolf estimator) introduced in [5].
-    weighted_transform : bool, default=False
-        Deprecated. Please use kinetic_mapping.
     kinetic_mapping : bool, default=False
         If True, weigh the projections by the tICA eigenvalues, yielding
-         kinetic distances as described in [6].
+         kinetic distances as described in [2].
     kernel : str or callable (default='rbf')
         Kernel map to be approximated using the Nystroem approximation.
         It must be one of:
@@ -100,12 +98,22 @@ class KernelTICA(tICA):
 
     References
     ----------
-    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600--608.
+    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600–608.
+    .. [2] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph] (2015)
     """
 
-    def __init__(self, kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
-                 landmarks=None, random_state=None, kernel_params=None,
-                 **kwargs):
+    def __init__(self, n_components=None, lag_time=1, shrinkage=None,
+                 kinetic_mapping=False, kernel='rbf', degree=3, gamma=None,
+                 coef0=1., stride=1, landmarks=None, random_state=None,
+<<<<<<< HEAD
+                 kernel_params=None):
+=======
+                 kernel_params=None, **kwargs):
+>>>>>>> 8b698f3... rm weighted_transform
+        self.n_components = n_components
+        self.lag_time = lag_time
+        self.shrinkage = shrinkage
+        self.kinetic_mapping = kinetic_mapping
         self.kernel = kernel
         self.degree = degree
         self.gamma = gamma
@@ -122,7 +130,10 @@ class KernelTICA(tICA):
                                   'coef0': self.coef0,
                                   'random_state': self.random_state
                                   }
-        super(KernelTICA, self).__init__(**kwargs)
+        super(KernelTICA, self).__init__(n_components=n_components,
+                                         lag_time=lag_time,
+                                         shrinkage=shrinkage,
+                                         kinetic_mapping=kinetic_mapping)
 
     def _gen_landmarks(self, sequences):
         X = []

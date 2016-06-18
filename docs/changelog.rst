@@ -14,6 +14,8 @@ API Changes
 - ``version.short_version`` is now 3.y instead of 3.y.z (#829).
 - ``msmbuilder.example_datasets`` is now deprecated. Please install
   the ``msmb_data`` package from the Omnia conda channel.
+- ``weighted_transform`` is no longer supported in tICA methods (#807). Please
+  used ``kinetic_mapping``.
 
 New Features
 ~~~~~~~~~~~~
