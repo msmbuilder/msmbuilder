@@ -25,12 +25,15 @@ New Features
     distance is below a cutoff (#798).
  - ``LogisticContactFeaturizer`` produces a logistic transform
     of residue-residue distances about a center distance (#798).
+- ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
+  ``decomposition`` module (#807).
 
 Improvements
 ~~~~~~~~~~~~
 
 - Remove a unicode character from ``ktica.py`` (gh-833)
-
+- ``msmbuilder.decomposition.KernelTICA`` now includes all parameters in its
+  ``__init__``, making it compatible with Osprey (gh-823).
 
 
 v3.5 (June 14, 2016)
