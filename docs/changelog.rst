@@ -3,7 +3,7 @@
 Changelog
 =========
 
-v3.5 (Development)
+v3.6 (Development)
 ------------------
 
 This is the current development version of MSMBuilder
@@ -11,14 +11,33 @@ This is the current development version of MSMBuilder
 API Changes
 ~~~~~~~~~~~
 
+- ``version.short_version`` is now 3.y instead of 3.y.z (#829).
+
+New Features
+~~~~~~~~~~~~
+
+
+Improvements
+~~~~~~~~~~~~
+
+
+
+v3.5 (June 14, 2016)
+--------------------
+
+We're pleased to announce the release of MSMBuilder 3.5. This release
+wraps more relevant ``sklearn`` estimators and transformers. There are
+also some bugfixes and API hygiene improvements. We recommend all users
+upgrade to MSMBuilder 3.5.
+
+API Changes
+~~~~~~~~~~~
+
 - ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please use
   ``msmbuilder.feature_selection.FeatureSelector`` instead (#799).
-
 - ``msmbuilder.feature_extraction`` has been added to conform to the
   ``scikit-learn`` API. This is essentially an alias of
   ``msmbuilder.featurizer`` (#799).
-
-
 
 New Features
 ~~~~~~~~~~~~
@@ -44,8 +63,9 @@ New Features
 Improvements
 ~~~~~~~~~~~~
 
- - Fix a compilation error on gcc 5 (#783)
-
+- Fix a compilation error on gcc 5 (#783)
+- Fix pickle-ing of ``ContinuousTimeMSM``. The ``optimizer_state_``
+  parameter is not saved (#822).
 
 
 v3.4 (March 29, 2016)
