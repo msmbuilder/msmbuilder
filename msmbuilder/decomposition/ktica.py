@@ -106,7 +106,7 @@ class KernelTICA(tICA):
     def __init__(self, n_components=None, lag_time=1, shrinkage=None,
                  kinetic_mapping=False, kernel='rbf', degree=3, gamma=None,
                  coef0=1., stride=1, landmarks=None, random_state=None,
-                 kernel_params=None, **kwargs):
+                 kernel_params=None):
         self.n_components = n_components
         self.lag_time = lag_time
         self.shrinkage = shrinkage
@@ -127,7 +127,10 @@ class KernelTICA(tICA):
                                   'coef0': self.coef0,
                                   'random_state': self.random_state
                                   }
-        super(KernelTICA, self).__init__(**kwargs)
+        super(KernelTICA, self).__init__(n_components=n_components,
+                                         lag_time=lag_time,
+                                         shrinkage=shrinkage,
+                                         kinetic_mapping=kinetic_mapping)
 
     def _gen_landmarks(self, sequences):
         X = []
