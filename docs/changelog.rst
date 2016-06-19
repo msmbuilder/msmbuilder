@@ -12,14 +12,19 @@ API Changes
 ~~~~~~~~~~~
 
 - ``version.short_version`` is now 3.y instead of 3.y.z (#829).
+- ``weighted_transform`` is no longer supported in tICA methods (#807). Please
+  used ``kinetic_mapping``.
 
 New Features
 ~~~~~~~~~~~~
 
+- ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
+  ``decomposition`` module (#807).
 
 Improvements
 ~~~~~~~~~~~~
-
+- ``msmbuilder.decomposition.KernelTICA`` now includes all parameters in its
+  ``__init__``, making it compatible with Osprey.
 
 
 v3.5 (June 14, 2016)
