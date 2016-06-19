@@ -5,7 +5,7 @@ msmb AtomPairsFeaturizer --transformed atom_pairs --trjs '~/msmbuilder_data/alan
     --pair_indices atom_indices.txt --top ~/msmbuilder_data/alanine_dipeptide/ala2.pdb --out atom_pairs.pkl
 msmb tICA -i atom_pairs/ -t atom_pairs_tica.h5  --n_components 4 \
     --shrinkage 0 \
-    --weighted_transform \
+    --kinetic_mapping \
     --lag_time 2
 msmb KCenters -i atom_pairs_tica.h5 -t kcenters_clusters.h5 --metric cityblock
 msmb MarkovStateModel --inp kcenters_clusters.h5 --out mymsm.pkl

@@ -58,9 +58,9 @@ class SparseTICA(tICA):
         The covariance shrinkage intensity (range 0-1). If shrinkage is not
         specified (the default) it is estimated using an analytic formula
         (the Rao-Blackwellized Ledoit-Wolf estimator) introduced in [5].
-    weighted_transform : bool, default=False
-        If True, weight the projections by the implied timescales, giving
-        a quantity that has units [Time].
+    kinetic_mapping : bool, default=False
+        If True, weigh the projections by the tICA eigenvalues, yielding
+         kinetic distances as described in [4].
     epsilon : positive float, default=1e-6
         epsilon should be a number very close to zero, which is used to
         construct the approximation to the L_0 penality function. However,
@@ -115,14 +115,14 @@ class SparseTICA(tICA):
        "A majorization-minimization approach to the sparse generalized eigenvalue
        problem." Machine learning 85.1-2 (2011): 3-39.
     .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
+    .. [4] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph]
+           (2015)
     """
 
     def __init__(self, n_components=None, lag_time=1, rho=0.01,
-                 weighted_transform=False, kinetic_mapping=False,
-                 epsilon=1e-6, shrinkage=None,
+                 kinetic_mapping=False, epsilon=1e-6, shrinkage=None,
                  tolerance=1e-6, maxiter=10000, verbose=False):
         super(SparseTICA, self).__init__(n_components, lag_time=lag_time,
-                                         weighted_transform=weighted_transform,
                                          kinetic_mapping=kinetic_mapping)
         self.rho = rho
         self.epsilon = epsilon
@@ -171,7 +171,7 @@ class SparseTICA(tICA):
 n_components        : {n_components}
 shrinkage           : {shrinkage}
 lag_time            : {lag_time}
-weighted_transform  : {weighted_transform}
+kinetic_mapping     : {kinetic_mapping}
 rho                 : {rho}
 n_features          : {n_features}
 
@@ -183,7 +183,8 @@ Top 5 eigenvalues :
 
 Number of active degrees of freedom:
 {active}
-""".format(n_components=self.n_components, lag_time=self.lag_time, rho=self.rho,
-           shrinkage=self.shrinkage_, weighted_transform=self.weighted_transform,
+""".format(n_components=self.n_components, lag_time=self.lag_time,
+           rho=self.rho, shrinkage=self.shrinkage_,
+           kinetic_mapping=self.kinetic_mapping,
            timescales=self.timescales_[:5], eigenvalues=self.eigenvalues_[:5],
            n_features=self.n_features, active=active)

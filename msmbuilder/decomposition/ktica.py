@@ -36,11 +36,9 @@ class KernelTICA(tICA):
         The covariance shrinkage intensity (range 0-1). If shrinkage is not
         specified (the default) it is estimated using an analytic formula
         (the Rao-Blackwellized Ledoit-Wolf estimator) introduced in [5].
-    weighted_transform : bool, default=False
-        Deprecated. Please use kinetic_mapping.
     kinetic_mapping : bool, default=False
         If True, weigh the projections by the tICA eigenvalues, yielding
-         kinetic distances as described in [6].
+         kinetic distances as described in [2].
     kernel : str or callable (default='rbf')
         Kernel map to be approximated using the Nystroem approximation.
         It must be one of:
@@ -101,17 +99,17 @@ class KernelTICA(tICA):
     References
     ----------
     .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600–608.
+    .. [2] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph]
+           (2015)
     """
 
     def __init__(self, n_components=None, lag_time=1, shrinkage=None,
-                 weighted_transform=False, kinetic_mapping=False,
-                 kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
-                 landmarks=None, random_state=None, kernel_params=None,
-                 **kwargs):
+                 kinetic_mapping=False, kernel='rbf', degree=3, gamma=None,
+                 coef0=1., stride=1, landmarks=None, random_state=None,
+                 kernel_params=None, **kwargs):
         self.n_components = n_components
         self.lag_time = lag_time
         self.shrinkage = shrinkage
-        self.weighted_transform = weighted_transform
         self.kinetic_mapping = kinetic_mapping
         self.kernel = kernel
         self.degree = degree
