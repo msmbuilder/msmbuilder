@@ -12,6 +12,8 @@ API Changes
 ~~~~~~~~~~~
 
 - ``version.short_version`` is now 3.y instead of 3.y.z (#829).
+- ``msmbuilder.example_datasets`` is now deprecated. Please install
+  the ``msmb_data`` package from the Omnia conda channel.
 
 New Features
 ~~~~~~~~~~~~
