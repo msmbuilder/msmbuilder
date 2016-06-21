@@ -4,7 +4,7 @@ import numpy as np
 from scipy.linalg import eigvals
 
 from msmbuilder.cluster import NDGrid
-from msmbuilder.example_datasets import load_doublewell
+from msmb_data import load_doublewell
 from msmbuilder.msm import MarkovStateModel, ContinuousTimeMSM
 from msmbuilder.msm.core import _solve_msm_eigensystem
 

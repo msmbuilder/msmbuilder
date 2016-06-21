@@ -6,7 +6,7 @@ from itertools import permutations
 import hmmlearn.hmm
 import numpy as np
 
-from msmbuilder.example_datasets import AlanineDipeptide
+from msmb_data import AlanineDipeptide
 from msmbuilder.featurizer import SuperposeFeaturizer
 from msmbuilder.hmm import GaussianHMM
 

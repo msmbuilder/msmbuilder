@@ -2,7 +2,7 @@ import numpy as np
 from msmbuilder.msm._metzner_mcmc_fast import metzner_mcmc_fast
 
 from msmbuilder.cluster import NDGrid
-from msmbuilder.example_datasets import load_doublewell
+from msmb_data import load_doublewell
 from msmbuilder.msm import BayesianMarkovStateModel
 from msmbuilder.msm import MarkovStateModel
 from msmbuilder.msm._metzner_mcmc_slow import metzner_mcmc_slow

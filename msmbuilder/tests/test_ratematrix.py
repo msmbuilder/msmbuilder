@@ -14,8 +14,8 @@ except ImportError:
 
 from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
-from msmbuilder.example_datasets import MullerPotential
-from msmbuilder.example_datasets import load_doublewell
+from msmb_data import MullerPotential
+from msmb_data import load_doublewell
 from msmbuilder.cluster import NDGrid
 from msmbuilder import utils
 import tempfile
@@ -386,7 +386,7 @@ def test_uncertainties_backward():
 
 
 def test_score_2():
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
     ds = MullerPotential(random_state=0).get()['trajectories']
     cluster = NDGrid(n_bins_per_feature=6,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
@@ -405,7 +405,7 @@ def test_score_2():
 
 
 def test_score_3():
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=6,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
@@ -429,7 +429,7 @@ def test_score_3():
 
 
 def test_guess():
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=5,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],

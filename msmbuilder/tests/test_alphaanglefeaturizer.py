@@ -1,8 +1,8 @@
 import warnings
 
 import msmbuilder.featurizer
-from msmbuilder.example_datasets import fetch_alanine_dipeptide
-from msmbuilder.example_datasets import fetch_fs_peptide
+from msmb_data import fetch_alanine_dipeptide
+from msmb_data import fetch_fs_peptide
 
 warnings.filterwarnings('ignore', message='.*Unlikely unit cell vectors.*')
 
