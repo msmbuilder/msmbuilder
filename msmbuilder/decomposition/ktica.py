@@ -100,7 +100,7 @@ class KernelTICA(tICA):
 
     References
     ----------
-    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600–608.
+    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600--608.
     """
 
     def __init__(self, kernel='rbf', degree=3, gamma=None, coef0=1., stride=1,
