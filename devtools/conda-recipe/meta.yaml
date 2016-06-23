@@ -42,6 +42,7 @@ test:
     - statsmodels
     - hmmlearn
     - cvxpy # [not win]
+    - msmb_data
   imports:
     - msmbuilder
   commands:

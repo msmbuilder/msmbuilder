@@ -1,4 +1,4 @@
-from msmbuilder.example_datasets import load_muller, MullerPotential
+from msmb_data import load_muller, MullerPotential
 from msmbuilder.utils import array2d
 
 

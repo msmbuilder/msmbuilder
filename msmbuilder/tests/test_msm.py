@@ -308,7 +308,7 @@ def test_normalization():
 
 
 def test_pipeline():
-    from msmbuilder.example_datasets import load_doublewell
+    from msmb_data import load_doublewell
     from msmbuilder.cluster import NDGrid
     from sklearn.pipeline import Pipeline
 

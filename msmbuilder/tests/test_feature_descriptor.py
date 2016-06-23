@@ -5,7 +5,7 @@ import glob
 import os
 from scipy.stats import vonmises as vm
 
-from msmbuilder.example_datasets import fetch_fs_peptide,FsPeptide
+from msmb_data import fetch_fs_peptide,FsPeptide
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer,\
     KappaAngleFeaturizer,ContactFeaturizer,VonMisesFeaturizer
 

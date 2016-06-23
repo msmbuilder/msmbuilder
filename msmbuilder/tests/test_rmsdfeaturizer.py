@@ -2,7 +2,7 @@ import mdtraj as md
 import numpy as np
 import warnings
 
-from msmbuilder.example_datasets import fetch_alanine_dipeptide
+from msmb_data import fetch_alanine_dipeptide
 from msmbuilder.featurizer import Featurizer
 from msmbuilder.featurizer import RMSDFeaturizer
 

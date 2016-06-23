@@ -4,3 +4,4 @@ ipython-notebook
 jinja2
 openmm
 nbconvert
+msmb_data
