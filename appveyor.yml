@@ -1,16 +1,16 @@
 environment:
 
   matrix:
-    - PYTHON: "C:\\Miniconda3"
+    - PYDIR: "C:\\Miniconda35"
       CONDA_PY: "35"
       CONDA_NPY: "1.10"
 
-    - PYTHON: "C:\\Miniconda3-x64"
+    - PYDIR: "C:\\Miniconda35-x64"
       CONDA_PY: "35"
       CONDA_NPY: "1.10"
 
 install:
-  - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+  - set PATH=%PYDIR%;%PYDIR%\\Scripts;%PATH%
   - conda config --add channels omnia
   - conda update -yq --all
   - conda install -yq conda-build jinja2
@@ -18,4 +18,4 @@ install:
 build: false
 
 test_script:
-  - conda build -q devtools\\conda-recipe
+  - conda build -q devtools\conda-recipe
