@@ -20,6 +20,8 @@ New Features
 Improvements
 ~~~~~~~~~~~~
 
+- Remove a unicode character from ``ktica.py`` (gh-833)
+
 
 
 v3.5 (June 14, 2016)
