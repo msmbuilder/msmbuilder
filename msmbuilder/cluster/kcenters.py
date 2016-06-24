@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University
+# Contributors: Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2016, Stanford University
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -77,6 +77,9 @@ class _KCenters(ClusterMixin, TransformerMixin):
         self.random_state = random_state
 
     def fit(self, X, y=None):
+        if isinstance(X, np.ndarray):
+            if not (X.dtype == 'float32' or X.dtype == 'float64'):
+                X = X.astype('float64')
         n_samples = len(X)
         new_center_index = check_random_state(self.random_state).randint(0, n_samples)
 
@@ -115,6 +118,9 @@ class _KCenters(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
+        if isinstance(X, np.ndarray):
+            if not (X.dtype == 'float32' or X.dtype == 'float64'):
+                X = X.astype('float64')
         labels, inertia = libdistance.assign_nearest(
             X, self.cluster_centers_, metric=self.metric)
         return labels

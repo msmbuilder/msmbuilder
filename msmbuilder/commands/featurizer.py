@@ -13,7 +13,8 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           DRIDFeaturizer, DihedralFeaturizer,
                           ContactFeaturizer, GaussianSolventFeaturizer,
                           KappaAngleFeaturizer, AlphaAngleFeaturizer,
-                          RMSDFeaturizer)
+                          RMSDFeaturizer, BinaryContactFeaturizer,
+                          LogisticContactFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -72,7 +73,7 @@ class FeaturizerCommand(NumpydocClassCommand):
         print("  >>> from msmbuilder.dataset import dataset")
         print("  >>> ds = dataset('%s')\n" % self.transformed)
 
-        if self.out is not '':
+        if self.out != '':
             verbosedump(self.instance, self.out)
             print("To load this %s object interactively inside an IPython\n"
                   "shell or notebook, run: \n" % self.klass.__name__)
@@ -164,7 +165,27 @@ class ContactFeaturizerCommand(FeaturizerCommand):
     klass = ContactFeaturizer
 
     def _contacts_type(self, val):
-        if val is 'all':
+        if val == 'all':
+            return val
+        else:
+            return np.loadtxt(val, dtype=int, ndmin=2)
+
+class BinaryContactFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = BinaryContactFeaturizer
+
+    def _contacts_type(self, val):
+        if val == 'all':
+            return val
+        else:
+            return np.loadtxt(val, dtype=int, ndmin=2)
+
+class LogisticContactFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = LogisticContactFeaturizer
+
+    def _contacts_type(self, val):
+        if val == 'all':
             return val
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
