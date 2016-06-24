@@ -105,11 +105,7 @@ class KernelTICA(tICA):
     def __init__(self, n_components=None, lag_time=1, shrinkage=None,
                  kinetic_mapping=False, kernel='rbf', degree=3, gamma=None,
                  coef0=1., stride=1, landmarks=None, random_state=None,
-<<<<<<< HEAD
                  kernel_params=None):
-=======
-                 kernel_params=None, **kwargs):
->>>>>>> 8b698f3... rm weighted_transform
         self.n_components = n_components
         self.lag_time = lag_time
         self.shrinkage = shrinkage
