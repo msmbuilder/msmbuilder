@@ -181,17 +181,19 @@ def test_ContactFeaturizer_describe_features():
 
         assert (features[0][:,f_index] == feature_value.flatten()).all()
 
+
 def test_FeatureSelector_describe_features():
     rnd_traj = np.random.randint(len(trajectories))
 
     f_ca = ContactFeaturizer(scheme='CA',ignore_nonprotein=True)
     f1 = f_ca.transform([trajectories[rnd_traj]])
     df1 = pd.DataFrame(f_ca.describe_features(trajectories[rnd_traj]))
-    
+
+
     f_dih = DihedralFeaturizer()
     f2 = f_dih.transform([trajectories[rnd_traj]])
     df2 = pd.DataFrame(f_dih.describe_features(trajectories[rnd_traj]))
-    
+
     df_dict = {}
     df_dict["ca"] = df1
     df_dict["dih"] = df2

@@ -158,6 +158,39 @@ class Featurizer(BaseEstimator, TransformerMixin):
         """
         return [self.partial_transform(traj) for traj in traj_list]
 
+    def describe_features(self, traj):
+        """Generic method for describing features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to use
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each feature
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Featurizer name
+                - featuregroup: Other information
+
+        Notes
+        -------
+        Method resorts to returning N/A for everything if describe_features in not
+        implemented in the sub_class
+        """
+        n_f = self.partial_transform(traj).shape[1]
+        zippy=zip(itertools.repeat("N/A", n_f),
+                  itertools.repeat("N/A", n_f),
+                  itertools.repeat("N/A", n_f),
+                  itertools.repeat(("N/A","N/A","N/A","N/A"), n_f))
+
+        return dict_maker(zippy)
 
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
