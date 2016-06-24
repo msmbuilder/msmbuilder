@@ -8,13 +8,13 @@
 Functions for performing mean first passage time
 calculations for an MSM.
 
-For a useful introduction to Markov Chains (both ergodic 
+For a useful introduction to Markov Chains (both ergodic
 and absorbing) check out Chapter 11 in:
 
 .. [1] Grinstead, C. M. and Snell, J. L. Introduction to
        Probability. American Mathematical Soc., 1998.
 
-The absorbing Markov Chain information is interesting, but 
+The absorbing Markov Chain information is interesting, but
 note that we are using ergodic Markov Chains.
 """
 from __future__ import print_function, division, absolute_import
@@ -41,7 +41,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
                 This uses the fundamental matrix formalism.
             - list of ints or int : Only the MFPTs into these sink
                 states will be computed. The result is a vector, with
-                entry i corresponding to the average time it takes to 
+                entry i corresponding to the average time it takes to
                 first get to *any* sink state from state i
     lag_time : float, optional
         Lag time for the model. The MFPT will be reported in whatever
@@ -64,15 +64,20 @@ def mfpts(msm, sinks=None, lag_time=1.):
 
     References
     ----------
-    .. [1] Grinstead, C. M. and Snell, J. L. Introduction to 
-           Probability. American Mathematical Soc., 1998.    
+    .. [1] Grinstead, C. M. and Snell, J. L. Introduction to
+           Probability. American Mathematical Soc., 1998.
 
     As of November 2014, this chapter was available for free online:
         http://www.dartmouth.edu/~chance/teaching_aids/books_articles/probability_book/Chapter11.pdf
     """
-    populations = msm.populations_
-    tprob = msm.transmat_
+
     n_states = msm.n_states_
+    if hasattr(msm, 'all_transmats_'):
+        tprob = msm.all_transmats_.mean(0)
+        populations = msm.all_populations_.mean(0)
+    else:
+        tprob = msm.transmat_
+        populations = msm.populations_
 
     if sinks is None:
         # Use Thm 11.16 in [1]

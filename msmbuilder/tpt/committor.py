@@ -77,7 +77,10 @@ def committors(sources, sinks, msm):
     sinks = np.array(sinks, dtype=int).reshape((-1, 1))
 
     n_states = msm.n_states_
-    tprob = msm.transmat_
+    if hasattr(msm, 'all_transmats_'):
+        tprob = msm.all_transmats_.mean(0)
+    else:
+        tprob = msm.transmat_
 
     # construct the committor problem
     lhs = np.eye(n_states) - tprob
@@ -149,8 +152,11 @@ def conditional_committors(source, sink, waypoint, msm):
     .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
-    tprob = msm.transmat_
     n_states = msm.n_states_
+    if hasattr(msm, 'all_transmats_'):
+        tprob = msm.all_transmats_.mean(0)
+    else:
+        tprob = msm.transmat_
 
     # typecheck
     for data in [source, sink, waypoint]:

@@ -80,9 +80,14 @@ def fluxes(sources, sinks, msm, for_committors=None):
     sources = np.array(sources).reshape((-1,))
     sinks = np.array(sinks).reshape((-1,))
 
-    populations = msm.populations_
-    tprob = msm.transmat_
     n_states = msm.n_states_
+    if hasattr(msm, 'all_transmats_'):
+        tprob = msm.all_transmats_.mean(0)
+        populations = msm.all_populations_.mean(0)
+    else:
+        tprob = msm.transmat_
+        populations = msm.populations_
+
 
     # check if we got the committors
     if for_committors is None:

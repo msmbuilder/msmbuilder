@@ -67,7 +67,10 @@ def fraction_visited(source, sink, waypoint, msm):
     .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
-    tprob = msm.transmat_
+    if hasattr(msm, 'all_transmats_'):
+        tprob = msm.all_transmats_.mean(0)
+    else:
+        tprob = msm.transmat_
 
     # EFFICIENCY ALERT:
     # we could allow all of these functions to pass committors if they've
