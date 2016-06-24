@@ -47,7 +47,7 @@ test:
     - msmbuilder
   commands:
     - msmb -h
-    - nosetests msmbuilder -v --with-timer
+    - nosetests msmbuilder -v --with-timer --timer-top-n 5
 
 
 about:
