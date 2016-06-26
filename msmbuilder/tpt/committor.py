@@ -78,7 +78,7 @@ def committors(sources, sinks, msm):
 
     n_states = msm.n_states_
     if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(0)
+        tprob = msm.all_transmats_.mean(axis=0)
     else:
         tprob = msm.transmat_
 
@@ -154,7 +154,7 @@ def conditional_committors(source, sink, waypoint, msm):
 
     n_states = msm.n_states_
     if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(0)
+        tprob = msm.all_transmats_.mean(axis=0)
     else:
         tprob = msm.transmat_
 

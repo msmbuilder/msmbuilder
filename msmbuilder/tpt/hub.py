@@ -68,7 +68,7 @@ def fraction_visited(source, sink, waypoint, msm):
     """
 
     if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(0)
+        tprob = msm.all_transmats_.mean(axis=0)
     else:
         tprob = msm.transmat_
 

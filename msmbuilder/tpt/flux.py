@@ -82,8 +82,8 @@ def fluxes(sources, sinks, msm, for_committors=None):
 
     n_states = msm.n_states_
     if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(0)
-        populations = msm.all_populations_.mean(0)
+        tprob = msm.all_transmats_.mean(axis=0)
+        populations = msm.all_populations_.mean(axis=0)
     else:
         tprob = msm.transmat_
         populations = msm.populations_

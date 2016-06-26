@@ -73,8 +73,8 @@ def mfpts(msm, sinks=None, lag_time=1.):
 
     n_states = msm.n_states_
     if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(0)
-        populations = msm.all_populations_.mean(0)
+        tprob = msm.all_transmats_.mean(axis=0)
+        populations = msm.all_populations_.mean(axis=0)
     else:
         tprob = msm.transmat_
         populations = msm.populations_
