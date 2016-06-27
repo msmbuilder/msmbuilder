@@ -40,6 +40,7 @@ import copy
 
 __all__ = ['paths', 'top_path']
 
+
 def top_path(sources, sinks, net_flux):
     """
     Use the Dijkstra algorithm for finding the shortest path
@@ -121,9 +122,10 @@ def top_path(sources, sinks, net_flux):
             # the path that goes to the sink state that is closest to the source
             break
 
-        #if test_node in sinks: # I *think* we want to break ... or are there paths we still
-        #                       # need to check?
-        #    continue # I think if sinks is more than one state we have to check everything
+        # if test_node in sinks: # I *think* we want to break ... or are there paths we still
+        # need to check?
+        # continue
+        # I think if sinks is more than one state we have to check everything
 
         # now update the distances for each neighbor of the test_node:
         neighbors = np.where(net_flux[test_node, :] > 0)[0]
@@ -191,7 +193,7 @@ def _subtract_path_flux(net_flux, path):
 
 
 def paths(sources, sinks, net_flux, remove_path='subtract',
-              num_paths=np.inf, flux_cutoff=(1-1E-10)):
+          num_paths=np.inf, flux_cutoff=(1-1E-10)):
     """
     Get the top N paths by iteratively performing Dijkstra's
     algorithm.
@@ -297,7 +299,6 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
     while not_done:
         path, flux = top_path(sources, sinks, net_flux)
         if np.isinf(flux):
-            #print("no more paths exist")
             break
 
         paths.append(path)
@@ -306,21 +307,11 @@ def paths(sources, sinks, net_flux, remove_path='subtract',
         expl_flux += flux / total_flux
         counter += 1
 
-        #print("Found next path (%d) with flux %.4e (%.2f%% of total)" % (counter, flux, expl_flux * 100))
-
         if counter >= num_paths or expl_flux >= flux_cutoff:
             break
 
         # modify the net_flux matrix
         net_flux = remove_path(net_flux, path)
-
-    # Old code for reshaping into a 2D array rather than a list
-    # of arrays. I think its a bit unnecessary
-    #
-    #max_len = np.max([len(p) for p in paths])
-    #temp = np.ones((len(paths), max_len)) * -1
-    #for i in range(len(paths)):
-    #    temp[i][:len(paths[i])] = paths[i]
 
     fluxes = np.array(fluxes)
 

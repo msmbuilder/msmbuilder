@@ -37,7 +37,9 @@ import numpy as np
 
 from mdtraj.utils.six.moves import xrange
 
-__all__ = ['committors', 'conditional_committors']
+__all__ = ['committors', 'conditional_committors',
+           '_committors', '_conditional_committors']
+
 
 def committors(sources, sinks, msm):
     """
@@ -73,38 +75,13 @@ def committors(sources, sinks, msm):
            19011-19016.
     """
 
-    sources = np.array(sources, dtype=int).reshape((-1, 1))
-    sinks = np.array(sinks, dtype=int).reshape((-1, 1))
-
-    n_states = msm.n_states_
     if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(axis=0)
-    else:
-        tprob = msm.transmat_
+        commits = np.zeros(msm.all_transmats_.shape[:2])
+        for i, tprob in enumerate(msm.all_transmats_):
+            commits[i, :] = _committors(sources, sinks, tprob)
+        return commits.mean(axis=0)
 
-    # construct the committor problem
-    lhs = np.eye(n_states) - tprob
-
-    for a in sources:
-        lhs[a, :] = 0.0  # np.zeros(n)
-        lhs[:, a] = 0.0
-        lhs[a, a] = 1.0
-
-    for b in sinks:
-        lhs[b, :] = 0.0  # np.zeros(n)
-        lhs[:, b] = 0.0
-        lhs[b, b] = 1.0
-
-    ident_sinks = np.zeros(n_states)
-    ident_sinks[sinks] = 1.0
-
-    rhs = np.dot(tprob, ident_sinks)
-    rhs[sources] = 0.0
-    rhs[sinks] = 1.0
-
-    forward_committors = np.linalg.solve(lhs, rhs)
-
-    return forward_committors
+    return _committors(sources, sinks, msm.transmat_)
 
 
 def conditional_committors(source, sink, waypoint, msm):
@@ -152,12 +129,6 @@ def conditional_committors(source, sink, waypoint, msm):
     .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
-    n_states = msm.n_states_
-    if hasattr(msm, 'all_transmats_'):
-        tprob = msm.all_transmats_.mean(axis=0)
-    else:
-        tprob = msm.transmat_
-
     # typecheck
     for data in [source, sink, waypoint]:
         if not isinstance(data, int):
@@ -166,13 +137,61 @@ def conditional_committors(source, sink, waypoint, msm):
     if (source == waypoint) or (sink == waypoint) or (sink == source):
         raise ValueError('source, sink, waypoint must all be disjoint!')
 
-    # hmmm this is awkward...
-    forward_committors = committors([source], [sink], msm)
+    if hasattr(msm, 'all_transmats_'):
+        cond_committors = np.zeros(msm.all_transmats_.shape[:2])
+        for i, tprob in enumerate(msm.all_transmats_):
+            cond_committors[i, :] = _conditional_committors(source, sink,
+                                                            waypoint, tprob)
+        return cond_committors.mean(axis=0)
+
+    return _conditional_committors(source, sink, waypoint, msm.transmat_)
+
+
+def _conditional_committors(source, sink, waypoint, tprob):
+    """
+    Computes the conditional committors :math:`q^{ABC^+}` which are is the
+    probability of starting in one state and visiting state B before A while
+    also visiting state C at some point.
+
+    Note that in the notation of Dickson et. al. this computes :math:`h_c(A,B)`,
+    with ``sources = A``, ``sinks = B``, ``waypoint = C``
+
+    Parameters
+    ----------
+    waypoint : int
+        The index of the intermediate state
+    source : int
+        The index of the source state
+    sink : int
+        The index of the sink state
+    tprob : np.ndarray
+        Transition matrix
+
+    Returns
+    -------
+    cond_committors : np.ndarray
+        Conditional committors, i.e. the probability of visiting
+        a waypoint when on a path between source and sink.
+
+    Notes
+    -----
+    Employs dense linear algebra, memory use scales as N^2,
+    and cycle use scales as N^3
+
+    References
+    ----------
+    .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
+    """
+
+    n_states = np.shape(tprob)[0]
+
+    forward_committors = _committors([source], [sink], tprob)
 
     # permute the transition matrix into cannonical form - send waypoint the the
     # last row, and source + sink to the end after that
     Bsink_indices = [source, sink, waypoint]
-    perm = np.array([i for i in xrange(n_states) if not i in Bsink_indices], dtype=int)
+    perm = np.array([i for i in xrange(n_states) if i not in Bsink_indices],
+                    dtype=int)
     perm = np.concatenate([perm, Bsink_indices])
     permuted_tprob = tprob[perm, :][:, perm]
 
@@ -194,3 +213,66 @@ def conditional_committors(source, sink, waypoint, msm):
     cond_committors = cond_committors[np.argsort(perm)]
 
     return cond_committors
+
+
+def _committors(sources, sinks, tprob):
+    """
+    Get the forward committors of the reaction sources -> sinks.
+
+    Parameters
+    ----------
+    sources : array_like, int
+        The set of unfolded/reactant states.
+    sinks : array_like, int
+        The set of folded/product states.
+    tprob : np.ndarray
+        Transition matrix
+
+    Returns
+    -------
+    forward_committors : np.ndarray
+        The forward committors for the reaction sources -> sinks
+
+    References
+    ----------
+    .. [1] Weinan, E. and Vanden-Eijnden, E. Towards a theory of
+           transition paths. J. Stat. Phys. 123, 503-523 (2006).
+    .. [2] Metzner, P., Schutte, C. & Vanden-Eijnden, E.
+           Transition path theory for Markov jump processes.
+           Multiscale Model. Simul. 7, 1192-1219 (2009).
+    .. [3] Berezhkovskii, A., Hummer, G. & Szabo, A. Reactive
+           flux and folding pathways in network models of
+           coarse-grained protein dynamics. J. Chem. Phys.
+           130, 205102 (2009).
+    .. [4] Noe, Frank, et al. "Constructing the equilibrium ensemble of folding
+           pathways from short off-equilibrium simulations." PNAS 106.45 (2009):
+           19011-19016.
+    """
+    n_states = np.shape(tprob)[0]
+
+    sources = np.array(sources, dtype=int).reshape((-1, 1))
+    sinks = np.array(sinks, dtype=int).reshape((-1, 1))
+
+    # construct the committor problem
+    lhs = np.eye(n_states) - tprob
+
+    for a in sources:
+        lhs[a, :] = 0.0  # np.zeros(n)
+        lhs[:, a] = 0.0
+        lhs[a, a] = 1.0
+
+    for b in sinks:
+        lhs[b, :] = 0.0  # np.zeros(n)
+        lhs[:, b] = 0.0
+        lhs[b, b] = 1.0
+
+    ident_sinks = np.zeros(n_states)
+    ident_sinks[sinks] = 1.0
+
+    rhs = np.dot(tprob, ident_sinks)
+    rhs[sources] = 0.0
+    rhs[sinks] = 1.0
+
+    forward_committors = np.linalg.solve(lhs, rhs)
+
+    return forward_committors
