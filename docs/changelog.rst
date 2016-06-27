@@ -12,14 +12,28 @@ API Changes
 ~~~~~~~~~~~
 
 - ``version.short_version`` is now 3.y instead of 3.y.z (#829).
+- ``msmbuilder.example_datasets`` is now deprecated. Please install
+  the ``msmb_data`` package from the Omnia conda channel.
+- ``weighted_transform`` is no longer supported in tICA methods (#807). Please
+  used ``kinetic_mapping``.
 
 New Features
 ~~~~~~~~~~~~
 
+ - ``BinaryContactFeaturizer`` featurizes a trajectory into a
+    boolean array corresponding to whether each residue-residue
+    distance is below a cutoff (#798).
+ - ``LogisticContactFeaturizer`` produces a logistic transform
+    of residue-residue distances about a center distance (#798).
+- ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
+  ``decomposition`` module (#807).
 
 Improvements
 ~~~~~~~~~~~~
 
+- Remove a unicode character from ``ktica.py`` (gh-833)
+- ``msmbuilder.decomposition.KernelTICA`` now includes all parameters in its
+  ``__init__``, making it compatible with Osprey (gh-823).
 
 
 v3.5 (June 14, 2016)
@@ -111,7 +125,7 @@ New Features
 - ``VonMisesFeaturizer`` uses soft bins around the unit-circle to give an
   alternate representation of dihedral angles (#744).
 - ``MarkovStateModel`` has a ``partial_transform()`` method (#707).
-- ``KapaAngleFeaturizer`` is available via the command line (#681).
+- ``KappaAngleFeaturizer`` is available via the command line (#681).
 - ``MarkovStateModel`` has a new attribute, ``percent_retained_``, for
   ergodic trimming (#689).
 - ``AlphaAngleFeaturizer`` computes the dihedral angles between alpha

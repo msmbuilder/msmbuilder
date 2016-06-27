@@ -6,7 +6,7 @@ from itertools import permutations
 import numpy as np
 from scipy.stats.distributions import vonmises
 
-from msmbuilder.example_datasets import AlanineDipeptide
+from msmb_data import AlanineDipeptide
 from msmbuilder.featurizer import DihedralFeaturizer
 from msmbuilder.hmm import VonMisesHMM
 

@@ -8,7 +8,7 @@ from msmbuilder.msm._ratematrix import lexponential
 from pyhmc import hmc
 
 from msmbuilder.cluster import NDGrid
-from msmbuilder.example_datasets import load_quadwell
+from msmb_data import load_quadwell
 from msmbuilder.msm import BayesianContinuousTimeMSM
 from msmbuilder.msm.bayes_ratematrix import _log_posterior
 from msmbuilder.utils import ExperimentalWarning

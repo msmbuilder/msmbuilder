@@ -17,8 +17,8 @@ from mdtraj.testing import eq
 from mdtraj.testing import get_fn as get_mdtraj_fn
 
 from msmbuilder.dataset import dataset
-from msmbuilder.example_datasets import get_data_home
-from msmbuilder.example_datasets.alanine_dipeptide import \
+from msmb_data import get_data_home
+from msmb_data.alanine_dipeptide import \
     fetch_alanine_dipeptide
 from msmbuilder.utils import load
 

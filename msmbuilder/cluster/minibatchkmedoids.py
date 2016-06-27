@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University
+# Contributors: Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2016, Stanford University
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -88,6 +88,9 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
         self.random_state = random_state
 
     def fit(self, X, y=None):
+        if isinstance(X, np.ndarray):
+            if not (X.dtype == 'float32' or X.dtype == 'float64'):
+                X = X.astype('float64')
         n_samples = len(X)
         n_batches = int(np.ceil(float(n_samples) / self.batch_size))
         n_iter = int(self.max_iter * n_batches)
@@ -156,6 +159,9 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
+        if isinstance(X, np.ndarray):
+            if not (X.dtype == 'float32' or X.dtype == 'float64'):
+                X = X.astype('float64')
         labels, inertia = libdistance.assign_nearest(
             X, self.cluster_centers_, metric=self.metric)
         return labels

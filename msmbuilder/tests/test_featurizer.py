@@ -3,7 +3,7 @@ from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 
-from msmbuilder.example_datasets import fetch_alanine_dipeptide, fetch_fs_peptide
+from msmb_data import fetch_alanine_dipeptide, fetch_fs_peptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
     RMSDFeaturizer, VonMisesFeaturizer, Slicer
