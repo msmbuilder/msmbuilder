@@ -3,7 +3,7 @@
 {{header}}
 
 Meta
--------
+----
 depends:
   - meta.pandas.pickl
   - trajs
