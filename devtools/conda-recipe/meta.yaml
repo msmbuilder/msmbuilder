@@ -31,7 +31,7 @@ requirements:
     - numpydoc
     - pytables
     - pyhmc
-    - yaml
+    - pyyaml
     - jinja2
 
 

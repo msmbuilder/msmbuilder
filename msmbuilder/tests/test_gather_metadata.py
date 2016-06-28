@@ -1,6 +1,8 @@
 from msmbuilder.io import NumberedRunsParser, HierarchyParser, GenericParser, \
     ParseWarning
 import pandas as pd
+import numpy as np
+import warnings
 
 filenames1 = [
     'traj0.xtc',
