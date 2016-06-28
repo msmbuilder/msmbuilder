@@ -15,21 +15,23 @@ How to do a release
 
 ### Release
 
-- `git checkout master && git reset --hard origin/master`
+- `git checkout master && git fetch origin && git reset --hard origin/master`
 - `git clean -fdx`
 - Update the version number in `setup.py`, change `ISRELEASED` to `True`.
-- Update the version number in `devtools/conda-recipe/meta.yaml`.
-- Add the date of release to `docs/changelog.rst`.
-- Commit and push to master. The commit should
-  only include the version number changes and should be given a message like
-  "Release 3.y.z".
+- Verify the version number in `devtools/conda-recipe/meta.yaml` is "0.0.0".
+- Add the date of release to `docs/changelog.rst`, add a blurb.
+- Commit and push to master. The commit should only include the version number changes and
+  should be given a message like "Release 3.y.z".
 - Tag that commit on GitHub. For version 3.y.z, the tag should be `3.y.z` (no "v" prefix)
   and the title should be "MSMBuilder 3.y" (no .z). You should copy-paste the changelog entry
   for the GitHub release notes. Beware of the transition from `rst` to markdown. In particular,
-  you might have to change the headings from underlined to prefixed with `##`.
+  you might have to change the headings from underlined to prefixed with `##`. You should
+  also delete "hard-wrap" linebreaks because GitHub will keep them in! (and you don't want
+  that). Use the preview tab.
 - The docs will build. Make sure this is successful and they are live at msmbuilder.org.
   The docs will be sent to msmbuilder.org/3.y.z instead of development/ because you
-  set `ISRELEASED`.
+  set `ISRELEASED`. You can cancel the Travis build triggered by the "tag" because docs
+  are set to deploy only from `master`.
 - Verify that `versions.json` was updated properly.
 - Create the canonical source distribution using `python setup.py sdist --formats=gztar,zip`.
   Inspect the files in dist/ to make sure they look right.
@@ -45,7 +47,7 @@ How to do a release
 ### Post-release
 
 - Update the version number in `setup.py`, change `ISRELEASED` to `False`.
-- Update the version number in `devtools/conda-recipe/meta.yaml`.
+- Verify the version number in `devtools/conda-recipe/meta.yaml` is "0.0.0".
 - Add a new "development" entry in `docs/changelog.rst`.
 - Commit and push to master.
 - Make sure there is a 3.(y+1) milestone already created
@@ -53,6 +55,7 @@ How to do a release
 - Close the 3.y milestone.
 - Update this file (`devtools/README.md`) with anything you learned or
   changed during this release creation.
+- Open an Issue for 3.(y+1) release schedule.
 
 ### Point releases
 
@@ -68,3 +71,7 @@ For version 3.y.z, this would mean bumping `z`.
 - Go through the above for creating a release. Make sure you tag
   the commit on the 3.y branch. If you don't want release notes
   (e.g. for a really minor fix), you can create an unannotated tag.
+
+```
+vim: tw=90
+```
