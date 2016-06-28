@@ -107,8 +107,8 @@ class NumberedRunsParser(GenericParser):
         )
 
 
-class HeirarchyParser(GenericParser):
-    """Parse a heirarchical index from files nested in directories
+class HierarchyParser(GenericParser):
+    """Parse a hierarchical index from files nested in directories
 
     A trajectory with path:
       PROJ9704/RUN4/CLONE10.xtc
@@ -126,7 +126,7 @@ class HeirarchyParser(GenericParser):
         fn_re = r'\/'.join(r'([a-zA-Z0-9_\.\-]+)' for _ in levels)
 
         transforms = {k: str for k in levels}
-        super(HeirarchyParser, self).__init__(
+        super(HierarchyParser, self).__init__(
             fn_re=fn_re,
             group_names=levels,
             group_transforms=[str for _ in levels],
