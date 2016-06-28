@@ -111,21 +111,31 @@ class HierarchyParser(GenericParser):
     """Parse a hierarchical index from files nested in directories
 
     A trajectory with path:
-      PROJ9704/RUN4/CLONE10.xtc
+      PROJ9704.new/RUN4/CLONE10.xtc
     will be given an index of
+      ('PROJ9704.new', 'RUN4', 'CLONE10.xtc')
+    If you set the flag ignore_fext=True, it will be given an index of
       ('PROJ9704', 'RUN4', 'CLONE10')
     """
 
-    def __init__(self, levels=None, n_levels=None, top_fn="", step_ps=None):
+    def __init__(self, levels=None, n_levels=None, top_fn="", step_ps=None,
+                 ignore_fext=False):
         if (levels is None) == (n_levels is None):
             raise ValueError("Please specify levels or n_levels, but not both")
 
         if levels is None:
             levels = ["i{i}".format(i=i) for i in range(n_levels)]
 
-        fn_re = r'\/'.join(r'([a-zA-Z0-9_\.\-]+)' for _ in levels)
+        if ignore_fext:
+            # regex notes:
+            #  1. [...]+? means non-greedy
+            #  2. (?:...) means non-capturing group
+            subre = r'([a-zA-Z0-9_\.\-]+?)(?:\.[a-zA-Z0-9]+)?'
+        else:
+            subre = r'([a-zA-Z0-9_\.\-]+)'
 
-        transforms = {k: str for k in levels}
+        fn_re = r'\/'.join(subre for _ in levels)
+
         super(HierarchyParser, self).__init__(
             fn_re=fn_re,
             group_names=levels,
@@ -133,6 +143,7 @@ class HierarchyParser(GenericParser):
             top_fn=top_fn,
             step_ps=step_ps
         )
+
 
 def gather_metadata(fn_glob, parser):
     meta = pd.DataFrame(parser.parse_fn(fn) for fn in glob.iglob(fn_glob))
