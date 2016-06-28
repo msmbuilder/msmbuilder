@@ -14,9 +14,12 @@ except ImportError:
 
 from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
-from msmbuilder.example_datasets import MullerPotential
-from msmbuilder.example_datasets import load_doublewell
+from msmb_data import MullerPotential
+from msmb_data import load_doublewell
 from msmbuilder.cluster import NDGrid
+from msmbuilder import utils
+import tempfile
+import shutil
 
 random = np.random.RandomState(0)
 
@@ -383,7 +386,7 @@ def test_uncertainties_backward():
 
 
 def test_score_2():
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
     ds = MullerPotential(random_state=0).get()['trajectories']
     cluster = NDGrid(n_bins_per_feature=6,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
@@ -402,7 +405,7 @@ def test_score_2():
 
 
 def test_score_3():
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=6,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
@@ -426,7 +429,7 @@ def test_score_3():
 
 
 def test_guess():
-    from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
+    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
 
     cluster = NDGrid(n_bins_per_feature=5,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
@@ -457,3 +460,18 @@ def test_doublewell():
                                       sliding_window=sliding_window)
             model.fit(assignments)
             assert model.optimizer_state_.success
+
+
+def test_dump():
+    # gh-713
+    sequence = [0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2]
+    model = ContinuousTimeMSM(verbose=False)
+    model.fit([sequence])
+
+    d = tempfile.mkdtemp()
+    try:
+        utils.dump(model, '{}/cmodel'.format(d))
+        m2 = utils.load('{}/cmodel'.format(d))
+        np.testing.assert_array_almost_equal(model.transmat_, m2.transmat_)
+    finally:
+        shutil.rmtree(d)

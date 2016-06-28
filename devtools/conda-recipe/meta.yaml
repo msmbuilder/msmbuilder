@@ -1,6 +1,6 @@
 package:
   name: msmbuilder-dev
-  version: "3.5.0.dev0"
+  version: "0.0.0"
 
 source:
   path: ../../
@@ -44,11 +44,12 @@ test:
     - statsmodels
     - hmmlearn
     - cvxpy # [not win]
+    - msmb_data
   imports:
     - msmbuilder
   commands:
     - msmb -h
-    - nosetests msmbuilder -v --with-timer
+    - nosetests msmbuilder -v --with-timer --timer-top-n 5
 
 
 about:

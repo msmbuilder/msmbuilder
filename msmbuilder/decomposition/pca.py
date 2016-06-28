@@ -17,7 +17,7 @@ class PCA(MultiSequenceDecompositionMixin, decomposition.PCA):
 
     def summarize(self):
         return '\n'.join([
-            "Principal Components Analysis (PCA)",
+            "Principal Component Analysis (PCA)",
             "----------",
             "Number of components:    {n_components}",
             "explained variance raio: {explained_variance_ratio_}",
@@ -46,4 +46,16 @@ class MiniBatchSparsePCA(MultiSequenceDecompositionMixin,
             "--------------------",
             "Number of components:    {n_components}",
             "Batch size:              {batch_size}"
+        ]).format(**self.__dict__)
+
+
+class KernelPCA(MultiSequenceDecompositionMixin, decomposition.KernelPCA):
+    __doc__ = decomposition.KernelPCA.__doc__
+
+    def summarize(self):
+        return '\n'.join([
+            "Kernel PCA",
+            "--------------------",
+            "Number of components:    {n_components}",
+            "Kernel:              {kernel}",
         ]).format(**self.__dict__)

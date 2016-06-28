@@ -1,7 +1,7 @@
 import numpy as np
 from mdtraj.testing import eq
 
-from msmbuilder.example_datasets import fetch_alanine_dipeptide
+from msmb_data import fetch_alanine_dipeptide
 from msmbuilder.featurizer import AtomPairsFeaturizer, get_atompair_indices
 from msmbuilder.featurizer.subset import SubsetAtomPairs, \
     SubsetCosPhiFeaturizer, SubsetCosPsiFeaturizer, SubsetFeatureUnion, \

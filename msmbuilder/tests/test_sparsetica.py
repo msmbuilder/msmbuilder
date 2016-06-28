@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing.decorators import skipif
 
 from msmbuilder.decomposition import tICA, SparseTICA
-from msmbuilder.example_datasets import DoubleWell
+from msmb_data import DoubleWell
 
 
 def build_dataset():

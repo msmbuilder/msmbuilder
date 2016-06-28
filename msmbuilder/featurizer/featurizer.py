@@ -158,6 +158,39 @@ class Featurizer(BaseEstimator, TransformerMixin):
         """
         return [self.partial_transform(traj) for traj in traj_list]
 
+    def describe_features(self, traj):
+        """Generic method for describing features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to use
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each feature
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Featurizer name
+                - featuregroup: Other information
+
+        Notes
+        -------
+        Method resorts to returning N/A for everything if describe_features in not
+        implemented in the sub_class
+        """
+        n_f = self.partial_transform(traj).shape[1]
+        zippy=zip(itertools.repeat("N/A", n_f),
+                  itertools.repeat("N/A", n_f),
+                  itertools.repeat("N/A", n_f),
+                  itertools.repeat(("N/A","N/A","N/A","N/A"), n_f))
+
+        return dict_maker(zippy)
 
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
@@ -853,7 +886,7 @@ class SASAFeaturizer(Featurizer):
 
 
 class ContactFeaturizer(Featurizer):
-    """Featurizer based on residue-residue distances
+    """Featurizer based on residue-residue distances.
 
     This featurizer transforms a dataset containing MD trajectories into
     a vector dataset by representing each frame in each of the MD trajectories
@@ -891,10 +924,12 @@ class ContactFeaturizer(Featurizer):
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
 
+    def _transform(self, distances):
+        return distances
 
     def partial_transform(self, traj):
-        """Featurize an MD trajectory into a vector space via of residue-residue
-        distances
+        """Featurize an MD trajectory into a vector space derived from
+        residue-residue distances
 
         Parameters
         ----------
@@ -913,9 +948,10 @@ class ContactFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
+
         distances, _ = md.compute_contacts(traj, self.contacts,
                                            self.scheme, self.ignore_nonprotein)
-        return distances
+        return self._transform(distances)
 
 
     def describe_features(self, traj):
@@ -962,6 +998,117 @@ class ContactFeaturizer(Featurizer):
         feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
+
+
+class BinaryContactFeaturizer(ContactFeaturizer):
+    """Featurizer based on residue-residue contacts below a cutoff.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the binary contacts between pairs of amino-acid residues.
+
+    The exact method for computing the the distance between two residues
+    is configurable with the ``scheme`` parameter.
+
+    Parameters
+    ----------
+    contacts : np.ndarray or 'all'
+        array containing (0-indexed) indices of the residues to compute the
+        contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
+        the contact between residue 0 and residue 10 as well as
+        the contact between residue 0 and residue 11.) [NOTE: if no
+        array is passed then 'all' contacts are calculated. This means
+        that the result will contain all contacts between residues
+        separated by at least 3 residues.]
+    scheme : {'ca', 'closest', 'closest-heavy'}
+        scheme to determine the distance between two residues:
+            'ca' : distance between two residues is given by the distance
+                between their alpha carbons
+            'closest' : distance is the closest distance between any
+                two atoms in the residues
+            'closest-heavy' : distance is the closest distance between
+                any two non-hydrogen atoms in the residues
+    ignore_nonprotein : bool
+        When using `contact==all`, don't compute contacts between
+        "residues" which are not protein (i.e. do not contain an alpha
+        carbon).
+    cutoff : float, default=0.8
+        Distances shorter than CUTOFF [nm] are returned as '1' and
+        distances longer than CUTOFF are returned as '0'.
+    """
+
+    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True, cutoff=0.8):
+        super(BinaryContactFeaturizer, self).__init__(contacts=contacts, scheme=scheme,
+                                                    ignore_nonprotein=ignore_nonprotein)
+        if cutoff < 0:
+            raise ValueError('cutoff must be a positive distance [nm]')
+        self.cutoff = cutoff
+
+    def _transform(self, distances):
+        return distances < self.cutoff
+
+
+class LogisticContactFeaturizer(ContactFeaturizer):
+    """Featurizer based on logistic-transformed residue-residue contacts.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the distances between pairs of amino-acid residues transformed
+    by the logistic function (reflected across the x axis):
+
+    result = [1 + exp(k*(distances - cutoff))]^-1
+
+    The exact method for computing the the distance between two residues
+    is configurable with the ``scheme`` parameter.
+
+    Parameters
+    ----------
+    contacts : np.ndarray or 'all'
+        array containing (0-indexed) indices of the residues to compute the
+        contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
+        the contact between residue 0 and residue 10 as well as
+        the contact between residue 0 and residue 11.) [NOTE: if no
+        array is passed then 'all' contacts are calculated. This means
+        that the result will contain all contacts between residues
+        separated by at least 3 residues.]
+    scheme : {'ca', 'closest', 'closest-heavy'}
+        scheme to determine the distance between two residues:
+            'ca' : distance between two residues is given by the distance
+                between their alpha carbons
+            'closest' : distance is the closest distance between any
+                two atoms in the residues
+            'closest-heavy' : distance is the closest distance between
+                any two non-hydrogen atoms in the residues
+    ignore_nonprotein : bool
+        When using `contact==all`, don't compute contacts between
+        "residues" which are not protein (i.e. do not contain an alpha
+        carbon).
+    center : float, default=0.8
+        Determines the midpoint of the sigmoid, x_0, [nm]. Distances
+        shorter than CENTER will return values greater than 0.5 and
+        distances larger than CENTER will return values smaller than 0.5.
+    steepness : float, default=20
+        Determines the steepness of the logistic curve, [1/nm]. Small 
+        and large distances will approach ouput values of 1 and 0,
+        respectively, more quickly.
+    """
+
+
+    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True,
+                                                            center=0.8, steepness=20):
+        super(LogisticContactFeaturizer, self).__init__(contacts=contacts, scheme=scheme,
+                                                    ignore_nonprotein=ignore_nonprotein)
+        if center < 0:
+            raise ValueError('center must be a positive distance [nm]')
+        if steepness < 0:
+            raise ValueError('steepness must be a positive inverse distance [1/nm]')
+
+        self.center = center
+        self.steepness = steepness
+
+    def _transform(self, distances):
+        result = 1.0/(1+np.exp(self.steepness*(distances-self.center)))
+        return result
 
 
 class GaussianSolventFeaturizer(Featurizer):

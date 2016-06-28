@@ -3,7 +3,7 @@
 Changelog
 =========
 
-v3.5 (Development)
+v3.6 (Development)
 ------------------
 
 This is the current development version of MSMBuilder
@@ -11,38 +11,69 @@ This is the current development version of MSMBuilder
 API Changes
 ~~~~~~~~~~~
 
-- ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please use
-  ``msmbuilder.feature_selection.FeatureSelector`` instead (#799).
-
-- ``msmbuilder.feature_extraction`` has been added to conform to the
-  ``scikit-learn`` API. This is essentially an alias of
-  ``msmbuilder.featurizer`` (#799).
-
-
+- ``version.short_version`` is now 3.y instead of 3.y.z (#829).
+- ``msmbuilder.example_datasets`` is now deprecated. Please install
+  the ``msmb_data`` package from the Omnia conda channel.
+- ``weighted_transform`` is no longer supported in tICA methods (#807). Please
+  used ``kinetic_mapping``.
 
 New Features
 ~~~~~~~~~~~~
- - ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
-   ``decomposition`` module (#807).
 
- - ``FeatureSelector`` and ``VarianceThreshold`` are available in the
-   ``feature_selection`` module (#799)
-
- - ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
-   ``decomposition`` module (#791).
-
- - ``Binarizer``, ``FunctionTransformer``, ``Imputer``, ``KernelCenterer``,
-   ``LabelBinarizer``, ``MultiLabelBinarizer``, ``MinMaxScaler``,
-   ``MaxAbsScaler``, ``Normalizer``, ``RobustScaler``, ``StandardScaler``,
-   and ``PolynomialFeatures`` are available in the ``preprocessing``
-   module (#796).
-
+ - ``BinaryContactFeaturizer`` featurizes a trajectory into a
+    boolean array corresponding to whether each residue-residue
+    distance is below a cutoff (#798).
+ - ``LogisticContactFeaturizer`` produces a logistic transform
+    of residue-residue distances about a center distance (#798).
+- ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
+  ``decomposition`` module (#807).
 
 Improvements
 ~~~~~~~~~~~~
 
- - Fix a compilation error on gcc 5 (#783)
+- Remove a unicode character from ``ktica.py`` (gh-833)
+- ``msmbuilder.decomposition.KernelTICA`` now includes all parameters in its
+  ``__init__``, making it compatible with Osprey (gh-823).
 
+
+v3.5 (June 14, 2016)
+--------------------
+
+We're pleased to announce the release of MSMBuilder 3.5. This release
+wraps more relevant ``sklearn`` estimators and transformers. There are
+also some bugfixes and API hygiene improvements. We recommend all users
+upgrade to MSMBuilder 3.5.
+
+API Changes
+~~~~~~~~~~~
+
+- ``msmbuilder.featurizer.FeatureUnion`` is now deprecated. Please use
+  ``msmbuilder.feature_selection.FeatureSelector`` instead (#799).
+- ``msmbuilder.feature_extraction`` has been added to conform to the
+  ``scikit-learn`` API. This is essentially an alias of
+  ``msmbuilder.featurizer`` (#799).
+
+New Features
+~~~~~~~~~~~~
+
+- ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
+  ``decomposition`` module (#807).
+- ``FeatureSelector`` and ``VarianceThreshold`` are available in the
+  ``feature_selection`` module (#799)
+- ``SparsePCA`` and ``MiniBatchSparsePCA`` are available in the
+  ``decomposition`` module (#791).
+- ``Binarizer``, ``FunctionTransformer``, ``Imputer``, ``KernelCenterer``,
+  ``LabelBinarizer``, ``MultiLabelBinarizer``, ``MinMaxScaler``,
+  ``MaxAbsScaler``, ``Normalizer``, ``RobustScaler``, ``StandardScaler``,
+  and ``PolynomialFeatures`` are available in the ``preprocessing``
+  module (#796).
+
+Improvements
+~~~~~~~~~~~~
+
+- Fix a compilation error on gcc 5 (#783)
+- Fix pickle-ing of ``ContinuousTimeMSM``. The ``optimizer_state_``
+  parameter is not saved (#822).
 
 
 v3.4 (March 29, 2016)
@@ -88,7 +119,7 @@ New Features
 - ``VonMisesFeaturizer`` uses soft bins around the unit-circle to give an
   alternate representation of dihedral angles (#744).
 - ``MarkovStateModel`` has a ``partial_transform()`` method (#707).
-- ``KapaAngleFeaturizer`` is available via the command line (#681).
+- ``KappaAngleFeaturizer`` is available via the command line (#681).
 - ``MarkovStateModel`` has a new attribute, ``percent_retained_``, for
   ergodic trimming (#689).
 - ``AlphaAngleFeaturizer`` computes the dihedral angles between alpha

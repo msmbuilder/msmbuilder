@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University
+# Contributors: Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2016, Stanford University
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -85,6 +85,9 @@ class _KMedoids(ClusterMixin, TransformerMixin):
             raise ValueError('n_passes must be greater than 0. got %s' %
                              self.n_clusters)
 
+        if isinstance(X, np.ndarray):
+            if not (X.dtype == 'float32' or X.dtype == 'float64'):
+                X = X.astype('float64')
         dmat = libdistance.pdist(X, metric=self.metric)
         ids, self.inertia_, _ = _kmedoids.kmedoids(
             self.n_clusters, dmat, self.n_passes,
@@ -114,6 +117,9 @@ class _KMedoids(ClusterMixin, TransformerMixin):
         Y : array, shape [n_samples,]
             Index of the closest center each sample belongs to.
         """
+        if isinstance(X, np.ndarray):
+            if not (X.dtype == 'float32' or X.dtype == 'float64'):
+                X = X.astype('float64')
         labels, inertia = libdistance.assign_nearest(
             X, self.cluster_centers_, metric=self.metric)
         return labels

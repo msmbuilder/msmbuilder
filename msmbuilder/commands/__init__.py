@@ -6,7 +6,8 @@ from .example_datasets import AlanineDipeptideDatasetCommand
 from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          DihedralFeaturizerCommand, DRIDFeaturizerCommand,
                          SuperposeFeaturizerCommand, KappaAngleFeaturizerCommand,
-                         AlphaAngleFeaturizerCommand, RMSDFeaturizerCommand)
+                         AlphaAngleFeaturizerCommand, RMSDFeaturizerCommand,
+                         BinaryContactFeaturizerCommand, LogisticContactFeaturizerCommand)
 from .fit import GaussianHMMCommand
 from .fit_transform import KMeansCommand, KCentersCommand
 from .implied_timescales import ImpliedTimescales

@@ -4,7 +4,7 @@ import mdtraj as md
 import numpy as np
 import scipy.spatial.distance
 
-from msmbuilder.example_datasets import AlanineDipeptide
+from msmb_data import AlanineDipeptide
 from msmbuilder.libdistance import assign_nearest, cdist, pdist, dist, sumdist
 
 random = np.random.RandomState()
