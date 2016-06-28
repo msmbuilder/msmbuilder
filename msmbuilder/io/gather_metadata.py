@@ -13,6 +13,10 @@ import mdtraj as md
 import pandas as pd
 
 
+class ParseWarning(UserWarning):
+    pass
+
+
 class _Parser(object):
     def parse_fn(self, fn):
         raise NotImplementedError
@@ -40,14 +44,14 @@ class GenericParser(_Parser):
         except:
             warnings.warn("Topology file doesn't actually exist! "
                           "You may (will) run into issues later when you "
-                          "try to load it.")
+                          "try to load it.", ParseWarning)
 
         assert len(group_names) == len(group_transforms)
         assert len(group_names) == self.fn_re.groups
 
     @property
     def index(self):
-        return self.group_names
+        return list(self.group_names)
 
     def parse_fn(self, fn):
         meta = {
@@ -60,7 +64,7 @@ class GenericParser(_Parser):
                 meta['nframes'] = len(f)
         except Exception as e:
             warnings.warn("Could not determine the number of frames for {}: {}"
-                          .format(fn, e))
+                          .format(fn, e), ParseWarning)
 
         if self.step_ps is not None:
             meta['step_ps'] = self.step_ps
@@ -70,13 +74,11 @@ class GenericParser(_Parser):
         if ma is None:
             raise ValueError("Filename {} did not match the "
                              "regular rexpression {}".format(fn, self.fn_re))
-        meta.update({
-                        gn: transform(ma.group(gi))
-                        for gn, transform, gi in zip(self.group_names,
-                                                     self.group_transforms,
-                                                     range(1, len(
-                                                         self.group_names) + 1))
-                        })
+        meta.update({gn: transform(ma.group(gi))
+                     for gn, transform, gi
+                     in zip(self.group_names, self.group_transforms,
+                            range(1, len(self.group_names) + 1))
+                     })
         return meta
 
 
@@ -116,6 +118,23 @@ class HierarchyParser(GenericParser):
       ('PROJ9704.new', 'RUN4', 'CLONE10.xtc')
     If you set the flag ignore_fext=True, it will be given an index of
       ('PROJ9704', 'RUN4', 'CLONE10')
+
+    Parameters
+    ----------
+    levels : list of str
+        Level names
+    n_levels : int
+        Number of levels. Either this or levels must be provided (but
+        not both). The levels will be named i0, i1, ... i(n-1)
+    top_fn : str
+        Topology filename
+    step_ps : int
+        Number of picoseconds per frame
+    ignore_fext : bool
+        Ignore file extensions. If set to true, this will fail if there is
+        more than one "." per file/directory name. Anything after a "." is
+        considered a file extension and will be ignored; including in
+        directory names
     """
 
     def __init__(self, levels=None, n_levels=None, top_fn="", step_ps=None,
@@ -128,9 +147,8 @@ class HierarchyParser(GenericParser):
 
         if ignore_fext:
             # regex notes:
-            #  1. [...]+? means non-greedy
-            #  2. (?:...) means non-capturing group
-            subre = r'([a-zA-Z0-9_\.\-]+?)(?:\.[a-zA-Z0-9]+)?'
+            #  1. (?:...) means non-capturing group
+            subre = r'([a-zA-Z0-9_\-]+)(?:\.[a-zA-Z0-9]+)?'
         else:
             subre = r'([a-zA-Z0-9_\.\-]+)'
 
