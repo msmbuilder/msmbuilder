@@ -87,7 +87,7 @@ def fluxes(sources, sinks, msm, for_committors=None):
             populations = el[1]
             fluxes[i, :, :] = _fluxes(sources, sinks, tprob,
                                       populations, for_committors)
-        return fluxes.mean(axis=0)
+        return np.median(fluxes, axis=0)
 
     return _fluxes(sources, sinks, msm.transmat_, msm.populations_,
                    for_committors)

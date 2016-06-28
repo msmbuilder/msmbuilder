@@ -80,7 +80,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
             populations = el[1]
             mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
 
-        return mfpts.mean(axis=0)
+        return np.median(mfpts, axis=0)
 
     return _mfpts(msm.transmat_, msm.populations_, sinks, lag_time)
 

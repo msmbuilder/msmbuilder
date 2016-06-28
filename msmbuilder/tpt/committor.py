@@ -79,7 +79,7 @@ def committors(sources, sinks, msm):
         commits = np.zeros(msm.all_transmats_.shape[:2])
         for i, tprob in enumerate(msm.all_transmats_):
             commits[i, :] = _committors(sources, sinks, tprob)
-        return commits.mean(axis=0)
+        return np.median(commits, axis=0)
 
     return _committors(sources, sinks, msm.transmat_)
 
@@ -142,7 +142,7 @@ def conditional_committors(source, sink, waypoint, msm):
         for i, tprob in enumerate(msm.all_transmats_):
             cond_committors[i, :] = _conditional_committors(source, sink,
                                                             waypoint, tprob)
-        return cond_committors.mean(axis=0)
+        return np.median(cond_committors, axis=0)
 
     return _conditional_committors(source, sink, waypoint, msm.transmat_)
 

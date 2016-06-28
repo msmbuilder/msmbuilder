@@ -77,7 +77,7 @@ def fraction_visited(source, sink, waypoint, msm):
             frac_visited[i] = _fraction_visited(source, sink, waypoint,
                                                 msm.transmat_, for_committors,
                                                 cond_committors)
-        return frac_visited.mean(axis=0)
+        return np.median(frac_visited, axis=0)
 
     return _fraction_visited(source, sink, waypoint, msm.transmat_,
                              for_committors, cond_committors)
