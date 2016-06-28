@@ -28,7 +28,7 @@ meta = load_meta()
 def guestimate_stride():
     total_data = meta['nframes'].sum()
     want = kmed.n_clusters * 10
-    stride = total_data // want
+    stride = min(1, total_data // want)
     print("Since we have", total_data, "frames, we're going to stride by",
           stride, "during fitting, because this is probably adequate for",
           kmed.n_clusters, "clusters")
