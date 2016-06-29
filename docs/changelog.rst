@@ -20,13 +20,15 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
- - ``BinaryContactFeaturizer`` featurizes a trajectory into a
-    boolean array corresponding to whether each residue-residue
-    distance is below a cutoff (#798).
- - ``LogisticContactFeaturizer`` produces a logistic transform
-    of residue-residue distances about a center distance (#798).
+- ``BinaryContactFeaturizer`` featurizes a trajectory into a
+  boolean array corresponding to whether each residue-residue
+  distance is below a cutoff (#798).
+- ``LogisticContactFeaturizer`` produces a logistic transform
+  of residue-residue distances about a center distance (#798).
 - ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
   ``decomposition`` module (#807).
+- ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
+  ``preprocessing`` module (#818).
 
 Improvements
 ~~~~~~~~~~~~
@@ -58,8 +60,6 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
- - ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
-   ``preprocessing`` module (#818).
 
  - ``KernelTICA``, ``Nystroem``, and ``LandmarkNystroem`` are available in the
    ``decomposition`` module (#807).
