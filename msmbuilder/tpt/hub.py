@@ -23,6 +23,7 @@ import itertools
 
 __all__ = ['fraction_visited', 'hub_scores']
 
+
 def fraction_visited(source, sink, waypoint, msm):
     """
     Calculate the fraction of times a walker on `tprob` going from `sources`
@@ -67,17 +68,19 @@ def fraction_visited(source, sink, waypoint, msm):
     .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
     """
 
-    tprob = msm.transmat_
-
-    # EFFICIENCY ALERT:
-    # we could allow all of these functions to pass committors if they've
-    # already been calculated, but I think it's so fast that we don't need to
     for_committors = committors([source], [sink], msm)
     cond_committors = conditional_committors(source, sink, waypoint, msm)
 
-    fraction_visited = np.float(tprob[source, :].dot(cond_committors)) / np.float(tprob[source, :].dot(for_committors))
+    if hasattr(msm, 'all_transmats_'):
+        frac_visited = np.zeros((msm.n_states,))
+        for i, tprob in enumerate(msm.all_transmats_):
+            frac_visited[i] = _fraction_visited(source, sink, waypoint,
+                                                msm.transmat_, for_committors,
+                                                cond_committors)
+        return np.median(frac_visited, axis=0)
 
-    return fraction_visited
+    return _fraction_visited(source, sink, waypoint, msm.transmat_,
+                             for_committors, cond_committors)
 
 
 def hub_scores(msm, waypoints=None):
@@ -113,8 +116,10 @@ def hub_scores(msm, waypoints=None):
         waypoints = [waypoints]
     elif waypoints is None:
         waypoints = xrange(n_states)
-    elif not (isinstance(waypoints, list) or isinstance(waypoints, np.ndarray)):
-        raise ValueError("waypoints (%s) must be an int, a list, or None" % str(waypoints))
+    elif not (isinstance(waypoints, list) or
+              isinstance(waypoints, np.ndarray)):
+        raise ValueError("waypoints (%s) must be an int, a list, or None" %
+                         str(waypoints))
 
     hub_scores = []
     for waypoint in waypoints:
@@ -129,3 +134,59 @@ def hub_scores(msm, waypoints=None):
         hub_scores.append(hub_score)
 
     return np.array(hub_scores)
+
+
+def _fraction_visited(source, sink, waypoint, tprob, for_committors,
+                      cond_committors):
+    """
+    Calculate the fraction of times a walker on `tprob` going from `sources`
+    to `sinks` will travel through the set of states `waypoints` en route.
+
+    Computes the conditional committors q^{ABC^+} and uses them to find the
+    fraction of paths mentioned above.
+
+    Note that in the notation of Dickson et. al. this computes h_c(A,B), with
+        sources   = A
+        sinks     = B
+        waypoint  = C
+
+    Parameters
+    ----------
+    source : int
+        The index of the source state
+    sink : int
+        The index of the sink state
+    waypoint : int
+        The index of the intermediate state
+    tprob : np.ndarray
+        Transition matrix
+    for_committors : np.ndarray
+        The forward committors for the reaction sources -> sinks
+    cond_committors : np.ndarray
+        Conditional committors, i.e. the probability of visiting
+        a waypoint when on a path between source and sink.
+
+    Returns
+    -------
+    fraction_visited : float
+        The fraction of times a walker going from `sources` -> `sinks` stops
+        by `waypoints` on its way.
+
+    See Also
+    --------
+    msmbuilder.tpt.conditional_committors
+        Calculate the probability of visiting a waypoint while on a path
+        between a source and sink.
+    msmbuilder.tpt.hub_scores : function
+        Compute the 'hub score', the weighted fraction of visits for an
+        entire network.
+
+    References
+    ----------
+    .. [1] Dickson & Brooks (2012), J. Chem. Theory Comput., 8, 3044-3052.
+    """
+
+    fraction_visited = (np.float(tprob[source, :].dot(cond_committors)) /
+                        np.float(tprob[source, :].dot(for_committors)))
+
+    return fraction_visited

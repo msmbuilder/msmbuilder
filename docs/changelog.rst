@@ -34,6 +34,9 @@ Improvements
 - Remove a unicode character from ``ktica.py`` (gh-833)
 - ``msmbuilder.decomposition.KernelTICA`` now includes all parameters in its
   ``__init__``, making it compatible with Osprey (gh-823).
+- ``msmbuilder.tpt`` methods can now handle ``BayesianMarkovStateModels`` as
+  input. Please note that we still do not recommend using this module with
+  ``BootStrapMarkovStateModel``.
 
 
 v3.5 (June 14, 2016)
