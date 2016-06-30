@@ -95,13 +95,28 @@ def get_layout():
 
 
 class TemplateProject(object):
-    """A class to be used for wrapping on the command line."""
+    """A class to be used for wrapping on the command line.
 
-    def __init__(self):
+    Parameters
+    ----------
+    ipynb : bool
+        Render scripts as IPython/Jupyter notebooks instead
+    display : bool
+        Render scripts assuming a connected display and xdg-open
+    """
+
+    def __init__(self, ipynb=False, display=False):
         self.layout = get_layout()
 
+        self.template_kwargs = {
+            'ipynb': ipynb,
+            'use_agg': display,
+            'use_xdgopen': display,
+        }
+        self.template_dir_kwargs = {}
+
     def do(self):
-        self.layout.render()
+        self.layout.render(self.template_dir_kwargs, self.template_kwargs)
 
 
 class MetadataPackageLoader(PackageLoader):
@@ -140,20 +155,22 @@ class Template(object):
         Write IPython Notebooks where applicable.
     """
 
-    def __init__(self, template_fn, ipynb=False):
-        self.write_funcs = defaultdict(lambda: self.write_generic)
-        self.write_funcs.update({
-            'py': self.write_python,
-            'sh': self.write_shell,
-        })
-
-        if ipynb:
-            self.write_funcs['py'] = self.write_ipython
-
+    def __init__(self, template_fn):
         self.template_fn = template_fn
         self.template = ENV.get_template(template_fn)
         self.meta = ENV.loader.meta[self.template.filename]
-        self.write_func = self.write_funcs[template_fn.split(".")[-1]]
+
+    def get_write_function(self, ipynb):
+        fext = self.template_fn.split('.')[-1]
+        if fext == 'py':
+            if ipynb:
+                return self.write_ipython
+            else:
+                return self.write_python
+        elif fext == 'sh':
+            return self.write_shell
+        else:
+            return self.write_generic
 
     def get_header(self):
         return '\n'.join([
@@ -196,12 +213,15 @@ class Template(object):
         with open(templ_fn, 'w') as f:
             f.write(rendered)
 
-    def render(self):
+    def render(self, ipynb, use_agg, use_xdgopen):
         rendered = self.template.render(
             header=self.get_header(),
             date=datetime.now().isoformat(),
+            use_agg=use_agg,
+            use_xdgopen=use_xdgopen,
         )
-        self.write_func(os.path.basename(self.template_fn), rendered)
+        write_func = self.get_write_function(ipynb)
+        write_func(os.path.basename(self.template_fn), rendered)
 
 
 class TemplateDir(object):
@@ -211,22 +231,23 @@ class TemplateDir(object):
     directories that are required. This class handles creating symlinks
     to those files.
     """
+
     def __init__(self, name, files, subdirs):
         self.name = name
         self.files = files
         self.subdirs = subdirs
 
-    def render_files(self):
+    def render_files(self, template_kwargs):
         depends = set()
         for fn in self.files:
             templ = Template(fn)
             if 'depends' in templ.meta:
                 depends.update(templ.meta['depends'])
-            templ.render()
+            templ.render(**template_kwargs)
         return depends
 
-    def render(self):
-        depends = self.render_files()
+    def render(self, template_dir_kwargs, template_kwargs):
+        depends = self.render_files(template_kwargs)
         for dep in depends:
             bn = os.path.basename(dep)
             if not os.path.exists(bn):
@@ -236,5 +257,5 @@ class TemplateDir(object):
             os.mkdir(subdir.name)
             pwd = os.path.abspath('.')
             os.chdir(subdir.name)
-            subdir.render()
+            subdir.render(template_dir_kwargs, template_kwargs)
             os.chdir(pwd)

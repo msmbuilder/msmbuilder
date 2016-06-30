@@ -2,11 +2,10 @@
 
 {{header}}
 """
-from subprocess import run
-
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 from msmbuilder.io import load_meta, render_meta
 
