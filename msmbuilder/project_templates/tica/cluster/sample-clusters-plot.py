@@ -22,7 +22,7 @@ kmeans = load_generic('kmeans.pickl')
 
 inds = load_generic("cluster-sample-inds.pickl")
 coordinates = [
-    np.asarray([ttrajs[traj_i][frame_i, :] for traj_i, frame_i in inds])
+    np.asarray([ttrajs[traj_i][frame_i, :] for traj_i, frame_i in state_inds])
     for state_inds in inds
     ]
 
@@ -39,7 +39,7 @@ def plot_sampled_states(ax):
     # Show sampled points as scatter
     # Annotate cluster index
     for i, coo in enumerate(coordinates):
-        plt.scatter(coo[:, 0], coo[:1], c=colors[i % 8], s=40)
+        plt.scatter(coo[:, 0], coo[:, 1], c=colors[i % 6], s=40)
         ax.text(kmeans.cluster_centers_[i, 0],
                 kmeans.cluster_centers_[i, 1],
                 "{}".format(i),
@@ -63,5 +63,5 @@ def plot_sampled_states(ax):
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_sampled_states(ax)
 fig.tight_layout()
-fig.savefig('tica-dimension-0-heatmap.pdf')
-# {{xdg_open('tica-dimension-0-heatmap.pdf')}}
+fig.savefig('cluster-samples.pdf')
+# {{xdg_open('cluster-samples.pdf')}}
