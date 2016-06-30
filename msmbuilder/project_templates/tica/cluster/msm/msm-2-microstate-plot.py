@@ -1,6 +1,11 @@
 """Plot populations and eigvectors from microstate MSM
 
 {{header}}
+Meta
+----
+depends:
+ - kmeans.pickl
+ - ../ttrajs
 """
 
 # ? include "plot_header.template"
@@ -48,4 +53,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_microstates(ax)
 fig.tight_layout()
 fig.savefig('msm-microstates.pdf')
-# {{xdg_open('msm-microstate.pdf')}}
+# {{xdg_open('msm-microstates.pdf')}}

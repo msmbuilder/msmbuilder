@@ -1,6 +1,12 @@
 """Cluster tICA results
 
 {{header}}
+
+Meta
+----
+depends:
+ - ttrajs
+ - meta.pandas.pickl
 """
 from msmbuilder.io import load_trajs, save_trajs, save_generic
 from msmbuilder.cluster import MiniBatchKMeans

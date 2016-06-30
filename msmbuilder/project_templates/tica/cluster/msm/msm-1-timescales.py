@@ -1,6 +1,12 @@
 """Calculate implied timescales vs. lagtime
 
 {{header}}
+
+Meta
+----
+depends:
+ - meta.pandas.pickl
+ - ktrajs
 """
 from multiprocessing import Pool
 
