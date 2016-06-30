@@ -31,7 +31,9 @@ def get_layout():
                 'cluster',
                 [
                     'tica/cluster/cluster.py',
-                    'tica/cluster/cluster-plot.py'
+                    'tica/cluster/cluster-plot.py',
+                    'tica/cluster/sample-clusters.py',
+                    'tica/cluster/sample-clusters-plot.py',
                 ],
                 [
                     TemplateDir(
