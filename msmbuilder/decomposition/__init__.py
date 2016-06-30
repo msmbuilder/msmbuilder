@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from sklearn import decomposition as _decomposition
 
 from .base import MultiSequenceDecompositionMixin
-from .interpretation import sampling
 from .ktica import KernelTICA
 from .pca import PCA, SparsePCA, MiniBatchSparsePCA
 from .sparsetica import SparseTICA

@@ -22,7 +22,7 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
     dimension : int
         dimension to sample on
     n_frames : int
-        Number of frames required
+        Number of frames requested
     scheme : {'linear', 'random', 'edges'}
         'linear' samples the tic linearly, 'random' samples randomly
         (thereby taking approximate free energies into account),
@@ -40,7 +40,7 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
     # sort it because all three sampling schemes use it
     all_vals = []
     for traj in trajs:
-        all_vals.extend(traj[:,0])
+        all_vals.extend(traj[:, 0])
     all_vals = np.sort(all_vals)
 
     if scheme == "linear":
@@ -48,7 +48,8 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
         min_val = all_vals[0]
         spaced_points = np.linspace(min_val, max_val, n_frames)
     elif scheme == "random":
-        spaced_points = np.sort(np.random.choice(all_vals, n_frames))[:, np.newaxis]
+        spaced_points = np.sort(np.random.choice(all_vals, n_frames))[:,
+                        np.newaxis]
     elif scheme == "edge":
         _cut_point = n_frames // 2
         spaced_points = np.hstack((all_vals[:_cut_point],
@@ -61,29 +62,16 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
     return [(fixed_indices[i], j) for i, j in inds]
 
 
-def sample_region(trajs, pt_dict, n_frames, ):
-    """Sample a region of the data.
-
-    Parameters
-    ----------
-    trajs : sequence of np.ndarray
-        List of tica-transformed trajectories
-    pt_dict : dict
-        Dictionary where the keys are the dimensions and the
-        value is the value of the dimension.
-        E.g., ``pt = {0: 0.15, 4: 0.2}``
-    n_frames: int
-        Number of frames required
-
-    Returns
-    -------
-    inds : list of tuples
-       Tuples of (trajectory_index, frame_index)
-    """
-    dimensions = list(pt_dict.keys())
-    trajs = [traj[:, dimensions] for traj in trajs]
-
+def sample_states(trajs, state_centers, k=1):
+    fixed_indices = list(trajs.keys())
+    trajs = [trajs[k] for k in fixed_indices]
     tree = KDTree(trajs)
-    pt = [pt_dict[i] for i in dimensions]
-    dists, inds = tree.query(pt, n_frames)
-    return inds
+    dists, inds = tree.query(state_centers, k=k)
+    if k > 1:
+        # inds; (query_point, k number, (traj_i, frame_i))
+        return [
+            [(fixed_indices[i], j) for i, j in qinds]
+            for qinds in inds
+            ]
+    else:
+        return [(fixed_indices[i], j) for i, j in inds]

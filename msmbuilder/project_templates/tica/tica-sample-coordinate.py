@@ -11,7 +11,7 @@ depends:
 
 import mdtraj as md
 
-from msmbuilder.decomposition.interpretation import sample_dimension
+from msmbuilder.io.sampling import sample_dimension
 from msmbuilder.io import load_trajs, save_generic, preload_top, backup
 
 ## Load
