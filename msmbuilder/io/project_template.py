@@ -99,14 +99,18 @@ class TemplateProject(object):
 
     Parameters
     ----------
+    root : str
+        Start from this directory. The default ("") means start from the top.
     ipynb : bool
         Render scripts as IPython/Jupyter notebooks instead
     display : bool
         Render scripts assuming a connected display and xdg-open
     """
 
-    def __init__(self, ipynb=False, display=False):
-        self.layout = get_layout()
+    def __init__(self, root='', ipynb=False, display=False):
+        self.layout = get_layout().find(root)
+        if self.layout is None:
+            raise ValueError("Could not find TemplateDir named {}".format(root))
 
         self.template_kwargs = {
             'ipynb': ipynb,
@@ -153,8 +157,6 @@ class Template(object):
     ----------
     template_fn : str
         Template filename.
-    ipynb : bool
-        Write IPython Notebooks where applicable.
     """
 
     def __init__(self, template_fn):
@@ -262,3 +264,13 @@ class TemplateDir(object):
             os.chdir(subdir.name)
             subdir.render(template_dir_kwargs, template_kwargs)
             os.chdir(pwd)
+
+    def find(self, name):
+        """Find the named TemplateDir in the heirarchy"""
+        if name == self.name:
+            return self
+        for subdir in self.subdirs:
+            res = subdir.find(name)
+            if res is not None:
+                return res
+        return None
