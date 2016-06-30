@@ -1,7 +1,7 @@
 My msmb Project
 ===============
 
-Initialized with `msmb SetUpProject` on {{date}}
+Initialized with `msmb TemplateProject` on {{date}}
 
 Keep notes about your project here.
 
