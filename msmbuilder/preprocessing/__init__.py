@@ -9,6 +9,7 @@ from sklearn import preprocessing
 
 from .base import (MultiSequencePreprocessingMixin,
                    MultiSequenceOnlinePreprocessingMixin)
+from .timeseries import Butterworth, EWMA, DoubleEWMA
 
 
 class Binarizer(MultiSequencePreprocessingMixin, preprocessing.Binarizer):
