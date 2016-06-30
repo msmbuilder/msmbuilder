@@ -1,0 +1,6 @@
+{% macro xdg_open(fn) -%}
+{% if use_xdgopen -%}
+Launch with default pdf viewer:
+run(['xdg-open', '{{fn}}'])
+{%- endif %}
+{%- endmacro %}

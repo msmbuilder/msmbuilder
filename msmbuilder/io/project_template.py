@@ -110,8 +110,8 @@ class TemplateProject(object):
 
         self.template_kwargs = {
             'ipynb': ipynb,
-            'use_agg': display,
-            'use_xdgopen': display,
+            'use_agg': (not display) and (not ipynb),
+            'use_xdgopen': display and (not ipynb),
         }
         self.template_dir_kwargs = {}
 
@@ -141,7 +141,9 @@ class MetadataPackageLoader(PackageLoader):
 
 
 ENV = Environment(
-    loader=MetadataPackageLoader('msmbuilder', 'project_templates'))
+    loader=MetadataPackageLoader('msmbuilder', 'project_templates'),
+    line_statement_prefix="# ?"
+)
 
 
 class Template(object):
@@ -217,6 +219,7 @@ class Template(object):
         rendered = self.template.render(
             header=self.get_header(),
             date=datetime.now().isoformat(),
+            ipynb=ipynb,
             use_agg=use_agg,
             use_xdgopen=use_xdgopen,
         )

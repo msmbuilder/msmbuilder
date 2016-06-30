@@ -3,7 +3,8 @@
 {{header}}
 """
 
-from subprocess import run
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import seaborn as sns
@@ -46,4 +47,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_sampled_traj(ax)
 fig.tight_layout()
 fig.savefig('tica-dimension-0-heatmap.pdf')
-run(['xdg-open', 'tica-dimension-0-heatmap.pdf'])
+# {{xdg_open('tica-dimension-0-heatmap.pdf')}}

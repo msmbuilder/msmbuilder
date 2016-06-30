@@ -2,7 +2,9 @@
 
 {{header}}
 """
-from subprocess import run
+
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import seaborn as sns
@@ -39,4 +41,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_cluster_centers(ax)
 fig.tight_layout()
 fig.savefig('kmeans-centers.pdf')
-run(['xdg-open', 'kmeans-centers.pdf'])
+# {{xdg_open('kmeans-centers.pdf')}}

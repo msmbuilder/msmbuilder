@@ -2,10 +2,13 @@
 
 {{header}}
 """
+
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
+
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
-import seaborn as sns
 
 from msmbuilder.io import load_meta, render_meta
 
@@ -16,7 +19,7 @@ colors = sns.color_palette()
 meta = load_meta()
 
 
-## Plot histogram of trajectory lengths
+## Histogram of trajectory lengths
 def plot_lengths(ax):
     lengths_ns = meta['nframes'] * (meta['step_ps'] / 1000)
     ax.hist(lengths_ns)
@@ -33,7 +36,8 @@ def plot_lengths(ax):
                 va='top',
                 )
 
-## Plot pie graph
+
+## Pie graph
 def plot_pie(ax):
     lengths_ns = meta['nframes'] * (meta['step_ps'] / 1000)
     sampling = lengths_ns.groupby(level=0).sum()
@@ -45,37 +49,39 @@ def plot_pie(ax):
            )
     ax.axis('equal')
 
-## Plot box plot
+
+## Box plot
 def plot_boxplot(ax):
     meta2 = meta.copy()
     meta2['ns'] = meta['nframes'] * (meta['step_ps'] / 1000)
     sns.boxplot(
-        x='proj', # TODO: make general
+        x=meta2.index.names[0],
         y='ns',
         data=meta2.reset_index(),
         ax=ax,
     )
 
 
-
-## Plot
+## Plot hist
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_lengths(ax)
 fig.tight_layout()
 fig.savefig("lengths-hist.pdf")
-run(['xdg-open', 'lengths-hist.pdf'])
+# {{xdg_open('lengths-hist.pdf')}}
 
+## Plot pie
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_pie(ax)
 fig.tight_layout()
 fig.savefig("lengths-pie.pdf")
-run(['xdg-open', 'lengths-pie.pdf'])
+# {{xdg_open('lengths-pie.pdf')}}
 
+## Plot box
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_boxplot(ax)
 fig.tight_layout()
 fig.savefig("lengths-boxplot.pdf")
-run(['xdg-open', 'lengths-boxplot.pdf'])
+# {{xdg_open('lengths-boxplot.pdf')}}
 
 ## Save metadata as html table
 render_meta(meta, 'meta.pandas.html')

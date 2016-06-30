@@ -1,0 +1,11 @@
+# ? if use_xdgopen
+from subprocess import run
+# ? endif
+# ? if use_agg
+import matplotlib
+matplotlib.use('Agg')
+# ? endif
+# ? if ipynb
+%matplotlib inline
+# ? endif
+

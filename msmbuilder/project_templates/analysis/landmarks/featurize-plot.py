@@ -2,7 +2,9 @@
 
 {{header}}
 """
-from subprocess import run
+
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import seaborn as sns
@@ -50,11 +52,11 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_num_per_state(ax)
 fig.tight_layout()
 fig.savefig('ktrajs-statecount.pdf')
-run(['xdg-open', 'ktrajs-statecount.pdf'])
+# {{ xdg_open('ktrajs-statecount.pdf') }}
 
 ## Plot 2
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_num_per_state_hist(ax)
 fig.tight_layout()
 fig.savefig('ktrajs-statehist.pdf')
-run(['xdg-open', 'ktrajs-statehist.pdf'])
+# {{ xdg_open('ktrajs-statehist.pdf') }}

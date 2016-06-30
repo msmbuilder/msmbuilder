@@ -3,7 +3,8 @@
 {{header}}
 """
 
-from subprocess import run
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import pandas as pd
@@ -56,4 +57,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_timescales(ax)
 fig.tight_layout()
 fig.savefig('implied-timescales.pdf')
-run(['xdg-open', 'implied-timescales.pdf'])
+# {{xdg_open('implied-timescales.pdf')}}

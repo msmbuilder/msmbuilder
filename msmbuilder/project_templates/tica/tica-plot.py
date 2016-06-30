@@ -3,7 +3,8 @@
 {{header}}
 """
 
-from subprocess import run
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import seaborn as sns
@@ -54,11 +55,11 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_heatmap(ax)
 fig.tight_layout()
 fig.savefig('tica-heatmap.pdf')
-run(['xdg-open', 'tica-heatmap.pdf'])
+# {{xdg_open('tica-heatmap.pdf')}}
 
 ## Plot 2
 fig, ax = plt.subplots(figsize=(3, 5))
 plot_timescales(ax)
 fig.tight_layout()
 fig.savefig('tica-timescales.pdf')
-run(['xdg-open', 'tica-timescales.pdf'])
+# {{xdg_open('tica-heatmap.pdf')}}

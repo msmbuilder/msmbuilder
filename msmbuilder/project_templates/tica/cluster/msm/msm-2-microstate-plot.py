@@ -3,7 +3,8 @@
 {{header}}
 """
 
-from subprocess import run
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import seaborn as sns
@@ -47,4 +48,4 @@ fig, ax = plt.subplots(figsize=(7, 5))
 plot_microstates(ax)
 fig.tight_layout()
 fig.savefig('msm-microstates.pdf')
-run(['xdg-open', 'msm-microstates.pdf'])
+# {{xdg_open('msm-microstate.pdf')}}

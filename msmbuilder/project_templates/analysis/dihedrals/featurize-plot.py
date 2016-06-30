@@ -2,12 +2,13 @@
 
 {{header}}
 """
-from subprocess import run
+
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
-import seaborn as sns
 from matplotlib import pyplot as plt
-
+import seaborn as sns
 from msmbuilder.io import load_trajs
 
 sns.set_style('ticks')
@@ -49,4 +50,4 @@ fig, ax = plt.subplots(figsize=(15, 5))
 plot_box(ax)
 fig.tight_layout()
 fig.savefig("ftrajs-box.pdf")
-run(['xdg-open', 'ftrajs-box.pdf'])
+# {{ xdg_open('ftrajs-box.pdf') }}

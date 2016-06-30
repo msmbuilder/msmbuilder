@@ -2,7 +2,9 @@
 
 {{header}}
 """
-from subprocess import run
+
+# ? include "plot_header.template"
+# ? from "plot_macros.template" import xdg_open with context
 
 import numpy as np
 import seaborn as sns
@@ -42,7 +44,7 @@ fig, ax = plt.subplots(figsize=(6, 3))
 plot_boxplot(ax)
 fig.tight_layout()
 fig.savefig("rmsd-boxplot.pdf")
-run(['xdg-open', 'rmsd-boxplot.pdf'])
+# {{xdg_open('rmsd-boxplot.pdf')}}
 
 ## Bad trajectories
 for k, frame_is in bad_trajs().items():
