@@ -16,20 +16,21 @@ colors = sns.color_palette()
 
 ## Load
 meta, ftrajs = load_trajs('ftrajs')
-vmxx = np.concatenate(list(ftrajs.values()))
+# (stride by 100 for memory concerns)
+fxx = np.concatenate([fx[::100] for fx in ftrajs.values()])
 
 
 ## Box and whisker plot
 def plot_box(ax):
-    n_feats_plot = min(vmxx.shape[1], 100)
-    ax.boxplot(vmxx[::100, :100],
+    n_feats_plot = min(fxx.shape[1], 100)
+    ax.boxplot(fxx[:, :100],
                boxprops={'color': colors[0]},
                whiskerprops={'color': colors[0]},
                capprops={'color': colors[0]},
                medianprops={'color': colors[2]},
                )
 
-    if vmxx.shape[1] > 100:
+    if fxx.shape[1] > 100:
         ax.annotate("(Only showing the first 100 features)",
                     xy=(0.05, 0.95),
                     xycoords='axes fraction',
