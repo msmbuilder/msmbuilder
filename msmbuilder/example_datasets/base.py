@@ -13,5 +13,5 @@ try:
                                 clear_data_home, retry)
 except ImportError:
     warnings.warn("Please install msmb_data", DeprecationWarning)
-    from msmb_data.old_base import (Bunch, Dataset, get_data_home,
+    from .old_base import (Bunch, Dataset, get_data_home,
                                     clear_data_home, retry)
