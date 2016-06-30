@@ -130,12 +130,12 @@ ENV = Environment(
 
 
 class Template(object):
-    """Construct a set of scripts to serve as a template for a new project.
+    """Render a template file
 
     Parameters
     ----------
-    steps : list of int
-        Which steps to write out. If None, write all steps (default)
+    template_fn : str
+        Template filename.
     ipynb : bool
         Write IPython Notebooks where applicable.
     """
@@ -205,6 +205,12 @@ class Template(object):
 
 
 class TemplateDir(object):
+    """Represents a template directory and manages dependency symlinks
+
+    Templates can specify "dependencies", i.e. files from parent
+    directories that are required. This class handles creating symlinks
+    to those files.
+    """
     def __init__(self, name, files, subdirs):
         self.name = name
         self.files = files
