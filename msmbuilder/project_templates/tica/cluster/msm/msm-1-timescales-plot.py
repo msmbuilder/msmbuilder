@@ -52,9 +52,16 @@ def plot_trimmed(ax):
     ax.set_xscale('log')
     ax.set_ylim((0, 110))
 
-## Plot
+## Plot timescales
 fig, ax = plt.subplots(figsize=(7, 5))
 plot_timescales(ax)
 fig.tight_layout()
 fig.savefig('implied-timescales.pdf')
 # {{xdg_open('implied-timescales.pdf')}}
+
+## Plot trimmed
+fig, ax = plt.subplots(figsize=(7,5))
+plot_trimmed(ax)
+fig.tight_layout()
+fig.savefig('percent-trimmed.pdf')
+# {{xdg_open('percent-trimmed.pdf')}}
