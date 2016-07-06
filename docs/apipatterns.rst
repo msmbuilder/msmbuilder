@@ -8,7 +8,7 @@ Models in msmbuilder inherit from base classes in `scikit-learn
 <http://scikit-learn.org/stable/>`_, and follow a similar API. Like
 sklearn, each type of model is a python class. Models are "fit" to data,
 and can then "transform" data into a different representation. Unlike
-sklearn, the data here is a *list* (or :ref:`dataset<persistence>`) of time-series
+sklearn, the data here is a *list* (or :ref:`dataset<datasets>`) of time-series
 arrays or trajectories.
 
 Hyperparameters

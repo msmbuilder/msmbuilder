@@ -44,7 +44,7 @@ MSMBuilder is most effective as a library. Intermediate users should
 familiarize themselves with:
 
 - :ref:`apipatterns`
-- :ref:`persistence`
+- :ref:`datasets`
 - :ref:`changelog`
 
 
@@ -70,7 +70,7 @@ the GNU LGPL (v2.1 or later).
     tpt
     ratematrix
     hmm
-    persistence
+    datasets
     io
     apipatterns
     plugins
