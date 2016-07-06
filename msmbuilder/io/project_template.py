@@ -17,6 +17,7 @@ from .io import backup, chmod_plus_x
 
 
 def get_layout():
+    """Specify a hierarchy of our templates."""
     tica_msm = TemplateDir(
         'tica',
         [
@@ -102,14 +103,24 @@ class TemplateProject(object):
     ----------
     root : str
         Start from this directory. The default ("") means start from the top.
+        Include all sub-steps.
+    step : str
+        If specified, generate templates for this step and then stop. Do not
+        include sub steps.
     ipynb : bool
         Render scripts as IPython/Jupyter notebooks instead
     display : bool
         Render scripts assuming a connected display and xdg-open
     """
 
-    def __init__(self, root='', ipynb=False, display=False):
-        self.layout = get_layout().find(root)
+    def __init__(self, root='', step=None, ipynb=False, display=False):
+        if step is not None:
+            find_root = step
+            limit = 1
+        else:
+            find_root = root
+            limit = None
+        self.layout = get_layout().find(find_root, limit)
         if self.layout is None:
             raise ValueError("Could not find TemplateDir named {}".format(root))
 
@@ -266,12 +277,15 @@ class TemplateDir(object):
             subdir.render(template_dir_kwargs, template_kwargs)
             os.chdir(pwd)
 
-    def find(self, name):
+    def find(self, name, limit=None):
         """Find the named TemplateDir in the heirarchy"""
         if name == self.name:
+            if limit is not None:
+                assert limit == 1
+                self.subdirs = []
             return self
         for subdir in self.subdirs:
-            res = subdir.find(name)
+            res = subdir.find(name, limit)
             if res is not None:
                 return res
         return None
