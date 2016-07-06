@@ -51,3 +51,8 @@ def test_workflow_3():
     with tempdir():
         for line in shell_lines('tests/workflows/test_3.sh'):
             check_call(line.split())
+
+def test_workflow_4():
+    with tempdir():
+        for line in shell_lines('tests/workflows/test_4.sh'):
+            check_call(line.split())
