@@ -163,6 +163,11 @@ extensions.append(
                        pjoin(CLUSTERDIR, 'src', 'kmedoids.cc')],
               include_dirs=[np.get_include()]))
 
+extensions.append(
+    Extension('msmbuilder.preprocessing._mad',
+              sources=[pjoin('msmbuilder', 'preprocessing', '_mad.pyx')],
+              language='c++'
+              ))
 
 # To get debug symbols on Windows, use
 # extra_link_args=['/DEBUG']
