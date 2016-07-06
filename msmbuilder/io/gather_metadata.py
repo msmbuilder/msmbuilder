@@ -27,6 +27,23 @@ class _Parser(object):
 
 
 class GenericParser(_Parser):
+    """Parse trajectories in a fully configurable manner
+
+    Parameters
+    ----------
+    fn_re : str
+        Regular expression with capture groups to transform trajectory
+        filenames into keys
+    group_names : list of str
+        Capture group names (to serve as MultiIndex names)
+    group_transforms : list of functions
+        Apply these functions to capture groups
+    top_fn : str
+        Topology filename
+    step_ps : int
+        Timestep of frames in picoseconds
+
+    """
     def __init__(self,
                  fn_re,
                  group_names,
@@ -84,6 +101,16 @@ class GenericParser(_Parser):
 
 class NumberedRunsParser(GenericParser):
     """Parse trajectories that are numbered with integers.
+
+    Parameters
+    ----------
+    traj_fmt : str
+        A format string with {run} in it that gives the filename to look
+        for. {run} will be captured and turned into an integer.
+    top_fn : str
+        Topology filename
+    step_ps : int
+        Trajectory frame step in picoseconds
 
     """
 
@@ -164,5 +191,14 @@ class HierarchyParser(GenericParser):
 
 
 def gather_metadata(fn_glob, parser):
+    """Given a glob and a parser object, create a metadata dataframe.
+
+    Parameters
+    ----------
+    fn_glob : str
+        Glob string to find trajectory files.
+    parser : descendant of _Parser
+        Object that handles conversion of filenames to metadata rows.
+    """
     meta = pd.DataFrame(parser.parse_fn(fn) for fn in glob.iglob(fn_glob))
     return meta.set_index(parser.index).sort_index()

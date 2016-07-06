@@ -27,6 +27,18 @@ class BackupWarning(UserWarning):
 
 
 def backup(fn):
+    """If ``fn`` exists, rename it and issue a warning
+
+    This function will rename an existing filename {fn}.bak.{i} where
+    i is the smallest integer that gives a filename that doesn't exist.
+    This naively uses a while loop to find such a filename, so there
+    shouldn't be too many existing backups or performance will degrade.
+
+    Parameters
+    ----------
+    fn : str
+        The filename to check.
+    """
     if not os.path.exists(fn):
         return
 
@@ -49,6 +61,13 @@ def chmod_plus_x(fn):
 
 
 def default_key_to_path(key, dfmt="{}", ffmt="{}.npy"):
+    """Turn an arbitrary python object into a filename
+
+    This uses string formatting, so make sure your keys map
+    to unique strings. If the key is a tuple, it will join each
+    element of the tuple with '/', resulting in a filesystem
+    hierarchy of files.
+    """
     if isinstance(key, tuple):
         paths = [dfmt.format(k) for k in key[:-1]]
         paths += [ffmt.format(key[-1])]
@@ -118,6 +137,7 @@ def preload_top(meta):
 
 
 def itertrajs(meta, stride=1):
+    """Load one mdtraj trajectory at a time and yield it"""
     tops = preload_tops(meta)
     for i, row in meta.iterrows():
         yield i, md.load(row['traj_fn'],
@@ -158,6 +178,20 @@ def save_meta(meta, meta_fn='meta.pandas.pickl'):
 
 def render_meta(meta, fn="meta.pandas.html",
                 title="Project Metadata - MSMBuilder", pandas_kwargs=None):
+    """Render a metadata dataframe as an html webpage for inspection.
+
+    Parameters
+    ----------
+    meta : pd.Dataframe
+        The DataFrame of metadata
+    fn : str
+        Output filename (should end in html)
+    title : str
+        Page title
+    pandas_kwargs : dict
+        Arguments to be passed to pandas
+
+    """
     if pandas_kwargs is None:
         pandas_kwargs = {}
 
