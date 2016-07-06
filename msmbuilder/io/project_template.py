@@ -278,7 +278,7 @@ class TemplateDir(object):
             os.chdir(pwd)
 
     def find(self, name, limit=None):
-        """Find the named TemplateDir in the heirarchy"""
+        """Find the named TemplateDir in the hierarchy"""
         if name == self.name:
             if limit is not None:
                 assert limit == 1
