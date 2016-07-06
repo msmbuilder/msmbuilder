@@ -12,7 +12,7 @@ import os
 import stat
 import textwrap
 
-from ..cmdline import NumpydocClassCommand
+from ..cmdline import NumpydocClassCommand, argument
 from ..io import TemplateProject
 
 
@@ -27,11 +27,12 @@ class TemplateProjectCommand(NumpydocClassCommand):
     description = __doc__
     klass = TemplateProject
 
-    def start(self):
-        self.instance.do()
+    disclaimer = argument('--disclaimer', default=False, action='store_true',
+                          help="Print a disclaimer about using these templates.")
 
+    def print_disclaimer(self):
         print('\n'.join(textwrap.wrap(
-            "Ok, I wrote out a bunch of Python files that can guide you "
+            "This writes a bunch of Python files that can guide you "
             "through analyzing a system with MSMBuilder. I implore you to "
             "look at the scripts before you start blindly running them. "
             "You will likely have to change some (hyper-)parameters or "
@@ -45,3 +46,12 @@ class TemplateProjectCommand(NumpydocClassCommand):
             "interesting aspects. This very generic pipeline may not give "
             "you any new insight for anything but the simplest systems."
         )))
+
+    def start(self):
+        if self.disclaimer:
+            self.print_disclaimer()
+            print()
+            print("Run again without --disclaimer to actually write tempaltes.")
+            return
+
+        self.instance.do()
