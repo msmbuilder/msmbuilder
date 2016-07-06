@@ -12,12 +12,17 @@ to the files on which it depends from previous steps.
 
 ## Variable names convention
 
- - meta - pandas dataframe of trajectory metadata
- - ftrajs - trajectories of feature vectors
- - ttrajs - dimensionality-reduced, tica trajectories
- - ktrajs - trajectories of cluster indices
- - microktrajs - trimmed cluster indices
- - macroktrajs - macrostate indices
+variable    | filename          | description
+------------|-------------------|-----------------------------------------------
+meta        | meta.pandas.pickl | pandas dataframe of trajectory metadata
+ftrajs      | ftrajs/           | trajectories of feature vectors (dihedrals, ...)
+dihed_feat  | featurizer.pickl  | featurizer object
+ttrajs      | ttrajs/           | dimensionality-reduced, tica trajectories
+tica        | tica.pickl        | tica object
+ktrajs      | ktrajs/           | trajecories of cluster indices
+kmeans      | clusterer.pickl   | cluserer object
+microktrajs | microktrajs/      | trimmed cluster indices
+macroktrajs | macroktrajs/      | macrostate indices
 
 ## License
 
