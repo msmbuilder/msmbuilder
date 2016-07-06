@@ -6,7 +6,6 @@
 
 import os
 import re
-from collections import defaultdict
 from datetime import datetime
 
 import nbformat
@@ -30,19 +29,19 @@ def get_layout():
             TemplateDir(
                 'cluster',
                 [
-                    'tica/cluster/cluster.py',
-                    'tica/cluster/cluster-plot.py',
-                    'tica/cluster/sample-clusters.py',
-                    'tica/cluster/sample-clusters-plot.py',
+                    'cluster/cluster.py',
+                    'cluster/cluster-plot.py',
+                    'cluster/sample-clusters.py',
+                    'cluster/sample-clusters-plot.py',
                 ],
                 [
                     TemplateDir(
                         'msm',
                         [
-                            'tica/cluster/msm/msm-1-timescales.py',
-                            'tica/cluster/msm/msm-1-timescales-plot.py',
-                            'tica/cluster/msm/msm-2-microstate.py',
-                            'tica/cluster/msm/msm-2-microstate-plot.py',
+                            'msm/msm-1-timescales.py',
+                            'msm/msm-1-timescales-plot.py',
+                            'msm/msm-2-microstate.py',
+                            'msm/msm-2-microstate-plot.py',
                         ],
                         [],
                     )
@@ -68,24 +67,24 @@ def get_layout():
                     TemplateDir(
                         'rmsd',
                         [
-                            'analysis/rmsd/rmsd.py',
-                            'analysis/rmsd/rmsd-plot.py',
+                            'rmsd/rmsd.py',
+                            'rmsd/rmsd-plot.py',
                         ],
                         [],
                     ),
                     TemplateDir(
                         'landmarks',
                         [
-                            'analysis/landmarks/featurize.py',
-                            'analysis/landmarks/featurize-plot.py',
+                            'landmarks/featurize.py',
+                            'landmarks/featurize-plot.py',
                         ],
                         [tica_msm],
                     ),
                     TemplateDir(
                         'dihedrals',
                         [
-                            'analysis/dihedrals/featurize.py',
-                            'analysis/dihedrals/featurize-plot.py',
+                            'dihedrals/featurize.py',
+                            'dihedrals/featurize-plot.py',
                         ],
                         [tica_msm],
                     )
