@@ -29,6 +29,7 @@ New Features
   ``decomposition`` module (#807).
 - ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
   ``preprocessing`` module (#818).
+- ``MADScaler`` is available in the ``preprocessing`` module (#850).
 
 Improvements
 ~~~~~~~~~~~~
