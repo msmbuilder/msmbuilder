@@ -12,6 +12,29 @@ __all__ = ['MADScaler']
 
 
 class MADScaler(MultiSequenceOnlinePreprocessingMixin):
+    """Scale features using the median absolute deviation.
+
+    This Scaler removes the median and scales the data according to
+    the median absolute deviation (MAD). The MAD is the median of the
+    absolute residuals (deviations) from the sample median. This scaler uses
+    an online estimate of the sample median to accomodate large datasets.
+
+    Standardization of a dataset is a common requirement for many
+    machine learning estimators. Typically this is done by removing the mean
+    and scaling to unit variance. However, outliers can often influence the
+    sample mean / variance in a negative way. In such cases, the median and
+    the median absolute deviation often give better results.
+
+    Parameters
+    ----------
+    eta : float, optional, default=0.001
+        Online learning rate.
+
+    References
+    ----------
+    .. [1] "'On-line' (iterator) algorithms for estimating statistical median, mode, skewness, kurtosis?". StackOverflow. <http://stackoverflow.com/questions/1058813/on-line-iterator-algorithms-for-estimating-statistical-median-mode-skewnes>.
+    .. [2] "Median absolute deviation". Wikipedia. <https://en.wikipedia.org/wiki/Median_absolute_deviation>.
+    """
 
     def partial_fit(self, sequence):
 
