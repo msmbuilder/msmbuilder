@@ -10,6 +10,11 @@ from sklearn import preprocessing
 from .base import (MultiSequencePreprocessingMixin,
                    MultiSequenceOnlinePreprocessingMixin)
 from .timeseries import Butterworth, EWMA, DoubleEWMA
+from .mad import MADScaler
+
+__all__ = ['Binarizer', 'Butterworth', 'DoubleEWMA', 'EWMA', 'Imputer',
+           'KernelCenterer', 'LabelBinarizer', 'MultiLabelBinarizer',
+           'MADScaler', 'Normalizer', 'PolynomialFeatures']
 
 
 class Binarizer(MultiSequencePreprocessingMixin, preprocessing.Binarizer):
@@ -17,6 +22,8 @@ class Binarizer(MultiSequencePreprocessingMixin, preprocessing.Binarizer):
 
 # Older versions of sklearn might not have this
 if hasattr(preprocessing, 'FunctionTransformer'):
+    __all__.append('FunctionTransformer')
+
     class FunctionTransformer(MultiSequencePreprocessingMixin,
                               preprocessing.FunctionTransformer):
         __doc__ = preprocessing.FunctionTransformer.__doc__
@@ -42,12 +49,16 @@ class MultiLabelBinarizer(MultiSequencePreprocessingMixin,
 
 # Older versions of sklearn might not have this
 if hasattr(preprocessing.MinMaxScaler, 'partial_fit'):
+    __all__.append('MinMaxScaler')
+
     class MinMaxScaler(MultiSequenceOnlinePreprocessingMixin,
                        preprocessing.MinMaxScaler):
         __doc__ = preprocessing.MinMaxScaler.__doc__
 
 # Older versions of sklearn might not have this
 if hasattr(preprocessing, 'MaxAbsScaler'):
+    __all__.append('MaxAbsScaler')
+
     class MaxAbsScaler(MultiSequenceOnlinePreprocessingMixin,
                        preprocessing.MaxAbsScaler):
         __doc__ = preprocessing.MaxAbsScaler.__doc__
@@ -58,12 +69,16 @@ class Normalizer(MultiSequencePreprocessingMixin, preprocessing.Normalizer):
 
 # Older versions of sklearn might not have this
 if hasattr(preprocessing, 'RobustScaler'):
+    __all__.append('RobustScaler')
+
     class RobustScaler(MultiSequencePreprocessingMixin,
                        preprocessing.RobustScaler):
         __doc__ = preprocessing.RobustScaler.__doc__
 
 # Older versions of sklearn might not have this
 if hasattr(preprocessing.StandardScaler, 'partial_fit'):
+    __all__.append('StandardScaler')
+
     class StandardScaler(MultiSequenceOnlinePreprocessingMixin,
                          preprocessing.StandardScaler):
         __doc__ = preprocessing.StandardScaler.__doc__
