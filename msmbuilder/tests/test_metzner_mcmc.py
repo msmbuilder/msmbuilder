@@ -2,7 +2,7 @@ import numpy as np
 from msmbuilder.msm._metzner_mcmc_fast import metzner_mcmc_fast
 
 from msmbuilder.cluster import NDGrid
-from msmb_data import load_doublewell
+from msmbuilder.example_datasets import DoubleWell
 from msmbuilder.msm import BayesianMarkovStateModel
 from msmbuilder.msm import MarkovStateModel
 from msmbuilder.msm._metzner_mcmc_slow import metzner_mcmc_slow
@@ -18,7 +18,7 @@ def test_1():
     value4 = list(metzner_mcmc_slow(Z, 4, n_thin=2, random_state=0))
     np.testing.assert_array_almost_equal(np.array(value3), np.array(value4))
     np.testing.assert_array_almost_equal(
-            np.array(value1)[1::2], np.array(value3))
+        np.array(value1)[1::2], np.array(value3))
 
 
 def test_2():
@@ -40,8 +40,8 @@ def test_3():
     msm2.fit([trajectory])
 
     np.testing.assert_array_almost_equal(
-            msm1.all_transmats_,
-            msm2.all_transmats_)
+        msm1.all_transmats_,
+        msm2.all_transmats_)
 
     assert msm1.all_timescales_.shape == (100, 2)
     assert msm1.all_eigenvalues_.shape == (100, 3)
@@ -65,7 +65,7 @@ def test_4():
 
 
 def test_5():
-    trjs = load_doublewell(random_state=0)['trajectories']
+    trjs = DoubleWell(random_state=0).get_cached().trajectories
     clusterer = NDGrid(n_bins_per_feature=5)
     mle_msm = MarkovStateModel(lag_time=100, verbose=False)
     b_msm = BayesianMarkovStateModel(lag_time=100, n_samples=1000, n_chains=8,

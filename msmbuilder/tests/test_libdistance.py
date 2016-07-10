@@ -4,7 +4,7 @@ import mdtraj as md
 import numpy as np
 import scipy.spatial.distance
 
-from msmb_data import AlanineDipeptide
+from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.libdistance import assign_nearest, cdist, pdist, dist, sumdist
 
 random = np.random.RandomState()
@@ -18,8 +18,8 @@ def setup():
     Y_double = random.randn(3, 2)
     X_float = random.randn(10, 2).astype(np.float32)
     Y_float = random.randn(3, 2).astype(np.float32)
-    X_rmsd = AlanineDipeptide().get().trajectories[0][0:10]
-    Y_rmsd = AlanineDipeptide().get().trajectories[0][30:33]
+    X_rmsd = AlanineDipeptide().get_cached().trajectories[0][0:10]
+    Y_rmsd = AlanineDipeptide().get_cached().trajectories[0][30:33]
     X_rmsd.center_coordinates()
     Y_rmsd.center_coordinates()
     X_indices = random.random_integers(low=0, high=9, size=5).astype(np.intp)

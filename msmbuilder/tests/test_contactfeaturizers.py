@@ -1,15 +1,13 @@
-import mdtraj as md
 import numpy as np
-import warnings
 
-from msmbuilder.example_datasets import fetch_fs_peptide
-from msmbuilder.featurizer import ContactFeaturizer
+from msmbuilder.example_datasets import FsPeptide
 from msmbuilder.featurizer import BinaryContactFeaturizer
+from msmbuilder.featurizer import ContactFeaturizer
 from msmbuilder.featurizer import LogisticContactFeaturizer
 
+
 def test_contacts():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     contactfeaturizer = ContactFeaturizer()
     contacts = contactfeaturizer.transform([trajectories[0]])
 
@@ -17,28 +15,25 @@ def test_contacts():
 
 
 def test_binaries():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     binarycontactfeaturizer = BinaryContactFeaturizer()
     binaries = binarycontactfeaturizer.transform([trajectories[0]])
 
     assert binaries[0].shape[1] == 171
-    assert np.sum(binaries[0]) <= binaries[0].shape[0]*binaries[0].shape[1]
+    assert np.sum(binaries[0]) <= binaries[0].shape[0] * binaries[0].shape[1]
 
 
 def test_binaries_inf_cutoff():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     binarycontactfeaturizer = BinaryContactFeaturizer(cutoff=1e10)
     binaries = binarycontactfeaturizer.transform([trajectories[0]])
 
     assert binaries[0].shape[1] == 171
-    assert np.sum(binaries[0]) == binaries[0].shape[0]*binaries[0].shape[1]
+    assert np.sum(binaries[0]) == binaries[0].shape[0] * binaries[0].shape[1]
 
 
 def test_binaries_zero_cutoff():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     binarycontactfeaturizer = BinaryContactFeaturizer(cutoff=0)
     binaries = binarycontactfeaturizer.transform([trajectories[0]])
 
@@ -47,8 +42,7 @@ def test_binaries_zero_cutoff():
 
 
 def test_logistics():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     logisticcontactfeaturizer = LogisticContactFeaturizer()
     logistics = logisticcontactfeaturizer.transform([trajectories[0]])
 
@@ -58,41 +52,39 @@ def test_logistics():
 
 
 def test_distance_to_logistic():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
-    steepness = np.absolute(10*np.random.randn())
+    trajectories = FsPeptide().get_cached().trajectories
+    steepness = np.absolute(10 * np.random.randn())
     center = np.absolute(np.random.randn())
     contactfeaturizer = ContactFeaturizer()
     contacts = contactfeaturizer.transform([trajectories[0]])
-    logisticcontactfeaturizer = LogisticContactFeaturizer(center=center, steepness=steepness)
+    logisticcontactfeaturizer = LogisticContactFeaturizer(center=center,
+                                                          steepness=steepness)
     logistics = logisticcontactfeaturizer.transform([trajectories[0]])
 
-    for n in range(0,10):
+    for n in range(0, 10):
         i = np.random.randint(0, contacts[0].shape[0] - 1)
         j = np.random.randint(0, contacts[0].shape[1] - 1)
-    
+
         x = contacts[0][i][j]
         y = logistics[0][i][j]
 
-        if(x > center):
+        if (x > center):
             assert y < 0.5
-        if(x < center):
+        if (x < center):
             assert y > 0.5
         n = n + 1
 
 
 def test_binary_to_logistics():
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
-    steepness = np.absolute(10*np.random.randn())
+    trajectories = FsPeptide().get_cached().trajectories
+    steepness = np.absolute(10 * np.random.randn())
     center = np.absolute(np.random.randn())
     binarycontactfeaturizer = BinaryContactFeaturizer(cutoff=center)
     binaries = binarycontactfeaturizer.transform([trajectories[0]])
-    logisticcontactfeaturizer = LogisticContactFeaturizer(center=center, steepness=steepness)
+    logisticcontactfeaturizer = LogisticContactFeaturizer(center=center,
+                                                          steepness=steepness)
     logistics = logisticcontactfeaturizer.transform([trajectories[0]])
 
     # This checks that no distances that are larger than the center are logistically
     # transformed such that they are less than 1/2
-    np.testing.assert_array_almost_equal(binaries[0], logistics[0] >  0.5 )
-
-
+    np.testing.assert_array_almost_equal(binaries[0], logistics[0] > 0.5)

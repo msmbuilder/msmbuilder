@@ -4,11 +4,10 @@ import numpy as np
 import scipy.optimize
 from msmbuilder.msm._ratematrix import ldirichlet_softmax
 from msmbuilder.msm._ratematrix import lexponential
-
 from pyhmc import hmc
 
 from msmbuilder.cluster import NDGrid
-from msmb_data import load_quadwell
+from msmbuilder.example_datasets import QuadWell
 from msmbuilder.msm import BayesianContinuousTimeMSM
 from msmbuilder.msm.bayes_ratematrix import _log_posterior
 from msmbuilder.utils import ExperimentalWarning
@@ -98,15 +97,16 @@ def test_4():
     x0 = random.rand(n_trials, n_params)
     for i in range(n_trials):
         value = scipy.optimize.check_grad(
-                lambda x: log_posterior(x)[0],
-                lambda x: log_posterior(x)[1],
-                x0[i])
+            lambda x: log_posterior(x)[0],
+            lambda x: log_posterior(x)[1],
+            x0[i])
         assert value < 1e-4
 
 
 def test_5():
     grid = NDGrid(n_bins_per_feature=2)
-    seqs = grid.fit_transform(load_quadwell(random_state=0)['trajectories'])
+    trajectories = QuadWell(random_state=0).get_cached().trajectories
+    seqs = grid.fit_transform(trajectories)
 
     model2 = BayesianContinuousTimeMSM(n_samples=100).fit(seqs)
     # TODO: assert

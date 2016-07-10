@@ -1,7 +1,7 @@
 import numpy as np
 from mdtraj.testing import eq
 
-from msmb_data import fetch_alanine_dipeptide
+from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import AtomPairsFeaturizer, get_atompair_indices
 from msmbuilder.featurizer.subset import SubsetAtomPairs, \
     SubsetCosPhiFeaturizer, SubsetCosPsiFeaturizer, SubsetFeatureUnion, \
@@ -9,8 +9,7 @@ from msmbuilder.featurizer.subset import SubsetAtomPairs, \
 
 
 def test_SubsetAtomPairs_1():
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     trj0 = trajectories[0][0]
     atom_indices, pair_indices = get_atompair_indices(trj0)
     featurizer = AtomPairsFeaturizer(pair_indices)
@@ -24,8 +23,7 @@ def test_SubsetAtomPairs_1():
 
 
 def test_SubsetAtomPairs_2():
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     trj0 = trajectories[0][0]
     atom_indices, pair_indices = get_atompair_indices(trj0)
     featurizer = AtomPairsFeaturizer(pair_indices)
@@ -39,8 +37,7 @@ def test_SubsetAtomPairs_2():
 
 
 def test_SubsetAtomPairs_3():
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     trj0 = trajectories[0][0]
     atom_indices, pair_indices = get_atompair_indices(trj0)
     featurizer = AtomPairsFeaturizer(pair_indices)
@@ -58,8 +55,7 @@ def test_SubsetAtomPairs_3():
 
 
 def test_that_all_featurizers_run():
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     trj0 = trajectories[0][0]
     atom_indices, pair_indices = get_atompair_indices(trj0)
 

@@ -1,8 +1,9 @@
-import mdtraj as md
-import numpy as np
 import warnings
 
-from msmb_data import fetch_alanine_dipeptide
+import mdtraj as md
+import numpy as np
+
+from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import Featurizer
 from msmbuilder.featurizer import RMSDFeaturizer
 
@@ -66,8 +67,7 @@ def test_alanine_dipeptide_basic():
     # The test asserts that all rmsd's calculated will be equal
     # to the ones that would be calculated straight from mdtraj.
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     featurizer = RMSDFeaturizer(trajectories[0][0])
     data = featurizer.transform(trajectories[0:1])
 
@@ -81,8 +81,7 @@ def test_omitting_indices():
     # atom_indices are omitted is the same as the result
     # produced when atom_indices is all atom indices.
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
 
     featurizer_indices = RMSDFeaturizer(trajectories[0][0],
                                         np.arange(trajectories[0].n_atoms))
@@ -99,8 +98,7 @@ def test_different_indices():
     # different sets of atom indices are not the same,
     # but that the arrays are still the same shape.
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     n_atoms = trajectories[0].n_atoms
     halfway_point = n_atoms // 2
 
@@ -123,8 +121,7 @@ def test_two_refs_basic():
     # the 0th reference are identical and the 1st frame of the
     # dataset with the 1st reference are identical.
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     featurizer = RMSDFeaturizer(trajectories[0][0:2])
     data = featurizer.transform(trajectories[0:1])
 
@@ -143,8 +140,7 @@ def test_two_refs_omitting_indices():
     # atom_indices are omitted is the same as the result
     # produced when atom_indices is all atom indices.
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     featurizer_indices = RMSDFeaturizer(trajectories[0][0:2],
                                         np.arange(trajectories[0].n_atoms))
     data_indices = featurizer_indices.transform(trajectories[0:1])
@@ -160,8 +156,7 @@ def test_two_refs_different_indices():
     # different sets of atom indices are not the same,
     # but that the arrays are still the same shape.
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     n_atoms = trajectories[0].n_atoms
     halfway_point = n_atoms // 2
 
