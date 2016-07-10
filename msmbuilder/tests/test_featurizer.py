@@ -92,7 +92,7 @@ def test_von_mises_featurizer_2():
     # test to make sure results are being put in the right order
     feat = VonMisesFeaturizer(["phi", "psi"], n_bins=10)
     _, all_phi = compute_phi(trajectories[0])
-    X_all = feat.transform([trajectories])
+    X_all = feat.transform(trajectories)
     all_res = []
     for frame in all_phi:
         for dihedral_value in frame:
