@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from sklearn.kernel_approximation import Nystroem as NystroemR
 
-from ..decomposition.kernel_approximation import Nystroem, LandmarkNystroem
+from msmbuilder.decomposition.kernel_approximation import Nystroem, LandmarkNystroem
 
 
 def test_nystroem_vs_sklearn():
