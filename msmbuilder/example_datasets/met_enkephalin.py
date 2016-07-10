@@ -9,22 +9,17 @@
 from __future__ import print_function, absolute_import, division
 
 from glob import glob
-from io import BytesIO
-from os import makedirs
-from os.path import exists
 from os.path import join
-from zipfile import ZipFile
-from six.moves.urllib.request import urlopen
 
 import mdtraj as md
-from .base import Bunch, Dataset
-from .base import get_data_home, retry
+
+from .base import Bunch, _MDDataset
 
 DATA_URL = "https://ndownloader.figshare.com/articles/1026324/versions/1"
 TARGET_DIRECTORY = "met_enkephalin"
 
 
-class MetEnkephalin(Dataset):
+class MetEnkephalin(_MDDataset):
     """Loader for the met-enkephalin dataset
 
     Parameters
@@ -57,27 +52,8 @@ class MetEnkephalin(Dataset):
     http://dx.doi.org/10.6084/m9.figshare.1026324
     """
 
-    def __init__(self, data_home=None):
-        self.data_home = get_data_home(data_home)
-        self.data_dir = join(self.data_home, TARGET_DIRECTORY)
-        self.cached = False
-
-    @retry(3)
-    def cache(self):
-        if not exists(self.data_home):
-            makedirs(self.data_home)
-
-        if not exists(self.data_dir):
-            print('downloading met-enk from %s to %s' %
-                  (DATA_URL, self.data_dir))
-            fhandle = urlopen(DATA_URL)
-            buf = BytesIO(fhandle.read())
-            zip_file = ZipFile(buf)
-            makedirs(self.data_dir)
-            for name in zip_file.namelist():
-                zip_file.extract(name, path=self.data_dir)
-
-        self.cached = True
+    data_url = DATA_URL
+    target_directory = TARGET_DIRECTORY
 
     def get_cached(self):
         top = md.load(join(self.data_dir, '1plx.pdb'))
@@ -86,11 +62,6 @@ class MetEnkephalin(Dataset):
             trajectories.append(md.load(fn, top=top))
 
         return Bunch(trajectories=trajectories, DESCR=self.description())
-
-    def get(self):
-        if not self.cached:
-            self.cache()
-        return self.get_cached()
 
 
 def fetch_met_enkephalin(data_home=None):

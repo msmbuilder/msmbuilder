@@ -5,7 +5,7 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 
-from .brownian1d import _NWell
+from .base import _NWell
 from ._muller import propagate, muller_potential
 
 __all__ = ['load_muller', 'MullerPotential']
