@@ -22,7 +22,7 @@ def setup():
     Y_rmsd = AlanineDipeptide().get_cached().trajectories[0][30:33]
     X_rmsd.center_coordinates()
     Y_rmsd.center_coordinates()
-    X_indices = random.random_integers(low=0, high=9, size=5).astype(np.intp)
+    X_indices = random.randint(0, 10, size=5).astype(np.intp)
 
 
 def test_assign_nearest_double_float_1():
@@ -210,7 +210,7 @@ def test_dist_rmsd_2():
 
 
 def test_sumdist_double_float():
-    pairs = random.random_integers(low=0, high=9, size=(5, 2)).astype(np.intp)
+    pairs = random.randint(0, 10, size=(5, 2)).astype(np.intp)
     for metric in VECTOR_METRICS:
         for X in (X_double, X_float):
             alldist = scipy.spatial.distance.squareform(pdist(X, metric))
@@ -220,7 +220,7 @@ def test_sumdist_double_float():
 
 
 def test_sumdist_rmsd():
-    pairs = random.random_integers(low=0, high=9, size=(5, 2)).astype(np.intp)
+    pairs = random.randint(0, 10, size=(5, 2)).astype(np.intp)
     alldist = scipy.spatial.distance.squareform(pdist(X_rmsd, "rmsd"))
     np.testing.assert_almost_equal(
             sum(alldist[p[0], p[1]] for p in pairs),
@@ -256,7 +256,7 @@ def test_canberra_32_2():
     for i in range(10):
         X = random.randn(10, 2).astype(np.float32)
         Y = X[[0, 1, 2], :]
-        X_indices = (random.random_integers(low=0, high=9, size=5)
+        X_indices = (random.randint(0, 10, size=5)
                      .astype(np.intp))
 
         assignments, inertia = assign_nearest(X, Y, 'canberra',
