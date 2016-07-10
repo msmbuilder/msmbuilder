@@ -1,8 +1,7 @@
 import warnings
 
 import msmbuilder.featurizer
-from msmb_data import fetch_alanine_dipeptide
-from msmb_data import fetch_fs_peptide
+from msmbuilder.example_datasets import FsPeptide, AlanineDipeptide
 
 warnings.filterwarnings('ignore', message='.*Unlikely unit cell vectors.*')
 
@@ -10,8 +9,7 @@ warnings.filterwarnings('ignore', message='.*Unlikely unit cell vectors.*')
 def test_alanine_dipeptide():
     # will produce 0 features because not enough peptides
 
-    dataset = fetch_alanine_dipeptide()
-    trajectories = dataset["trajectories"]
+    trajectories = AlanineDipeptide().get_cached().trajectories
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer()
     nothing = featurizer.transform(trajectories)
 
@@ -21,8 +19,7 @@ def test_alanine_dipeptide():
 def test_fs_peptide():
     # will produce 36 features
 
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer()
     alphas = featurizer.transform(trajectories)
 
@@ -32,8 +29,7 @@ def test_fs_peptide():
 def test_fs_peptide_nosincos():
     # will produce 18 features
 
-    dataset = fetch_fs_peptide()
-    trajectories = dataset["trajectories"]
+    trajectories = FsPeptide().get_cached().trajectories
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer(sincos=False)
     alphas = featurizer.transform(trajectories)
 

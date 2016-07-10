@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
-# Copyright (c) 2014, Stanford University and the Authors
+# Contributors: Matthew Harrigan <matthew.harrigan@outlook.com>
+# Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 
 # -----------------------------------------------------------------------------
@@ -9,22 +9,17 @@
 from __future__ import print_function, absolute_import, division
 
 from glob import glob
-from io import BytesIO
-from os import makedirs
-from os.path import exists
 from os.path import join
-from zipfile import ZipFile
-from six.moves.urllib.request import urlopen
 
 import mdtraj as md
-from .base import Bunch, Dataset
-from .base import get_data_home, retry
+
+from .base import Bunch, _MDDataset
 
 DATA_URL = "https://ndownloader.figshare.com/articles/1026131/versions/8"
 TARGET_DIRECTORY = "alanine_dipeptide"
 
 
-class AlanineDipeptide(Dataset):
+class AlanineDipeptide(_MDDataset):
     """Alanine dipeptide dataset
 
     Parameters
@@ -47,33 +42,10 @@ class AlanineDipeptide(Dataset):
 
         http://dx.doi.org/10.6084/m9.figshare.1026131
     """
+    target_directory = TARGET_DIRECTORY
+    data_url = DATA_URL
 
-    def __init__(self, data_home=None):
-        self.data_home = get_data_home(data_home)
-        self.data_dir = join(self.data_home, TARGET_DIRECTORY)
-        self.cached = False
-
-    @retry(3)
-    def cache(self):
-        if not exists(self.data_home):
-            makedirs(self.data_home)
-
-        if not exists(self.data_dir):
-            print('downloading alanine dipeptide from %s to %s' %
-                  (DATA_URL, self.data_home))
-            fhandle = urlopen(DATA_URL)
-            buf = BytesIO(fhandle.read())
-            zip_file = ZipFile(buf)
-            makedirs(self.data_dir)
-            for name in zip_file.namelist():
-                zip_file.extract(name, path=self.data_dir)
-
-        self.cached = True
-
-    def get(self):
-        if not self.cached:
-            self.cache()
-
+    def get_cached(self):
         top = md.load(join(self.data_dir, 'ala2.pdb'))
         trajectories = []
         for fn in glob(join(self.data_dir, 'trajectory*.dcd')):

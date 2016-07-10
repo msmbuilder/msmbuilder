@@ -17,9 +17,7 @@ from mdtraj.testing import eq
 from mdtraj.testing import get_fn as get_mdtraj_fn
 
 from msmbuilder.dataset import dataset
-from msmb_data import get_data_home
-from msmb_data.alanine_dipeptide import \
-    fetch_alanine_dipeptide
+from msmbuilder.example_datasets import get_data_home
 from msmbuilder.utils import load
 
 DATADIR = HMM = None
@@ -54,7 +52,7 @@ def setup_module():
         t = md.Trajectory(xyz=d.reshape(len(d), 1, 3), topology=topology)
         t.save(os.path.join(DATADIR, 'Trajectory%d.h5' % i))
 
-    fetch_alanine_dipeptide()
+    assert os.path.exists("{}/alanine_dipeptide".format(get_data_home()))
 
 
 def teardown_module():
@@ -204,9 +202,9 @@ def test_help():
 
 
 def test_convert_chunked_project_1():
-    fetch_alanine_dipeptide()
     with tempdir():
         root = os.path.join(get_data_home(), 'alanine_dipeptide')
+        assert os.path.exists(root)
         if sys.platform == 'win32':
             pattern = "*.dcd"
         else:

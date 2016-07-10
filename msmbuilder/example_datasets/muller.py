@@ -5,7 +5,7 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 
-from .brownian1d import _NWell
+from .base import _NWell
 from ._muller import propagate, muller_potential
 
 __all__ = ['load_muller', 'MullerPotential']
@@ -74,6 +74,7 @@ class MullerPotential(_NWell):
 
     target_name = "muller"
     version = MULLER_PARAMETERS['VERSION']
+    n_trajectories = MULLER_PARAMETERS['N_TRAJECTORIES']
 
     def simulate_func(self, random):
         M = MULLER_PARAMETERS

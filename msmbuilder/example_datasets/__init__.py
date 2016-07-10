@@ -1,6 +1,5 @@
 from __future__ import absolute_import
-from .base import get_data_home
-from .base import clear_data_home
+from .base import get_data_home, clear_data_home, has_msmb_data
 from .brownian1d import DoubleWell, QuadWell
 from .brownian1d import load_doublewell, load_quadwell
 from .brownian1d import doublewell_eigs, quadwell_eigs
@@ -12,6 +11,7 @@ from .muller import MullerPotential, load_muller
 __all__ = [
     'get_data_home',
     'clear_data_home',
+    'has_msmb_data',
     'load_doublewell',
     'load_quadwell',
     'doublewell_eigs',

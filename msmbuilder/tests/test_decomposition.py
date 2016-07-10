@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
 from mdtraj.testing import eq
 from numpy.testing import assert_approx_equal
-from msmb.example_datasets import fetch_alanine_dipeptide
-
+from numpy.testing import assert_array_almost_equal
+from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA as PCAr
-from sklearn import Pipeline
 
+from msmbuilder.example_datasets import AlanineDipeptide
+from ..cluster import KCenters
 from ..decomposition import (FactorAnalysis, FastICA, KernelTICA,
                              MiniBatchSparsePCA, PCA, SparsePCA, tICA)
 from ..decomposition.kernel_approximation import LandmarkNystroem
 from ..featurizer import DihedralFeaturizer
-from ..cluster import KCenters
 
 random = np.random.RandomState(42)
 trajs = [random.randn(10, 3) for _ in range(5)]
@@ -63,8 +62,8 @@ def test_tica_score_1():
         tica = tICA(n_components=n, shrinkage=0)
         tica.fit([X])
         assert_approx_equal(
-                tica.score([X]),
-                tica.eigenvalues_.sum())
+            tica.score([X]),
+            tica.eigenvalues_.sum())
         X2 = random.randn(100, 5)
         assert tica.score([X2]) < tica.score([X])
         assert_approx_equal(tica.score([X]), tica.score_)
@@ -110,7 +109,7 @@ def test_tica_kinetic_mapping():
     y1 = tica1.fit_transform([np.copy(X)])[0]
     y2 = tica2.fit_transform([np.copy(X)])[0]
 
-    assert eq(y2, y1*tica1.eigenvalues_)
+    assert eq(y2, y1 * tica1.eigenvalues_)
 
 
 def test_pca_vs_sklearn():
@@ -192,11 +191,10 @@ def test_factoranalysis():
 
 
 def test_ktica_compare_to_tica():
-
-    bunch = fetch_alanine_dipeptide()
+    trajectories = AlanineDipeptide().get_cached().trajectories
 
     featurizer = DihedralFeaturizer(sincos=True)
-    features = featurizer.transform(bunch['trajectories'][0:1])
+    features = featurizer.transform(trajectories[0:1])
     features = [features[0][::10]]
 
     tica = tICA(lag_time=1, n_components=2)

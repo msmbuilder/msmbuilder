@@ -8,22 +8,17 @@
 # Imports
 # -----------------------------------------------------------------------------
 from __future__ import absolute_import
-import time
-import numbers
-from os import makedirs
-from os.path import join
-from os.path import exists
-import numpy as np
-from sklearn.utils import check_random_state
-from ..utils import verboseload, verbosedump
-from ..msm import _solve_msm_eigensystem
 
-from .base import Bunch, Dataset
-from .base import get_data_home
+import time
+
+import numpy as np
+
+from .base import _NWell
+from ..msm import _solve_msm_eigensystem
 
 # -----------------------------------------------------------------------------
 # Globals
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # DO NOT CHANGE THESE CONSTANTS WITHOUT UPDATING THE
 # "DOUBLEWELL_DESCRIPTION" VARIABLE
@@ -34,72 +29,11 @@ DT_SQRT_2D = DT * np.sqrt(2 * DIFFUSION_CONST)
 __all__ = ['load_doublewell', 'load_quadwell',
            'doublewell_eigs', 'quadwell_eigs']
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # User functions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-class _NWell(Dataset):
-    """Base class for brownian dynamics on [double, quad] well potentials
-
-    Parameters
-    ----------
-    data_home : optional, default: None
-        Specify another cache folder for the datasets. By default
-        all MSMBuilder data is stored in '~/msmbuilder_data' subfolders.
-    random_state : {int, None}, default: None
-        Seed the psuedorandom number generator to generate trajectories. If
-        seed is None, the global numpy PRNG is used. If random_state is an
-        int, the simulations will be cached in ``data_home``, or loaded from
-        ``data_home`` if simulations with that seed have been performed already.
-        With random_state=None, new simulations will be performed and the
-        trajectories will not be cached.
-    """
-
-    target_name = ""  # define in subclass
-    version = 1       # override in subclass if parameters are updated
-
-    def __init__(self, data_home=None, random_state=None):
-        self.data_home = get_data_home(data_home)
-        self.data_dir = join(self.data_home, self.target_name)
-        self.random_state = random_state
-        self.cache_path = None
-
-    def cache(self):
-        random = check_random_state(self.random_state)
-        if not exists(self.data_dir):
-            makedirs(self.data_dir)
-
-        if self.random_state is None:
-            trajectories = self.simulate_func(random)
-            return trajectories
-        else:
-            if not isinstance(self.random_state, numbers.Integral):
-                raise TypeError('random_state must be an int')
-            path = join(self.data_dir,
-                        'version-%d_random-state-%d.pkl' % (
-                        self.version, self.random_state))
-            self.cache_path = path
-            if exists(path):
-                return verboseload(path)
-            else:
-                trajectories = self.simulate_func(random)
-                verbosedump(trajectories, path)
-                return trajectories
-
-    def get(self):
-        if self.cache_path is None:
-            trajectories = self.cache()
-        else:
-            trajectories = verboseload(self.cache_path)
-        return Bunch(trajectories=trajectories, DESCR=self.description())
-
-    def simulate_func(self, random):
-        # Implement in subclass
-        raise NotImplementedError
-
-    def potential(self, x):
-        # Implement in subclass
-        raise NotImplementedError
 
 
 class DoubleWell(_NWell):
@@ -135,12 +69,13 @@ class DoubleWell(_NWell):
     x_0 = 0.
     """
     target_name = "doublewell"
+    n_trajectories = 10
 
     def simulate_func(self, random):
         return _simulate_doublewell(random)
 
     def potential(self, x):
-        return 1 + np.cos(2*x)
+        return 1 + np.cos(2 * x)
 
 
 def load_doublewell(data_home=None, random_state=None):
@@ -183,13 +118,15 @@ class QuadWell(_NWell):
     """
 
     target_name = "quadwell"
+    n_trajectories = 100
 
     def simulate_func(self, random):
         return _simulate_quadwell(random)
 
     def potential(self, x):
-        return 4*(x**8 + 0.8*np.exp(-80*x**2) + 0.2*np.exp(-80*(x-0.5)**2) +
-                  0.5*np.exp(-40*(x+0.5)**2))
+        return 4 * (x ** 8 + 0.8 * np.exp(-80 * x ** 2) + 0.2 * np.exp(
+            -80 * (x - 0.5) ** 2) +
+                    0.5 * np.exp(-40 * (x + 0.5) ** 2))
 
 
 def load_quadwell(data_home=None, random_state=None):
@@ -216,9 +153,10 @@ def quadwell_eigs(n_grid, lag_time=1):
     return _brownian_eigs(n_grid, lag_time, QUADWELL_GRAD_POTENTIAL,
                           -1.2, 1.2, reflect_bc=False)
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # Internal functions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 DOUBLEWELL_GRAD_POTENTIAL = lambda x: -2 * np.sin(2 * x)
 QUADWELL_GRAD_POTENTIAL = lambda x: 4 * (
@@ -290,7 +228,6 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None,
 def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
     """Analytic eigenvalues/eigenvectors for 1D Brownian dynamics
     """
-    import scipy.linalg
 
     ONE_OVER_SQRT_2PI = 1.0 / (np.sqrt(2 * np.pi))
     normalpdf = lambda x: ONE_OVER_SQRT_2PI * np.exp(-0.5 * (x * x))
@@ -316,5 +253,5 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
         transmat[i, :] = transmat[i, :] / np.sum(transmat[i, :])
 
     transmat = np.linalg.matrix_power(transmat, lag_time)
-    u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat)-1)
+    u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat) - 1)
     return u, rv
