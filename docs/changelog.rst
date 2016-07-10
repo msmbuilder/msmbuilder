@@ -12,15 +12,13 @@ API Changes
 ~~~~~~~~~~~
 
 - ``version.short_version`` is now 3.y instead of 3.y.z (#829).
-- ``msmbuilder.example_datasets`` is now deprecated. Please install
-  the ``msmb_data`` package from the Omnia conda channel.
 - ``weighted_transform`` is no longer supported in tICA methods (#807). Please
   used ``kinetic_mapping``.
 - The cached filenames and formats for DoubleWell, QuadWell,
   and MullerPotential example datasets have changed. The API through
   ``msmbuilder.example_datasets`` is still the same, but the data may
   be re-generated instead of using a cached version from a previous installation
-  of MSMBuilder.
+  of MSMBuilder (gh-854).
 
 New Features
 ~~~~~~~~~~~~
@@ -35,6 +33,9 @@ New Features
 - ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
   ``preprocessing`` module (#818).
 - ``MADScaler`` is available in the ``preprocessing`` module (#850).
+- We encourage users to download the ``msmb_data`` conda package to easily
+  install example data. The data can be loaded through existing methods
+  in ``msmbuilder.example_datasets``.
 
 Improvements
 ~~~~~~~~~~~~
