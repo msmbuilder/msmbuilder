@@ -1,12 +1,11 @@
 import numpy as np
-from numpy.testing.decorators import skipif
 
 from msmbuilder.decomposition import tICA, SparseTICA
-from msmb_data import DoubleWell
+from msmbuilder.example_datasets import DoubleWell
 
 
 def build_dataset():
-    slow = DoubleWell(random_state=0).get()['trajectories']
+    slow = DoubleWell(random_state=0).get_cached().trajectories
     data = []
 
     # each trajectory is a double-well along the first dof,

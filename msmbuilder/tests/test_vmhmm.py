@@ -6,7 +6,7 @@ from itertools import permutations
 import numpy as np
 from scipy.stats.distributions import vonmises
 
-from msmb_data import AlanineDipeptide
+from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import DihedralFeaturizer
 from msmbuilder.hmm import VonMisesHMM
 
@@ -14,8 +14,7 @@ from msmbuilder.hmm import VonMisesHMM
 def test_code_works():
     # creates a 4-state HMM on the ALA2 data. Nothing fancy, just makes
     # sure the code runs without erroring out
-    dataset = AlanineDipeptide().get()
-    trajectories = dataset.trajectories
+    trajectories = AlanineDipeptide().get_cached().trajectories
     topology = trajectories[0].topology
 
     indices = topology.select('symbol C or symbol O or symbol N')

@@ -1,21 +1,18 @@
 import numpy as np
-
 from sklearn.feature_selection import VarianceThreshold as VarianceThresholdR
 
-from ..featurizer import DihedralFeaturizer
-from ..feature_selection import FeatureSelector, VarianceThreshold
-from ..example_datasets import fetch_alanine_dipeptide as fetch_data
+from msmbuilder.example_datasets import AlanineDipeptide
+from msmbuilder.feature_selection import FeatureSelector, VarianceThreshold
+from msmbuilder.featurizer import DihedralFeaturizer
 
 FEATS = [
-        ('phi', DihedralFeaturizer(types=['phi'], sincos=True)),
-        ('psi', DihedralFeaturizer(types=['psi'], sincos=True)),
-    ]
+    ('phi', DihedralFeaturizer(types=['phi'], sincos=True)),
+    ('psi', DihedralFeaturizer(types=['psi'], sincos=True)),
+]
 
 
 def test_featureselector():
-    dataset = fetch_data()
-    trajectories = dataset["trajectories"]
-
+    trajectories = AlanineDipeptide().get_cached().trajectories
     fs = FeatureSelector(FEATS, which_feat='phi')
 
     assert fs.which_feat == ['phi']
@@ -27,20 +24,14 @@ def test_featureselector():
 
 
 def test_featureselector_transform():
-    dataset = fetch_data()
-    trajectories = dataset["trajectories"]
-
+    trajectories = AlanineDipeptide().get_cached().trajectories
     fs = FeatureSelector(FEATS, which_feat='psi')
-
     y1 = fs.transform(trajectories)
-
     assert len(y1) == len(trajectories)
 
 
 def test_variancethreshold_vs_sklearn():
-    dataset = fetch_data()
-    trajectories = dataset["trajectories"]
-
+    trajectories = AlanineDipeptide().get_cached().trajectories
     fs = FeatureSelector(FEATS)
 
     vt = VarianceThreshold(0.1)

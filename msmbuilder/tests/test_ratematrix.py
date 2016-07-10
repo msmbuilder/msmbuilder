@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import numpy as np
 import scipy.linalg
-from numpy.testing.decorators import skipif
 from scipy.optimize import check_grad, approx_fprime
 
 try:
@@ -14,8 +13,8 @@ except ImportError:
 
 from msmbuilder.msm import _ratematrix
 from msmbuilder.msm import ContinuousTimeMSM, MarkovStateModel
-from msmb_data import MullerPotential
-from msmb_data import load_doublewell
+from msmbuilder.example_datasets import MullerPotential, DoubleWell
+from msmbuilder.example_datasets.muller import MULLER_PARAMETERS as PARAMS
 from msmbuilder.cluster import NDGrid
 from msmbuilder import utils
 import tempfile
@@ -135,9 +134,9 @@ def test_dK_dtheta_4():
 def test_dK_dtheta_5():
     n = 4
     theta = np.array(
-            [2.59193443e-02, 0.00000000e+00, 6.83797216e-07, 3.08837678e-03,
-             0.00000000e+00, 2.56956907e-02, -1.48051536e+00, -1.51759911e+00,
-             -1.34983215e+00, -1.22431771e+00])
+        [2.59193443e-02, 0.00000000e+00, 6.83797216e-07, 3.08837678e-03,
+         0.00000000e+00, 2.56956907e-02, -1.48051536e+00, -1.51759911e+00,
+         -1.34983215e+00, -1.22431771e+00])
     size = len(theta)
 
     dK1 = np.zeros((size, n, n))
@@ -301,7 +300,8 @@ def test_hessian_2():
 
 def test_hessian_3():
     grid = NDGrid(n_bins_per_feature=4, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    trajs = DoubleWell(random_state=0).get_cached().trajectories
+    seqs = grid.fit_transform(trajs)
     seqs = [seqs[i] for i in range(10)]
 
     lag_time = 10
@@ -329,7 +329,8 @@ def test_fit_1():
 
 def test_fit_2():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    trajs = DoubleWell(random_state=0).get_cached().trajectories
+    seqs = grid.fit_transform(trajs)
 
     model = ContinuousTimeMSM(verbose=False, lag_time=10)
     model.fit(seqs)
@@ -347,7 +348,8 @@ def test_fit_2():
 
 def test_score_1():
     grid = NDGrid(n_bins_per_feature=5, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    trajs = DoubleWell(random_state=0).get_cached().trajectories
+    seqs = grid.fit_transform(trajs)
     model = (ContinuousTimeMSM(verbose=False, lag_time=10, n_timescales=3)
              .fit(seqs))
     np.testing.assert_approx_equal(model.score(seqs), model.score_)
@@ -356,7 +358,8 @@ def test_score_1():
 def test_uncertainties_backward():
     n = 4
     grid = NDGrid(n_bins_per_feature=n, min=-np.pi, max=np.pi)
-    seqs = grid.fit_transform(load_doublewell(random_state=0)['trajectories'])
+    trajs = DoubleWell(random_state=0).get_cached().trajectories
+    seqs = grid.fit_transform(trajs)
 
     model = ContinuousTimeMSM(verbose=False).fit(seqs)
     sigma_ts = model.uncertainty_timescales()
@@ -365,29 +368,28 @@ def test_uncertainties_backward():
     sigma_K = model.uncertainty_K()
 
     yield lambda: np.testing.assert_array_almost_equal(
-            sigma_ts, [9.508936, 0.124428, 0.117638])
+        sigma_ts, [9.508936, 0.124428, 0.117638])
     yield lambda: np.testing.assert_array_almost_equal(
-            sigma_lambda,
-            [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
+        sigma_lambda,
+        [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
     yield lambda: np.testing.assert_array_almost_equal(
-            sigma_pi, [0.007496, 0.006564, 0.006348, 0.007863])
+        sigma_pi, [0.007496, 0.006564, 0.006348, 0.007863])
     yield lambda: np.testing.assert_array_almost_equal(
-            sigma_K,
-            [[0.000339, 0.000339, 0., 0.],
-             [0.000352, 0.000372, 0.000122, 0.],
-             [0., 0.000103, 0.000344, 0.000329],
-             [0., 0., 0.00029, 0.00029]])
+        sigma_K,
+        [[0.000339, 0.000339, 0., 0.],
+         [0.000352, 0.000372, 0.000122, 0.],
+         [0., 0.000103, 0.000344, 0.000329],
+         [0., 0., 0.00029, 0.00029]])
     yield lambda: np.testing.assert_array_almost_equal(
-            model.ratemat_,
-            [[-0.0254, 0.0254, 0., 0.],
-             [0.02636, -0.029629, 0.003269, 0.],
-             [0., 0.002764, -0.030085, 0.027321],
-             [0., 0., 0.024098, -0.024098]])
+        model.ratemat_,
+        [[-0.0254, 0.0254, 0., 0.],
+         [0.02636, -0.029629, 0.003269, 0.],
+         [0., 0.002764, -0.030085, 0.027321],
+         [0., 0., 0.024098, -0.024098]])
 
 
 def test_score_2():
-    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
-    ds = MullerPotential(random_state=0).get()['trajectories']
+    ds = MullerPotential(random_state=0).get_cached().trajectories
     cluster = NDGrid(n_bins_per_feature=6,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
                      max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
@@ -405,13 +407,11 @@ def test_score_2():
 
 
 def test_score_3():
-    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
-
+    ds = MullerPotential(random_state=0).get_cached().trajectories
     cluster = NDGrid(n_bins_per_feature=6,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
                      max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
 
-    ds = MullerPotential(random_state=0).get()['trajectories']
     assignments = cluster.fit_transform(ds)
 
     train_indices = [9, 4, 3, 6, 2]
@@ -429,13 +429,10 @@ def test_score_3():
 
 
 def test_guess():
-    from msmb_data.muller import MULLER_PARAMETERS as PARAMS
-
+    ds = MullerPotential(random_state=0).get_cached().trajectories
     cluster = NDGrid(n_bins_per_feature=5,
                      min=[PARAMS['MIN_X'], PARAMS['MIN_Y']],
                      max=[PARAMS['MAX_X'], PARAMS['MAX_Y']])
-
-    ds = MullerPotential(random_state=0).get()['trajectories']
     assignments = cluster.fit_transform(ds)
 
     model1 = ContinuousTimeMSM(guess='log')
@@ -450,7 +447,7 @@ def test_guess():
 
 
 def test_doublewell():
-    trjs = load_doublewell(random_state=0)['trajectories']
+    trjs = DoubleWell(random_state=0).get_cached().trajectories
     for n_states in [10, 50]:
         clusterer = NDGrid(n_bins_per_feature=n_states)
         assignments = clusterer.fit_transform(trjs)

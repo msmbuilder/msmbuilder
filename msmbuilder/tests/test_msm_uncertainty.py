@@ -4,7 +4,7 @@ import numpy as np
 from scipy.linalg import eigvals
 
 from msmbuilder.cluster import NDGrid
-from msmb_data import load_doublewell
+from msmbuilder.example_datasets import DoubleWell
 from msmbuilder.msm import MarkovStateModel, ContinuousTimeMSM
 from msmbuilder.msm.core import _solve_msm_eigensystem
 
@@ -16,7 +16,7 @@ def test_eigenvalue_partials():
     # corresponding to that eigenvalue.
     # \frac{\partial \lambda_k}{\partial T_{ij}} = U_{i,k} V_{j,k}
 
-    X = load_doublewell(random_state=0)['trajectories']
+    X = DoubleWell(random_state=0).get_cached().trajectories
     Y = NDGrid(n_bins_per_feature=10).fit_transform(X)
     model = MarkovStateModel(verbose=False).fit(Y)
     n = model.n_states_
@@ -48,7 +48,8 @@ def test_eigenvalue_partials():
 
 
 def test_doublewell():
-    X = load_doublewell(random_state=2)['trajectories']
+    X = DoubleWell(random_state=0).get_cached().trajectories
+
     for i in range(3):
         Y = NDGrid(n_bins_per_feature=10).fit_transform([X[i]])
         model1 = MarkovStateModel(verbose=False).fit(Y)
