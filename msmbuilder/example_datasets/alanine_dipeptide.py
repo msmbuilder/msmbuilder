@@ -70,16 +70,18 @@ class AlanineDipeptide(Dataset):
 
         self.cached = True
 
-    def get(self):
-        if not self.cached:
-            self.cache()
-
+    def get_cached(self):
         top = md.load(join(self.data_dir, 'ala2.pdb'))
         trajectories = []
         for fn in glob(join(self.data_dir, 'trajectory*.dcd')):
             trajectories.append(md.load(fn, top=top))
 
         return Bunch(trajectories=trajectories, DESCR=self.description())
+
+    def get(self):
+        if not self.cached:
+            self.cache()
+        return self.get_cached()
 
 
 def fetch_alanine_dipeptide(data_home=None):

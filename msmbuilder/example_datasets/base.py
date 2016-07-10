@@ -24,6 +24,9 @@ class Dataset(object):
     def get(self):
         raise NotImplementedError
 
+    def get_cached(self):
+        raise NotImplementedError
+
 
 class Bunch(dict):
     """Container object for datasets: dictionary-like object that

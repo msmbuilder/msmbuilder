@@ -72,9 +72,7 @@ class FsPeptide(Dataset):
 
         self.cached = True
 
-    def get(self):
-        if not self.cached:
-            self.cache()
+    def get_cached(self):
         try:
             top = md.load(join(self.data_dir, 'fs-peptide.pdb'))
         except IOError:
@@ -85,6 +83,11 @@ class FsPeptide(Dataset):
             trajectories.append(md.load(fn, top=top))
 
         return Bunch(trajectories=trajectories, DESCR=self.description())
+
+    def get(self):
+        if not self.cached:
+            self.cache()
+        return self.get_cached()
 
 
 def fetch_fs_peptide(data_home=None):
