@@ -68,6 +68,8 @@ class _MDDataset(Dataset):
         self.cached = False
 
     def _msmbdata_cache(self):
+        print("Copying {} from msmb_data package to {}"
+              .format(self.target_directory, self.data_home))
         msmb_data = has_msmb_data()
         assert msmb_data is not None
         shutil.copytree("{}/{}".format(msmb_data, self.target_directory),
@@ -94,6 +96,8 @@ class _MDDataset(Dataset):
                 self._msmbdata_cache()
             else:
                 self._figshare_cache()
+        else:
+            print("{} already is cached".format(self.target_directory))
 
         self.cached = True
 
