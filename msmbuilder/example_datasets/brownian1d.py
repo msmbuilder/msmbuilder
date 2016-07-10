@@ -8,18 +8,20 @@
 # Imports
 # -----------------------------------------------------------------------------
 from __future__ import absolute_import
-import time
+
 import numbers
+import time
 from os import makedirs
-from os.path import join
 from os.path import exists
+from os.path import join
+
 import numpy as np
 from sklearn.utils import check_random_state
-from ..utils import verboseload, verbosedump
-from ..msm import _solve_msm_eigensystem
 
 from .base import Bunch, Dataset
 from .base import get_data_home
+from ..msm import _solve_msm_eigensystem
+from ..utils import verboseload, verbosedump
 
 # -----------------------------------------------------------------------------
 # Globals
@@ -63,7 +65,15 @@ class _NWell(Dataset):
         self.data_home = get_data_home(data_home)
         self.data_dir = join(self.data_home, self.target_name)
         self.random_state = random_state
-        self.cache_path = None
+        self.cache_path = self._get_cache_path(random_state)
+        self.cached = False
+
+    def _get_cache_path(self, random_state):
+        if random_state is None:
+            return None
+        path = join(self.data_dir, 'version-{}_random-state-{}.pkl'
+                    .format(self.version, self.random_state))
+        return path
 
     def cache(self):
         random = check_random_state(self.random_state)
@@ -73,26 +83,25 @@ class _NWell(Dataset):
         if self.random_state is None:
             trajectories = self.simulate_func(random)
             return trajectories
-        else:
-            if not isinstance(self.random_state, numbers.Integral):
-                raise TypeError('random_state must be an int')
-            path = join(self.data_dir,
-                        'version-%d_random-state-%d.pkl' % (
-                            self.version, self.random_state))
-            self.cache_path = path
-            if exists(path):
-                return verboseload(path)
-            else:
-                trajectories = self.simulate_func(random)
-                verbosedump(trajectories, path)
-                return trajectories
+
+        if not isinstance(self.random_state, numbers.Integral):
+            raise TypeError('random_state must be an int')
+        if exists(self.cache_path):
+            return verboseload(self.cache_path)
+
+        trajectories = self.simulate_func(random)
+        verbosedump(trajectories, self.cache_path)
+        return trajectories
 
     def get_cached(self):
+        if self.cache_path is None:
+            raise ValueError("You must specify a random state to get "
+                             "cached trajectories.")
         trajectories = verboseload(self.cache_path)
         return Bunch(trajectories=trajectories, DESCR=self.description())
 
     def get(self):
-        if self.cache_path is None:
+        if not self.cached:
             trajectories = self.cache()
         else:
             trajectories = verboseload(self.cache_path)
@@ -297,7 +306,6 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None,
 def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
     """Analytic eigenvalues/eigenvectors for 1D Brownian dynamics
     """
-    import scipy.linalg
 
     ONE_OVER_SQRT_2PI = 1.0 / (np.sqrt(2 * np.pi))
     normalpdf = lambda x: ONE_OVER_SQRT_2PI * np.exp(-0.5 * (x * x))
