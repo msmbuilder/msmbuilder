@@ -23,7 +23,7 @@ from .base import get_data_home
 
 # -----------------------------------------------------------------------------
 # Globals
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # DO NOT CHANGE THESE CONSTANTS WITHOUT UPDATING THE
 # "DOUBLEWELL_DESCRIPTION" VARIABLE
@@ -34,9 +34,10 @@ DT_SQRT_2D = DT * np.sqrt(2 * DIFFUSION_CONST)
 __all__ = ['load_doublewell', 'load_quadwell',
            'doublewell_eigs', 'quadwell_eigs']
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # User functions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class _NWell(Dataset):
     """Base class for brownian dynamics on [double, quad] well potentials
@@ -56,7 +57,7 @@ class _NWell(Dataset):
     """
 
     target_name = ""  # define in subclass
-    version = 1       # override in subclass if parameters are updated
+    version = 1  # override in subclass if parameters are updated
 
     def __init__(self, data_home=None, random_state=None):
         self.data_home = get_data_home(data_home)
@@ -77,7 +78,7 @@ class _NWell(Dataset):
                 raise TypeError('random_state must be an int')
             path = join(self.data_dir,
                         'version-%d_random-state-%d.pkl' % (
-                        self.version, self.random_state))
+                            self.version, self.random_state))
             self.cache_path = path
             if exists(path):
                 return verboseload(path)
@@ -85,6 +86,10 @@ class _NWell(Dataset):
                 trajectories = self.simulate_func(random)
                 verbosedump(trajectories, path)
                 return trajectories
+
+    def get_cached(self):
+        trajectories = verboseload(self.cache_path)
+        return Bunch(trajectories=trajectories, DESCR=self.description())
 
     def get(self):
         if self.cache_path is None:
@@ -140,7 +145,7 @@ class DoubleWell(_NWell):
         return _simulate_doublewell(random)
 
     def potential(self, x):
-        return 1 + np.cos(2*x)
+        return 1 + np.cos(2 * x)
 
 
 def load_doublewell(data_home=None, random_state=None):
@@ -188,8 +193,9 @@ class QuadWell(_NWell):
         return _simulate_quadwell(random)
 
     def potential(self, x):
-        return 4*(x**8 + 0.8*np.exp(-80*x**2) + 0.2*np.exp(-80*(x-0.5)**2) +
-                  0.5*np.exp(-40*(x+0.5)**2))
+        return 4 * (x ** 8 + 0.8 * np.exp(-80 * x ** 2) + 0.2 * np.exp(
+            -80 * (x - 0.5) ** 2) +
+                    0.5 * np.exp(-40 * (x + 0.5) ** 2))
 
 
 def load_quadwell(data_home=None, random_state=None):
@@ -216,9 +222,10 @@ def quadwell_eigs(n_grid, lag_time=1):
     return _brownian_eigs(n_grid, lag_time, QUADWELL_GRAD_POTENTIAL,
                           -1.2, 1.2, reflect_bc=False)
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # Internal functions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 DOUBLEWELL_GRAD_POTENTIAL = lambda x: -2 * np.sin(2 * x)
 QUADWELL_GRAD_POTENTIAL = lambda x: 4 * (
@@ -316,5 +323,5 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
         transmat[i, :] = transmat[i, :] / np.sum(transmat[i, :])
 
     transmat = np.linalg.matrix_power(transmat, lag_time)
-    u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat)-1)
+    u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat) - 1)
     return u, rv
