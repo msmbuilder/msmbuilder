@@ -9,17 +9,11 @@
 # -----------------------------------------------------------------------------
 from __future__ import absolute_import
 
-import numbers
 import time
-from os import makedirs
-from os.path import exists
-from os.path import join
 
 import numpy as np
-from sklearn.utils import check_random_state
 
-from .base import Bunch, Dataset
-from .base import get_data_home
+from .base import _NWell
 from ..msm import _solve_msm_eigensystem
 
 # -----------------------------------------------------------------------------
@@ -40,86 +34,6 @@ __all__ = ['load_doublewell', 'load_quadwell',
 # User functions
 # -----------------------------------------------------------------------------
 
-class _NWell(Dataset):
-    """Base class for brownian dynamics on [double, quad] well potentials
-
-    Parameters
-    ----------
-    data_home : optional, default: None
-        Specify another cache folder for the datasets. By default
-        all MSMBuilder data is stored in '~/msmbuilder_data' subfolders.
-    random_state : {int, None}, default: None
-        Seed the psuedorandom number generator to generate trajectories. If
-        seed is None, the global numpy PRNG is used. If random_state is an
-        int, the simulations will be cached in ``data_home``, or loaded from
-        ``data_home`` if simulations with that seed have been performed already.
-        With random_state=None, new simulations will be performed and the
-        trajectories will not be cached.
-    """
-
-    target_name = ""  # define in subclass
-    n_trajectories = 0  # define in subclass
-    version = 1  # override in subclass if parameters are updated
-
-    def __init__(self, data_home=None, random_state=None):
-        self.data_home = get_data_home(data_home)
-        self.data_dir = join(self.data_home, self.target_name)
-        self.random_state = random_state
-        self.cache_path = self._get_cache_path(random_state)
-
-    def _get_cache_path(self, random_state):
-        path = "{}/version-{}/randomstate-{}".format(self.data_dir,
-                                                     self.version,
-                                                     self.random_state)
-        return path
-
-    def _load(self, path):
-        return [np.load("{}/{}.npy".format(path, i))
-                for i in range(self.n_trajectories)]
-
-    def _save(self, path, trajectories):
-        assert len(trajectories) == self.n_trajectories
-        if not exists(path):
-            makedirs(path)
-        for i, traj in enumerate(trajectories):
-            np.save("{}/{}.npy".format(path, i), traj)
-
-    def cache(self):
-        random = check_random_state(self.random_state)
-        if not exists(self.data_dir):
-            makedirs(self.data_dir)
-
-        if self.random_state is None:
-            trajectories = self.simulate_func(random)
-            return trajectories
-
-        if not isinstance(self.random_state, numbers.Integral):
-            raise TypeError('random_state must be an int')
-        if exists(self.cache_path):
-            return self._load(self.cache_path)
-
-        trajectories = self.simulate_func(random)
-        self._save(self.cache_path, trajectories)
-        return trajectories
-
-    def get_cached(self):
-        if self.cache_path is None:
-            raise ValueError("You must specify a random state to get "
-                             "cached trajectories.")
-        trajectories = self._load(self.cache_path)
-        return Bunch(trajectories=trajectories, DESCR=self.description())
-
-    def get(self):
-        trajectories = self.cache()
-        return Bunch(trajectories=trajectories, DESCR=self.description())
-
-    def simulate_func(self, random):
-        # Implement in subclass
-        raise NotImplementedError
-
-    def potential(self, x):
-        # Implement in subclass
-        raise NotImplementedError
 
 
 class DoubleWell(_NWell):

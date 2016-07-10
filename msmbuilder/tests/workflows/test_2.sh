@@ -1,12 +1,12 @@
-msmb AlanineDipeptide
+msmb AlanineDipeptide --data_home ./
 msmb AtomIndices --out atom_indices.txt \
-     -p ~/msmbuilder_data/alanine_dipeptide/ala2.pdb \
+     -p ./alanine_dipeptide/ala2.pdb \
      -d --heavy
 
 msmb AtomPairsFeaturizer --transformed atom_pairs/ \
-    --trjs '~/msmbuilder_data/alanine_dipeptide/*.dcd' \
+    --trjs './alanine_dipeptide/*.dcd' \
     --pair_indices atom_indices.txt \
-    --top ~/msmbuilder_data/alanine_dipeptide/ala2.pdb \
+    --top ./alanine_dipeptide/ala2.pdb \
     --out atom_pairs.pkl
 
 msmb MiniBatchKMeans --n_clusters 100 \
