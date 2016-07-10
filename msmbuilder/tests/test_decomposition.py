@@ -4,7 +4,7 @@ import numpy as np
 from mdtraj.testing import eq
 from numpy.testing import assert_approx_equal
 from numpy.testing import assert_array_almost_equal
-from sklearn import Pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA as PCAr
 
 from msmbuilder.example_datasets import AlanineDipeptide
