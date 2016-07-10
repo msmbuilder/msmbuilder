@@ -16,6 +16,11 @@ API Changes
   the ``msmb_data`` package from the Omnia conda channel.
 - ``weighted_transform`` is no longer supported in tICA methods (#807). Please
   used ``kinetic_mapping``.
+- The cached filenames and formats for DoubleWell, QuadWell,
+  and MullerPotential example datasets have changed. The API through
+  ``msmbuilder.example_datasets`` is still the same, but the data may
+  be re-generated instead of using a cached version from a previous installation
+  of MSMBuilder.
 
 New Features
 ~~~~~~~~~~~~

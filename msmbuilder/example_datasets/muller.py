@@ -74,6 +74,7 @@ class MullerPotential(_NWell):
 
     target_name = "muller"
     version = MULLER_PARAMETERS['VERSION']
+    n_trajectories = MULLER_PARAMETERS['N_TRAJECTORIES']
 
     def simulate_func(self, random):
         M = MULLER_PARAMETERS
