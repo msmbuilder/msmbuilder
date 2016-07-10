@@ -11,8 +11,11 @@ from mdtraj.testing import eq
 from numpy.testing import assert_approx_equal
 from six import PY3
 from sklearn.externals.joblib import load, dump
+from sklearn.pipeline import Pipeline
 
 from msmbuilder import cluster
+from msmbuilder.cluster import NDGrid
+from msmbuilder.example_datasets import DoubleWell
 from msmbuilder.msm import MarkovStateModel, BayesianMarkovStateModel
 from msmbuilder.utils import map_drawn_samples
 
@@ -287,8 +290,8 @@ def test_normalization():
 
     # check biorthonormal
     np.testing.assert_array_almost_equal(
-            left_right,
-            np.eye(3))
+        left_right,
+        np.eye(3))
 
     # check that the stationary left eigenvector is normalized to be 1
     np.testing.assert_almost_equal(model.left_eigenvectors_[:, 0].sum(), 1)
@@ -296,30 +299,25 @@ def test_normalization():
     # the left eigenvectors satisfy <\phi_i, \phi_i>_{\mu^{-1}} = 1
     for i in range(3):
         np.testing.assert_almost_equal(
-                np.dot(model.left_eigenvectors_[:, i],
-                       model.left_eigenvectors_[:, i] / model.populations_), 1)
+            np.dot(model.left_eigenvectors_[:, i],
+                   model.left_eigenvectors_[:, i] / model.populations_), 1)
 
     # and that the right eigenvectors satisfy  <\psi_i, \psi_i>_{\mu} = 1
     for i in range(3):
         np.testing.assert_almost_equal(
-                np.dot(model.right_eigenvectors_[:, i],
-                       model.right_eigenvectors_[:, i] *
-                       model.populations_), 1)
+            np.dot(model.right_eigenvectors_[:, i],
+                   model.right_eigenvectors_[:, i] *
+                   model.populations_), 1)
 
 
 def test_pipeline():
-    from msmb_data import load_doublewell
-    from msmbuilder.cluster import NDGrid
-    from sklearn.pipeline import Pipeline
-
-    ds = load_doublewell(random_state=0)
-
+    trajs = DoubleWell(random_state=0).get_cached().trajectories
     p = Pipeline([
         ('ndgrid', NDGrid(n_bins_per_feature=100)),
         ('msm', MarkovStateModel(lag_time=100))
     ])
 
-    p.fit(ds.trajectories)
+    p.fit(trajs)
     p.named_steps['msm'].summarize()
 
 
@@ -332,7 +330,7 @@ def test_sample_1():
     clusterer = cluster.KMeans(n_clusters=2)
     msm = MarkovStateModel()
     pipeline = sklearn.pipeline.Pipeline(
-            [("clusterer", clusterer), ("msm", msm)]
+        [("clusterer", clusterer), ("msm", msm)]
     )
     pipeline.fit(data)
     trimmed_assignments = pipeline.transform(data)
@@ -354,10 +352,10 @@ def test_sample_1():
     # We should make sure we can sample from Trajectory objects too...
     # Create a fake topology with 1 atom to match our input dataset
     top = md.Topology.from_dataframe(
-            pd.DataFrame({
-                "serial": [0], "name": ["HN"], "element": ["H"], "resSeq": [1],
-                "resName": "RES", "chainID": [0]
-            }), bonds=np.zeros(shape=(0, 2), dtype='int')
+        pd.DataFrame({
+            "serial": [0], "name": ["HN"], "element": ["H"], "resSeq": [1],
+            "resName": "RES", "chainID": [0]
+        }), bonds=np.zeros(shape=(0, 2), dtype='int')
     )
     # np.newaxis reshapes the data to have a 40000 frames, 1 atom, 3 xyz
     trajectories = [md.Trajectory(x[:, np.newaxis], top)
