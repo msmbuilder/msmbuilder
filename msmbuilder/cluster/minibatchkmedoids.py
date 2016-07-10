@@ -96,10 +96,8 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
         n_iter = int(self.max_iter * n_batches)
         random_state = check_random_state(self.random_state)
 
-        cluster_ids_ = random_state.random_integers(
-            low=0, high=n_samples - 1, size=self.n_clusters)
-        labels_ = random_state.random_integers(
-            low=0, high=self.n_clusters - 1, size=n_samples)
+        cluster_ids_ = random_state.randint(0, n_samples, size=self.n_clusters)
+        labels_ = random_state.randint(0, self.n_clusters, size=n_samples)
 
         n_iters_no_improvement = 0
         for kk in range(n_iter):
@@ -107,8 +105,7 @@ class _MiniBatchKMedoids(ClusterMixin, TransformerMixin):
             # current cluster centers
             minibatch_indices = np.concatenate([
                 cluster_ids_,
-                random_state.random_integers(
-                    0, n_samples - 1, self.batch_size),
+                random_state.randint(0, n_samples, self.batch_size),
             ])
             dmat = libdistance.pdist(X, metric=self.metric, X_indices=np.array(minibatch_indices, dtype=np.intp))
             minibatch_labels = np.array(np.concatenate([
