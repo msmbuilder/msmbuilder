@@ -21,7 +21,6 @@ from sklearn.utils import check_random_state
 from .base import Bunch, Dataset
 from .base import get_data_home
 from ..msm import _solve_msm_eigensystem
-from ..utils import verboseload, verbosedump
 
 # -----------------------------------------------------------------------------
 # Globals
@@ -59,6 +58,7 @@ class _NWell(Dataset):
     """
 
     target_name = ""  # define in subclass
+    n_trajectories = 0  # define in subclass
     version = 1  # override in subclass if parameters are updated
 
     def __init__(self, data_home=None, random_state=None):
@@ -66,14 +66,23 @@ class _NWell(Dataset):
         self.data_dir = join(self.data_home, self.target_name)
         self.random_state = random_state
         self.cache_path = self._get_cache_path(random_state)
-        self.cached = False
 
     def _get_cache_path(self, random_state):
-        if random_state is None:
-            return None
-        path = join(self.data_dir, 'version-{}_random-state-{}.pkl'
-                    .format(self.version, self.random_state))
+        path = "{}/version-{}/randomstate-{}".format(self.data_dir,
+                                                     self.version,
+                                                     self.random_state)
         return path
+
+    def _load(self, path):
+        return [np.load("{}/{}.npy".format(path, i))
+                for i in range(self.n_trajectories)]
+
+    def _save(self, path, trajectories):
+        assert len(trajectories) == self.n_trajectories
+        if not exists(path):
+            makedirs(path)
+        for i, traj in enumerate(trajectories):
+            np.save("{}/{}.npy".format(path, i), traj)
 
     def cache(self):
         random = check_random_state(self.random_state)
@@ -87,24 +96,21 @@ class _NWell(Dataset):
         if not isinstance(self.random_state, numbers.Integral):
             raise TypeError('random_state must be an int')
         if exists(self.cache_path):
-            return verboseload(self.cache_path)
+            return self._load(self.cache_path)
 
         trajectories = self.simulate_func(random)
-        verbosedump(trajectories, self.cache_path)
+        self._save(self.cache_path, trajectories)
         return trajectories
 
     def get_cached(self):
         if self.cache_path is None:
             raise ValueError("You must specify a random state to get "
                              "cached trajectories.")
-        trajectories = verboseload(self.cache_path)
+        trajectories = self._load(self.cache_path)
         return Bunch(trajectories=trajectories, DESCR=self.description())
 
     def get(self):
-        if not self.cached:
-            trajectories = self.cache()
-        else:
-            trajectories = verboseload(self.cache_path)
+        trajectories = self.cache()
         return Bunch(trajectories=trajectories, DESCR=self.description())
 
     def simulate_func(self, random):
@@ -149,6 +155,7 @@ class DoubleWell(_NWell):
     x_0 = 0.
     """
     target_name = "doublewell"
+    n_trajectories = 10
 
     def simulate_func(self, random):
         return _simulate_doublewell(random)
@@ -197,6 +204,7 @@ class QuadWell(_NWell):
     """
 
     target_name = "quadwell"
+    n_trajectories = 100
 
     def simulate_func(self, random):
         return _simulate_quadwell(random)
