@@ -123,7 +123,23 @@ class MultiSequencePreprocessingMixin(BaseEstimator):
         -------
         out : array like, shape (n_samples, n_features)
         """
-        return super(MultiSequencePreprocessingMixin, self).transform(sequence)
+        return super(MultiSequencePreprocessingMixin, self).transform([sequence])
+
+    def partial_fit(self, sequence):
+        """Fit Preprocessing to X.
+
+        Parameters
+        ----------
+        sequence : array-like, [sequence_length, n_features]
+            A multivariate timeseries.
+        y : None
+            Ignored
+
+        Returns
+        -------
+        self
+        """
+        return super(MultiSequencePreprocessingMixin, self).fit([sequence])
 
 
 class MultiSequenceOnlinePreprocessingMixin(MultiSequencePreprocessingMixin):
@@ -145,8 +161,7 @@ class MultiSequenceOnlinePreprocessingMixin(MultiSequencePreprocessingMixin):
             self
             """
             check_iter_of_sequences(sequences)
-            s = super(MultiSequencePreprocessingMixin, self)
             for sequence in sequences:
-                s.partial_fit(sequence)
+                self.partial_fit(sequence)
 
             return self
