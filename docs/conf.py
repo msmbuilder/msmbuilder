@@ -83,6 +83,7 @@ exclude_patterns = [
     '_build',
     '_templates',
     'advanced_examples',  # TODO: remove
+    'publications_templ.rst',
 ]
 
 # The reST default role (used for this markup: `text`) to use for all
@@ -283,3 +284,22 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
+
+def render_publications():
+    from jinja2 import FileSystemLoader, Environment
+    sys.path.append('.')
+    import bibparse
+
+    env = Environment(loader=FileSystemLoader('.'))
+    template = env.get_template('publications_templ.rst')
+
+    with open('publications.bib') as f:
+        bib = f.read()
+
+    pubs = bibparse.entries.parseString(bib)
+    # Reverse chronological order
+    pubs = sorted(pubs, key=lambda x: -int(x.fields['year']))
+
+    with open('publications.rst', 'w') as f:
+        f.write(template.render(publications=pubs))
+render_publications()
