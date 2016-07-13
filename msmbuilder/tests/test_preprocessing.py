@@ -46,7 +46,7 @@ from sklearn.preprocessing import (Binarizer as BinarizerR,
                                    PolynomialFeatures as PolynomialFeaturesR)
 
 from ..preprocessing import (Binarizer, Imputer, KernelCenterer,
-                             LabelBinarizer, MultiLabelBinarizer, MADScaler,
+                             LabelBinarizer, MultiLabelBinarizer,
                              Normalizer, PolynomialFeatures, Butterworth,
                              EWMA, DoubleEWMA)
 
@@ -85,16 +85,6 @@ def test_doubleewma():
     assert len(y1) == len(trajs)
 
     assert any(np.abs(y1[0] - trajs[0]).ravel() > 1E-5)
-
-
-def test_madscaler():
-    mad = MADScaler()
-
-    y1 = mad.fit_transform(trajs)
-
-    assert len(y1) == len(trajs)
-
-    assert any(np.abs(mad.medians_ - np.median(trajs, axis=0)) > 1E-3)
 
 
 def test_binarizer_vs_sklearn():

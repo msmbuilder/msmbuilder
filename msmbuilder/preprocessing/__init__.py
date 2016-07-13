@@ -10,11 +10,10 @@ from sklearn import preprocessing
 from .base import (MultiSequencePreprocessingMixin,
                    MultiSequenceOnlinePreprocessingMixin)
 from .timeseries import Butterworth, EWMA, DoubleEWMA
-from .mad import MADScaler
 
 __all__ = ['Binarizer', 'Butterworth', 'DoubleEWMA', 'EWMA', 'Imputer',
            'KernelCenterer', 'LabelBinarizer', 'MultiLabelBinarizer',
-           'MADScaler', 'Normalizer', 'PolynomialFeatures']
+           'Normalizer', 'PolynomialFeatures']
 
 
 class Binarizer(MultiSequencePreprocessingMixin, preprocessing.Binarizer):
