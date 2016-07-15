@@ -75,3 +75,16 @@ def sample_states(trajs, state_centers, k=1):
             ]
     else:
         return [(fixed_indices[i], j) for i, j in inds]
+
+
+def sample_msm(trajs, state_centers, msm, n_steps, state=None,
+               stride=1, random_state=None):
+    fixed_indices = list(trajs.keys())
+    trajs = [trajs[k] for k in fixed_indices]
+
+    untrimmed_ktraj = msm.sample_discrete(state=state, n_steps=n_steps,
+                                          random_state=random_state)[::stride]
+
+    tree = KDTree(trajs)
+    dists, inds = tree.query(state_centers[untrimmed_ktraj, :], k=1)
+    return [(fixed_indices[i], j) for i, j in inds]

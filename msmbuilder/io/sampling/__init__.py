@@ -1,1 +1,1 @@
-from .sampling import sample_dimension, sample_states
+from .sampling import sample_dimension, sample_states, sample_msm

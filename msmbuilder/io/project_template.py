@@ -43,6 +43,7 @@ def get_layout():
                             'msm/timescales-plot.py',
                             'msm/microstate.py',
                             'msm/microstate-plot.py',
+                            'msm/microstate-traj.py',
                         ],
                         [],
                     )
