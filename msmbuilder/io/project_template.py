@@ -39,10 +39,10 @@ def get_layout():
                     TemplateDir(
                         'msm',
                         [
-                            'msm/msm-1-timescales.py',
-                            'msm/msm-1-timescales-plot.py',
-                            'msm/msm-2-microstate.py',
-                            'msm/msm-2-microstate-plot.py',
+                            'msm/timescales.py',
+                            'msm/timescales-plot.py',
+                            'msm/microstate.py',
+                            'msm/microstate-plot.py',
                         ],
                         [],
                     )
