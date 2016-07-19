@@ -22,5 +22,6 @@ them in Jupyter::
    Fs-Peptide-with-dataset/Fs-Peptide-with-dataset
    Fs-Peptide-command-line/Fs-Peptide-command-line
    tICA-vs-PCA/tICA-vs-PCA
+   Clustering-Comparison/Clustering-Comparison
 
 .. vim: tw=75
