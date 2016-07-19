@@ -21,5 +21,6 @@ them in Jupyter::
    Fs-Peptide-in-RAM/Fs-Peptide-in-RAM
    Fs-Peptide-with-dataset/Fs-Peptide-with-dataset
    Fs-Peptide-command-line/Fs-Peptide-command-line
+   tICA-vs-PCA/tICA-vs-PCA
 
 .. vim: tw=75
