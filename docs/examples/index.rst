@@ -23,6 +23,7 @@ them in Jupyter::
    Fs-Peptide-command-line/Fs-Peptide-command-line
    tICA-vs-PCA/tICA-vs-PCA
    Clustering-Comparison/Clustering-Comparison
+   GMRQ-Model-Selection/GMRQ-Model-Selection
 
 
 Contributing examples
