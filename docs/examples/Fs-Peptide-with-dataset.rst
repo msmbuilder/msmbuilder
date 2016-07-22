@@ -1,4 +1,4 @@
 Fs Peptide (using ``dataset``)
 ==============================
 
-.. notebook:: examples/Fs-Peptide-with-dataset.ipynb
+.. notebook:: Fs-Peptide-with-dataset

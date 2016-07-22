@@ -18,12 +18,12 @@ them in Jupyter::
    :maxdepth: 2
    :titlesonly:
    
-   Fs-Peptide-in-RAM/Fs-Peptide-in-RAM
-   Fs-Peptide-with-dataset/Fs-Peptide-with-dataset
-   Fs-Peptide-command-line/Fs-Peptide-command-line
-   tICA-vs-PCA/tICA-vs-PCA
-   Clustering-Comparison/Clustering-Comparison
-   GMRQ-Model-Selection/GMRQ-Model-Selection
+   Fs-Peptide-in-RAM
+   Fs-Peptide-with-dataset
+   Fs-Peptide-command-line
+   tICA-vs-PCA
+   Clustering-Comparison
+   GMRQ-Model-Selection
 
 
 Contributing examples
