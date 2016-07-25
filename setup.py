@@ -210,7 +210,10 @@ setup(name='msmbuilder',
       platforms=['Linux', 'Mac OS-X', 'Unix'],
       classifiers=CLASSIFIERS.splitlines(),
       packages=find_packages(),
-      package_data={'msmbuilder.tests': ['workflows/*']},
+      package_data={
+          'msmbuilder.tests': ['workflows/*'],
+          'msmbuilder': ['project_templates/*', 'io_templates/*'],
+      },
       entry_points={'console_scripts':
                         ['msmb = msmbuilder.scripts.msmb:main']},
       zip_safe=False,
