@@ -14,41 +14,33 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 import nbformat
 from nbconvert import HTMLExporter, PythonExporter
+from nbconvert.preprocessors import ExecutePreprocessor
 
 
-def _read(wd, name):
-    with open("{}/{}.ipynb".format(wd, name)) as f:
-        notebook = nbformat.read(f, as_version=4)
-    return notebook
-
-
-def export_html(wd, name):
-    nb = _read(wd, name)
-
+def export_html(nb, f):
     config = {
         'Exporter': {'template_file': 'embed',
                      'template_path': ['./sphinxext/']},
-        'ExecutePreprocessor': {'enabled': True},
         'ExtractOutputPreprocessor': {'enabled': True},
         'CSSHTMLHeaderPreprocessor': {'enabled': True}
     }
 
     exporter = HTMLExporter(config)
-
-    body, resources = exporter.from_notebook_node(nb)
+    body, resources = exporter.from_notebook_node(
+        nb, resources={'output_files_dir': f['nbname']})
 
     for fn, data in resources['outputs'].items():
-        with open("{}/{}".format(wd, fn), 'wb') as f:
-            f.write(data)
+        bfn = os.path.basename(fn)
+        with open("{destdir}/{fn}".format(fn=bfn, **f), 'wb') as res_f:
+            res_f.write(data)
 
     return body
 
 
-def export_python(wd, name):
-    nb = _read(wd, name)
+def export_python(nb, destfn):
     exporter = PythonExporter()
     body, resources = exporter.from_notebook_node(nb)
-    with open("{}/{}.py".format(wd, name), 'w') as f:
+    with open(destfn, 'w') as f:
         f.write(body)
 
 
@@ -61,52 +53,52 @@ class NotebookDirective(Directive):
     final_argument_whitespace = True
 
     def run(self):
+        f = {
+            'docdir': setup.confdir,
+            'builddir': setup.app.builder.outdir,
+            'nbname': self.arguments[0],
+        }
+        f['nbpath'] = "{docdir}/../examples/{nbname}.ipynb".format(**f)
+        f['destdir'] = "{builddir}/examples/{nbname}".format(**f)
 
-        # check if raw html is supported
-        if not self.state.document.settings.raw_enabled:
-            raise self.warning('"%s" directive disabled.' % self.name)
+        if not os.path.exists(f['destdir']):
+            os.makedirs(f['destdir'])
 
-        # get path to notebook
-        nb_rel_path = self.arguments[0]
-        nb_abs_path = "{}/../{}".format(setup.confdir, nb_rel_path)
-        nb_abs_path = os.path.abspath(nb_abs_path)
-        nb_name = os.path.basename(nb_rel_path).split(".")[0]
-        dest_dir = "{}/{}/{}".format(
-            setup.app.builder.outdir,
-            os.path.dirname(nb_rel_path),
-            nb_name)
-        fmt = {'wd': dest_dir, 'name': nb_name}
+        f['uneval'] = "{destdir}/{nbname}.ipynb".format(**f)
+        f['eval'] = "{destdir}/{nbname}.eval.ipynb".format(**f)
+        f['py'] = "{destdir}/{nbname}.py".format(**f)
 
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
-
-        shutil.copyfile(nb_abs_path, "{wd}/{name}.ipynb".format(**fmt))
-
-        # TODO: Actually save evaluated notebook
-        shutil.copyfile(nb_abs_path, "{wd}/{name}_eval.ipynb".format(**fmt))
-
-        html = export_html(**fmt)
-        export_python(**fmt)
+        # 1. Uneval notebook
+        shutil.copyfile(f['nbpath'], f['uneval'])
+        with open(f['nbpath']) as nb_f:
+            nb = nbformat.read(nb_f, as_version=4)
+        # 2. Python
+        export_python(nb, f['py'])
+        # 3. HTML (execute first)
+        executer = ExecutePreprocessor()
+        executer.preprocess(nb, {})
+        html = export_html(nb, f)
+        # 4. Eval'd notebook
+        with open(f['eval'], 'w') as eval_f:
+            nbformat.write(nb, eval_f)
 
         # Create link to notebook and script files
         link_rst = "({uneval}; {eval}; {py})".format(
-            uneval=formatted_link("{wd}/{name}.ipynb".format(**fmt)),
-            eval=formatted_link("{wd}/{name}_eval.ipynb".format(**fmt)),
-            py=formatted_link("{wd}/{name}.py".format(**fmt)),
+            uneval=formatted_link(f['uneval']),
+            eval=formatted_link(f['eval']),
+            py=formatted_link(f['py']),
         )
 
         rst_file = self.state_machine.document.attributes['source']
         self.state_machine.insert_input([link_rst], rst_file)
 
         # create notebook node
-        attributes = {'format': 'html', 'source': 'nb_path'}
-        nb_node = notebook_node('', html, **attributes)
-        nb_node.source, nb_node.line = self.state_machine \
-            .get_source_and_line(self.lineno)
+        nb_node = notebook_node('', html, format='html', source='nb_path')
+        nb_node.source, nb_node.line = (self.state_machine
+                                        .get_source_and_line(self.lineno))
 
         # add dependency
-        self.state.document.settings.record_dependencies.add(nb_abs_path)
-
+        self.state.document.settings.record_dependencies.add(f['nbpath'])
         return [nb_node]
 
 

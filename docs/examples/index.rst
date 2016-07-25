@@ -3,36 +3,33 @@
 Examples
 ========
 
-The following examples should give you an idea of how to use MSMBuilder in
-practice. Since MSMBuilder is both an application and Python library,
-analysis can be performed either via the command line or in Python. 
-
-The Python API examples can be run interactively in Jupyter (IPython)
-notebook. Download the `notebook files
+The following examples show off various aspects or capabilities of
+MSMBuilder. They can be run interactively in Jupyter (IPython) notebook.
+Download the `notebook files
 <https://github.com/msmbuilder/msmbuilder/tree/master/examples>`_ and open
-them in Jupyter
-
-.. code-block:: bash
+them in Jupyter::
 
     $ jupyter notebook
 
-
-Command Line
-------------
-
-.. toctree::
-   :maxdepth: 2
-   :titlesonly:
-   
-   Intro/Intro.cmd
-
-Python API
-----------
+.. To make the ipython rendered images show up, each rst file must be
+   in its own directory.
 
 .. toctree::
    :maxdepth: 2
    :titlesonly:
    
-   Intro/Intro
+   Fs-Peptide-in-RAM
+   Fs-Peptide-with-dataset
+   Fs-Peptide-command-line
+   tICA-vs-PCA
+   Clustering-Comparison
+   GMRQ-Model-Selection
+
+
+Contributing examples
+---------------------
+
+Do you have a neat example of using MSMBuilder? Format your code
+into an IPython notebook and submit a pull request!
 
 .. vim: tw=75
