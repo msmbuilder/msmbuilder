@@ -30,7 +30,7 @@ if sys.version_info < (3, 5):
         "These scripts were all developed on Python 3.5, "
         "which is the current, stable release of Python. "
         "In particular, we use subprocess.run "
-        "(and probably some other new features. "
+        "(and probably some other new features). "
         "You can easily modify the scripts to work on older versions "
         "of Python, but why not just upgrade? We like Continuum's "
         "Anaconda Python distribution for a simple install (without root)."
