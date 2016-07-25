@@ -8,10 +8,8 @@ import os
 import re
 from datetime import datetime
 
-import nbformat
 import yaml
 from jinja2 import Environment, PackageLoader
-from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 from .io import backup, chmod_plus_x
 
@@ -197,6 +195,8 @@ class Template(object):
         ])
 
     def write_ipython(self, templ_fn, rendered):
+        import nbformat
+        from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
         templ_ipynb_fn = templ_fn.replace('.py', '.ipynb')
 
         cell_texts = [templ_ipynb_fn] + re.split(r'## (.*)\n', rendered)
