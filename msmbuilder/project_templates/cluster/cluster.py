@@ -22,7 +22,7 @@ kmeans.fit([traj[:, :dim] for traj in ttrajs.values()])
 ## Transform
 ktrajs = {}
 for k, v in ttrajs.items():
-    ktrajs[k] = kmeans.partial_transform(v)
+    ktrajs[k] = kmeans.partial_transform(v[:, :dim])
 
 ## Save
 print(kmeans.summarize())
