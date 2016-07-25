@@ -1,5 +1,5 @@
-.. _tutorial:
 .. highlight:: bash
+.. _tutorial:
 
 Tutorial
 ========
@@ -113,7 +113,7 @@ Tutorial
    using the convenience function ``itertrajs`` (which only ever holds one
    trajectory in RAM) and calls ``DihedralFeaturizer.partial_transform()``
    on each. Read more about :ref:`featurizers<featurization>` and MSMBuilder
-   :ref:`API patterns<apipaterns>`. Run the scripts::
+   :ref:`API patterns<apipatterns>`. Run the scripts::
 
     python featurize.py
     python featurize-plot.py

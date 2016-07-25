@@ -37,6 +37,7 @@ New users should check out:
 
 - :ref:`background`
 - :ref:`installation`
+- :ref:`tutorial`
 - :ref:`examples`
 - :ref:`faq`
 
@@ -62,6 +63,7 @@ the GNU LGPL (v2.1 or later).
     background
     installation
     tutorial
+    examples/index
     featurization
     decomposition
     cluster
