@@ -36,24 +36,19 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
     """
     fixed_indices = list(trajs.keys())
     trajs = [trajs[k][:, [dimension]] for k in fixed_indices]
-
-    # sort it because all three sampling schemes use it
-    all_vals = []
-    for traj in trajs:
-        all_vals.extend(traj[:, 0])
-    all_vals = np.sort(all_vals)
+    txx = np.concatenate([traj[:,0] for traj in trajs])
 
     if scheme == "linear":
-        max_val = all_vals[-1]
-        min_val = all_vals[0]
-        spaced_points = np.linspace(min_val, max_val, n_frames)
+        spaced_points = np.linspace(np.min(txx), np.max(txx), n_frames)
+        spaced_points = spaced_points[:, np.newaxis]
     elif scheme == "random":
-        spaced_points = np.sort(np.random.choice(all_vals, n_frames))[:,
-                        np.newaxis]
+        spaced_points = np.sort(np.random.choice(txx, n_frames))
+        spaced_points = spaced_points[:, np.newaxis]
     elif scheme == "edge":
         _cut_point = n_frames // 2
-        spaced_points = np.hstack((all_vals[:_cut_point],
-                                   all_vals[-_cut_point:]))
+        txx = np.sort(txx)
+        spaced_points = np.hstack((txx[:_cut_point],
+                                   txx[-_cut_point:]))
     else:
         raise ValueError("Scheme has be to one of linear, random or edge")
 
