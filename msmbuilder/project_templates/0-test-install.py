@@ -70,9 +70,9 @@ try:
     subprocess.check_call(['xdg-open', '--version'])
 except:
     print(textwrap.fill(
-        "For convenience, the plotting scripts try to use `xdg-open` "
-        "to pop up the result of the plot. You can remove these calls. "
-        "They're typically the last line of the plotting scripts."
+        "For convenience, the plotting scripts can try to use `xdg-open` "
+        "to pop up the result of the plot. Use the --display flag on "
+        "msmb TemplateProject to enable this behavior."
     ))
     warnings += 1
 
