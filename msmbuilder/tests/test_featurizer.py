@@ -3,7 +3,7 @@ from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 
-from msmbuilder.example_datasets import AlanineDipeptide, FsPeptide
+from msmbuilder.example_datasets import AlanineDipeptide, MinimalFsPeptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
     RMSDFeaturizer, VonMisesFeaturizer, Slicer
@@ -70,25 +70,25 @@ def test_von_mises_featurizer():
     X_all = featurizer.transform(trajectories)
     n_frames = trajectories[0].n_frames
     assert X_all[0].shape == (n_frames, 18), (
-    "unexpected shape returned: (%s, %s)" %
-    X_all[0].shape)
+        "unexpected shape returned: (%s, %s)" %
+        X_all[0].shape)
 
     featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=18)
     X_all = featurizer.transform(trajectories)
     n_frames = trajectories[0].n_frames
     assert X_all[0].shape == (n_frames, 36), (
-    "unexpected shape returned: (%s, %s)" %
-    X_all[0].shape)
+        "unexpected shape returned: (%s, %s)" %
+        X_all[0].shape)
 
     featurizer = VonMisesFeaturizer(["phi", "psi"], n_bins=10)
     X_all = featurizer.transform(trajectories)
     assert X_all[0].shape == (n_frames, 20), (
-    "unexpected shape returned: (%s, %s)" %
-    X_all[0].shape)
+        "unexpected shape returned: (%s, %s)" %
+        X_all[0].shape)
 
 
 def test_von_mises_featurizer_2():
-    trajectories = FsPeptide().get_cached().trajectories
+    trajectories = MinimalFsPeptide().get_cached().trajectories
     # test to make sure results are being put in the right order
     feat = VonMisesFeaturizer(["phi", "psi"], n_bins=10)
     _, all_phi = compute_phi(trajectories[0])
@@ -96,8 +96,8 @@ def test_von_mises_featurizer_2():
     all_res = []
     for frame in all_phi:
         for dihedral_value in frame:
-            all_res.extend(
-                vm.pdf(dihedral_value, loc=feat.loc, kappa=feat.kappa))
+            all_res.extend(vm.pdf(dihedral_value,
+                                  loc=feat.loc, kappa=feat.kappa))
 
     print(len(all_res))
 

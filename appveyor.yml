@@ -1,5 +1,8 @@
 environment:
 
+  global:
+    PYTHONUNBUFFERED: on
+
   matrix:
     - PYDIR: "C:\\Miniconda35"
       CONDA_PY: "35"
