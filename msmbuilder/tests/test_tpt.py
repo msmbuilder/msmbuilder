@@ -71,7 +71,7 @@ def test_committors_2():
         ref += np.power(tprob[1, 1], np.arange(1000)).sum() * tprob[1, 2]
     ref = np.array([0, ref / 100., 1])
 
-    npt.assert_array_almost_equal(ref, committors)
+    npt.assert_array_almost_equal(ref, committors, decimal=2)
 
 
 def test_cond_committors_1():
@@ -104,7 +104,7 @@ def test_cond_committors_2():
     # depends on tpt.committors
 
     bmsm = BayesianMarkovStateModel(lag_time=1)
-    assignments = np.random.randint(3, size=(10, 1000))
+    assignments = np.random.randint(4, size=(10, 1000))
     bmsm.fit(assignments)
 
     for_committors = tpt.committors(0, 3, bmsm)
@@ -117,7 +117,7 @@ def test_cond_committors_2():
                 tprob[1, 3])
     ref = [0, ref / 100., for_committors[2], 0]
 
-    npt.assert_array_almost_equal(ref, cond_committors)
+    npt.assert_array_almost_equal(ref, cond_committors, decimal=2)
 
 
 def test_fluxes_1():
@@ -161,14 +161,12 @@ def test_fluxes_2():
     assignments = np.random.randint(3, size=(10, 1000))
     bmsm.fit(assignments)
 
-    tprob = bmsm.transmat_
-    pop = bmsm.populations_
     # forward committors
     qplus = tpt.committors(0, 2, bmsm)
 
     ref_fluxes = np.zeros((3, 3))
     ref_net_fluxes = np.zeros((3, 3))
-    for el in zip((bmsm.all_populations_, bmsm.all_transmats_)):
+    for el in zip(bmsm.all_populations_, bmsm.all_transmats_):
         pop = el[0]
         tprob = el[1]
         for i in range(3):
@@ -189,8 +187,8 @@ def test_fluxes_2():
     fluxes = tpt.fluxes(0, 2, bmsm)
     net_fluxes = tpt.net_fluxes(0, 2, bmsm)
 
-    npt.assert_array_almost_equal(ref_fluxes, fluxes)
-    npt.assert_array_almost_equal(ref_net_fluxes, net_fluxes)
+    npt.assert_array_almost_equal(ref_fluxes, fluxes, decimal=2)
+    npt.assert_array_almost_equal(ref_net_fluxes, net_fluxes, decimal=2)
 
 
 def test_hubscore():
