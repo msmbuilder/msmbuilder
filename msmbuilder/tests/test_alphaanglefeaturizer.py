@@ -1,7 +1,7 @@
 import warnings
 
 import msmbuilder.featurizer
-from msmbuilder.example_datasets import FsPeptide, AlanineDipeptide
+from msmbuilder.example_datasets import MinimalFsPeptide, AlanineDipeptide
 
 warnings.filterwarnings('ignore', message='.*Unlikely unit cell vectors.*')
 
@@ -19,7 +19,7 @@ def test_alanine_dipeptide():
 def test_fs_peptide():
     # will produce 36 features
 
-    trajectories = FsPeptide().get_cached().trajectories
+    trajectories = MinimalFsPeptide().get_cached().trajectories
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer()
     alphas = featurizer.transform(trajectories)
 
@@ -29,7 +29,7 @@ def test_fs_peptide():
 def test_fs_peptide_nosincos():
     # will produce 18 features
 
-    trajectories = FsPeptide().get_cached().trajectories
+    trajectories = MinimalFsPeptide().get_cached().trajectories
     featurizer = msmbuilder.featurizer.AlphaAngleFeaturizer(sincos=False)
     alphas = featurizer.transform(trajectories)
 
