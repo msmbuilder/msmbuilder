@@ -34,7 +34,7 @@ New Features
   ``preprocessing`` module (#818).
 - We encourage users to download the ``msmb_data`` conda package to easily
   install example data. The data can be loaded through existing methods
-  in ``msmbuilder.example_datasets``.
+  in ``msmbuilder.example_datasets`` (gh-854, gh-867).
 
 Improvements
 ~~~~~~~~~~~~
