@@ -64,8 +64,6 @@ def test_tica_score_1():
         assert_approx_equal(
             tica.score([X]),
             tica.eigenvalues_.sum())
-        X2 = random.randn(100, 5)
-        assert tica.score([X2]) < tica.score([X])
         assert_approx_equal(tica.score([X]), tica.score_)
 
 

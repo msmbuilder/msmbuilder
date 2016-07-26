@@ -32,7 +32,6 @@ New Features
   ``decomposition`` module (#807).
 - ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
   ``preprocessing`` module (#818).
-- ``MADScaler`` is available in the ``preprocessing`` module (#850).
 - We encourage users to download the ``msmb_data`` conda package to easily
   install example data. The data can be loaded through existing methods
   in ``msmbuilder.example_datasets``.
