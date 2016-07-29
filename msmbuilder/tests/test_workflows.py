@@ -37,7 +37,8 @@ def shell_lines(resource):
 
 def check_call(tokens):
     try:
-        subprocess.check_output(tokens, stderr=subprocess.STDOUT)
+        subprocess.check_output(tokens, stderr=subprocess.STDOUT,
+                                universal_newlines=True)
     except subprocess.CalledProcessError as e:
         print(e.cmd)
         print(e.output)
@@ -53,7 +54,7 @@ class workflow_tester(object):
     def __call__(self, *args, **kwargs):
         with tempdir():
             for line in shell_lines(self.path):
-                check_call(shlex.split(line))
+                check_call(shlex.split(line, posix=False))
 
 
 def test_workflows():

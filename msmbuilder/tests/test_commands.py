@@ -7,7 +7,6 @@ import os
 import shlex
 import shutil
 import subprocess
-import sys
 import tempfile
 
 import hmmlearn.hmm
@@ -71,9 +70,10 @@ class tempdir(object):
 
 
 def shell(str):
-    split = shlex.split(str)
+    split = shlex.split(str, posix=False)
     try:
-        subprocess.check_output(split, stderr=subprocess.STDOUT)
+        subprocess.check_output(split, stderr=subprocess.STDOUT,
+                                universal_newlines=True)
     except subprocess.CalledProcessError as e:
         print(e.cmd)
         print(e.output)
@@ -214,13 +214,8 @@ def test_convert_chunked_project_1():
     with tempdir():
         root = os.path.join(get_data_home(), 'alanine_dipeptide')
         assert os.path.exists(root)
-        if sys.platform == 'win32':
-            pattern = "*.dcd"
-        else:
-            pattern = "'*.dcd'"
-        cmd = ('msmb ConvertChunkedProject out {root} --pattern {pattern} '
-               '-t {root}/ala2.pdb'
-               .format(root=root, pattern=pattern))
+        cmd = ("msmb ConvertChunkedProject out {root} --pattern *.dcd "
+               "-t {root}/ala2.pdb".format(root=root))
         shell(cmd)
         assert set(os.listdir('out')) == {'traj-00000000.dcd',
                                           'trajectories.jsonl'}
