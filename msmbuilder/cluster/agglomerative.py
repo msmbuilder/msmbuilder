@@ -105,6 +105,14 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         The generator used to select random landmarks. Only used if
         landmark_strategy=='random'. If an integer is given, it fixes the seed.
         Defaults to the global numpy random number generator.
+    max_landmarks : int, optional, default=None
+        Useful for hyperparameter searching. If n_clusters exceeds n_landmarks,
+        max_landmarks will be used. Otherwise, n_clusters will be used. If
+        None, no cutoff is enforced on n_clusters, which may result in memory 
+        issues.
+    ward_predictor : {'single', 'complete', 'average', 'ward'}, default='ward'
+        Which criterion to use when predicting cluster assignments after
+        fitting with ward linkage.
 
     References
     ----------
@@ -118,13 +126,16 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
     """
 
     def __init__(self, n_clusters, n_landmarks=None, linkage='average',
-                 metric='euclidean', landmark_strategy='stride', random_state=None):
+                 metric='euclidean', landmark_strategy='stride', random_state=None,
+                 max_landmarks=None, ward_predictor='ward'):
         self.n_clusters = n_clusters
         self.n_landmarks = n_landmarks
         self.metric = metric
         self.landmark_strategy = landmark_strategy
         self.random_state = random_state
         self.linkage = linkage
+        self.max_landmarks = max_landmarks
+        self.ward_predictor = ward_predictor
 
         self.landmark_labels_ = None
         self.landmarks_ = None
@@ -142,6 +153,10 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         self
         """
 
+
+        if self.max_landmarks is not None:
+            if self.n_clusters > self.max_landmarks:
+                self.n_landmarks = self.max_landmarks
         
         if self.n_landmarks is None:
             distances = libdistance.pdist(X, self.metric)
@@ -198,10 +213,16 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
         dists = libdistance.cdist(X, self.landmarks_, self.metric)
 
-        try:
-            pooling_func = POOLING_FUNCTIONS[self.linkage]
-        except KeyError:
-            raise ValueError('linkage=%s is not supported' % self.linkage)
+        if self.linkage == 'ward':
+            try:
+                pooling_func = POOLING_FUNCTIONS[self.ward_predictor]
+            except KeyError:
+                raise ValueError('linkage=%s is not supported' % self.linkage)
+        else:
+            try:
+                pooling_func = POOLING_FUNCTIONS[self.linkage]
+            except KeyError:
+                raise ValueError('linkage=%s is not supported' % self.linkage)
 
         pooled_distances = np.empty(len(X))
         pooled_distances.fill(np.infty)
