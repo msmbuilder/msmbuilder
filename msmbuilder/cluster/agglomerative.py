@@ -128,7 +128,6 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
         self.landmark_labels_ = None
         self.landmarks_ = None
-        self.labels_ = None
 
     def fit(self, X, y=None):
         """
@@ -159,7 +158,6 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                     self.squared_distances_within_cluster_[self.landmark_labels_[i]] += distances[k]**2
 
             self.landmarks_ = X
-            self.labels_ = self.landmark_labels_
 
         else:
             if self.landmark_strategy == 'random':
@@ -181,7 +179,6 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                     self.squared_distances_within_cluster_[self.landmark_labels_[i]] += distances[k]**2
 
             self.landmarks_ = X[land_indices]
-            self.labels_ = None
 
         return self
 
