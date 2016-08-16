@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors: Matthew Harrigan <matthew.harrigan@outlook.com>
-# Copyright (c) 2015, Stanford University
+# Contributors: Matthew Harrigan <matthew.harrigan@outlook.com>, Brooke Husic <brookehusic@gmail.com>
+# Copyright (c) 2016, Stanford University
 # All rights reserved.
 
 
@@ -76,19 +76,6 @@ class AgglomerativeClustering(MultiSequenceClusterMixin,
                               cluster.AgglomerativeClustering,
                               BaseEstimator):
     __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
-
-try:
-    class Ward(MultiSequenceClusterMixin, cluster.Ward, BaseEstimator):
-        __doc__ = _replace_labels(cluster.Ward.__doc__)
-except AttributeError:
-    class Ward(AgglomerativeClustering):
-        __doc__ = AgglomerativeClustering.__doc__
-
-        def __init__(self, *args, **kwargs):
-            warnings.warn("sklearn.cluster.Ward was removed, "
-                          "please use AgglomerativeClustering",
-                          DeprecationWarning)
-            super(Ward, self).__init__(*args, **kwargs)
 
 
 class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
