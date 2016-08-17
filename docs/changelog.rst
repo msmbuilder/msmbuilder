@@ -38,6 +38,9 @@ New Features
 - An example dataset ``MinimalFsPeptide`` is available. This is a strided
   version of the existing ``FsPeptide`` dataset. We use it for testing,
   when a fully-converged dataset is not required (gh-867).
+- ``LandmarkAgglomerative`` clustering now features the ``ward`` linkage
+  option. An algorithm for predicting cluster assignments with the
+  ``ward`` objective function has been developed and implemented (#TBD).
 
 Improvements
 ~~~~~~~~~~~~
