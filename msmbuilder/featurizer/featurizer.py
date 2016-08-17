@@ -1087,8 +1087,7 @@ class CommonContactFeaturizer(Featurizer):
             #get its pairs
             pairs = [i for i in itertools.combinations(can_keep, 2)]
             #create a custom ContactFeaturizer for this particular sequence.
-            feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
-                                                       ignore_nonprotein=self.ignore_nonprotein)
+            feat_dict[protein] = pairs
         return feat_dict
 
     def partial_transform(self, traj):
@@ -1118,7 +1117,12 @@ class CommonContactFeaturizer(Featurizer):
         """
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
-        return self.feat_dict[seq_id].partial_transform(traj)
+
+        pairs = self.feat_dict[seq_id]
+        feat = ContactFeaturizer(pairs,scheme=self.scheme,
+                          ignore_nonprotein=self.ignore_nonprotein)
+
+        return feat.partial_transform(traj)
 
 
     def _transform(self, distances):
@@ -1127,9 +1131,11 @@ class CommonContactFeaturizer(Featurizer):
     def describe_features(self, traj):
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
-        print(seq_id)
+        pairs = self.feat_dict[seq_id]
+        feat = ContactFeaturizer(pairs,scheme=self.scheme,
+                          ignore_nonprotein=self.ignore_nonprotein)
 
-        return self.feat_dict[seq_id].describe_features(traj)
+        return feat.describe_features(traj)
 
     def _map_residue_ind_seq_ind(self,alignment):
         all_mappings = {}
@@ -1140,8 +1146,6 @@ class CommonContactFeaturizer(Featurizer):
             prt_seq = ''.join([i for i in aligned_seq if i!="-"])
 
             all_sequences[prt] = prt_seq
-
-            inv_mapping = {}
             mapping = {}
             seq_index = 0
 
