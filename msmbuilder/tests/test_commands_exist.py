@@ -83,6 +83,7 @@ def get_all():
                          'FirstSlicer',
                          'FeatureUnion',
                          'FunctionFeaturizer',
+                         'CommonContactFeaturizer',
                          ]),
         get_from_module(msmbuilder.example_datasets,
                         ['MinimalFsPeptide',

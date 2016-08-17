@@ -6,16 +6,23 @@ Changelog
 v3.7 (development)
 ------------------
 
-New Features
-~~~~~~~~~~~~
+API Changes
+~~~~~~~~~~~
 
--``BootStrapMarkovStateModel`` can now optionally save all the
-models that it generates(gh-919)
 
 New Features
 ~~~~~~~~~~~~
 
+- ``BootStrapMarkovStateModel`` can now optionally save all the
+  models that it generates (gh-919).
 - ``tICA`` now supports commute mapping based off 10.1021/acs.jctc.6b00762
+- ``CommonContactFeaturizer`` featurizes a bunch of different
+  trajectories, with different topologies, using a common set of
+  inter-residue contacts (gh-876).
+
+Improvements
+~~~~~~~~~~~~
+
 
 v3.6 (September 15, 2016)
 -------------------------
