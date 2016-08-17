@@ -48,6 +48,31 @@ POOLING_FUNCTIONS = {
     'ward': ward_pooling_function,
 }
 
+#-----------------------------------------------------------------------------
+# Utilities
+#-----------------------------------------------------------------------------
+
+
+def pdist(X, metric='euclidean'):
+    if isinstance(metric, six.string_types):
+        return libdistance.pdist(X, metric)
+
+    n = len(X)
+    d = np.empty((n, n))
+    for i in range(n):
+        d[i, :] = metric(X, X, i)
+    return scipy.spatial.distance.squareform(d, checks=False)
+
+def cdist(XA, XB, metric='euclidean'):
+    if isinstance(metric, six.string_types):
+        return libdistance.cdist(XA, XB, metric)
+
+    nA, nB = len(XA), len(XB)
+    d = np.empty((nA, nB))
+    for i in range(nA):
+        d[i, :] = metric(XB, XA, i)
+    return d
+
 
 #-----------------------------------------------------------------------------
 # Main Code
@@ -159,7 +184,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 self.n_landmarks = self.max_landmarks
         
         if self.n_landmarks is None:
-            distances = libdistance.pdist(X, self.metric)
+            distances = pdist(X, self.metric)
             tree = linkage(distances, method=self.linkage)
             self.landmark_labels_ = fcluster(tree, criterion='maxclust', t=self.n_clusters) - 1
             self.cardinality_ = np.bincount(self.landmark_labels_)
@@ -180,7 +205,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
             else:
                 land_indices = np.arange(len(X))[::(len(X) // self.n_landmarks)][:self.n_landmarks]
 
-            distances = libdistance.pdist(X[land_indices], self.metric)
+            distances = pdist(X[land_indices], self.metric)
             tree = linkage(distances, method=self.linkage)
             self.landmark_labels_ = fcluster(tree, criterion='maxclust', t=self.n_clusters) - 1
             self.cardinality_ = np.bincount(self.landmark_labels_)
@@ -211,7 +236,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
             Index of the cluster each sample belongs to.
         """
 
-        dists = libdistance.cdist(X, self.landmarks_, self.metric)
+        dists = cdist(X, self.landmarks_, self.metric)
 
         if self.linkage == 'ward':
             try:
