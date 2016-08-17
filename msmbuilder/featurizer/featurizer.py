@@ -8,18 +8,15 @@
 
 from __future__ import print_function, division, absolute_import
 
-import warnings
+import itertools
 
 import mdtraj as md
 import numpy as np
 import sklearn.pipeline
 from scipy.stats import vonmises as vm
-from msmbuilder import libdistance
-import itertools
-from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
 
-from msmbuilder import libdistance
+from .base import Featurizer
 from ..base import BaseEstimator
 
 def zippy_maker(aind_tuples, top):
@@ -51,112 +48,6 @@ def dict_maker(zippy):
         )]
     return feature_descs
 
-def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
-    """Load and featurize many trajectory files.
-
-    Parameters
-    ----------
-    filenames : list of strings
-        List of paths to MD trajectory files
-    featurizer : Featurizer
-        The featurizer to be invoked on each trajectory trajectory as
-        it is loaded
-    topology : str, Topology, Trajectory
-        Topology or path to a topology file, used to load trajectories with
-        MDTraj
-    chunk : {int, None}
-        If chunk is an int, load the trajectories up in chunks using
-        md.iterload for better memory efficiency (less trajectory data needs
-        to be in memory at once)
-    stride : int, default=1
-        Only read every stride-th frame.
-
-    Returns
-    -------
-    data : np.ndarray, shape=(total_length_of_all_trajectories, n_features)
-    indices : np.ndarray, shape=(total_length_of_all_trajectories)
-    fns : np.ndarray shape=(total_length_of_all_trajectories)
-        These three arrays all share the same indexing, such that data[i] is
-        the featurized version of indices[i]-th frame in the MD trajectory
-        with filename fns[i].
-    """
-    data = []
-    indices = []
-    fns = []
-
-    for file in filenames:
-        kwargs = {} if file.endswith('.h5') else {'top': topology}
-        count = 0
-        for t in md.iterload(file, chunk=chunk, stride=stride, **kwargs):
-            x = featurizer.partial_transform(t)
-            n_frames = len(x)
-
-            data.append(x)
-            indices.append(count + (stride * np.arange(n_frames)))
-            fns.extend([file] * n_frames)
-            count += (stride * n_frames)
-    if len(data) == 0:
-        raise ValueError("None!")
-
-    return np.concatenate(data), np.concatenate(indices), np.array(fns)
-
-class Featurizer(BaseEstimator, TransformerMixin):
-    """Base class for objects that featurize Trajectories.
-
-    Notes
-    -----
-    At the bare minimum, a featurizer must implement the `partial_transform(traj)`
-    member function.  A `transform(traj_list)` for featurizing multiple
-    trajectories in batch will be provided.
-    """
-
-    def __init__(self):
-        pass
-
-    def featurize(self, traj):
-        raise NotImplementedError('This API was removed. Use partial_transform instead')
-
-    def partial_transform(self, traj):
-        """Featurize an MD trajectory into a vector space.
-
-        Parameters
-        ----------
-        traj : mdtraj.Trajectory
-            A molecular dynamics trajectory to featurize.
-
-        Returns
-        -------
-        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
-            A featurized trajectory is a 2D array of shape
-            `(length_of_trajectory x n_features)` where each `features[i]`
-            vector is computed by applying the featurization function
-            to the `i`th snapshot of the input trajectory.
-
-        See Also
-        --------
-        transform : simultaneously featurize a collection of MD trajectories
-        """
-        pass
-
-    def fit(self, traj_list, y=None):
-        return self
-
-    def transform(self, traj_list, y=None):
-        """Featurize a several trajectories.
-
-        Parameters
-        ----------
-        traj_list : list(mdtraj.Trajectory)
-            Trajectories to be featurized.
-
-        Returns
-        -------
-        features : list(np.ndarray), length = len(traj_list)
-            The featurized trajectories.  features[i] is the featurized
-            version of traj_list[i] and has shape
-            (n_samples_i, n_features)
-        """
-        return [self.partial_transform(traj) for traj in traj_list]
 
     def describe_features(self, traj):
         """Generic method for describing features.
@@ -248,69 +139,6 @@ class SuperposeFeaturizer(Featurizer):
         x = np.sqrt(np.sum(diff2, axis=2))
         return x
 
-
-class RMSDFeaturizer(Featurizer):
-    """Featurizer based on RMSD to one or more reference structures.
-
-    This featurizer inputs a trajectory to be analyzed ('traj') and a
-    reference trajectory ('ref') and outputs the RMSD of each frame of
-    traj with respect to each frame in ref. The output is a numpy array
-    with n_rows = traj.n_frames and n_columns = ref.n_frames.
-
-    Parameters
-    ----------
-    reference_traj : md.Trajectory
-        The reference conformations to superpose each frame with respect to
-    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
-        The indices of the atoms to superpose and compute the distances with.
-        If not specified, all atoms are used.
-    trj0
-        Deprecated. Please use reference_traj.
-    """
-
-    def __init__(self, reference_traj=None, atom_indices=None, trj0=None):
-        if trj0 is not None:
-            warnings.warn("trj0 is deprecated. Please use reference_traj",
-                          DeprecationWarning)
-            reference_traj = trj0
-        else:
-            if reference_traj is None:
-                raise ValueError("Please specify a reference trajectory")
-
-        self.atom_indices = atom_indices
-        if self.atom_indices is not None:
-            self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
-        else:
-            self.sliced_reference_traj = reference_traj
-
-    def partial_transform(self, traj):
-        """Featurize an MD trajectory into a vector space via distance
-        after superposition
-
-        Parameters
-        ----------
-        traj : mdtraj.Trajectory
-            A molecular dynamics trajectory to featurize.
-
-        Returns
-        -------
-        features : np.ndarray, shape=(n_frames, n_ref_frames)
-            The RMSD value of each frame of the input trajectory to be
-            featurized versus each frame in the reference trajectory. The
-            number of features is the number of reference frames.
-
-        See Also
-        --------
-        transform : simultaneously featurize a collection of MD trajectories
-        """
-        if self.atom_indices is not None:
-            sliced_traj = traj.atom_slice(self.atom_indices)
-        else:
-            sliced_traj = traj
-        result = libdistance.cdist(
-            sliced_traj, self.sliced_reference_traj, 'rmsd'
-        )
-        return result
 
 
 class AtomPairsFeaturizer(Featurizer):
