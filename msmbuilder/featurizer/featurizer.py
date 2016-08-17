@@ -1062,8 +1062,8 @@ class CommonContactFeaturizer(Featurizer):
         self.all_inv_mappings, \
         self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
 
-        self.all_inv_mappings =[]
         self.feat_dict = self._create_feat_dict()
+        self.all_inv_mappings =[]
 
     def _create_feat_dict(self):
         feat_dict = {}
