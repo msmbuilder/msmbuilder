@@ -1004,12 +1004,19 @@ class CommonContactFeaturizer(Featurizer):
     """Featurizer based on residue-residue contacts between
     desired positions of an alignment file.
 
+    This featurizer will figure out the protein sequence on the fly
+    making sure that feature "i" corresponds to the contact distance
+    between the same residue indices based upon the given alignment file.
+
     This featurizer transforms a dataset containing MD trajectories into
     a vector dataset by representing each frame in each of the MD trajectories
     by a vector of the binary contacts between pairs of amino-acid residues.
 
     The exact method for computing the the distance between two residues
     is configurable with the ``scheme`` parameter.
+
+    The conserved_only flag will only use the wanted_positions if they have
+    the same amino acid at that sequence index location.
 
     Parameters
     ----------
@@ -1022,7 +1029,6 @@ class CommonContactFeaturizer(Featurizer):
     conserved_only: True or False
         Whether or not to only use conserved(i.e. same aa) residues
         for calculating contacts.
-
     scheme : {'ca', 'closest', 'closest-heavy'}
         scheme to determine the distance between two residues:
             'ca' : distance between two residues is given by the distance
