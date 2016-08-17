@@ -1057,13 +1057,13 @@ class CommonContactFeaturizer(Featurizer):
             self.wanted_positions = range(max([len(self.alignment[i])
                                                for i in self.alignment.keys()]))
 
-        self.protein_list = self.alignment.keys()
+        self.protein_list = list(self.alignment.keys())
 
         self.all_inv_mappings, \
         self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
 
         self.feat_dict = self._create_feat_dict()
-        self.all_inv_mappings =[]
+
 
     def _create_feat_dict(self):
         feat_dict = {}
