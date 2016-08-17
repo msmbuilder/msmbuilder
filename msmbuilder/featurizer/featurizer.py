@@ -1056,19 +1056,20 @@ class CommonContactFeaturizer(Featurizer):
         self.all_inv_mappings, \
         self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
 
-        self.feat_dict = self._create_contact_pairs()
+        self.feat_dict = self._create_feat_dict()
 
-    def _create_contact_pairs(self):
-        contact_pairs = {}
+    def _create_feat_dict(self):
+        feat_dict = {}
         for protein in self.protein_list:
             can_keep=[]
-            prt_seq = self.all_sequences[protein]
             inv_map = self.all_inv_mappings[protein]
 
             for position in self.wanted_positions:
                 possible_codes = set([self.alignment[p][position] for p in
                                       self.alignment.keys()])
+                #ignore all additions
                 if not "-" in possible_codes:
+                    #if we want the same residue ignore it
                     if self.same_residue and len(set(possible_codes))!=1:
                         continue
                     # get the inverse mapping and add it to the list of can keep
@@ -1079,10 +1080,10 @@ class CommonContactFeaturizer(Featurizer):
             can_keep = np.sort(can_keep)
             #get its pairs
             pairs = [i for i in itertools.combinations(can_keep, 2)]
-            contact_pairs[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
+            #create a custom ContactFeaturizer for this particular sequence.
+            feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein)
-
-        return contact_pairs
+        return feat_dict
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space derived from
@@ -1104,6 +1105,10 @@ class CommonContactFeaturizer(Featurizer):
         See Also
         --------
         transform : simultaneously featurize a collection of MD trajectories
+
+        Warning
+        -------
+        Only works for chain 0 for now.
         """
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
