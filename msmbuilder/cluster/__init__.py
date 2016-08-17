@@ -23,7 +23,7 @@ from .apm import APM
 warnings.filterwarnings("ignore", '', DeprecationWarning, r'^sklearn\.')
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
-           'GMM', 'SpectralClustering', 'Ward', 'KCenters', 'NDGrid',
+           'GMM', 'SpectralClustering', 'KCenters', 'NDGrid',
            'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
            'MiniBatchKMedoids', 'MultiSequenceClusterMixin', 'APM']
 

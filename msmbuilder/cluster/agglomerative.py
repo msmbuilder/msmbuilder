@@ -18,11 +18,7 @@ from sklearn.utils import check_random_state
 from sklearn.base import ClusterMixin, TransformerMixin
 from . import MultiSequenceClusterMixin
 from ..base import BaseEstimator
-
-try:
-    from fastcluster import linkage
-except ImportError:
-    from scipy.cluster.hierarchy import linkage
+from fastcluster import linkage
 
 #-----------------------------------------------------------------------------
 # Globals
