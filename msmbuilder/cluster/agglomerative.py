@@ -111,7 +111,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
               all observations of the two sets.
             - single uses the minimum distance between all observations of the
               two sets.
-            - ward linkage minimized the within-cluster variance
+            - ward linkage minimizes the within-cluster variance
         The linkage also effects the predict() method and the use of landmarks.
         After computing the distance from each new data point to the landmarks,
         the new data point will be assigned to the cluster that minimizes the
