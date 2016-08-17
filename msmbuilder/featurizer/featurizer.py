@@ -18,7 +18,7 @@ from msmbuilder import libdistance
 import itertools
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
-
+from Bio import SeqIO
 from msmbuilder import libdistance
 from ..base import BaseEstimator
 
@@ -998,6 +998,162 @@ class ContactFeaturizer(Featurizer):
         feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
+
+
+class CommonContactFeaturizer(Featurizer):
+    """Featurizer based on residue-residue contacts between
+    desired positions of an alignment file.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the binary contacts between pairs of amino-acid residues.
+
+    The exact method for computing the the distance between two residues
+    is configurable with the ``scheme`` parameter.
+
+    Parameters
+    ----------
+    alignment_file: string
+        Location of the fasta alignment file. Any trajectory given to partial
+        transfrom should have its corresponding sequence in the alignment file.
+    wanted_positions:list or 'all'
+        Location of desired sequence positions that need to be explicitly
+        included for calculating contacts.
+    conserved_only: True or False
+        Whether or not to only use conserved(i.e. same aa) residues
+        for calculating contacts.
+
+    scheme : {'ca', 'closest', 'closest-heavy'}
+        scheme to determine the distance between two residues:
+            'ca' : distance between two residues is given by the distance
+                between their alpha carbons
+            'closest' : distance is the closest distance between any
+                two atoms in the residues
+            'closest-heavy' : distance is the closest distance between
+                any two non-hydrogen atoms in the residues
+    ignore_nonprotein : bool
+        When using `contact==all`, don't compute contacts between
+        "residues" which are not protein (i.e. do not contain an alpha
+        carbon).
+"""
+
+    def __init__(self, alignment_file="align.fst", wanted_positions='all',
+                 same_residue='True',
+                  scheme='closest-heavy', ignore_nonprotein=True):
+
+        self.alignment = self._parse_alignment_file(alignment_file)
+        self.scheme = scheme
+        self.same_residue = same_residue
+        self.wanted_positions = wanted_positions
+        self.ignore_nonprotein = ignore_nonprotein
+        if wanted_positions is 'all':
+            #use the max length(probably a horrible idea)
+            self.wanted_positions = range(max([len(self.alignment[i])
+                                               for i in self.alignment.keys()]))
+
+        self.protein_list = self.alignment.keys()
+
+        self.all_inv_mappings, \
+        self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
+
+        self.feat_dict = self._create_contact_pairs()
+
+    def _create_contact_pairs(self):
+        contact_pairs = {}
+        for protein in self.protein_list:
+            can_keep=[]
+            prt_seq = self.all_sequences[protein]
+            inv_map = self.all_inv_mappings[protein]
+
+            for position in self.wanted_positions:
+                possible_codes = set([self.alignment[p][position] for p in
+                                      self.alignment.keys()])
+                if not "-" in possible_codes:
+                    if self.same_residue and len(set(possible_codes))!=1:
+                        continue
+                    # get the inverse mapping and add it to the list of can keep
+                    residue_index = inv_map[position]
+                    can_keep.append(residue_index)
+
+            #sort it because i dont want random bs issues.
+            can_keep = np.sort(can_keep)
+            #get its pairs
+            pairs = [i for i in itertools.combinations(can_keep, 2)]
+            contact_pairs[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
+                                                       ignore_nonprotein=self.ignore_nonprotein)
+
+        return contact_pairs
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space derived from
+        residue-residue distances
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, dtype=float, shape=(n_samples, n_features)
+            A featurized trajectory is a 2D array of shape
+            `(length_of_trajectory x n_features)` where each `features[i]`
+            vector is computed by applying the featurization function
+            to the `i`th snapshot of the input trajectory.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        seq_id = [k for k,v in self.all_sequences.items()
+                  if v == traj.top.to_fasta(chain=0)][0]
+        return self.feat_dict[seq_id].partial_transform(traj)
+
+
+    def _transform(self, distances):
+        return distances
+
+    def describe_features(self, traj):
+        seq_id = [k for k,v in self.all_sequences.items()
+                  if v == traj.top.to_fasta(chain=0)][0]
+        print(seq_id)
+
+        return self.feat_dict[seq_id].describe_features(traj)
+
+    def _map_residue_ind_seq_ind(self,alignment):
+        all_mappings = {}
+        all_sequences = {}
+        all_inv_mappings = {}
+        for prt in alignment.keys():
+            aligned_seq = alignment[prt]
+            prt_seq = ''.join([i for i in aligned_seq if i!="-"])
+
+            all_sequences[prt] = prt_seq
+
+            inv_mapping = {}
+            mapping = {}
+            seq_index = 0
+
+            for i in range(len(prt_seq)):
+                while True:
+                    if prt_seq[i] == aligned_seq[seq_index]:
+                        mapping[i] = seq_index
+                        seq_index += 1
+                        break
+                    else:
+                        seq_index += 1
+                        continue
+            all_mappings[prt] = mapping
+            all_inv_mappings[prt] = {v: k for k, v in mapping.items()}
+        return all_inv_mappings, all_sequences
+
+
+    def _parse_alignment_file(self, filename):
+        aligned_dict = {}
+        fasta_sequences = SeqIO.parse(open(filename),'fasta')
+        for fasta in fasta_sequences:
+            aligned_dict[fasta.id]=fasta.seq.tostring().upper()
+        return aligned_dict
 
 
 class BinaryContactFeaturizer(ContactFeaturizer):
