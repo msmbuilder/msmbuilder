@@ -2,7 +2,7 @@
 
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors: Brooke Husic <brookehusic@gmail.com>
-# Copyright (c) 2015, Stanford University
+# Copyright (c) 2016, Stanford University
 # All rights reserved.
 
 from __future__ import print_function
@@ -333,9 +333,10 @@ cdef _assign_nearest_rmsd(X, Y, npy_intp[::1] X_indices=None):
     cdef float[::1] X_trace
     cdef float[::1] Y_trace
 
-    if X._rmsd_traces is None or Y._rmsd_traces is None:
-        raise ValueError('X and Y must be pre-centered, using '
-                         'md.Trajectory.center_coordinates')
+    if X._rmsd_traces is None:
+        X.center_coordinates()
+    if Y._rmsd_traces is None:
+        Y.center_coordinates()
     X_trace = X._rmsd_traces
     Y_trace = Y._rmsd_traces
 
@@ -470,8 +471,7 @@ cdef _pdist_rmsd(X, npy_intp[::1] X_indices=None):
     cdef float[::1] X_trace
 
     if X._rmsd_traces is None:
-        raise ValueError('X must be pre-centered using '
-                         'md.Trajectory.center_coordinates')
+        X.center_coordinates()
     X_trace = X._rmsd_traces
 
     if X_indices is None:
@@ -542,9 +542,10 @@ cdef _dist_rmsd(X, y, npy_intp[::1] X_indices=None):
     cdef float[::1] X_trace
     cdef float[::1] y_trace
 
-    if X._rmsd_traces is None or y._rmsd_traces is None:
-        raise ValueError('X and y must be pre-centered, using '
-                         'md.Trajectory.center_coordinates')
+    if X._rmsd_traces is None:
+        X.center_coordinates()
+    if y._rmsd_traces is None:
+        y.center_coordinates()
     X_trace = X._rmsd_traces
     y_trace = y._rmsd_traces
 
@@ -598,8 +599,7 @@ cdef double _sumdist_rmsd(X, npy_intp[:, ::1] pair_indices):
     cdef float[::1] X_trace
 
     if X._rmsd_traces is None:
-        raise ValueError('X must be pre-centered using '
-                         'md.Trajectory.center_coordinates')
+        X.center_coordinates()
     X_trace = X._rmsd_traces
 
     for i in range(pair_indices.shape[0]):
