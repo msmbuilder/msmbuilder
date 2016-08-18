@@ -60,7 +60,6 @@ def test_callable_metric():
     eq(model1.fit_predict([data])[0], model2.fit_predict([data])[0])
 
 
-
 def test_1_ward():
     x = [random.randn(10, 2), random.randn(10, 2)]
 
@@ -104,14 +103,13 @@ def test_2_ward():
                                np.concatenate(labels2)) == 1.0
 
 
-
 def test_alanine_dipeptide():
     # test for rmsd metric compatibility with ward clustering
     # keep n_landmarks small or this will get really slow
     trajectories = AlanineDipeptide().get_cached().trajectories
     n_clusters = 4
     model = LandmarkAgglomerative(n_clusters=n_clusters, n_landmarks=20,
-                                   linkage='ward', metric='rmsd')
+                                  linkage='ward', metric='rmsd')
     labels = model.fit_predict(trajectories[0][0:100])
 
     assert len(np.unique(np.concatenate(labels))) <= n_clusters

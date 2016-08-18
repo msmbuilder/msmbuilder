@@ -27,20 +27,22 @@ from fastcluster import linkage
 
 __all__ = ['_LandmarkAgglomerative']
 
+
 def ward_pooling_function(x, cluster_cardinality, intra_cluster_sum):
     if cluster_cardinality == 1:
-        squared_sums = (x**2)[:,0]
+        squared_sums = (x ** 2)[:, 0]
         return squared_sums
     else:
         normalization_factor = cluster_cardinality*(cluster_cardinality+1)/2
         squared_sums = (x**2).sum(axis=1)
-        result_vector = (cluster_cardinality*squared_sums - intra_cluster_sum)/normalization_factor
+        result_vector = ((cluster_cardinality * squared_sums -
+                          intra_cluster_sum) / normalization_factor)
         return result_vector
 
 POOLING_FUNCTIONS = {
-    'average': lambda x,ignore1,ignore2: np.mean(x, axis=1),
-    'complete': lambda x,ignore1,ignore2: np.max(x, axis=1),
-    'single': lambda x,ignore1,ignore2: np.min(x, axis=1),
+    'average': lambda x, ignore1, ignore2: np.mean(x, axis=1),
+    'complete': lambda x, ignore1, ignore2: np.max(x, axis=1),
+    'single': lambda x, ignore1, ignore2: np.min(x, axis=1),
     'ward': ward_pooling_function,
 }
 
@@ -58,6 +60,7 @@ def pdist(X, metric='euclidean'):
     for i in range(n):
         d[i, :] = metric(X, X, i)
     return scipy.spatial.distance.squareform(d, checks=False)
+
 
 def cdist(XA, XB, metric='euclidean'):
     if isinstance(metric, six.string_types):
@@ -147,8 +150,8 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
     """
 
     def __init__(self, n_clusters, n_landmarks=None, linkage='average',
-                 metric='euclidean', landmark_strategy='stride', random_state=None,
-                 max_landmarks=None, ward_predictor='ward'):
+                 metric='euclidean', landmark_strategy='stride',
+                 random_state=None, max_landmarks=None, ward_predictor='ward'):
         self.n_clusters = n_clusters
         self.n_landmarks = n_landmarks
         self.metric = metric
@@ -174,7 +177,6 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         self
         """
 
-
         if self.max_landmarks is not None:
             if self.n_clusters > self.max_landmarks:
                 self.n_landmarks = self.max_landmarks
@@ -182,7 +184,8 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         if self.n_landmarks is None:
             distances = pdist(X, self.metric)
             tree = linkage(distances, method=self.linkage)
-            self.landmark_labels_ = fcluster(tree, criterion='maxclust', t=self.n_clusters) - 1
+            self.landmark_labels_ = fcluster(tree, criterion='maxclust',
+                                             t=self.n_clusters) - 1
             self.cardinality_ = np.bincount(self.landmark_labels_)
             self.squared_distances_within_cluster_ = np.zeros(self.n_clusters)
 
@@ -191,19 +194,23 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 i = int(n - 2 - np.floor(np.sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5))
                 j = int(k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2)
                 if self.landmark_labels_[i] == self.landmark_labels_[j]:
-                    self.squared_distances_within_cluster_[self.landmark_labels_[i]] += distances[k]**2
+                    self.squared_distances_within_cluster_[
+                        self.landmark_labels_[i]] += distances[k] ** 2
 
             self.landmarks_ = X
 
         else:
             if self.landmark_strategy == 'random':
-                land_indices = check_random_state(self.random_state).randint(len(X), size=self.n_landmarks)
+                land_indices = check_random_state(self.random_state).randint(
+                    len(X), size=self.n_landmarks)
             else:
-                land_indices = np.arange(len(X))[::(len(X) // self.n_landmarks)][:self.n_landmarks]
+                land_indices = np.arange(len(X))[::(len(X) //
+                                        self.n_landmarks)][:self.n_landmarks]
 
             distances = pdist(X[land_indices], self.metric)
             tree = linkage(distances, method=self.linkage)
-            self.landmark_labels_ = fcluster(tree, criterion='maxclust', t=self.n_clusters) - 1
+            self.landmark_labels_ = fcluster(tree, criterion='maxclust',
+                                             t=self.n_clusters) - 1
             self.cardinality_ = np.bincount(self.landmark_labels_)
             self.squared_distances_within_cluster_ = np.zeros(self.n_clusters)
 
@@ -212,7 +219,8 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 i = int(n - 2 - np.floor(np.sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5))
                 j = int(k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2)
                 if self.landmark_labels_[i] == self.landmark_labels_[j]:
-                    self.squared_distances_within_cluster_[self.landmark_labels_[i]] += distances[k]**2
+                    self.squared_distances_within_cluster_[
+                        self.landmark_labels_[i]] += distances[k] ** 2
 
             self.landmarks_ = X[land_indices]
 
@@ -251,10 +259,11 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
         for i in range(self.n_clusters):
             if np.any(self.landmark_labels_ == i):
-                d = pooling_func(dists[:, self.landmark_labels_ == i], self.cardinality_[i],
-                                        self.squared_distances_within_cluster_[i])
+                d = pooling_func(dists[:, self.landmark_labels_ == i],
+                                 self.cardinality_[i],
+                                 self.squared_distances_within_cluster_[i])
                 if np.any(d < 0):
-                    warnings.warn('Something weird happened; distance shouldn\'t be negative.')
+                    warnings.warn('Distance shouldn\'t be negative.')
                 mask = (d < pooled_distances)
                 pooled_distances[mask] = d[mask]
                 labels[mask] = i
@@ -273,6 +282,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         return self.predict(X)
 
 
-class LandmarkAgglomerative(MultiSequenceClusterMixin, _LandmarkAgglomerative, BaseEstimator):
+class LandmarkAgglomerative(MultiSequenceClusterMixin, _LandmarkAgglomerative,
+                            BaseEstimator):
     __doc__ = _LandmarkAgglomerative.__doc__
     _allow_trajectory = True

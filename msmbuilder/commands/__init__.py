@@ -5,7 +5,8 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          AlphaAngleFeaturizerCommand, RMSDFeaturizerCommand,
                          BinaryContactFeaturizerCommand, LogisticContactFeaturizerCommand)
 from .fit import GaussianHMMCommand
-from .fit_transform import KMeansCommand, KCentersCommand, LandmarkAgglomerativeCommand
+from .fit_transform import (KMeansCommand, KCentersCommand,
+                            LandmarkAgglomerativeCommand)
 from .transform import TransformCommand
 from .example_datasets import AlanineDipeptideDatasetCommand
 from .atom_indices import AtomIndices
