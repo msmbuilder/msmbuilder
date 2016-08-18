@@ -90,3 +90,52 @@ of molecular dynamics trajectories
     GenericParser
     NumberedRunsParser
     HierarchyParser
+
+
+Project Templates
+-----------------
+
+The ``msmb TempalteProject`` command-line command generates a set of example
+scripts to serve as a framework for an MSM project. You can use this
+functionality programatically.
+
+.. autosummary::
+    :toctree: _io/
+
+    TemplateProject
+
+
+The templates are stored in ``msmbuilder/project_templates``. They are jinja2
+templates.
+
+ - Python files can optionally be converted into IPython notebooks during template rendering.
+   Indicate where cell breaks should happen with ``## Description goes here``
+ - The hierarchy of the template project is *not* read from the ``msmbuilder/project_templates``
+   source filesystem hierarchy. It's explicitly listed as a Python expression in ``msmbuilder.io``.
+   If you add a new template file, make sure you list it in ``msmbuilder.io`` or it will not be rendered.
+ - Templates can contain yaml "front matter". For some reason, jinja2 doesn't support this, so it is
+   parsed explicitly by MSMBuilder. Include the yaml as the last element in the file's docstring under
+   a numpydoc heading "Meta"::
+    
+    Meta
+    ----
+    depends:
+      - meta.pandas.pickl
+    arbitrary_key:
+      - arbitrary data
+
+ - MSMBuilder defines some variables for use in your templates including ``{{header}}`` and ``{{date}}``.
+   For a complete list, check the rendering code.
+ - Plotting scripts should include the following macros **before** any imports::
+
+    # ? include "plot_header.template"
+    # ? from "plot_macros.template" import xdg_open with context
+
+   This will set up matplotlib to use the correct backend. Add::
+    
+    # {{xdg_open('filename.pdf')}}
+
+   to have a call to xdg-open inserted based on user configuration.
+
+    
+

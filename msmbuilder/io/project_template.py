@@ -107,9 +107,9 @@ class TemplateProject(object):
         If specified, generate templates for this step and then stop. Do not
         include sub steps.
     ipynb : bool
-        Render scripts as IPython/Jupyter notebooks instead
+        Render scripts as IPython/Jupyter notebooks instead.
     display : bool
-        Render scripts assuming a connected display and xdg-open
+        Render scripts assuming a connected display and xdg-open.
     """
 
     def __init__(self, root='', step=None, ipynb=False, display=False):
@@ -131,6 +131,7 @@ class TemplateProject(object):
         self.template_dir_kwargs = {}
 
     def do(self):
+        """Render the templates"""
         self.layout.render(self.template_dir_kwargs, self.template_kwargs)
 
 
