@@ -13,7 +13,7 @@ patience if someone doesn't respond immediately. Don't be afraid to "bump"
 a thread if it's been a couple days.
 
 If you are an MSMBuilder user, we encourage you to "watch" the issue
-tracker. The developers will often sollicit feedback about design decisions
+tracker. The developers will often solicit feedback about design decisions
 and features. Your input is important! You can also contribute by answering
 other users' questions.
 
