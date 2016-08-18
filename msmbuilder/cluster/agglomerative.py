@@ -29,15 +29,11 @@ __all__ = ['_LandmarkAgglomerative']
 
 
 def ward_pooling_function(x, cluster_cardinality, intra_cluster_sum):
-    if cluster_cardinality == 1:
-        squared_sums = (x ** 2)[:, 0]
-        return squared_sums
-    else:
-        normalization_factor = cluster_cardinality*(cluster_cardinality+1)/2
-        squared_sums = (x**2).sum(axis=1)
-        result_vector = ((cluster_cardinality * squared_sums -
-                          intra_cluster_sum) / normalization_factor)
-        return result_vector
+    normalization_factor = cluster_cardinality*(cluster_cardinality+1)/2
+    squared_sums = (x**2).sum(axis=1)
+    result_vector = ((cluster_cardinality * squared_sums -
+                      intra_cluster_sum) / normalization_factor)
+    return result_vector
 
 POOLING_FUNCTIONS = {
     'average': lambda x, ignore1, ignore2: np.mean(x, axis=1),
@@ -245,12 +241,12 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
             try:
                 pooling_func = POOLING_FUNCTIONS[self.ward_predictor]
             except KeyError:
-                raise ValueError('linkage=%s is not supported' % self.linkage)
+                raise ValueError("linkage {} is not supported".format(self.linkage))
         else:
             try:
                 pooling_func = POOLING_FUNCTIONS[self.linkage]
             except KeyError:
-                raise ValueError('linkage=%s is not supported' % self.linkage)
+                raise ValueError("linkage {} is not supported".format(self.linkage))
 
         pooled_distances = np.empty(len(X))
         pooled_distances.fill(np.infty)
@@ -262,12 +258,12 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                                  self.cardinality_[i],
                                  self.squared_distances_within_cluster_[i])
                 if np.any(d < 0):
-                    warnings.warn('Distance shouldn\'t be negative.')
+                    warnings.warn("Distance shouldn't be negative.")
                 mask = (d < pooled_distances)
                 pooled_distances[mask] = d[mask]
                 labels[mask] = i
             else:
-                print('No data points were assigned to cluster %c' % i)
+                print("No data points were assigned to cluster {}".format(i))
 
         return labels
 
