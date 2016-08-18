@@ -24,6 +24,7 @@ them in Jupyter::
    tICA-vs-PCA
    Clustering-Comparison
    GMRQ-Model-Selection
+   Ward-Clustering
 
 
 Contributing examples
