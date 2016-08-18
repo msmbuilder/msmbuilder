@@ -76,5 +76,6 @@ the GNU LGPL (v2.1 or later).
     faq
     changelog    
     publications
+    contributing
 
 .. vim: tw=75
