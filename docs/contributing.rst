@@ -33,10 +33,11 @@ To contribute a new feature, submit a pull request. The code should be
 suite of tests to (1) verify your feature is working as intended and (2)
 will not be broken in the future. Describe the feature in the
 :ref:`changelog<changelog>` by editing ``docs/changelog.rst``. Provide literature
-citations if applicable. Add an example IPython notebook that demonstrates
-your new feature. It should run quickly and make a pretty plot.  If you
-need help or clarification on any of these points, open a pull request and
-we'll be more than happy to help.
+citations if applicable. We encourage you to add an example IPython notebook
+that demonstrates your new feature. It should run quickly and make a pretty
+plot. This is a great way to advertise your new feature.
+If you need help or clarification on any of these points, open a pull
+request and we'll be more than happy to help.
 
 
 Tests
