@@ -38,3 +38,47 @@ your new feature. It should run quickly and make a pretty plot.  If you
 need help or clarification on any of these points, open a pull request and
 we'll be more than happy to help.
 
+
+Tests
+~~~~~
+
+We use unit testing to make sure things work properly to start with, and
+don't get broken in the future.  Tests are organized into files roughly
+corresponding to ``msmbuilder`` modules in ``msmbuilder/tests/test_*.py``.
+Each test script contains a number of short, self-contained functions
+beginning with the name ``test_``. You can add new tests to an existing
+file, or create a new file if it's appropriate. The new tests will
+automatically get discovered and run by our continuous integration (CI)
+workers. Don't use relative imports in the tests. Don't use docstrings in
+the tests. ``nose`` (our test runner) will use the docstrings as the name
+of the test, and this is often not what we want. Include pseudo-docstrings
+as ordinary comments at the top of each function and name the test function
+descriptively
+
+To run the tests, install msmbuilder (``python setup.py install`` or
+``python setup.py develop``) and then run ``nosetests msmbuilder``
+**outside of the source directory**. It won't import the right thing if you
+run from the source directory.
+
+
+Examples
+~~~~~~~~
+
+Contribute an example IPython notebook by putting it in the ``examples/``
+directory. We'll probably format it and do the incantations to make it show
+up in the published docs. Clear all outputs before committing the notebook
+in git.
+
+To include an example notebook in the docs (contributors other than
+core-developers ignore this): Create ``docs/examples/Notebook-Name.rst``::
+
+    Notebook Pretty Title
+    =====================
+
+    .. notebook:: Notebook-Name
+
+And add ``Notebook-Name`` to the toctree in ``docs/examples/index.rst``.
+The rendering code is in ``docs/sphinxext/notebook_sphinxext.py``.
+Presumably, we could streamline this process so you only have to deposit a
+notebook in ``examples/`` and it will automatically get added to the docs.
+
