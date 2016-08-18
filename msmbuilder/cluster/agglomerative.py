@@ -98,8 +98,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         striding the data matrix (see ``landmark_strategy``). Then we cluster
         the only the landmarks, and then assign the remaining dataset based
         on distances to the landmarks. Note that n_landmarks=None is equivalent
-        to using every point in the dataset as a landmark. Landmarks are not
-        available for linkage='ward'.
+        to using every point in the dataset as a landmark.
     linkage : {'single', 'complete', 'average', 'ward'}, default='average'
         Which linkage criterion to use. The linkage criterion determines which
         distance to use between sets of observation. The algorithm will merge
