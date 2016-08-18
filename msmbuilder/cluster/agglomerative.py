@@ -236,17 +236,12 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         """
 
         dists = cdist(X, self.landmarks_, self.metric)
+        pfunc_name = self.ward_predictor if self.linkage == 'ward' else self.linkage
 
-        if self.linkage == 'ward':
-            try:
-                pooling_func = POOLING_FUNCTIONS[self.ward_predictor]
-            except KeyError:
-                raise ValueError("linkage {} is not supported".format(self.linkage))
-        else:
-            try:
-                pooling_func = POOLING_FUNCTIONS[self.linkage]
-            except KeyError:
-                raise ValueError("linkage {} is not supported".format(self.linkage))
+        try:
+            pooling_func = POOLING_FUNCTIONS[pfunc_name]
+        except KeyError:
+                raise ValueError("linkage {} is not supported".format(pfunc_name))
 
         pooled_distances = np.empty(len(X))
         pooled_distances.fill(np.infty)
