@@ -1,11 +1,23 @@
 from __future__ import print_function, division, absolute_import
 
+import os
 import shlex
+import shutil
 import subprocess
+import tempfile
 
 from pkg_resources import resource_filename
 
-from msmbuilder.tests.test_commands import tempdir
+
+class tempdir(object):
+    def __enter__(self):
+        self._curdir = os.path.abspath(os.curdir)
+        self._tempdir = tempfile.mkdtemp()
+        os.chdir(self._tempdir)
+
+    def __exit__(self, *exc_info):
+        os.chdir(self._curdir)
+        shutil.rmtree(self._tempdir)
 
 
 def shell_lines(resource):
@@ -33,20 +45,22 @@ def check_call(tokens):
         raise
 
 
-def test_workflow_1():
-    with tempdir():
-        for line in shell_lines('tests/workflows/test_1.sh'):
-            check_call(shlex.split(line))
+class workflow_tester(object):
+    def __init__(self, fn):
+        self.fn = fn
+        self.path = "tests/workflows/{}".format(fn)
+        self.description = "{}.test_{}".format(__name__, fn)
+
+    def __call__(self, *args, **kwargs):
+        with tempdir():
+            for line in shell_lines(self.path):
+                check_call(shlex.split(line, posix=False))
 
 
-def test_workflow_2():
-    with tempdir():
-        for line in shell_lines('tests/workflows/test_2.sh'):
-            check_call(shlex.split(line))
-
-
-def test_workflow_3():
-    with tempdir():
-        for line in shell_lines('tests/workflows/test_3.sh'):
-            check_call(shlex.split(line))
-
+def test_workflows():
+    for fn in [
+        'basic.sh',
+        'rmsd.sh',
+        'ghmm.sh',
+    ]:
+        yield workflow_tester(fn)

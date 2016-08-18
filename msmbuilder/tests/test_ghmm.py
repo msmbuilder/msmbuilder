@@ -83,15 +83,24 @@ def test_2_state():
 
     # For each value of various options,
     # create a 2 state HMM and see if it is correct.
+    class two_state_tester(object):
+        def __init__(self, init_algo, reversible_type):
+            self.init_algo = init_algo
+            self.reversible_type = reversible_type
+            self.description = ("{}.test_3_state_{}_{}"
+                                .format(__name__, init_algo, reversible_type))
 
-    for init_algo in ('kmeans', 'GMM'):
-        for reversible_type in ('mle', 'transpose'):
-            model = GaussianHMM(n_states=2, init_algo=init_algo,
-                                reversible_type=reversible_type,
+        def __call__(self, *args, **kwargs):
+            model = GaussianHMM(n_states=2, init_algo=self.init_algo,
+                                reversible_type=self.reversible_type,
                                 thresh=1e-4, n_iter=30)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
             assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
+
+    for init_algo in ('kmeans', 'GMM'):
+        for reversible_type in ('mle', 'transpose'):
+            yield two_state_tester(init_algo, reversible_type)
 
 
 def test_3_state():
@@ -102,12 +111,21 @@ def test_3_state():
 
     # For each value of various options,
     # create a 3 state HMM and see if it is correct.
+    class three_state_tester(object):
+        def __init__(self, init_algo, reversible_type):
+            self.init_algo = init_algo
+            self.reversible_type = reversible_type
+            self.description = ("{}.test_2_state_{}_{}"
+                                .format(__name__, init_algo, reversible_type))
 
-    for init_algo in ('kmeans', 'GMM'):
-        for reversible_type in ('mle', 'transpose'):
-            model = GaussianHMM(n_states=3, init_algo=init_algo,
-                                reversible_type=reversible_type,
+        def __call__(self, *args, **kwargs):
+            model = GaussianHMM(n_states=3, init_algo=self.init_algo,
+                                reversible_type=self.reversible_type,
                                 thresh=1e-4, n_iter=30)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.1)
             assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
+
+    for init_algo in ('kmeans', 'GMM'):
+        for reversible_type in ('mle', 'transpose'):
+            yield three_state_tester(init_algo, reversible_type)

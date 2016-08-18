@@ -98,7 +98,7 @@ class KernelTICA(tICA):
 
     References
     ----------
-    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600–608.
+    .. [1] Schwantes, Christian R., and Vijay S. Pande. J. Chem Theory Comput. 11.2 (2015): 600--608.
     .. [2] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph] (2015)
     """
 

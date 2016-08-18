@@ -7,19 +7,19 @@ import pandas as pd
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 
-from msmbuilder.example_datasets import FsPeptide
+from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer, \
     KappaAngleFeaturizer, ContactFeaturizer, VonMisesFeaturizer
 
-trajectories = FsPeptide().get_cached().trajectories
+trajectories = MinimalFsPeptide().get_cached().trajectories
 top = trajectories[0].topology
 
 if np.random.choice([True, False]):
-    atom_ind = [i.index for i in top.atoms if i.residue.is_protein
-                and (
-                i.residue.index in range(15) or i.residue.index in range(20,
-                                                                         23))]
+    atom_ind = [i.index for i in top.atoms
+                if i.residue.is_protein
+                and (i.residue.index in range(15)
+                     or i.residue.index in range(20, 23))]
 else:
     atom_ind = [i.index for i in top.atoms]
 
