@@ -33,6 +33,7 @@ requirements:
     - pyhmc
     - pyyaml
     - jinja2
+    - fastcluster
 
 
 test:

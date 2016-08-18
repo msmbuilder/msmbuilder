@@ -40,6 +40,9 @@ New Features
   when a fully-converged dataset is not required (gh-867).
 - Project templates! Read the new tutorial or the :ref:`io` page for
   details (gh-768).
+- ``LandmarkAgglomerative`` clustering now features the ``ward`` linkage
+  option. An algorithm for predicting cluster assignments with the
+  ``ward`` objective function has been developed and implemented (#874).
 
 Improvements
 ~~~~~~~~~~~~

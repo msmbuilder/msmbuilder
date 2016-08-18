@@ -17,7 +17,7 @@ from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
 from ..decomposition import tICA, PCA, SparseTICA
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
-                       MiniBatchKMeans, RegularSpatial)
+                       MiniBatchKMeans, RegularSpatial, LandmarkAgglomerative)
 
 from ..cmdline import NumpydocClassCommand, argument_group, exttype, stripquotestype
 
@@ -197,6 +197,13 @@ class MiniBatchKMedoidsCommand(TrajectoryClusterCommand):
 
 class RegularSpatialCommand(TrajectoryClusterCommand):
     klass = RegularSpatial
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class LandmarkAgglomerativeCommand(TrajectoryClusterCommand):
+    klass = LandmarkAgglomerative
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'

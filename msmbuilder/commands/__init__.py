@@ -9,7 +9,11 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          AlphaAngleFeaturizerCommand, RMSDFeaturizerCommand,
                          BinaryContactFeaturizerCommand, LogisticContactFeaturizerCommand)
 from .fit import GaussianHMMCommand
-from .fit_transform import KMeansCommand, KCentersCommand
+from .fit_transform import (KMeansCommand, KCentersCommand,
+                            LandmarkAgglomerativeCommand)
+from .transform import TransformCommand
+from .example_datasets import AlanineDipeptideDatasetCommand
+from .atom_indices import AtomIndices
 from .implied_timescales import ImpliedTimescales
 from .template_project import TemplateProjectCommand
 from .transform import TransformCommand
