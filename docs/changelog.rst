@@ -38,6 +38,8 @@ New Features
 - An example dataset ``MinimalFsPeptide`` is available. This is a strided
   version of the existing ``FsPeptide`` dataset. We use it for testing,
   when a fully-converged dataset is not required (gh-867).
+- Project templates! Read the new tutorial or the :ref:`io` page for
+  details (gh-768).
 
 Improvements
 ~~~~~~~~~~~~
