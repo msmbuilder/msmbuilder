@@ -1,13 +1,13 @@
 package:
   name: msmbuilder-dev
-  version: "0.0.0"
+  version: {{ GIT_DESCRIBE_TAG }}
 
 source:
   path: ../../
 
 build:
   preserve_egg_dir: True
-  number: 0
+  number: {{ GIT_DESCRIBE_NUMBER }}
   entry_points:
     - msmb = msmbuilder.scripts.msmb:main
 
@@ -31,6 +31,8 @@ requirements:
     - numpydoc
     - pytables
     - pyhmc
+    - pyyaml
+    - jinja2
     - fastcluster
 
 

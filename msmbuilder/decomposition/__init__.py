@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
+from sklearn import decomposition as _decomposition
+
+from .base import MultiSequenceDecompositionMixin
+from .ktica import KernelTICA
 from .pca import PCA, SparsePCA, MiniBatchSparsePCA
 from .sparsetica import SparseTICA
 from .tica import tICA
-from .ktica import KernelTICA
-from .base import MultiSequenceDecompositionMixin
-
-from sklearn import decomposition as _decomposition
 
 
 class FastICA(MultiSequenceDecompositionMixin, _decomposition.FastICA):

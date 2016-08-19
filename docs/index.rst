@@ -37,6 +37,7 @@ New users should check out:
 
 - :ref:`background`
 - :ref:`installation`
+- :ref:`tutorial`
 - :ref:`examples`
 - :ref:`faq`
 
@@ -44,7 +45,7 @@ MSMBuilder is most effective as a library. Intermediate users should
 familiarize themselves with:
 
 - :ref:`apipatterns`
-- :ref:`persistence`
+- :ref:`datasets`
 - :ref:`changelog`
 
 
@@ -61,6 +62,7 @@ the GNU LGPL (v2.1 or later).
 
     background
     installation
+    tutorial
     examples/index
     featurization
     decomposition
@@ -70,7 +72,8 @@ the GNU LGPL (v2.1 or later).
     tpt
     ratematrix
     hmm
-    persistence
+    datasets
+    io
     apipatterns
     plugins
     faq

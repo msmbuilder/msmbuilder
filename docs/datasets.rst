@@ -1,15 +1,16 @@
-.. _persistence:
+.. _datasets:
 
-Datasets and Persistence
-========================
+Datasets
+========
 
-MSMBuilder has utility functions for persisting data (loading and saving).
-The two types of objects to be persisted on disk are datasets and models. 
+MSMBuilder prior to version 3.6 relied on the ``dataset`` utility for
+trajectory loading and intermediate data persistence.
+The two types of objects to be persisted on disk are datasets and models.
 
 Datasets
 --------
 
-In MSMBuilder, a ``dataset`` is a collection of timeseries, or "sequences".
+A ``dataset`` is a collection of timeseries, or "sequences".
 Each timeseries usually represents a single molecular
 dynamics trajectory, and may be represented in a number of different
 formats
@@ -33,7 +34,7 @@ formats
 Datasets on Disk
 ~~~~~~~~~~~~~~~~
 
-MSMBuilder can read and write datasets to and from disk (resp) in two
+MSMBuilder can read and write datasets to and from disk in two
 formats: ``hdf5`` and ``dir-npy``. From the Python API, you must choose
 which format to write. The command-line application chooses the most
 sensible option for you.
