@@ -137,12 +137,17 @@ def preload_top(meta):
 
 
 def itertrajs(meta, stride=1):
-    """Load one mdtraj trajectory at a time and yield it"""
+    """Load one mdtraj trajectory at a time and yield it.
+
+    MDTraj does striding badly. It reads in the whole trajectory and
+    then performs a stride. We join(iterload) to conserve memory.
+    """
+
     tops = preload_tops(meta)
     for i, row in meta.iterrows():
-        yield i, md.load(row['traj_fn'],
-                         top=tops[row['top_fn']],
-                         stride=stride)
+        yield i, md.join(md.iterload(row['traj_fn'],
+                                     top=tops[row['top_fn']],
+                                     stride=stride))
 
 
 def load_meta(meta_fn='meta.pandas.pickl'):
@@ -333,5 +338,3 @@ def load_trajs(fn, meta='meta.pandas.pickl', key_to_path=None):
     for k in meta.index:
         trajs[k] = np.load(os.path.join(fn, key_to_path(k)))
     return meta, trajs
-
-
