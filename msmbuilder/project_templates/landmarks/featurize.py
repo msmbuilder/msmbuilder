@@ -37,16 +37,9 @@ def guestimate_stride():
 
 ## Fit
 kmed.fit([traj for _, traj in itertrajs(meta, stride=guestimate_stride())])
-
-## Transform
-ktrajs = {}
-for i, traj in itertrajs(meta):
-    ktrajs[i] = kmed.partial_transform(traj)
-
 print(kmed.summarize())
 
 ## Save
-save_trajs(ktrajs, 'ktrajs', meta)
 save_generic(kmed, 'clusterer.pickl')
 
 ## Save centroids
@@ -56,7 +49,8 @@ def frame(traj_i, frame_i):
     return md.load_frame(row['traj_fn'], frame_i, top=row['top_fn'])
 
 
-centroids = md.join(frame(ti, fi) for ti, fi in kmed.cluster_ids_)
+centroids = md.join((frame(ti, fi) for ti, fi in kmed.cluster_ids_),
+                    check_topology=False)
 centroids.save("centroids.xtc")
 
 ## Kernel

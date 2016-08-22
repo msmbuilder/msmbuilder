@@ -147,7 +147,9 @@ def itertrajs(meta, stride=1):
     for i, row in meta.iterrows():
         yield i, md.join(md.iterload(row['traj_fn'],
                                      top=tops[row['top_fn']],
-                                     stride=stride))
+                                     stride=stride),
+                         discard_overlapping_frames=False,
+                         check_topology=False)
 
 
 def load_meta(meta_fn='meta.pandas.pickl'):
