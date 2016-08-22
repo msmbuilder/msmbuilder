@@ -493,7 +493,7 @@ class App(object):
                     klass_description = klass_description()
 
                 first_sentence = ' '.join(
-                    ' '.join(re.split(r'(?<=[.:;])\s', klass_description)[:1]).split())
+                    ' '.join(re.split(r'(?<=[.;])\s', klass_description)[:1]).split())
                 description = klass_description
                 subparser = subparsers.add_parser(
                     klass._get_name(), help=first_sentence, description=description,
