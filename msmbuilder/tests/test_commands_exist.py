@@ -24,7 +24,7 @@ def get_commands_from_helptext():
 
         # regex for roughly the following:
         # CommandName        A longer description.
-        ma = re.match(r"^(\w*)\s*\s\s([\w\s\-\(\)]*\.?)$", line)
+        ma = re.match(r"^(\w*)\s*\s\s([\w\s\-\(\):]*\.?)$", line)
         if ma is not None:
             print("Feat:", ma.group(1), "Text:", ma.group(2))
             yield ma.group(1)
