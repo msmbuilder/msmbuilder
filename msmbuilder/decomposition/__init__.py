@@ -10,8 +10,7 @@ from .tica import tICA
 
 
 class FastICA(MultiSequenceDecompositionMixin, _decomposition.FastICA):
-    __doc__ = ('A fast algorithm for Independent Component Analysis.\n\n'
-               +_decomposition.FastICA.__doc__) # makes command line work
+    __doc__ = _decomposition.FastICA.__doc__
 
     def summarize(self):
         return '\n'.join([
