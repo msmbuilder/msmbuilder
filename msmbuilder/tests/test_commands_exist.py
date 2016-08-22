@@ -11,6 +11,8 @@ import msmbuilder.example_datasets
 import msmbuilder.featurizer
 import msmbuilder.msm
 
+from numpy.testing.decorators import skipif
+
 
 def get_commands_from_helptext():
     raw = subprocess.check_output(['msmb', '-h'], universal_newlines=True)
@@ -118,7 +120,7 @@ class CheckCommandListed(object):
         err = '{} was not listed in `msmb -h`'.format(self.command)
         assert self.command in HELP_COMMANDS, err
 
-
+@skipif(True) # takes a long time
 def test_all_help_works():
     for modname, feat in get_all():
         if feat in unexposed:
