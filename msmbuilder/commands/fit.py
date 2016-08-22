@@ -1,5 +1,5 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
+# Contributors: Brooke Husic <brookehusic@gmail.com>
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
@@ -75,5 +75,11 @@ class BayesianMarkovStateModelCommand(FitCommand):
 
 class ContinuousTimeMSMCommand(FitCommand):
     klass = ContinuousTimeMSM
+    _concrete = True
+    _group = 'MSM'
+
+
+class BayesianContinuousTimeMSMCommand(FitCommand):
+    klass = BayesianContinuousTimeMSM
     _concrete = True
     _group = 'MSM'

@@ -1,5 +1,5 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
-# Contributors:
+# Contributors: Brooke Husic <brookehusic@gmail.com>
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
@@ -15,9 +15,12 @@ import numpy as np
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
-from ..decomposition import tICA, PCA, SparseTICA
+from ..decomposition import (tICA, SparseTICA, FastICA, FactorAnalysis,
+                             KernelTICA, PCA, SparsePCA, MiniBatchSparsePCA)
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
-                       MiniBatchKMeans, RegularSpatial, LandmarkAgglomerative)
+                       MiniBatchKMeans, RegularSpatial, LandmarkAgglomerative,
+                       GMM, MeanShift, NDGrid, SpectralClustering,
+                       AffinityPropagation, APM)
 
 from ..cmdline import NumpydocClassCommand, argument_group, exttype, stripquotestype
 
@@ -148,8 +151,43 @@ class SparseTICACommand(FitTransformCommand):
     _transformed_fmt = 'hdf5'
 
 
+class FastICACommand(FitTransformCommand):
+    klass = FastICA
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+
+
+class FactorAnalysisCommand(FitTransformCommand):
+    klass = FactorAnalysis
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+
+
+class KernelTICACommand(FitTransformCommand):
+    klass = KernelTICA
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+
+
 class PCACommand(FitTransformCommand):
     klass = PCA
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+
+
+class SparsePCACommand(FitTransformCommand):
+    klass = SparsePCA
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+
+
+class MiniBatchSparsePCACommand(FitTransformCommand):
+    klass = MiniBatchSparsePCA
     _concrete = True
     _group = '3-Decomposition'
     _transformed_fmt = 'hdf5'
@@ -204,6 +242,48 @@ class RegularSpatialCommand(TrajectoryClusterCommand):
 
 class LandmarkAgglomerativeCommand(TrajectoryClusterCommand):
     klass = LandmarkAgglomerative
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class GMMCommand(TrajectoryClusterCommand):
+    klass = GMM
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class MeanShiftCommand(TrajectoryClusterCommand):
+    klass = MeanShift
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class NDGridCommand(TrajectoryClusterCommand):
+    klass = NDGrid
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class SpectralClusteringCommand(TrajectoryClusterCommand):
+    klass = SpectralClustering
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class AffinityPropagationCommand(TrajectoryClusterCommand):
+    klass = AffinityPropagation
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class APMCommand(TrajectoryClusterCommand):
+    klass = APM
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'

@@ -14,7 +14,9 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           ContactFeaturizer, GaussianSolventFeaturizer,
                           KappaAngleFeaturizer, AlphaAngleFeaturizer,
                           RMSDFeaturizer, BinaryContactFeaturizer,
-                          LogisticContactFeaturizer)
+                          LogisticContactFeaturizer, VonMisesFeaturizer,
+                          FunctionFeaturizer, RawPositionsFeaturizer,
+                          SASAFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -170,6 +172,7 @@ class ContactFeaturizerCommand(FeaturizerCommand):
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
 
+
 class BinaryContactFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = BinaryContactFeaturizer
@@ -179,6 +182,7 @@ class BinaryContactFeaturizerCommand(FeaturizerCommand):
             return val
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
+
 
 class LogisticContactFeaturizerCommand(FeaturizerCommand):
     _concrete = True
@@ -190,6 +194,7 @@ class LogisticContactFeaturizerCommand(FeaturizerCommand):
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
 
+
 class GaussianSolventFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = GaussianSolventFeaturizer
@@ -199,3 +204,38 @@ class GaussianSolventFeaturizerCommand(FeaturizerCommand):
 
     def _solute_indices_type(self, fn):
         return np.loadtxt(fn, dtype=int, ndmin=1)
+
+
+class VonMisesFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = VonMisesFeaturizer
+
+
+class FunctionFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = FunctionFeaturizer
+
+
+class RawPositionsFeaturizerCommand(FeaturizerCommand):
+    klass = RawPositionsFeaturizer
+    _concrete = True
+
+    def _reference_traj_type(self, fn):
+        if self.top.strip() == "":
+            top = None
+        else:
+            top = os.path.expanduser(self.top)
+            err = ("Couldn't find topology file '{}' "
+                   "when loading reference trajectory".format(top))
+            assert os.path.exists(top), err
+        return md.load(fn, top=top)
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)
+
+
+class SASAFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = SASAFeaturizer

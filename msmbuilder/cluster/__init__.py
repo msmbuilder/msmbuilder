@@ -72,11 +72,5 @@ class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering,
     __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
 
 
-class AgglomerativeClustering(MultiSequenceClusterMixin,
-                              cluster.AgglomerativeClustering,
-                              BaseEstimator):
-    __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
-
-
 class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
     __doc__ = _replace_labels(mixture.GMM.__doc__)

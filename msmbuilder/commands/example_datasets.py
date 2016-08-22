@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import
 
 from ..cmdline import NumpydocClassCommand
 from ..example_datasets import (AlanineDipeptide, DoubleWell, QuadWell, FsPeptide,
-                                MetEnkephalin, MullerPotential)
+                                MetEnkephalin, MullerPotential, MinimalFsPeptide)
 
 
 class DatasetCommand(NumpydocClassCommand):
@@ -57,3 +57,9 @@ class MetEnkephalinDatasetCommand(DatasetCommand):
     _concrete = True
     klass = MetEnkephalin
     description = 'Download example Met-Enkephalin dataset.'
+
+
+class MinimalFsPeptideDatasetCommand(DatasetCommand):
+    _concrete = True
+    klass = MinimalFsPeptide
+    description = 'Download example minimal Fs-peptide dataset.'
