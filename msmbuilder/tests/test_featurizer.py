@@ -3,6 +3,7 @@ from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 from mdtraj.testing import eq
+import pandas as pd
 
 from msmbuilder.example_datasets import AlanineDipeptide, MetEnkephalin,\
     MinimalFsPeptide
