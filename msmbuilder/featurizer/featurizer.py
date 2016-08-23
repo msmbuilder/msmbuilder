@@ -99,6 +99,8 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
 
+
+
 class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
 
@@ -190,6 +192,7 @@ class Featurizer(BaseEstimator, TransformerMixin):
                   itertools.repeat(("N/A","N/A","N/A","N/A"), n_f))
 
         return dict_maker(zippy)
+
 
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
@@ -851,7 +854,6 @@ class KappaAngleFeaturizer(Featurizer):
         return feature_descs
 
 
-
 class SASAFeaturizer(Featurizer):
     """Featurizer based on solvent-accessible surface areas.
 
@@ -1047,8 +1049,8 @@ class CommonContactFeaturizer(Featurizer):
                   scheme='closest-heavy', ignore_nonprotein=True):
 
         if alignment is None:
-            raise ValueError("Common contacts requires an \"
-                             "alignment(either list of lists or dict)")
+            raise ValueError("Common contacts requires an\
+                              alignment(either list of lists or dict)")
         if type(alignment)==list:
             self.alignment={}
             for k,v in enumerate(alignment):
@@ -1058,16 +1060,16 @@ class CommonContactFeaturizer(Featurizer):
         else:
             raise ValueError("Alignment is not of type list or dict.")
 
-        self.scheme = scheme
+        self.protein_list = list(self.alignment.keys())
         self.same_residue = same_residue
         self.wanted_positions = wanted_positions
-        self.ignore_nonprotein = ignore_nonprotein
         if wanted_positions is 'all':
             #use the max length(probably a horrible idea)
             self.wanted_positions = range(max([len(self.alignment[i])
                                                for i in self.alignment.keys()]))
+        self.scheme = scheme
+        self.ignore_nonprotein = ignore_nonprotein
 
-        self.protein_list = list(self.alignment.keys())
 
         self.all_inv_mappings, \
         self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
@@ -1129,8 +1131,8 @@ class CommonContactFeaturizer(Featurizer):
         """
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
+        assert traj.top.chain(0).n_residues==len(self.all_sequences[seq_id])
         return self.feat_dict[seq_id].partial_transform(traj)
-
 
     def _transform(self, distances):
         return distances
@@ -1138,11 +1140,15 @@ class CommonContactFeaturizer(Featurizer):
     def describe_features(self, traj):
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
-        print(seq_id)
-
         return self.feat_dict[seq_id].describe_features(traj)
 
     def _map_residue_ind_seq_ind(self,alignment):
+        """
+
+        Returns
+        -------
+
+        """
         all_mappings = {}
         all_sequences = {}
         all_inv_mappings = {}
@@ -1168,7 +1174,6 @@ class CommonContactFeaturizer(Featurizer):
             all_mappings[prt] = mapping
             all_inv_mappings[prt] = {v: k for k, v in mapping.items()}
         return all_inv_mappings, all_sequences
-
 
 
 class BinaryContactFeaturizer(ContactFeaturizer):
