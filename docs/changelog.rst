@@ -19,6 +19,10 @@ API Changes
   ``msmbuilder.example_datasets`` is still the same, but the data may
   be re-generated instead of using a cached version from a previous installation
   of MSMBuilder (gh-854).
+- The alias for Ward clustering has been removed. Modelers should now use
+  ``LandmarkAgglomerative(linkage='ward')`` (#874). Ward clustering is also
+  available as AgglomerativeClustering in scikit-learn, but without a prediction
+  algorithm.
 
 New Features
 ~~~~~~~~~~~~
