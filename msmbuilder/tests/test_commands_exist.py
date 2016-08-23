@@ -50,10 +50,6 @@ def get_commands_from_helptext():
 
 
 HELP_COMMANDS = list(get_commands_from_helptext())
-unexposed = ['TrajFeatureUnion', 'FirstSlicer', 'FeatureUnion', 'Slicer',
-             'MultiSequenceDecompositionMixin']
-for i,name in enumerate(unexposed):
-    HELP_COMMANDS.append(name)
 
 
 def get_from_module(module, exclude=None, include=None):
@@ -82,13 +78,21 @@ def get_all():
                          'BaseEstimator',
                          'Parallel',
                          'BaseSubsetFeaturizer',  # Base class
+                         'TrajFeatureUnion',
+                         'Slicer',
+                         'FirstSlicer',
+                         'FeatureUnion',
+                         'FunctionFeaturizer',
                          ]),
         get_from_module(msmbuilder.example_datasets),
         get_from_module(msmbuilder.cluster,
                         ['MultiSequenceClusterMixin',
                          'BaseEstimator',
                          ]),
-        get_from_module(msmbuilder.decomposition, include=['tICA']),
+        get_from_module(msmbuilder.decomposition,
+                        exclude=['MultiSequenceDecompositionMixin',
+                                 ],
+                        include=['tICA']),
         get_from_module(msmbuilder.msm, )
     )
 
@@ -123,10 +127,7 @@ class CheckCommandListed(object):
 @skipif(True) # takes a long time
 def test_all_help_works():
     for modname, feat in get_all():
-        if feat in unexposed:
-            pass
-        else:
-            yield CheckCommandHelpWorks(modname, feat)
+        yield CheckCommandHelpWorks(modname, feat)
 
 
 def test_all_listed():

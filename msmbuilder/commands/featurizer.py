@@ -211,11 +211,6 @@ class VonMisesFeaturizerCommand(FeaturizerCommand):
     klass = VonMisesFeaturizer
 
 
-class FunctionFeaturizerCommand(FeaturizerCommand):
-    _concrete = True
-    klass = FunctionFeaturizer
-
-
 class RawPositionsFeaturizerCommand(FeaturizerCommand):
     klass = RawPositionsFeaturizer
     _concrete = True
