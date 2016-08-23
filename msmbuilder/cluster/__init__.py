@@ -25,7 +25,8 @@ warnings.filterwarnings("ignore", '', DeprecationWarning, r'^sklearn\.')
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'KCenters', 'NDGrid',
            'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
-           'MiniBatchKMedoids', 'MultiSequenceClusterMixin', 'APM']
+           'MiniBatchKMedoids', 'MultiSequenceClusterMixin', 'APM',
+           'AgglomerativeClustering']
 
 
 def _replace_labels(doc):
@@ -70,6 +71,12 @@ class MeanShift(MultiSequenceClusterMixin, cluster.MeanShift, BaseEstimator):
 class SpectralClustering(MultiSequenceClusterMixin, cluster.SpectralClustering,
                          BaseEstimator):
     __doc__ = _replace_labels(cluster.SpectralClustering.__doc__)
+
+
+class AgglomerativeClustering(MultiSequenceClusterMixin,
+                              cluster.AgglomerativeClustering,
+                              BaseEstimator):
+    __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
 
 
 class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):

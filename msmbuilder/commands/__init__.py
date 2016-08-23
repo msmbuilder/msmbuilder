@@ -25,7 +25,8 @@ from .fit_transform import (tICACommand, SparseTICACommand, FastICACommand,
                             LandmarkAgglomerativeCommand, GMMCommand,
                             MeanShiftCommand, NDGridCommand,
                             SpectralClusteringCommand,
-                            AffinityPropagationCommand, APMCommand)
+                            AffinityPropagationCommand, APMCommand,
+                            AgglomerativeClusteringCommand)
 from .transform import TransformCommand
 from .example_datasets import (AlanineDipeptideDatasetCommand,
                                FsPeptideDatasetCommand,

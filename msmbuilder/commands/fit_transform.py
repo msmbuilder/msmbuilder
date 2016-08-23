@@ -20,7 +20,7 @@ from ..decomposition import (tICA, SparseTICA, FastICA, FactorAnalysis,
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans, RegularSpatial, LandmarkAgglomerative,
                        GMM, MeanShift, NDGrid, SpectralClustering,
-                       AffinityPropagation, APM)
+                       AffinityPropagation, APM, AgglomerativeClustering)
 
 from ..cmdline import NumpydocClassCommand, argument_group, exttype, stripquotestype
 
@@ -284,6 +284,13 @@ class AffinityPropagationCommand(TrajectoryClusterCommand):
 
 class APMCommand(TrajectoryClusterCommand):
     klass = APM
+    _concrete = True
+    _group = '2-Clustering'
+    _transformed_fmt = 'hdf5'
+
+
+class AgglomerativeClusteringCommand(TrajectoryClusterCommand):
+    klass = AgglomerativeClustering
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'
