@@ -63,6 +63,6 @@ featurizer = RMSDFeaturizer(centroids)
 lfeats = {}
 for i, traj in itertrajs(meta):
     lfeat = featurizer.partial_transform(traj)
-    lfeat = np.exp(lfeat ** 2 / (2 * (SIGMA ** 2)))
+    lfeat = np.exp(-lfeat ** 2 / (2 * (SIGMA ** 2)))
     lfeats[i] = lfeat
 save_trajs(lfeats, 'ftrajs', meta)
