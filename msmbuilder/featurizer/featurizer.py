@@ -18,7 +18,6 @@ from msmbuilder import libdistance
 import itertools
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
-from Bio import SeqIO
 from msmbuilder import libdistance
 from ..base import BaseEstimator
 
@@ -1020,9 +1019,9 @@ class CommonContactFeaturizer(Featurizer):
 
     Parameters
     ----------
-    alignment_file: string
-        Location of the fasta alignment file. Any trajectory given to partial
-        transfrom should have its corresponding sequence in the alignment file.
+    alignment: list of lists or dictionary
+        Fasta formated alignment. Can either be a list of lists or
+        a dictionary keyed on sequence id.
     wanted_positions:list or 'all'
         Location of desired sequence positions that need to be explicitly
         included for calculating contacts.
@@ -1043,11 +1042,22 @@ class CommonContactFeaturizer(Featurizer):
         carbon).
 """
 
-    def __init__(self, alignment_file="align.fst", wanted_positions='all',
+    def __init__(self, alignment=None, wanted_positions='all',
                  same_residue='True',
                   scheme='closest-heavy', ignore_nonprotein=True):
 
-        self.alignment = self._parse_alignment_file(alignment_file)
+        if alignment is None:
+            raise ValueError("Common contacts requires an \"
+                             "alignment(either list of lists or dict)")
+        if type(alignment)==list:
+            self.alignment={}
+            for k,v in enumerate(alignment):
+                self.alignment[k] = v
+        elif type(alignment)==dict:
+            self.alignment = alignment
+        else:
+            raise ValueError("Alignment is not of type list or dict.")
+
         self.scheme = scheme
         self.same_residue = same_residue
         self.wanted_positions = wanted_positions
@@ -1159,13 +1169,6 @@ class CommonContactFeaturizer(Featurizer):
             all_inv_mappings[prt] = {v: k for k, v in mapping.items()}
         return all_inv_mappings, all_sequences
 
-
-    def _parse_alignment_file(self, filename):
-        aligned_dict = {}
-        fasta_sequences = SeqIO.parse(open(filename),'fasta')
-        for fasta in fasta_sequences:
-            aligned_dict[fasta.id]=fasta.seq.tostring().upper()
-        return aligned_dict
 
 
 class BinaryContactFeaturizer(ContactFeaturizer):
