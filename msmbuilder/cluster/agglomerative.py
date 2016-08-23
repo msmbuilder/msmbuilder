@@ -126,8 +126,8 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         Defaults to the global numpy random number generator.
     max_landmarks : int, optional, default=None
         Useful for hyperparameter searching. If n_clusters exceeds n_landmarks,
-        max_landmarks will be used. Otherwise, n_clusters will be used. If
-        None, no cutoff is enforced on n_clusters, which may result in memory 
+        max_landmarks will be used. Otherwise, n_landmarks will be used. If
+        None, no cutoff is enforced on n_landmarks, which may result in memory 
         issues.
     ward_predictor : {'single', 'complete', 'average', 'ward'}, default='ward'
         Which criterion to use when predicting cluster assignments after
@@ -173,7 +173,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         """
 
         if self.max_landmarks is not None:
-            if self.n_clusters > self.max_landmarks:
+            if self.n_clusters > self.n_landmarks:
                 self.n_landmarks = self.max_landmarks
         
         if self.n_landmarks is None:
