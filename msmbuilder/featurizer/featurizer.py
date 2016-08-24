@@ -1098,7 +1098,7 @@ class CommonContactFeaturizer(Featurizer):
             #sort it because i dont want random bs issues.
             can_keep = np.sort(can_keep)
             #get its pairs
-            pairs = [i for i in itertools.combinations(can_keep, 2) if abs(i[1]-i[0])>3]
+            pairs = [i for i in itertools.combinations(can_keep, 2)]
             #create a custom ContactFeaturizer for this particular sequence.
             feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein)

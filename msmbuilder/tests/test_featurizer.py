@@ -80,10 +80,7 @@ def test_common_contacts_featurizer_1():
                                    same_residue=True)
     rnd_traj = np.random.randint(len(trajectories))
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
-
-    #there is only one feature here.
-    assert((df.resids[0]==[0,4]).all())
-    assert(len(df.resids)==1)
+    features = feat.transform([trajectories[rnd_traj]])
 
 
 def test_common_contacts_featurizer_2():
@@ -91,24 +88,39 @@ def test_common_contacts_featurizer_2():
     top = trajectories[0].topology
     met_seq = top.to_fasta(0)
     #fake sequence
-    fake_met_eq ='FGGFMF'
+    fake_met_eq ='FGGFM'
     alignment={}
     #do "alignment "
-    alignment["actual"] = met_seq+"-"
+    alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
 
     feat = CommonContactFeaturizer(alignment=alignment, wanted_positions='all',
                                    same_residue=True)
 
     rnd_traj = np.random.randint(len(trajectories))
-    try:
-        #it should fail here because there are no contacts >3 apart in
-        #sequence.
-        df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
-        raise Exception("This test should not pass")
-    except ValueError:
-        pass
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    assert(np.all([j!=0 for i in df.resids for j in i]))
 
+def test_common_contacts_featurizer_2():
+    #test randomly mutates one of the residues to make sure that residues contacts are not
+    #included
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    met_seq = top.to_fasta(0)
+    #randomly "mutate one of the residues to alanine
+    rnd_loc = np.random.randint(len(met_seq))
+    fake_met_eq=met_seq[:rnd_loc]+"A"+met_seq[rnd_loc+1:]
+    alignment={}
+    #do "alignment "
+    alignment["actual"] = met_seq
+    alignment["fake"] = fake_met_eq
+
+    feat = CommonContactFeaturizer(alignment=alignment, wanted_positions='all',
+                                   same_residue=True)
+
+    rnd_traj = np.random.randint(len(trajectories))
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    assert(np.all([j!=rnd_loc for i in df.resids for j in i]))
 
 
 def test_von_mises_featurizer():
