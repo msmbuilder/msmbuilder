@@ -29,8 +29,7 @@ from .fit_transform import (tICACommand, SparseTICACommand, FastICACommand,
                             AgglomerativeClusteringCommand)
 from .transform import TransformCommand
 from .example_datasets import (AlanineDipeptideDatasetCommand,
-                               FsPeptideDatasetCommand,
-                               MinimalFsPeptideDatasetCommand)
+                               FsPeptideDatasetCommand)
 from .atom_indices import AtomIndices
 from .implied_timescales import ImpliedTimescales
 from .template_project import TemplateProjectCommand
