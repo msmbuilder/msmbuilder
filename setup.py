@@ -206,7 +206,7 @@ setup(name='msmbuilder',
       packages=find_packages(),
       package_data={
           'msmbuilder.tests': ['workflows/*'],
-          'msmbuilder': ['project_templates/*',
+          'msmbuilder': ['project_templates/*.*',
                          'project_templates/*/*',
                          'io_templates/*',
                          ],
