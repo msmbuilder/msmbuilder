@@ -25,7 +25,8 @@ warnings.filterwarnings("ignore", '', DeprecationWarning, r'^sklearn\.')
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'KCenters', 'NDGrid',
            'LandmarkAgglomerative', 'RegularSpatial', 'KMedoids',
-           'MiniBatchKMedoids', 'MultiSequenceClusterMixin', 'APM']
+           'MiniBatchKMedoids', 'MultiSequenceClusterMixin', 'APM',
+           'AgglomerativeClustering']
 
 
 def _replace_labels(doc):
