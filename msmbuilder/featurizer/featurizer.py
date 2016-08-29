@@ -18,7 +18,6 @@ from msmbuilder import libdistance
 import itertools
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
-from msmbuilder import libdistance
 from ..base import BaseEstimator
 
 def zippy_maker(aind_tuples, top):
