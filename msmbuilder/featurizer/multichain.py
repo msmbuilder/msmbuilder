@@ -125,7 +125,16 @@ class LigandFeaturizer(Featurizer):
         if reference_frame.top.n_chains < 2:
             raise ValueError("Topology must have at least two chains")
 
-        self.contacts = self._guess_chains(reference_frame)
+        self.contacts = self._guess_chains(self.reference_frame)
+        self.p_residue_offset = self._get_residue_offset(self.reference_frame,
+                                                         self.protein_chain)
+        self.l_residue_offset = self._get_residue_offset(self.reference_frame,
+                                                         self.ligand_chain)
+        self.p_atom_offset = self._get_atom_offset(self.reference_frame,
+                                                   self.protein_chain)
+        self.l_atom_offset = self._get_atom_offset(self.reference_frame,
+                                                   self.ligand_chain)
+
 
     def _guess_chains(self, traj):
         if self.protein_chain == 'auto' or self.ligand_chain == 'auto':
@@ -156,6 +165,18 @@ class LigandFeaturizer(Featurizer):
                                         not(chain_dict[x][1]),
                                         chain_dict[x][2]]))
 
+    def _get_residue_offset(self, traj, chain):
+        offset = 0
+        for c in range(0, chain):
+            offset += traj.top.chain(c).n_residues
+        return offset
+
+    def _get_atom_offset(self, traj, chain):
+        offset = 0
+        for c in range(0, chain):
+            offset += traj.top.chain(c).n_atoms
+        return offset
+
 
 class LigandContactFeaturizer(LigandFeaturizer):
     """Featurizer based on ligand-protein distances.
@@ -182,7 +203,8 @@ class LigandContactFeaturizer(LigandFeaturizer):
         an identical number of atoms, 'auto' will choose the first chain
         in the topology file.
     reference_frame : md.Trajectory, default=None
-        single-frame conformation if binding pocket is specified
+        single-frame conformation to get chain information; also defines
+        the binding pocket if specified
     contacts : np.ndarray or 'all'
         array containing (0-indexed) indices of the residues to compute the
         contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
@@ -210,9 +232,9 @@ class LigandContactFeaturizer(LigandFeaturizer):
     def __init__(self, protein_chain='auto', ligand_chain='auto',
                  reference_frame=None, contacts='all', 
                  scheme='closest-heavy', binding_pocket='all'):
-        super(LigandContactFeaturizer, self).__init__(protein_chain=protein_chain,
-                                                      ligand_chain=ligand_chain,
-                                                      reference_frame=reference_frame)
+        super(LigandContactFeaturizer, self).__init__(
+                    protein_chain=protein_chain, ligand_chain=ligand_chain,
+                    reference_frame=reference_frame)
         self.contacts = contacts
         self.scheme = scheme
         self.binding_pocket = binding_pocket
@@ -225,22 +247,18 @@ class LigandContactFeaturizer(LigandFeaturizer):
                        if a.name.lower() == 'ca'):
                 raise ValueError("Bad scheme: the ligand has no alpha carbons")
 
-        # this is really similar to mdtraj/contact.py, but ensures that md.compute_contacts
-        # is always seeing an array of exactly the contacts we want to specify
+        # this is really similar to mdtraj/contact.py, but ensures that
+        # md.compute_contacts  is always seeing an array of exactly the
+        # contacts we want to specify
         if isinstance(contacts, string_types):
             if contacts.lower() != 'all':
-                raise ValueError('(%s) is not a valid contacts specifier' % contacts.lower())
+                raise ValueError('({}) is not a valid contacts specifier'.format(contacts.lower()))
 
             residue_pairs = []
-            p_offset = 0
-            for chain in range(0, self.protein_chain):
-                p_offset += traj.top.chain(chain).n_residues
-            l_offset = 0
-            for chain in range(0, self.ligand_chain):
-                l_offset += traj.top.chain(chain).n_residues
             for i in xrange(traj.top.chain(self.protein_chain).n_residues):
                 for j in xrange(traj.top.chain(self.ligand_chain).n_residues):
-                    residue_pairs.append((i+p_offset, j+l_offset))
+                    residue_pairs.append((i+self.p_residue_offset,
+                                          j+self.l_residue_offset))
 
             residue_pairs = np.array(residue_pairs)
 
@@ -248,10 +266,13 @@ class LigandContactFeaturizer(LigandFeaturizer):
                 raise ValueError('No acceptable residue pairs found')
 
         else:
-            residue_pairs = ensure_type(np.asarray(contacts), dtype=np.int, ndim=2, name='contacts',
-                                                   shape=(None, 2), warn_on_cast=False)
-            if not np.all((residue_pairs >= 0) * (residue_pairs < traj.n_residues)):
-                raise ValueError('contacts requests a residue that is not in the permitted range')
+            residue_pairs = ensure_type(np.asarray(contacts),
+                                        dtype=np.int, ndim=2, name='contacts',
+                                        shape=(None, 2), warn_on_cast=False)
+            if not np.all((residue_pairs >= 0) *
+                          (residue_pairs < traj.n_residues)):
+                raise ValueError('contacts requests a residue that is not '\
+                                 'in the permitted range')
 
         if self.binding_pocket is not 'all':
             ref_distances, _ = md.compute_contacts(traj,
@@ -288,7 +309,7 @@ class LigandContactFeaturizer(LigandFeaturizer):
         """
 
         distances, _ = md.compute_contacts(traj, self.contacts,
-                                           self.scheme, ignore_nonprotein=False)
+                                        self.scheme, ignore_nonprotein=False)
         return self._transform(distances)
 
     def describe_features(self, traj):
@@ -314,10 +335,9 @@ class LigandContactFeaturizer(LigandFeaturizer):
         """
         feature_descs = []
         # fill in the atom indices using just the first frame
-        distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
-                                                         self.scheme,
-                                                         ignore_nonprotein=False
-                                                         )
+        distances, residue_indices = md.compute_contacts(traj[0],
+                                        self.contacts, self.scheme,
+                                        ignore_nonprotein=False)
         top = traj.topology
 
         aind = []
@@ -362,7 +382,8 @@ class BinaryLigandContactFeaturizer(LigandContactFeaturizer):
         an identical number of atoms, 'auto' will choose the first chain
         in the topology file.
     reference_frame : md.Trajectory, default=None
-        single-frame conformation if binding pocket is specified
+        single-frame conformation to get chain information; also defines
+        the binding pocket if specified
     contacts : np.ndarray or 'all'
         array containing (0-indexed) indices of the residues to compute the
         contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
@@ -394,9 +415,10 @@ class BinaryLigandContactFeaturizer(LigandContactFeaturizer):
                  reference_frame=None, contacts='all', 
                  scheme='closest-heavy', binding_pocket='all',
                  cutoff=0.8):
-        super(BinaryLigandContactFeaturizer, self).__init__(protein_chain=protein_chain,
-                ligand_chain=ligand_chain, reference_frame=reference_frame,
-                contacts=contacts, scheme=scheme, binding_pocket=binding_pocket)
+        super(BinaryLigandContactFeaturizer, self).__init__(
+                protein_chain=protein_chain, ligand_chain=ligand_chain,
+                reference_frame=reference_frame, contacts=contacts,
+                scheme=scheme, binding_pocket=binding_pocket)
 
         if cutoff < 0:
             raise ValueError('cutoff must be a positive distance [nm]')
@@ -405,3 +427,160 @@ class BinaryLigandContactFeaturizer(LigandContactFeaturizer):
     def _transform(self, distances):
         return distances < self.cutoff
 
+
+class LigandRMSDFeaturizer(LigandFeaturizer):
+    """Featurizer based on RMSD to one or more reference structures.
+
+    This featurizer...
+
+    Parameters
+    ----------
+    protein_chain : int or 'auto', default='auto'
+        chain in the trajectory containing the protein of interest. 'auto'
+        chooses the longest alpha-carbon containing chain. for chains with
+        an identical number of atoms, 'auto' will choose the first chain
+        in the topology file.
+    ligand_chain : int or 'auto', default='auto'
+        chain in the trajectory containing the ligand of interest. 'auto'
+        chooses the chain containing the most atoms, not to exceed 100
+        atoms, that is not already the protein chain. for chains with
+        an identical number of atoms, 'auto' will choose the first chain
+        in the topology file.
+    reference_frame : md.Trajectory, default=None
+        single-frame conformation to get chain information
+    reference_traj : md.Trajectory, default=reference_frame
+        reference conformation(s) to superpose each frame with respect to
+    align_by : {'ligand', 'protein', 'custom'}, default='protein'
+        chain on which to align structures. if custom, align_indices
+        must be provided.
+    align_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        the indices of the atoms to superpose with; if not specified,
+        all atoms on the 'align_by' chain are used.
+    calculate_for : {'ligand', 'protein', 'custom'}, default='ligand'
+        chain on which to calculate RMSD. if custom, calculate_indices
+        must be provided.
+    calculate_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        the indices of the atoms to compute the distances with; if not
+        specified, all atoms on the 'calculate_for' chain are used.
+    """
+
+
+    def __init__(self, protein_chain='auto', ligand_chain='auto',
+                 reference_frame=None, reference_traj=None,
+                 align_by='protein', align_indices=None,
+                 calculate_for='ligand', calculate_indices=None):
+        super(LigandRMSDFeaturizer, self).__init__(
+                    protein_chain=protein_chain, ligand_chain=ligand_chain,
+                    reference_frame=reference_frame)
+
+        self.reference_traj = reference_traj
+        if self.reference_traj is None:
+            self.reference_traj = self.reference_frame
+        self.n_features = self.reference_traj.n_frames
+
+        if align_by == 'ligand':
+            self.align_by = self.ligand_chain
+        elif align_by == 'protein':
+            self.align_by = self.protein_chain
+        elif align_by == 'custom':
+            if align_indices is None:
+                raise ValueError("Please specify custom align_indices")
+        else:
+            raise ValueError("Please specify a valid option")
+
+        if calculate_for == 'ligand':
+            self.calculate_for = self.ligand_chain
+        elif calculate_for == 'protein':
+            self.calculate_for = self.protein_chain
+        elif calculate_for == 'custom':
+            if calculate_indices is None:
+                raise ValueError("Please specify custom calculate_indices")
+        else:
+            raise ValueError("Please specify a valid option")
+
+
+        if align_indices is not None:
+            if align_by is not 'custom':
+                if not self._check_indices(self.reference_frame, self.align_by,
+                                           align_indices):
+                    raise ValueError("align_indices must be on the " \
+                                     "align_by chain")
+            else:
+                if not all(align_indices[i] in
+                           range(self.reference_frame.n_atoms)
+                           for i in range(len(align_indices))):
+                    raise ValueError("align_indices must exist")
+            self.align_indices = align_indices
+        else:
+            self.align_indices = self._get_atom_range(self.reference_frame,
+                                                 self.align_by)
+
+        if calculate_indices is not None:
+            if calculate_for is not 'custom':
+                if not self._check_indices(self.reference_frame,
+                                           self.calculate_for,
+                                           calculate_indices):
+                    raise ValueError("calculate_indices must be on the " \
+                                     "calculate_for chain")
+            else:
+                if not all(calculate_indices[i] in
+                           range(self.reference_frame.n_atoms)
+                           for i in range(len(calculate_indices))):
+                    raise ValueError("calculate_indices must exist")
+            self.calculate_indices = calculate_indices
+        else:
+            self.calculate_indices = self._get_atom_range(self.reference_frame,
+                                                     self.calculate_for)
+
+
+    # custom option will never see this
+    def _get_atom_range(self, traj, chain):
+        if chain == self.protein_chain:
+            offset = self.p_atom_offset
+        elif chain == self.ligand_chain:
+            offset = self.l_atom_offset
+        else:
+            raise ValueError("Protein or ligand chain required")
+        atom_range = range(offset,offset+traj.top.chain(chain).n_atoms)
+        return atom_range
+
+
+    # custom option will never see this
+    def _check_indices(self, traj, chain, indices):
+        atom_range = self._get_atom_range(traj, chain)
+        return all(indices[i] in atom_range for i in range(len(indices)))
+
+
+    def _naive_rmsd(self, traj, ref, idx):
+        return np.sqrt(np.sum(np.square(traj.xyz[:,idx,:] - ref.xyz[:,idx,:]),
+                              axis=(1, 2))/len(idx))
+
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via distance
+        after superposition
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, shape=(n_frames, n_ref_frames)
+            The RMSD value of each frame of the input trajectory to be
+            featurized versus each frame in the reference trajectory. The
+            number of features is the number of reference frames.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        X = np.zeros((traj.n_frames, self.n_features))
+
+        for f in range(self.n_features):
+            frame = self.reference_traj[f]
+            traj.superpose(frame, atom_indices=self.align_indices)
+            X[:,f] = self._naive_rmsd(traj, frame, self.calculate_indices)
+
+        return X

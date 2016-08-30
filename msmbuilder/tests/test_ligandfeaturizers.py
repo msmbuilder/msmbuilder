@@ -5,6 +5,7 @@ import numpy as np
 
 from msmbuilder.featurizer import LigandContactFeaturizer
 from msmbuilder.featurizer import BinaryLigandContactFeaturizer
+from msmbuilder.featurizer import LigandRMSDFeaturizer
 
 
 def _random_trajs():
@@ -81,3 +82,23 @@ def test_binaries_binding_pocket():
     assert (np.sum(pocket_binaries[:]) <=
             len(pocket_binaries)*pocket_binaries[0].shape[1])
 
+
+def test_single_index_rmsd():
+    traj, ref = _random_trajs()
+    feat = LigandRMSDFeaturizer(reference_frame=ref,
+                                calculate_indices=[ref.n_atoms-1])
+    single_cindex = feat.transform([traj])
+    assert np.unique(single_cindex).shape[0] > 1
+    # this actually won't pass for standard mdtraj rmsd 
+    # with len(atom_indices)=1, I think because of the superposition
+    # built into the calculation
+
+
+def test_mdtraj_equivalence():
+    traj, ref = _random_trajs()
+    feat = LigandRMSDFeaturizer(reference_frame=ref, align_by='custom',
+                    calculate_for='custom', align_indices=range(ref.n_atoms),
+                     calculate_indices=range(ref.n_atoms))
+    multi_chain = feat.transform([traj])
+    md_traj = md.rmsd(traj,ref,frame=0)
+    np.testing.assert_almost_equal(multi_chain[0][:, 0], md_traj, decimal=4)
