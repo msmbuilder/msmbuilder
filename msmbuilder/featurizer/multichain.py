@@ -254,34 +254,36 @@ class LigandContactFeaturizer(LigandFeaturizer):
             if contacts.lower() != 'all':
                 raise ValueError('({}) is not a valid contacts specifier'.format(contacts.lower()))
 
-            residue_pairs = []
+            self.residue_pairs = []
             for i in xrange(traj.top.chain(self.protein_chain).n_residues):
                 for j in xrange(traj.top.chain(self.ligand_chain).n_residues):
-                    residue_pairs.append((i+self.p_residue_offset,
+                    self.residue_pairs.append((i+self.p_residue_offset,
                                           j+self.l_residue_offset))
 
-            residue_pairs = np.array(residue_pairs)
+            self.residue_pairs = np.array(self.residue_pairs)
 
-            if len(residue_pairs) == 0:
+            if len(self.residue_pairs) == 0:
                 raise ValueError('No acceptable residue pairs found')
 
         else:
-            residue_pairs = ensure_type(np.asarray(contacts),
+            self.residue_pairs = ensure_type(np.asarray(contacts),
                                         dtype=np.int, ndim=2, name='contacts',
                                         shape=(None, 2), warn_on_cast=False)
-            if not np.all((residue_pairs >= 0) *
-                          (residue_pairs < traj.n_residues)):
+            if not np.all((self.residue_pairs >= 0) *
+                          (self.residue_pairs < traj.n_residues)):
                 raise ValueError('contacts requests a residue that is not '\
                                  'in the permitted range')
 
         if self.binding_pocket is not 'all':
             ref_distances, _ = md.compute_contacts(traj,
-                                     residue_pairs, self.scheme,
+                                     self.residue_pairs, self.scheme,
                                      ignore_nonprotein=False)
-            residue_pairs = residue_pairs[np.where(ref_distances<
+            self.residue_pairs = self.residue_pairs[np.where(ref_distances<
                                      self.binding_pocket)[1]]
+            if len(self.residue_pairs) == 0:
+                raise ValueError('No residue pairs within binding pocket')
 
-        return residue_pairs
+        return self.residue_pairs
 
     def _transform(self, distances):
         return distances
