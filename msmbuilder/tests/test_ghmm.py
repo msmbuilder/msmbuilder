@@ -10,6 +10,8 @@ from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import SuperposeFeaturizer
 from msmbuilder.hmm import GaussianHMM
 
+rs = np.random.RandomState(42)
+
 
 def test_ala2():
     # creates a 4-state HMM on the ALA2 data. Nothing fancy, just makes
@@ -21,7 +23,7 @@ def test_ala2():
     featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
 
     sequences = featurizer.transform(trajectories)
-    hmm = GaussianHMM(n_states=4, n_init=3)
+    hmm = GaussianHMM(n_states=4, n_init=3, random_state=rs)
     hmm.fit(sequences)
 
     assert len(hmm.timescales_ == 3)
@@ -32,7 +34,8 @@ def create_timeseries(means, vars, transmat):
     """Construct a random timeseries based on a specified Markov model."""
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        model = hmmlearn.hmm.GaussianHMM(n_components=len(means))
+        model = hmmlearn.hmm.GaussianHMM(n_components=len(means),
+                                         random_state=rs)
         model.means_ = means
         model.covars_ = vars
         model.transmat_ = transmat
@@ -93,7 +96,7 @@ def test_2_state():
         def __call__(self, *args, **kwargs):
             model = GaussianHMM(n_states=2, init_algo=self.init_algo,
                                 reversible_type=self.reversible_type,
-                                thresh=1e-4, n_iter=30)
+                                thresh=1e-4, n_iter=30, random_state=rs)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
             assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
@@ -121,7 +124,7 @@ def test_3_state():
         def __call__(self, *args, **kwargs):
             model = GaussianHMM(n_states=3, init_algo=self.init_algo,
                                 reversible_type=self.reversible_type,
-                                thresh=1e-4, n_iter=30)
+                                thresh=1e-4, n_iter=30, random_state=rs)
             model.fit(X)
             validate_timeseries(means, vars, transmat, model, 0.1, 0.1)
             assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
