@@ -22,6 +22,8 @@ use::
 MSMBuilder includes algorithms for constructing dynamical models:
 
 - :ref:`featurization`
+- :ref:`feature_selection`
+- :ref:`preprocessing`
 - :ref:`decomposition`
 - :ref:`cluster`
 - :ref:`msm`
@@ -65,6 +67,8 @@ the GNU LGPL (v2.1 or later).
     tutorial
     examples/index
     featurization
+    feature_selection
+    preprocessing
     decomposition
     cluster
     msm
@@ -77,7 +81,7 @@ the GNU LGPL (v2.1 or later).
     apipatterns
     plugins
     faq
-    changelog    
+    changelog
     publications
     contributing
 
