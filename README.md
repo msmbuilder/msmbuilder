@@ -25,7 +25,8 @@ Capabilities include:
 - Timescale and transition path analysis.
 
 Check out the documentation at [msmbuilder.org](http://msmbuilder.org) and
-join the [mailing list](https://mailman.stanford.edu/mailman/listinfo/msmbuilder-user)
+join the [mailing list](https://mailman.stanford.edu/mailman/listinfo/msmbuilder-user).
+For a more broad overview of MSMBuilder, take a look at our [slide deck](http://rawgit.com/msmbuilder/talk/master/index.html).
 
 Installation
 ------------
