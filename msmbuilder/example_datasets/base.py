@@ -62,14 +62,16 @@ class _MDDataset(Dataset):
     target_directory = ""  # set in subclass
     data_url = ""  # set in subclass
 
-    def __init__(self, data_home=None):
+    def __init__(self, data_home=None, verbose=True):
         self.data_home = get_data_home(data_home)
         self.data_dir = join(self.data_home, self.target_directory)
         self.cached = False
+        self.verbose = verbose
 
     def _msmbdata_cache(self):
-        print("Copying {} from msmb_data package to {}"
-              .format(self.target_directory, self.data_home))
+        if self.verbose:
+            print("Copying {} from msmb_data package to {}"
+                  .format(self.target_directory, self.data_home))
         msmb_data = has_msmb_data()
         assert msmb_data is not None
         shutil.copytree("{}/{}".format(msmb_data, self.target_directory),
@@ -77,8 +79,10 @@ class _MDDataset(Dataset):
 
     @retry(3)
     def _figshare_cache(self):
-        print('downloading {} from {} to {}'
-              .format(self.target_directory, self.data_url, self.data_home))
+        if self.verbose:
+            print('downloading {} from {} to {}'
+                  .format(self.target_directory, self.data_url,
+                          self.data_home))
         fhandle = urlopen(self.data_url)
         buf = BytesIO(fhandle.read())
         zip_file = ZipFile(buf)
@@ -96,7 +100,7 @@ class _MDDataset(Dataset):
                 self._msmbdata_cache()
             else:
                 self._figshare_cache()
-        else:
+        elif self.verbose:
             print("{} already is cached".format(self.target_directory))
 
         self.cached = True

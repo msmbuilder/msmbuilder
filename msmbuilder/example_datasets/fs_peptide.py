@@ -55,7 +55,8 @@ class FsPeptide(_MDDataset):
             top = md.load(join(self.data_dir, 'fs_peptide.pdb'))
         trajectories = []
         for fn in sorted(glob(join(self.data_dir, 'trajectory*.xtc'))):
-            print('loading %s...' % basename(fn))
+            if self.verbose:
+                print('loading %s...' % basename(fn))
             trajectories.append(md.load(fn, top=top))
 
         return Bunch(trajectories=trajectories, DESCR=self.description())
