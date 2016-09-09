@@ -15,6 +15,8 @@ import numpy as np
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
+from ..preprocessing import (StandardScaler, RobustScaler, KernelCenterer,
+                             Butterworth, DoubleEWMA)
 from ..decomposition import (tICA, SparseTICA, FastICA, FactorAnalysis,
                              KernelTICA, PCA, SparsePCA, MiniBatchSparsePCA)
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
@@ -135,6 +137,41 @@ class TrajectoryClusterCommand(FitTransformCommand):
             return dataset(self.inp, fmt='mdtraj', topology=self.top,
                            stride=self.stride, verbose=False)
         return dataset(self.inp, mode='r', verbose=False)
+
+
+class ButterworthCommand(FitTransformCommand):
+    klass = Butterworth
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
+
+
+class DoubleEWMACommand(FitTransformCommand):
+    klass = DoubleEWMA
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
+
+
+class KernelCentererCommand(FitTransformCommand):
+    klass = KernelCenterer
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
+
+
+class StandardScalerCommand(FitTransformCommand):
+    klass = StandardScaler
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
+
+
+class RobustScalerCommand(FitTransformCommand):
+    klass = RobustScaler
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
 
 
 class tICACommand(FitTransformCommand):

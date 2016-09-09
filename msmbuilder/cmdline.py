@@ -566,6 +566,7 @@ def stripquotestype(s):
 
 def _shim_argspec(argspec):
     from collections import OrderedDict
+
     class Signature:
         def __init__(self):
             self.parameters = OrderedDict()
@@ -581,6 +582,7 @@ def _shim_argspec(argspec):
             sig.parameters[arg] = sig.parameters[arg].replace(default=default)
 
     return sig
+
 
 def get_init_argspec(klass):
     """Wrapper around inspect.getargspec(klass.__init__) which, for cython
