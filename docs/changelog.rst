@@ -26,6 +26,8 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
+- ``Butterworth``, ``DoubleEWMA``, ``StandardScaler``, ``RobustScaler`` are
+  available via the command line (#895).
 - ``BinaryContactFeaturizer`` featurizes a trajectory into a
   boolean array corresponding to whether each residue-residue
   distance is below a cutoff (#798).

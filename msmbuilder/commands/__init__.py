@@ -15,7 +15,14 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
 from .fit import (GaussianHMMCommand, MarkovStateModelCommand,
                   BayesianMarkovStateModelCommand, ContinuousTimeMSMCommand,
                   BayesianContinuousTimeMSMCommand)
-from .fit_transform import (tICACommand, SparseTICACommand, FastICACommand,
+
+try:
+    from .fit_transform import RobustScalerCommand, StandardScalerCommand
+except:
+    pass
+
+from .fit_transform import (tICACommand, ButterworthCommand, DoubleEWMACommand,
+                            SparseTICACommand, FastICACommand,
                             FactorAnalysisCommand, KernelTICACommand,
                             PCACommand, SparsePCACommand,
                             MiniBatchSparsePCACommand,

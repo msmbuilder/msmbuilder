@@ -15,6 +15,13 @@ import numpy as np
 from ..utils.progressbar import ProgressBar, Percentage, Bar, ETA
 from ..dataset import dataset, _guess_format
 from ..utils import verbosedump
+
+try:
+    from ..preprocessing import StandardScaler, RobustScaler
+except:
+    StandardScaler = RobustScaler = None
+
+from ..preprocessing import Butterworth, DoubleEWMA
 from ..decomposition import (tICA, SparseTICA, FastICA, FactorAnalysis,
                              KernelTICA, PCA, SparsePCA, MiniBatchSparsePCA)
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
@@ -22,7 +29,8 @@ from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        GMM, MeanShift, NDGrid, SpectralClustering,
                        AffinityPropagation, APM, AgglomerativeClustering)
 
-from ..cmdline import NumpydocClassCommand, argument_group, exttype, stripquotestype
+from ..cmdline import (NumpydocClassCommand, argument_group,
+                       exttype, stripquotestype)
 
 
 class FitTransformCommand(NumpydocClassCommand):
@@ -135,6 +143,34 @@ class TrajectoryClusterCommand(FitTransformCommand):
             return dataset(self.inp, fmt='mdtraj', topology=self.top,
                            stride=self.stride, verbose=False)
         return dataset(self.inp, mode='r', verbose=False)
+
+
+class ButterworthCommand(FitTransformCommand):
+    klass = Butterworth
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
+
+
+class DoubleEWMACommand(FitTransformCommand):
+    klass = DoubleEWMA
+    _concrete = True
+    _group = '1-Preprocessing'
+    _transformed_fmt = 'hdf5'
+
+if StandardScaler is not None:
+    class StandardScalerCommand(FitTransformCommand):
+        klass = StandardScaler
+        _concrete = True
+        _group = '1-Preprocessing'
+        _transformed_fmt = 'hdf5'
+
+if RobustScaler is not None:
+    class RobustScalerCommand(FitTransformCommand):
+        klass = RobustScaler
+        _concrete = True
+        _group = '1-Preprocessing'
+        _transformed_fmt = 'hdf5'
 
 
 class tICACommand(FitTransformCommand):
