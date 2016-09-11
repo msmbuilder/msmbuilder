@@ -12,7 +12,7 @@ depends:
 import mdtraj as md
 
 from msmbuilder.cluster import MiniBatchKMedoids
-from msmbuilder.io import load_meta, itertrajs, save_trajs, save_generic
+from msmbuilder.io import load_meta, itertrajs, save_trajs, preload_top
 
 ## Set up parameters
 kmed = MiniBatchKMedoids(
@@ -22,45 +22,10 @@ kmed = MiniBatchKMedoids(
 
 ## Load
 meta = load_meta()
-
-
-## Try to limit RAM usage
-def guestimate_stride():
-    total_data = meta['nframes'].sum()
-    want = kmed.n_clusters * 10
-    stride = max(1, total_data // want)
-    print("Since we have", total_data, "frames, we're going to stride by",
-          stride, "during fitting, because this is probably adequate for",
-          kmed.n_clusters, "clusters")
-    return stride
-
-
-## Fit
-kmed.fit([traj for _, traj in itertrajs(meta, stride=guestimate_stride())])
-
-## Transform
-ktrajs = {}
-for i, traj in itertrajs(meta):
-    ktrajs[i] = kmed.partial_transform(traj)
-
-print(kmed.summarize())
-
-## Save
-save_trajs(ktrajs, 'ktrajs', meta)
-save_generic(kmed, 'clusterer.pickl')
-
-## Save centroids
-def frame(traj_i, frame_i):
-    # Note: kmedoids does 0-based, contiguous integers so we use .iloc
-    row = meta.iloc[traj_i]
-    return md.load_frame(row['traj_fn'], frame_i, top=row['top_fn'])
-
-
-centroids = md.join(frame(ti, fi) for ti, fi in kmed.cluster_ids_)
-centroids.save("centroids.xtc")
+centroids = md.load("centroids.xtc", top=preload_top(meta))
 
 ## Kernel
-SIGMA = 0.5  # nm
+SIGMA = 0.3  # nm
 from msmbuilder.featurizer import RMSDFeaturizer
 import numpy as np
 
@@ -68,6 +33,6 @@ featurizer = RMSDFeaturizer(centroids)
 lfeats = {}
 for i, traj in itertrajs(meta):
     lfeat = featurizer.partial_transform(traj)
-    lfeat = np.exp(lfeat ** 2 / (2 * (SIGMA ** 2)))
+    lfeat = np.exp(-lfeat ** 2 / (2 * (SIGMA ** 2)))
     lfeats[i] = lfeat
 save_trajs(lfeats, 'ftrajs', meta)

@@ -75,6 +75,7 @@ def get_layout():
                     TemplateDir(
                         'landmarks',
                         [
+                            'landmarks/find-landmarks.py',
                             'landmarks/featurize.py',
                             'landmarks/featurize-plot.py',
                         ],
