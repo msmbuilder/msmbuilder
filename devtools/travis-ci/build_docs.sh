@@ -12,7 +12,8 @@ conda install -yq --use-local msmbuilder-dev
 # sphinx_rtd_theme's latest releases are not available
 # neither is msmb_theme
 # neither is sphinx > 1.3.1 (fix #1892 autodoc problem)
-pip install -I sphinx==1.3.5 sphinx_rtd_theme==0.1.9 msmb_theme==1.2.0
+# msmexplorer has msmbuilder release as a dependency on conda
+pip install -I sphinx==1.3.5 sphinx_rtd_theme==0.1.9 msmb_theme==1.2.0 msmexplorer==0.1.0
 
 # Install doc requirements
 conda install -yq --file docs/requirements.txt

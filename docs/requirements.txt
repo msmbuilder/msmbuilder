@@ -6,4 +6,3 @@ openmm
 nbconvert
 msmb_data
 pyparsing
-msmexplorer
