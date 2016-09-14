@@ -1,5 +1,5 @@
 package:
-  name: msmbuilder-dev
+  name: msmbuilder
   version: {{ GIT_DESCRIBE_TAG }}
 
 source:

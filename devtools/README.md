@@ -39,7 +39,7 @@ How to do a release
 - File a pull request against the
   [conda-recipes](https://github.com/omnia-md/conda-recipes) repository.
   Use the PyPI link as the "source". Make sure the requirements match those
-  in the msmbuilder-dev recipe in `devtools/conda-recipe`. We don't want the package
+  in the msmbuilder recipe in `devtools/conda-recipe`. We don't want the package
   that gets tested with every pull request to differ from the one people actually get!
   Conda binaries should be automatically built.
 - Make an announcement on the mailing list.
