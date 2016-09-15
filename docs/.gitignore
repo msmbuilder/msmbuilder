@@ -6,6 +6,8 @@ _msm/
 _hmm/
 _ratematrix/
 _decomposition/
+_preprocessing/
+_feature_selection/
 _featurization/
 _tpt/
 _io/
