@@ -352,7 +352,10 @@ class BinaryLigandContactFeaturizer(LigandContactFeaturizer):
 class LigandRMSDFeaturizer(LigandFeaturizer):
     """Featurizer based on RMSD to one or more reference structures.
 
-    This featurizer...
+    This featurizer inputs a trajectory to be analyzed ('traj') and a
+    reference trajectory ('ref') and outputs the RMSD of each frame of
+    traj calculated for a specified set of atom indices after aligning
+    the structures based on a different, specified set of atom indices.
 
     Parameters
     ----------
