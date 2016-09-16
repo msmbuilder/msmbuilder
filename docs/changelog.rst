@@ -3,16 +3,19 @@
 Changelog
 =========
 
-v3.6 (Development)
-------------------
+v3.6 (September 15, 2016)
+-------------------------
 
-This is the current development version of MSMBuilder
+We're pleased to announce the release of MSMBuilder 3.6. This release
+introduces projetc templating and a whole host of new ``sklearn`` estimators.
+There are also some bugfixes and API hygiene improvements. We recommend all
+users upgrade to MSMBuilder 3.6.
 
 API Changes
 ~~~~~~~~~~~
 
-- ``version.short_version`` is now 3.y instead of 3.y.z (#829).
-- ``weighted_transform`` is no longer supported in tICA methods (#807). Please
+- ``version.short_version`` is now 3.y instead of 3.y.z (gh-829).
+- ``weighted_transform`` is no longer supported in tICA methods (gh-807). Please
   used ``kinetic_mapping``.
 - The cached filenames and formats for DoubleWell, QuadWell,
   and MullerPotential example datasets have changed. The API through
@@ -20,23 +23,23 @@ API Changes
   be re-generated instead of using a cached version from a previous installation
   of MSMBuilder (gh-854).
 - The alias for Ward clustering has been removed. Modelers should now use
-  ``LandmarkAgglomerative(linkage='ward')`` (#874). Ward clustering is also
+  ``LandmarkAgglomerative(linkage='ward')`` (gh-874). Ward clustering is also
   available in ``AgglomerativeClustering``, but without a prediction algorithm.
 
 New Features
 ~~~~~~~~~~~~
 
 - ``Butterworth``, ``DoubleEWMA``, ``StandardScaler``, ``RobustScaler`` are
-  available via the command line (#895).
+  available via the command line (gh-895).
 - ``BinaryContactFeaturizer`` featurizes a trajectory into a
   boolean array corresponding to whether each residue-residue
-  distance is below a cutoff (#798).
+  distance is below a cutoff (gh-798).
 - ``LogisticContactFeaturizer`` produces a logistic transform
   of residue-residue distances about a center distance (#798).
 - ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
-  ``decomposition`` module (#807).
+  ``decomposition`` module (gh-807).
 - ``Butterworth``, ``EWMA``, and ``DoubleEWMA`` are available in the
-  ``preprocessing`` module (#818).
+  ``preprocessing`` module (gh-818).
 - We encourage users to download the ``msmb_data`` conda package to easily
   install example data. The data can be loaded through existing methods
   in ``msmbuilder.example_datasets`` (gh-854, gh-867).
@@ -47,7 +50,7 @@ New Features
   details (gh-768).
 - ``LandmarkAgglomerative`` clustering now features the ``ward`` linkage
   option. An algorithm for predicting cluster assignments with the
-  ``ward`` objective function has been developed and implemented (#874).
+  ``ward`` objective function has been developed and implemented (gh-874).
 
 Improvements
 ~~~~~~~~~~~~
