@@ -15,9 +15,9 @@ install:
     - conda config --add channels omnia
 
 script:
-  # Build docs only on 3.5, but return success even if that check fails
+  # Run tests. If they succeed, build docs only on 3.5
   conda build --quiet devtools/conda-recipe
-  && { [[ $CONDA_PY = 3.5 ]] && devtools/travis-ci/build_docs.sh } || true; }
+  && if [[ $CONDA_PY = 3.5 ]]; then devtools/travis-ci/build_docs.sh; fi
 
 env:
   matrix:
