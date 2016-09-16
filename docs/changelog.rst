@@ -3,11 +3,15 @@
 Changelog
 =========
 
+v3.7 (development)
+------------------
+
+
 v3.6 (September 15, 2016)
 -------------------------
 
 We're pleased to announce the release of MSMBuilder 3.6. This release
-introduces projetc templating and a whole host of new ``sklearn`` estimators.
+introduces project templating and a whole host of new ``sklearn`` estimators.
 There are also some bugfixes and API hygiene improvements. We recommend all
 users upgrade to MSMBuilder 3.6.
 
