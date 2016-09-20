@@ -11,14 +11,7 @@ depends:
 """
 import mdtraj as md
 
-from msmbuilder.cluster import MiniBatchKMedoids
 from msmbuilder.io import load_meta, itertrajs, save_trajs, preload_top
-
-## Set up parameters
-kmed = MiniBatchKMedoids(
-    n_clusters=500,
-    metric='rmsd',
-)
 
 ## Load
 meta = load_meta()
