@@ -913,15 +913,12 @@ class SASAFeaturizer(Featurizer):
             resids = np.unique(mapping)
             resseqs = [top.residue(ri).resSeq for ri in resids]
             resnames = [top.residue(ri).name for ri in resids]
-            # Not sure if there's a better way to get the indices of atoms in a residue
             atoms_in_res = [res.atoms for res in top.residues]
             aind_tuples = []
             # For each resdiue...
             for i,x in enumerate(atoms_in_res):
-                aind_tuples.append([])
                 # For each atom in the residues, append it's index
-                for y in x:
-                    aind_tuples[i].append(y.index)
+                aind_tuples.append([atom.index for atom in x])
             zippy = itertools.product(['SASA'],['N/A'],[self.mode], zip(aind_tuples, resseqs, resids, resnames))
         else:
             resids = [top.atom(ai).residue.index for ai in mapping]
