@@ -11,7 +11,7 @@ from sklearn import cluster
 
 try:
     # sklearn >= 0.18
-    from sklearn.mixture import GaussianMixtureModel as sklearn_GMM
+    from sklearn.mixture import GaussianMixture as sklearn_GMM
 except ImportError:
     from sklearn.mixture import GMM as sklearn_GMM
 
