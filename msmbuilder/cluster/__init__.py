@@ -41,17 +41,22 @@ def _replace_labels(doc):
     labelstart, labelend = None, None
     foundattributes = False
     for i, line in enumerate(lines):
-        if 'Attributes' in line:
+        stripped = line.strip()
+        if stripped == 'Attributes':
             foundattributes = True
-        if 'labels' in line and not labelstart and foundattributes:
-            labelstart = len('\n'.join(lines[:i]))
-        if labelstart and line.strip() == '' and not labelend:
+        if foundattributes and not labelstart and stripped.startswith('labels_'):
+            labelstart = len('\n'.join(lines[:i])) + 1
+        if labelstart and not labelend and stripped == '':
             labelend = len('\n'.join(lines[:i + 1]))
 
-    replace = '''\n    `labels_` : list of arrays, each of shape [sequence_length, ]
-        The label of each point is an integer in [0, n_clusters).
-    '''
+    if labelstart is None or labelend is None:
+        return doc
 
+    replace = '\n'.join([
+        '    labels_ : list of arrays, each of shape [sequence_length, ]',
+        '        The label of each point is an integer in [0, n_clusters).',
+        '',
+    ])
     return doc[:labelstart] + replace + doc[labelend:]
 
 
