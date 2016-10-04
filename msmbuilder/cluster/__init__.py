@@ -7,7 +7,13 @@
 from __future__ import absolute_import, print_function, division
 import warnings
 
-from sklearn import cluster, mixture
+from sklearn import cluster
+
+try:
+    # sklearn >= 0.18
+    from sklearn.mixture import GaussianMixtureModel as sklearn_GMM
+except ImportError:
+    from sklearn.mixture import GMM as sklearn_GMM
 
 from ..base import BaseEstimator
 from .base import MultiSequenceClusterMixin
@@ -19,8 +25,7 @@ from .kmedoids import KMedoids
 from .minibatchkmedoids import MiniBatchKMedoids
 from .apm import APM
 
-# workaround for sklearn emitting too many warnings
-warnings.filterwarnings("ignore", '', DeprecationWarning, r'^sklearn\.')
+warnings.filterwarnings("once", '', DeprecationWarning, r'^sklearn\.')
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'KCenters', 'NDGrid',
@@ -79,5 +84,5 @@ class AgglomerativeClustering(MultiSequenceClusterMixin,
     __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
 
 
-class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
-    __doc__ = _replace_labels(mixture.GMM.__doc__)
+class GMM(MultiSequenceClusterMixin, sklearn_GMM, BaseEstimator):
+    __doc__ = _replace_labels(sklearn_GMM.__doc__)
