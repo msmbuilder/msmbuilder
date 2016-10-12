@@ -7,7 +7,13 @@
 from __future__ import absolute_import, print_function, division
 import warnings
 
-from sklearn import cluster, mixture
+from sklearn import cluster
+
+try:
+    # sklearn >= 0.18
+    from sklearn.mixture import GaussianMixture as sklearn_GMM
+except ImportError:
+    from sklearn.mixture import GMM as sklearn_GMM
 
 from ..base import BaseEstimator
 from .base import MultiSequenceClusterMixin
@@ -19,8 +25,7 @@ from .kmedoids import KMedoids
 from .minibatchkmedoids import MiniBatchKMedoids
 from .apm import APM
 
-# workaround for sklearn emitting too many warnings
-warnings.filterwarnings("ignore", '', DeprecationWarning, r'^sklearn\.')
+warnings.filterwarnings("once", '', DeprecationWarning, r'^sklearn\.')
 
 __all__ = ['KMeans', 'MiniBatchKMeans', 'AffinityPropagation', 'MeanShift',
            'GMM', 'SpectralClustering', 'KCenters', 'NDGrid',
@@ -36,17 +41,22 @@ def _replace_labels(doc):
     labelstart, labelend = None, None
     foundattributes = False
     for i, line in enumerate(lines):
-        if 'Attributes' in line:
+        stripped = line.strip()
+        if stripped == 'Attributes':
             foundattributes = True
-        if 'labels' in line and not labelstart and foundattributes:
-            labelstart = len('\n'.join(lines[:i]))
-        if labelstart and line.strip() == '' and not labelend:
+        if foundattributes and not labelstart and stripped.startswith('labels_'):
+            labelstart = len('\n'.join(lines[:i])) + 1
+        if labelstart and not labelend and stripped == '':
             labelend = len('\n'.join(lines[:i + 1]))
 
-    replace = '''\n    `labels_` : list of arrays, each of shape [sequence_length, ]
-        The label of each point is an integer in [0, n_clusters).
-    '''
+    if labelstart is None or labelend is None:
+        return doc
 
+    replace = '\n'.join([
+        '    labels_ : list of arrays, each of shape [sequence_length, ]',
+        '        The label of each point is an integer in [0, n_clusters).',
+        '',
+    ])
     return doc[:labelstart] + replace + doc[labelend:]
 
 
@@ -79,5 +89,5 @@ class AgglomerativeClustering(MultiSequenceClusterMixin,
     __doc__ = _replace_labels(cluster.AgglomerativeClustering.__doc__)
 
 
-class GMM(MultiSequenceClusterMixin, mixture.GMM, BaseEstimator):
-    __doc__ = _replace_labels(mixture.GMM.__doc__)
+class GMM(MultiSequenceClusterMixin, sklearn_GMM, BaseEstimator):
+    __doc__ = _replace_labels(sklearn_GMM.__doc__)
