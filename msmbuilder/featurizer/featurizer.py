@@ -1002,8 +1002,7 @@ class ContactFeaturizer(Featurizer):
 
 
 class CommonContactFeaturizer(Featurizer):
-    """Featurizer based on residue-residue contacts between
-    desired positions of an alignment file.
+    """Featurizer based on residue-residue contacts of an alignment file.
 
     This featurizer will figure out the protein sequence on the fly
     making sure that feature "i" corresponds to the contact distance
@@ -1024,9 +1023,13 @@ class CommonContactFeaturizer(Featurizer):
     alignment: list of lists or dictionary
         Fasta formated alignment. Can either be a list of lists or
         a dictionary keyed on sequence id.
-    wanted_positions:list or 'all'
-        Location of desired sequence positions that need to be explicitly
-        included for calculating contacts.
+    contacts : np.ndarray or 'all'
+        array containing (0-indexed) indices of the alignment to compute the
+        contacts for. (e.g. np.array([[0, 10], [0, 11]]) would compute
+        the contact between equivalent of residue 0 and residue 10 for
+        every protein in the alignment as well as the contact between
+        residue 0 and residue 11.) Note that if conserved_only
+        flag is True then some of the contacts wont be calculated.
     conserved_only: True or False
         Whether or not to only use conserved(i.e. same aa) residues
         for calculating contacts.
@@ -1044,9 +1047,9 @@ class CommonContactFeaturizer(Featurizer):
         carbon).
 """
 
-    def __init__(self, alignment=None, wanted_positions='all',
+    def __init__(self, alignment=None, contacts='all',
                  same_residue='True',
-                  scheme='closest-heavy', ignore_nonprotein=True):
+                 scheme='closest-heavy', ignore_nonprotein=True):
 
         if alignment is None:
             raise ValueError("Common contacts requires an\
@@ -1062,8 +1065,8 @@ class CommonContactFeaturizer(Featurizer):
 
         self.protein_list = list(self.alignment.keys())
         self.same_residue = same_residue
-        self.wanted_positions = wanted_positions
-        if wanted_positions is 'all':
+        self.wanted_positions = contacts
+        if contacts is 'all':
             #use the max length(probably a horrible idea)
             self.wanted_positions = range(max([len(self.alignment[i])
                                                for i in self.alignment.keys()]))

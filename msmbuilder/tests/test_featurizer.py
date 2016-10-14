@@ -76,7 +76,7 @@ def test_common_contacts_featurizer_1():
     alignment["actual"] = met_seq+"-"
     alignment["fake"] = fake_met_eq
 
-    feat = CommonContactFeaturizer(alignment=alignment, wanted_positions='all',
+    feat = CommonContactFeaturizer(alignment=alignment, contacts='all',
                                    same_residue=True)
     rnd_traj = np.random.randint(len(trajectories))
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
@@ -94,7 +94,7 @@ def test_common_contacts_featurizer_2():
     alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
 
-    feat = CommonContactFeaturizer(alignment=alignment, wanted_positions='all',
+    feat = CommonContactFeaturizer(alignment=alignment, contacts='all',
                                    same_residue=True)
 
     rnd_traj = np.random.randint(len(trajectories))
@@ -115,7 +115,7 @@ def test_common_contacts_featurizer_2():
     alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
 
-    feat = CommonContactFeaturizer(alignment=alignment, wanted_positions='all',
+    feat = CommonContactFeaturizer(alignment=alignment, contacts='all',
                                    same_residue=True)
 
     rnd_traj = np.random.randint(len(trajectories))
