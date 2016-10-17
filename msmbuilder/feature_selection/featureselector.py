@@ -3,6 +3,7 @@
 # Copyright (c) 2016, Stanford University and the Authors
 # All rights reserved.
 import numpy as np
+from collections import OrderedDict
 
 from ..featurizer import Featurizer
 
@@ -40,7 +41,7 @@ class FeatureSelector(Featurizer):
         self._which_feat = value
 
     def __init__(self, features, which_feat=None):
-        self.features = dict(features)
+        self.features = OrderedDict(features)
         self.feat_list = list(self.features)
 
         which_feat = which_feat if which_feat else self.feat_list[:]
