@@ -1134,7 +1134,6 @@ class CommonContactFeaturizer(Featurizer):
         """
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
-        assert traj.top.chain(0).n_residues==len(self.all_sequences[seq_id])
         return self.feat_dict[seq_id].partial_transform(traj)
 
     def _transform(self, distances):
@@ -1143,7 +1142,6 @@ class CommonContactFeaturizer(Featurizer):
     def describe_features(self, traj):
         seq_id = [k for k,v in self.all_sequences.items()
                   if v == traj.top.to_fasta(chain=0)][0]
-        assert traj.top.chain(0).n_residues==len(self.all_sequences[seq_id])
         return self.feat_dict[seq_id].describe_features(traj)
 
     def _map_residue_ind_seq_ind(self,alignment):
