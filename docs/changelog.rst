@@ -3,6 +3,14 @@
 Changelog
 =========
 
+v3.6.1 (October 18, 2016)
+-------------------------
+
+This is a bug-fix release.
+
+- Compatibility with sklearn 0.18 (gh-915)
+- Deterministic ordering in feature union (gh-920)
+
 v3.6 (September 15, 2016)
 -------------------------
 
