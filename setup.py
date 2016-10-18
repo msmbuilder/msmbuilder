@@ -53,8 +53,8 @@ except ImportError:
     sys.exit(1)
 
 # #########################
-VERSION = '3.6.0'
-ISRELEASED = True
+VERSION = '3.6.1.dev0'
+ISRELEASED = False
 __version__ = VERSION
 # #########################
 
