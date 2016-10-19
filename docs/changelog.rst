@@ -6,6 +6,11 @@ Changelog
 v3.7 (development)
 ------------------
 
+New Features
+~~~~~~~~~~~~
+- ``CommonContactFeaturizer`` featurizes a bunch of different
+  trajectories,with different topologies, using a common set of
+  inter-residue contacts.(#876).
 
 v3.6 (September 15, 2016)
 -------------------------
@@ -38,9 +43,6 @@ New Features
 - ``BinaryContactFeaturizer`` featurizes a trajectory into a
   boolean array corresponding to whether each residue-residue
   distance is below a cutoff (gh-798).
-- ``CommonContactFeaturizer`` featurizes a bunch of different
-  trajectories,with different topologies, using a common set of
-  inter-residue contacts.(#876).
 - ``LogisticContactFeaturizer`` produces a logistic transform
   of residue-residue distances about a center distance (#798).
 - ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the

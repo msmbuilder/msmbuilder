@@ -4,7 +4,7 @@
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import itertools
-from .featurizer import Featurizer
+from .featurizer import Featurizer, ContactFeaturizer
 import warnings
 
 class CommonContactFeaturizer(Featurizer):
