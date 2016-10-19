@@ -109,6 +109,20 @@ def test_tica_kinetic_mapping():
 
     assert eq(y2, y1 * tica1.eigenvalues_)
 
+def test_tica_commute_mapping():
+    X = random.randn(10, 3)
+
+    tica1 = tICA(n_components=2, lag_time=1)
+    tica2 = tICA(n_components=2, lag_time=1, commute_mapping=True)
+
+    y1 = tica1.fit_transform([np.copy(X)])[0]
+    y2 = tica2.fit_transform([np.copy(X)])[0]
+
+    regularized_timescales = 0.5 * tica2.timescales_ *\
+                             np.tanh( np.pi *((tica2.timescales_ - tica2.lag_time)
+                                              /tica2.lag_time) + 1)
+
+    assert eq(y2, y1 * np.sqrt(regularized_timescales/2))
 
 def test_pca_vs_sklearn():
     # Compare msmbuilder.pca with sklearn.decomposition
