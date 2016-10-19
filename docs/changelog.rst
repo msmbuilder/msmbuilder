@@ -7,6 +7,11 @@ v3.7 (development)
 ------------------
 
 
+New Features
+~~~~~~~~~~~~
+
+- ``tICA`` now supports commute mapping based off 10.1021/acs.jctc.6b00762
+
 v3.6 (September 15, 2016)
 -------------------------
 
