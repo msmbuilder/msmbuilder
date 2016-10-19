@@ -40,8 +40,7 @@ New Features
   distance is below a cutoff (gh-798).
 - ``CommonContactFeaturizer`` featurizes a bunch of different
   trajectories,with different topologies, using a common set of
-  inter-residue contacts. Only featurizers on aminoacids >3
-  positions apart in sequence and requires an alignment to work(#876).
+  inter-residue contacts.(#876).
 - ``LogisticContactFeaturizer`` produces a logistic transform
   of residue-residue distances about a center distance (#798).
 - ``FactorAnalysis``, ``FastICA``, and ``KernelPCA`` are available in the
