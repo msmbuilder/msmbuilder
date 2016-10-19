@@ -336,7 +336,8 @@ class tICA(BaseEstimator, TransformerMixin):
                 X_transformed *= self.eigenvalues_
 
             if self.commute_mapping:
-                # thanks to @maxentile for providing a reference implementation in pyemma
+                # thanks to @maxentile and @jchodera for providing/directing to a
+                # reference implementation in pyemma
                 #(markovmodel/PyEMMA#963)
                 # dampening smaller timescales based recommendtion of  [7]
                 regularized_timescales = 0.5 * self.timescales_ *\
