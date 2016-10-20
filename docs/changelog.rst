@@ -13,15 +13,22 @@ API Changes
 New Features
 ~~~~~~~~~~~~
 
-- ``BootStrapMarkovStateModel`` can now optionally save all the
-  models that it generates (gh-919).
-- ``tICA`` now supports commute mapping based off 10.1021/acs.jctc.6b00762
-- ``CommonContactFeaturizer`` featurizes a bunch of different
-  trajectories, with different topologies, using a common set of
-  inter-residue contacts (gh-876).
+- ``KSparseTICA`` lets you specify the number of non-zero entries, ``k``
+  rather than a regularization strength (gh-916).
+- ``BootStrapMarkovStateModel`` optionally saves all the models that it
+  generates (gh-919).
+- ``tICA`` supports commute mapping (see 10.1021/acs.jctc.6b00762)
+  (gh-925).
+- ``CommonContactFeaturizer`` featurizes different trajectories with
+  different topologies using a common set of inter-residue contacts
+  (gh-876).
 
 Improvements
 ~~~~~~~~~~~~
+
+- Compatibility with scikit-learn 0.18 (gh-915).
+- ``FeatureSelector`` feature order is deterministic (gh-920).
+- ``SASAFeaturizer`` supports the ``describe_features`` method (gh-913).
 
 
 v3.6 (September 15, 2016)
