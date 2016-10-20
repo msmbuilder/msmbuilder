@@ -885,6 +885,52 @@ class SASAFeaturizer(Featurizer):
     def partial_transform(self, traj):
         return md.shrake_rupley(traj, mode=self.mode, **self.kwargs)
 
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the SASA features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each SASA feature
+                - resnames: names of residues
+                - atominds: atom index or atom indices in mode="residue"
+                - resseqs: residue ids (not necessarily 0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: SASA
+                - featuregroup: atom or residue
+        """
+
+        feature_descs = []
+        _, mapping = md.geometry.sasa.shrake_rupley(traj, mode=self.mode, get_mapping=True)
+        top = traj.topology
+
+        if self.mode == "residue":
+            resids = np.unique(mapping)
+            resseqs = [top.residue(ri).resSeq for ri in resids]
+            resnames = [top.residue(ri).name for ri in resids]
+            atoms_in_res = [res.atoms for res in top.residues]
+            aind_tuples = []
+            # For each resdiue...
+            for i,x in enumerate(atoms_in_res):
+                # For each atom in the residues, append it's index
+                aind_tuples.append([atom.index for atom in x])
+            zippy = itertools.product(['SASA'],['N/A'],[self.mode], zip(aind_tuples, resseqs, resids, resnames))
+        else:
+            resids = [top.atom(ai).residue.index for ai in mapping]
+            resseqs = [top.atom(ai).residue.resSeq for ai in mapping]
+            resnames = [top.atom(ai).residue.name for ai in mapping]
+            zippy = itertools.product(['SASA'],['N/A'],[self.mode], zip(mapping, resseqs, resids, resnames))
+
+        feature_descs.extend(dict_maker(zippy))
+
+        return feature_descs
+
 
 class ContactFeaturizer(Featurizer):
     """Featurizer based on residue-residue distances.
