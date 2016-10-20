@@ -6,6 +6,11 @@ Changelog
 v3.7 (development)
 ------------------
 
+New Features
+~~~~~~~~~~~~
+
+-``BootStrapMarkovStateModel`` can now optionally save all the
+models that it generates(gh-919)
 
 New Features
 ~~~~~~~~~~~~
