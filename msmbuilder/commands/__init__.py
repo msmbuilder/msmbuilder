@@ -33,7 +33,7 @@ from .fit_transform import (tICACommand, ButterworthCommand, DoubleEWMACommand,
                             MeanShiftCommand, NDGridCommand,
                             SpectralClusteringCommand,
                             AffinityPropagationCommand, APMCommand,
-                            AgglomerativeClusteringCommand)
+                            AgglomerativeClusteringCommand, KSparseTICACommand)
 from .transform import TransformCommand
 from .example_datasets import (AlanineDipeptideDatasetCommand,
                                FsPeptideDatasetCommand)
