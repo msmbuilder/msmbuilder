@@ -6,6 +6,11 @@ Changelog
 v3.7 (development)
 ------------------
 
+New Features
+~~~~~~~~~~~~
+- ``CommonContactFeaturizer`` featurizes a bunch of different
+  trajectories,with different topologies, using a common set of
+  inter-residue contacts.(#876).
 
 New Features
 ~~~~~~~~~~~~

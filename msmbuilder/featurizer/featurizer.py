@@ -18,7 +18,6 @@ from msmbuilder import libdistance
 import itertools
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
-
 from msmbuilder import libdistance
 from ..base import BaseEstimator
 
@@ -99,6 +98,8 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
+
+
 
 class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
@@ -191,6 +192,7 @@ class Featurizer(BaseEstimator, TransformerMixin):
                   itertools.repeat(("N/A","N/A","N/A","N/A"), n_f))
 
         return dict_maker(zippy)
+
 
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
@@ -850,7 +852,6 @@ class KappaAngleFeaturizer(Featurizer):
 
 
         return feature_descs
-
 
 
 class SASAFeaturizer(Featurizer):
