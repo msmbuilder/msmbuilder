@@ -70,7 +70,7 @@ def get_all():
     return itertools.chain(
         get_from_module(msmbuilder.featurizer,
                         ['Featurizer',  # Base class
-                         'SinMixin', 
+                         'SinMixin',
                          'CosMixin',
                          'PsiMixin',
                          'PhiMixin',
@@ -78,7 +78,6 @@ def get_all():
                          'BaseEstimator',
                          'Parallel',
                          'BaseSubsetFeaturizer',  # Base class
-                         'TrajFeatureUnion',
                          'Slicer',
                          'FirstSlicer',
                          'FeatureUnion',

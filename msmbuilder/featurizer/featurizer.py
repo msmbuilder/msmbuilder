@@ -1089,7 +1089,7 @@ class LogisticContactFeaturizer(ContactFeaturizer):
         shorter than CENTER will return values greater than 0.5 and
         distances larger than CENTER will return values smaller than 0.5.
     steepness : float, default=20
-        Determines the steepness of the logistic curve, [1/nm]. Small 
+        Determines the steepness of the logistic curve, [1/nm]. Small
         and large distances will approach ouput values of 1 and 0,
         respectively, more quickly.
     """
@@ -1302,63 +1302,6 @@ class DRIDFeaturizer(Featurizer):
         transform : simultaneously featurize a collection of MD trajectories
         """
         return md.geometry.compute_drid(traj, self.atom_indices)
-
-
-class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
-    """sklearn.pipeline.FeatureUnion adapted for multiple sequences
-    """
-
-    def fit_transform(self, traj_list, y=None, **fit_params):
-        """Fit all transformers using `trajectories`, transform the data
-        and concatenate results.
-
-        Parameters
-        ----------
-        traj_list : list (of mdtraj.Trajectory objects)
-            Trajectories to featurize
-        y : Unused
-            Unused
-
-        Returns
-        -------
-        Y : list (of np.ndarray)
-            Y[i] is the featurized version of X[i]
-            Y[i] will have shape (n_samples_i, n_features), where
-            n_samples_i is the length of trajectory i and n_features
-            is the total (concatenated) number of features in the
-            concatenated list of featurizers.
-        """
-        self.fit(traj_list, y, **fit_params)
-        return self.transform(traj_list)
-
-    def transform(self, traj_list):
-        """Transform traj_list separately by each transformer, concatenate results.
-
-        Parameters
-        ----------
-        trajectories : list (of mdtraj.Trajectory objects)
-            Trajectories to featurize
-
-        Returns
-        -------
-        Y : list (of np.ndarray)
-            Y[i] is the featurized version of X[i]
-            Y[i] will have shape (n_samples_i, n_features), where
-            n_samples_i is the length of trajectory i and n_features
-            is the total (concatenated) number of features in the
-            concatenated list of featurizers.
-
-        """
-        Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(sklearn.pipeline._transform_one)(trans, name, traj_list,
-                                                     self.transformer_weights)
-            for name, trans in self.transformer_list)
-
-        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind]
-                       for feature_ind in range(len(Xs))])
-                       for trj_ind in range(len(Xs[0]))]
-
-        return X_i_stacked
 
 
 class Slicer(Featurizer):

@@ -1,7 +1,7 @@
 import mdtraj as md
 import numpy as np
 
-from . import Featurizer, TrajFeatureUnion
+from . import Featurizer
 
 
 class BaseSubsetFeaturizer(Featurizer):
@@ -150,50 +150,6 @@ class SubsetSinPhiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
 
 class SubsetSinPsiFeaturizer(SubsetTrigFeaturizer, SinMixin, PsiMixin):
     pass
-
-
-class SubsetFeatureUnion(TrajFeatureUnion):
-    """MSMBuilder version of sklearn.pipeline.FeatureUnion with feature subset selection.
-
-    Notes
-    -----
-    Works on lists of trajectories.
-    Has a hacky convenience method to set all subsets at once.
-    """
-
-    @property
-    def subsets(self):
-        return [featurizer.subset for (_, featurizer) in self.transformer_list]
-
-    @subsets.setter
-    def subsets(self, value):
-        assert len(value) == len(self.transformer_list), "wrong len"
-        for k, (_, featurizer) in enumerate(self.transformer_list):
-            featurizer.subset = value[k]
-
-
-    @property
-    def n_max_i(self):
-        return np.array([featurizer.n_max for (_, featurizer) in self.transformer_list])
-
-    @property
-    def n_features_i(self):
-        return np.array([featurizer.n_features for (_, featurizer) in self.transformer_list])
-
-    @property
-    def n_featurizers(self):
-        return len(self.transformer_list)
-
-    @property
-    def n_max(self):
-        return np.sum([featurizer.n_max for (_, featurizer) in self.transformer_list])
-
-    @property
-    def n_features(self):
-        return sum([featurizer.n_features for (_, featurizer) in self.transformer_list])
-
-
-
 
 
 class DummyCV(object):

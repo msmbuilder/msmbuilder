@@ -9,6 +9,9 @@ v3.7 (development)
 API Changes
 ~~~~~~~~~~~
 
+- ``TrajFeatureUnion`` and ``SubsetFeatureUnion`` have been removed due to
+  incompatibilities with the ``scikit-learn`` API.
+
 
 New Features
 ~~~~~~~~~~~~
