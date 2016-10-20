@@ -10,7 +10,7 @@ from scipy.stats import vonmises as vm
 from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer, \
-    KappaAngleFeaturizer, SASAFeaturizer, ContactFeaturizer, VonMisesFeaturizer
+    KappaAngleFeaturizer, ContactFeaturizer, VonMisesFeaturizer
 
 trajectories = MinimalFsPeptide().get_cached().trajectories
 top = trajectories[0].topology
@@ -119,38 +119,6 @@ def test_KappaFeaturizer_describe_features():
             feature_value = func(feature_value)
 
         assert (features[0][:, f_index] == feature_value.flatten()).all()
-
-
-def test_SASAFeaturizer_describe_features_residue():
-    feat = SASAFeaturizer(mode='residue')
-    rnd_traj = np.random.randint(len(trajectories))
-    features = feat.transform([trajectories[rnd_traj]])
-    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
-
-    for f in range(25):
-        f_index = np.random.choice(len(df))
-
-        resids_inds = df.iloc[f_index].resids
-
-        feature_value = md.geometry.sasa.shrake_rupley(trajectories[rnd_traj], mode='residue')
-
-        assert (features[0][resids_inds, :] == feature_value[resids_inds, :].flatten()).all()
-
-
-def test_SASAFeaturizer_describe_features_atom():
-    feat = SASAFeaturizer(mode='atom')
-    rnd_traj = np.random.randint(len(trajectories))
-    features = feat.transform([trajectories[rnd_traj]])
-    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
-
-    for f in range(25):
-        f_index = np.random.choice(len(df))
-
-        atom_inds = df.iloc[f_index].atominds
-
-        feature_value = md.geometry.sasa.shrake_rupley(trajectories[rnd_traj], mode='atom')
-
-        assert (features[0][atom_inds, :] == feature_value[atom_inds, :].flatten()).all()
 
 
 def test_VonMisesFeaturizer_describe_features():
