@@ -177,3 +177,23 @@ def _mfpts(tprob, populations, sinks, lag_time):
         mfpts = lag_time * np.linalg.solve(lhs, rhs)
 
     return mfpts
+
+
+def create_perturb_params(tmat, countsmat):
+    counts = (np.ones((len(tmat), len(tmat))) * np.sum(countsmat, axis=1)).transpose()
+    scale = ((tmat - tmat ** 2) / counts ** 0.5) + 10 ** -15
+    return (tmat, scale)
+
+def perturb_tmat(loc, scale):
+    output = np.vectorize(np.random.normal)(loc, scale)
+    output[np.where(output < 0)] = 0
+    return (output.transpose() / np.sum(output, axis=1)).transpose()
+
+def generate_mfpt_dist(msm, sinks, n_samples):
+    loc, scale = create_perturb_params(msm.transmat_, msm.countsmat_)
+    output = []
+    for i in range(n_samples):
+        msm.transmat_ = perturb_tmat(loc, scale)
+        output.append(tpt.mfpts(msm, sinks))
+    return np.array(output)
+
