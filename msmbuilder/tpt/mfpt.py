@@ -56,8 +56,8 @@ def perturb_tmat(loc, scale):
         The transition matrix, whose elements serve as the means of the Gaussian random variables
     scale: np.ndarray:
         The matrix of standard deviations of the Gaussians. For transition probability (i,j), this is 
-        the standard deviation of a binomial distribution with p = transition probability and number of 
-        observations equal to the summed counts in row i.
+        assumed to be the standard error of the mean of a binomial distribution with p = transition probability 
+        and number of observations equal to the summed counts in row i.
     '''
     output = np.vectorize(np.random.normal)(loc, scale)
     output[np.where(output < 0)] = 0
@@ -91,7 +91,7 @@ def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
         sampling; it represents the number of MFPTs you want to compute. Each time, all 
         nonzero transition probabilities (i,j) will be treated as Gaussian random variables, with mean
         equal to the transition probability and standard deviation equal to the standard error
-        of the binomial distribution with n observations, where n is the row-summed counts of row i.
+        of the mean of the binomial distribution with n observations, where n is the row-summed counts of row i.
         NOTE: This implicitly assumes the Central Limit Theorem is a good approximation for the error, so this method
         works best with well-sampled data.
         
