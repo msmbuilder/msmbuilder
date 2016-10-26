@@ -26,7 +26,45 @@ import copy
 __all__ = ['mfpts']
 
 
-def mfpts(msm, sinks=None, lag_time=1.):
+def create_perturb_params(tmat, countsmat):
+    '''
+    Helper function for computing mfpts when "errors" argument is passed. 
+    Generates the means and standard deviations of the Gaussian random variables
+    for each transition probability that will be sampled from during the error calculation.
+    
+    Parameters:
+    ----------
+    tmat: np.ndarray
+        The msm transition matrix 
+    countsmat: np.ndarray
+        The msm counts matrix
+    '''
+    counts = (np.ones((len(tmat), len(tmat))) * np.sum(countsmat, axis=1)).transpose()
+    scale = ((tmat - tmat ** 2) / counts ** 0.5) + 10 ** -15
+    return (tmat, scale)
+
+
+def perturb_tmat(loc, scale):
+    '''
+    Helper function for computing mfpts when "errors" argument is passed.
+    Perturbs each nonzero transition probability by treating it as a Gaussian random variable
+    and sampling from it once.
+    
+    Parameters:
+    ----------
+    loc: np.ndarray:
+        The transition matrix, whose elements serve as the means of the Gaussian random variables
+    scale: np.ndarray:
+        The matrix of standard deviations of the Gaussians. For transition probability (i,j), this is 
+        the standard deviation of a binomial distribution with p = transition probability and number of 
+        observations equal to the summed counts in row i.
+    '''
+    output = np.vectorize(np.random.normal)(loc, scale)
+    output[np.where(output < 0)] = 0
+    return (output.transpose() / np.sum(output, axis=1)).transpose()
+
+
+def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
@@ -48,7 +86,15 @@ def mfpts(msm, sinks=None, lag_time=1.):
         Lag time for the model. The MFPT will be reported in whatever
         units are given here. Default is (1) which is in units of the
         lag time of the MSM.
-
+    errors : int, optional
+        Pass this if you want to calculate a distribution of MFPTs accounting for MSM model error due to finite 
+        sampling; it represents the number of MFPTs you want to compute. Each time, all 
+        nonzero transition probabilities (i,j) will be treated as Gaussian random variables, with mean
+        equal to the transition probability and standard deviation equal to the standard error
+        of the binomial distribution with n observations, where n is the row-summed counts of row i.
+        NOTE: This implicitly assumes the Central Limit Theorem is a good approximation for the error, so this method
+        works best with well-sampled data.
+        
     Returns
     -------
     mfpts : np.ndarray, float
@@ -62,7 +108,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
         - If sinks contains one or more states, then mfpts's shape
             is (n_states,). Where mfpts[i] is the mean first passage
             time from state i to any state in sinks.
-
+        
     References
     ----------
     .. [1] Grinstead, C. M. and Snell, J. L. Introduction to
@@ -81,7 +127,13 @@ def mfpts(msm, sinks=None, lag_time=1.):
             mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
 
         return np.median(mfpts, axis=0)
-
+    if errors != '-1':
+        loc, scale = create_perturb_params(msm.transmat_, msm.countsmat_)
+        output = []
+        for i in range(errors):
+            msm.transmat_ = perturb_tmat(loc, scale)
+            output.append(_mfpts(msm.transmat_, msm._get_eigensystem[1][:,0], sinks, lag_time))
+        return np.array(output)
     return _mfpts(msm.transmat_, msm.populations_, sinks, lag_time)
 
 
@@ -177,23 +229,3 @@ def _mfpts(tprob, populations, sinks, lag_time):
         mfpts = lag_time * np.linalg.solve(lhs, rhs)
 
     return mfpts
-
-
-def create_perturb_params(tmat, countsmat):
-    counts = (np.ones((len(tmat), len(tmat))) * np.sum(countsmat, axis=1)).transpose()
-    scale = ((tmat - tmat ** 2) / counts ** 0.5) + 10 ** -15
-    return (tmat, scale)
-
-def perturb_tmat(loc, scale):
-    output = np.vectorize(np.random.normal)(loc, scale)
-    output[np.where(output < 0)] = 0
-    return (output.transpose() / np.sum(output, axis=1)).transpose()
-
-def generate_mfpt_dist(msm, sinks, n_samples):
-    loc, scale = create_perturb_params(msm.transmat_, msm.countsmat_)
-    output = []
-    for i in range(n_samples):
-        msm.transmat_ = perturb_tmat(loc, scale)
-        output.append(tpt.mfpts(msm, sinks))
-    return np.array(output)
-
