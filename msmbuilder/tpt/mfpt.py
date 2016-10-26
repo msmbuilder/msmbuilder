@@ -40,7 +40,7 @@ def create_perturb_params(tmat, countsmat):
         The msm counts matrix
     '''
     counts = (np.ones((len(tmat), len(tmat))) * np.sum(countsmat, axis=1)).transpose()
-    scale = ((tmat - tmat ** 2) / counts ** 0.5) + 10 ** -15
+    scale = ((tmat - tmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
     return (tmat, scale)
 
 
