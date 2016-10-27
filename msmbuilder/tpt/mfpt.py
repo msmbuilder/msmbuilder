@@ -65,7 +65,7 @@ def perturb_tmat(loc, scale):
     return (output.transpose() / np.sum(output, axis=1)).transpose()
 
 
-def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
+def mfpts(msm, sinks=None, lag_time=1., errors=False, n_samples=100):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
@@ -87,14 +87,18 @@ def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
         Lag time for the model. The MFPT will be reported in whatever
         units are given here. Default is (1) which is in units of the
         lag time of the MSM.
-    errors : int, optional
-        Pass this if you want to calculate a distribution of MFPTs accounting for MSM model error due to finite 
-        sampling; it represents the number of MFPTs you want to compute. Each time, all 
-        nonzero transition probabilities (i,j) will be treated as Gaussian random variables, with mean
-        equal to the transition probability and standard deviation equal to the standard error
-        of the mean of the binomial distribution with n observations, where n is the row-summed counts of row i.
-        NOTE: This implicitly assumes the Central Limit Theorem is a good approximation for the error, so this method
-        works best with well-sampled data. 
+    errors : bool, optional
+        Pass "True" if you want to calculate a distribution of MFPTs accounting for MSM model error due to finite 
+        sampling 
+    n_samples : int, optional
+        If "errors" is True, this is the number of MFPTs you want to compute (default = 100). 
+        For each computation, all nonzero transition probabilities (i,j) will be treated as 
+        Gaussian random variables, with mean equal to the transition probability and standard 
+        deviation equal to the standard errot of the mean of the binomial distribution with 
+        n observations, where n is the row-summed counts of row i. 
+        
+        NOTE: This implicitly assumes the Central Limit Theorem is a good approximation for the error, 
+        so this method works best with well-sampled data. 
         
     Returns
     -------
@@ -120,9 +124,9 @@ def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
     """
 
     if hasattr(msm, 'all_transmats_'):
-        if errors != '-1':
+        if errors:
             output = []
-            for i in range(errors):
+            for i in range(n_samples):
                 mfpts = np.zeros_like(msm.all_transmats_)
                 for i, el in enumerate(zip(msm.all_transmats_, msm.all_countsmats_)):
                     loc, scale = create_perturb_params(el[0], el[1])
@@ -139,10 +143,10 @@ def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
             mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
         return np.median(mfpts, axis=0)
     
-    if errors != '-1':
+    if errors:
         loc, scale = create_perturb_params(msm.transmat_, msm.countsmat_)
         output = []
-        for i in range(errors):
+        for i in range(n_samples):
             tprob = perturb_tmat(loc, scale)
             populations = _solve_msm_eigensystem(tprob, 1)[1][0]
             output.append(_mfpts(tprob, populations, sinks, lag_time))
