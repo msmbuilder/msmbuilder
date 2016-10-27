@@ -130,7 +130,7 @@ def mfpts(msm, sinks=None, lag_time=1., errors='-1'):
                     populations = _solve_msm_eigensystem(tprob, 1)[1][0]
                     mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
                 output.append(np.median(mfpts, axis=0))             
-            return output
+            return np.array(output)
         
         mfpts = np.zeros_like(msm.all_transmats_)
         for i, el in enumerate(zip(msm.all_transmats_, msm.all_populations_)):
