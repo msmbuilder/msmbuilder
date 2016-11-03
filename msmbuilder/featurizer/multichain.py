@@ -10,9 +10,10 @@ import warnings
 import mdtraj as md
 from mdtraj.utils import ensure_type
 from mdtraj.utils.six import string_types
-from mdtraj.utils.six.moves import xrange
+#from mdtraj.utils.six.moves import xrange
 import numpy as np
 import itertools
+import warnings
 
 from msmbuilder import libdistance
 from . import Featurizer, zippy_maker, dict_maker, featurize_all
@@ -20,6 +21,23 @@ from . import Featurizer, zippy_maker, dict_maker, featurize_all
 
 class LigandFeaturizer(Featurizer):
     """Base class for objects that featurize protein-ligand trajectories.
+
+    Parameters
+    ----------
+    protein_chain : int or 'auto', default='auto'
+        chain in the trajectory containing the protein of interest. 'auto'
+        chooses the longest alpha-carbon containing chain. for chains with
+        an identical number of atoms, 'auto' will choose the first chain
+        in the topology file.
+    ligand_chain : int or 'auto', default='auto'
+        chain in the trajectory containing the ligand of interest. 'auto'
+        chooses the chain containing the most atoms, not to exceed 100
+        atoms, that is not already the protein chain. for chains with
+        an identical number of atoms, 'auto' will choose the first chain
+        in the topology file.
+    reference_frame : md.Trajectory, default=None
+        single-frame conformation to get chain information; also defines
+        the binding pocket if specified
 
     Notes
     -----
@@ -45,14 +63,10 @@ class LigandFeaturizer(Featurizer):
             raise ValueError("Topology must have at least two chains")
 
         self.contacts = self._guess_chains(self.reference_frame)
-        self.p_residue_offset = self._get_residue_offset(self.reference_frame,
-                                                         self.protein_chain)
-        self.l_residue_offset = self._get_residue_offset(self.reference_frame,
-                                                         self.ligand_chain)
-        self.p_atom_offset = self._get_atom_offset(self.reference_frame,
-                                                   self.protein_chain)
-        self.l_atom_offset = self._get_atom_offset(self.reference_frame,
-                                                   self.ligand_chain)
+        self.p_residue_offset = self._get_residue_offset(self.protein_chain)
+        self.l_residue_offset = self._get_residue_offset(self.ligand_chain)
+        self.p_atom_offset = self._get_atom_offset(self.protein_chain)
+        self.l_atom_offset = self._get_atom_offset(self.ligand_chain)
 
 
     def _guess_chains(self, traj):
@@ -84,17 +98,12 @@ class LigandFeaturizer(Featurizer):
                                         not(chain_dict[x][1]),
                                         chain_dict[x][2]]))
 
-    def _get_residue_offset(self, traj, chain):
-        offset = 0
-        for c in range(0, chain):
-            offset += traj.top.chain(c).n_residues
-        return offset
+    def _get_residue_offset(self, chain_index):
+        return self.reference_frame.top.chain(chain_index).residue(0).index
 
-    def _get_atom_offset(self, traj, chain):
-        offset = 0
-        for c in range(0, chain):
-            offset += traj.top.chain(c).n_atoms
-        return offset
+
+    def _get_atom_offset(self, chain_index):
+        return self.reference_frame.top.chain(chain_index).atom(0).index
 
 
 class LigandContactFeaturizer(LigandFeaturizer):
@@ -158,11 +167,11 @@ class LigandContactFeaturizer(LigandFeaturizer):
         self.scheme = scheme
         self.binding_pocket = binding_pocket
 
-        self.contacts = self._get_contact_pairs(reference_frame, contacts)
+        self.contacts = self._get_contact_pairs(contacts)
 
-    def _get_contact_pairs(self, traj, contacts):
+    def _get_contact_pairs(self, contacts):
         if self.scheme=='ca':
-            if not any(a for a in traj.top.chain(ligand_chain).atoms
+            if not any(a for a in self.reference_frame.top.chain(ligand_chain).atoms
                        if a.name.lower() == 'ca'):
                 raise ValueError("Bad scheme: the ligand has no alpha carbons")
 
@@ -174,8 +183,8 @@ class LigandContactFeaturizer(LigandFeaturizer):
                 raise ValueError('({}) is not a valid contacts specifier'.format(contacts.lower()))
 
             self.residue_pairs = []
-            for i in xrange(traj.top.chain(self.protein_chain).n_residues):
-                for j in xrange(traj.top.chain(self.ligand_chain).n_residues):
+            for i in np.arange(traj.top.chain(self.protein_chain).n_residues):
+                for j in np.arange(traj.top.chain(self.ligand_chain).n_residues):
                     self.residue_pairs.append((i+self.p_residue_offset,
                                           j+self.l_residue_offset))
 
@@ -229,6 +238,13 @@ class LigandContactFeaturizer(LigandFeaturizer):
         transform : simultaneously featurize a collection of MD trajectories
         """
 
+        # check to make sure topologies are consistent with the reference frame
+        try:
+            assert traj.top == self.reference_frame.top
+        except:
+            warnings.warn("The topology of the trajectory is not" +
+                          "the same as that of the reference frame," +
+                          "which might give meaningless results.")
         distances, _ = md.compute_contacts(traj, self.contacts,
                                         self.scheme, ignore_nonprotein=False)
         return self._transform(distances)
@@ -269,7 +285,7 @@ class LigandContactFeaturizer(LigandFeaturizer):
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
 
-        zippy = itertools.product(["Contact"], [self.scheme],
+        zippy = itertools.product(["Ligand Contact"], [self.scheme],
                                   ["N/A"],
                                   zip(aind, resseqs, residue_indices, resnames))
 
@@ -436,8 +452,7 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
                     raise ValueError("align_indices must exist")
             self.align_indices = align_indices
         else:
-            self.align_indices = self._get_atom_range(self.reference_frame,
-                                                 self.align_by)
+            self.align_indices = self._get_atom_range(self.align_by)
 
         if calculate_indices is not None:
             if calculate_for is not 'custom':
@@ -453,20 +468,22 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
                     raise ValueError("calculate_indices must exist")
             self.calculate_indices = calculate_indices
         else:
-            self.calculate_indices = self._get_atom_range(self.reference_frame,
-                                                     self.calculate_for)
+            self.calculate_indices = self._get_atom_range(self.calculate_for)
 
 
     # custom option will never see this
-    def _get_atom_range(self, traj, chain):
-        if chain == self.protein_chain:
-            offset = self.p_atom_offset
-        elif chain == self.ligand_chain:
-            offset = self.l_atom_offset
-        else:
-            raise ValueError("Protein or ligand chain required")
-        atom_range = range(offset,offset+traj.top.chain(chain).n_atoms)
-        return atom_range
+    def _get_atom_range(self, chain_index):
+        return [a.index for a in self.reference_frame.top.chain(chain_index).atoms]
+
+    # def _get_atom_range(self, traj, chain):
+    #     if chain == self.protein_chain:
+    #         offset = self.p_atom_offset
+    #     elif chain == self.ligand_chain:
+    #         offset = self.l_atom_offset
+    #     else:
+    #         raise ValueError("Protein or ligand chain required")
+    #     atom_range = range(offset,offset+traj.top.chain(chain).n_atoms)
+    #     return atom_range
 
 
     # custom option will never see this
@@ -500,6 +517,15 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
+
+        # check to make sure topologies are consistent with the reference frame
+        try:
+            assert traj.top == self.reference_frame.top
+        except:
+            warnings.warn("The topology of the trajectory is not" +
+                          "the same as that of the reference frame," +
+                          "which might give meaningless results.")
+
         X = np.zeros((traj.n_frames, self.n_features))
 
         for f in range(self.n_features):
