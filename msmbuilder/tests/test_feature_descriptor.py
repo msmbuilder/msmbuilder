@@ -6,11 +6,12 @@ import numpy as np
 import pandas as pd
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
+import itertools
 
 from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer, \
-    KappaAngleFeaturizer, ContactFeaturizer, VonMisesFeaturizer
+    KappaAngleFeaturizer, ContactFeaturizer, VonMisesFeaturizer,AtomPairsFeaturizer
 
 trajectories = MinimalFsPeptide().get_cached().trajectories
 top = trajectories[0].topology
@@ -23,6 +24,22 @@ if np.random.choice([True, False]):
 else:
     atom_ind = [i.index for i in top.atoms]
 
+
+
+def test_AtomPairsFeaturizer_describe_features():
+    current_atom_ind = list(itertools.combinations(atom_ind, 2))
+    feat = AtomPairsFeaturizer(current_atom_ind)
+    rnd_traj = np.random.randint(len(trajectories))
+    features = feat.transform([trajectories[rnd_traj]])
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+
+    for f in range(25):
+        f_index = np.random.choice(len(df))
+        atom_inds = df.iloc[f_index].atominds
+        feature_value = md.compute_distances(trajectories[rnd_traj],
+                                             [atom_inds])
+
+        assert (features[0][:, f_index] == feature_value.flatten()).all()
 
 def test_DihedralFeaturizer_describe_features():
     feat = DihedralFeaturizer()
