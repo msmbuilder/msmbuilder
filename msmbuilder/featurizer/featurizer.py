@@ -368,6 +368,48 @@ class AtomPairsFeaturizer(Featurizer):
                                           periodic=self.periodic)
         return d ** self.exponent
 
+    def describe_features(self, traj):
+            """Return a list of dictionaries describing the atom pair features.
+
+            Parameters
+            ----------
+            traj : mdtraj.Trajectory
+                The trajectory to describe
+
+            Returns
+            -------
+            feature_descs : list of dict
+                Dictionary describing each feature with the following information
+                about the atoms participating in each dihedral
+                    - resnames: unique names of residues
+                    - atominds: the two atom inds
+                    - resseqs: unique residue sequence ids (not necessarily
+                      0-indexed)
+                    - resids: unique residue ids (0-indexed)
+                    - featurizer: AtomPairsFeaturizer
+                    - featuregroup: Distance.
+                    - other info : Value of the exponent
+            """
+            feature_descs = []
+
+            top = traj.topology
+            residue_indices = [[top.atom(i[0]).residue.index, top.atom(i[1]).residue.index] \
+                               for i in self.atom_indices]
+
+            aind = []
+            resseqs = []
+            resnames = []
+            for ind,resid_ids in enumerate(residue_indices):
+                aind += [[i for i in self.atom_indices[ind]]]
+                resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
+                resnames += [[top.residue(ri).name for ri in resid_ids]]
+
+            zippy = itertools.product(["AtomPairs"], ["Distance"],
+                                      ["Exponent {}".format(self.exponent)],
+                                      zip(aind, resseqs, residue_indices, resnames))
+
+            feature_descs.extend(dict_maker(zippy))
+            return feature_descs
 
 class FunctionFeaturizer(Featurizer):
     """Featurizer based on arbitrary functions.
