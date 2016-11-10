@@ -10,7 +10,6 @@ import warnings
 import mdtraj as md
 from mdtraj.utils import ensure_type
 from mdtraj.utils.six import string_types
-#from mdtraj.utils.six.moves import xrange
 import numpy as np
 import itertools
 import warnings
@@ -198,12 +197,12 @@ class LigandContactFeaturizer(LigandFeaturizer):
                                         dtype=np.int, ndim=2, name='contacts',
                                         shape=(None, 2), warn_on_cast=False)
             if not np.all((self.residue_pairs >= 0) *
-                          (self.residue_pairs < self.reference_frame.n_residues)): # replaced traj
+                          (self.residue_pairs < self.reference_frame.n_residues)): 
                 raise ValueError('contacts requests a residue that is not '\
                                  'in the permitted range')
 
         if self.binding_pocket is not 'all':
-            ref_distances, _ = md.compute_contacts(self.reference_frame, # replaced traj
+            ref_distances, _ = md.compute_contacts(self.reference_frame, 
                                      self.residue_pairs, self.scheme,
                                      ignore_nonprotein=False)
             self.residue_pairs = self.residue_pairs[np.where(ref_distances<
@@ -472,22 +471,6 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
     # custom option will never see this
     def _get_atom_range(self, chain_index):
         return [a.index for a in self.reference_frame.top.chain(chain_index).atoms]
-
-    # def _get_atom_range(self, traj, chain):
-    #     if chain == self.protein_chain:
-    #         offset = self.p_atom_offset
-    #     elif chain == self.ligand_chain:
-    #         offset = self.l_atom_offset
-    #     else:
-    #         raise ValueError("Protein or ligand chain required")
-    #     atom_range = range(offset,offset+traj.top.chain(chain).n_atoms)
-    #     return atom_range
-
-
-    # custom option will never see this
-    # def _check_indices(self, traj, chain, indices):
-    #     atom_range = self._get_atom_range(traj, chain)
-    #     return all(indices[i] in atom_range for i in range(len(indices)))
 
     def _check_indices(self, chain, indices):
         atom_range = self._get_atom_range(chain)
