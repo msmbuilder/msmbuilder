@@ -183,8 +183,8 @@ class LigandContactFeaturizer(LigandFeaturizer):
                 raise ValueError('({}) is not a valid contacts specifier'.format(contacts.lower()))
 
             self.residue_pairs = []
-            for i in np.arange(traj.top.chain(self.protein_chain).n_residues):
-                for j in np.arange(traj.top.chain(self.ligand_chain).n_residues):
+            for i in np.arange(self.reference_frame.top.chain(self.protein_chain).n_residues):
+                for j in np.arange(self.reference_frame.top.chain(self.ligand_chain).n_residues):
                     self.residue_pairs.append((i+self.p_residue_offset,
                                           j+self.l_residue_offset))
 
