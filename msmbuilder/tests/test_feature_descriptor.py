@@ -32,7 +32,7 @@ def test_AtomPairsFeaturizer_describe_features():
     rnd_traj = np.random.randint(len(trajectories))
     features = feat.transform([trajectories[rnd_traj]])
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
-
+    
     for f in range(25):
         f_index = np.random.choice(len(df))
         atom_inds = df.iloc[f_index].atominds
