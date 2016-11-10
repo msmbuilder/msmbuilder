@@ -198,12 +198,12 @@ class LigandContactFeaturizer(LigandFeaturizer):
                                         dtype=np.int, ndim=2, name='contacts',
                                         shape=(None, 2), warn_on_cast=False)
             if not np.all((self.residue_pairs >= 0) *
-                          (self.residue_pairs < traj.n_residues)):
+                          (self.residue_pairs < self.reference_frame.n_residues)): # replaced traj
                 raise ValueError('contacts requests a residue that is not '\
                                  'in the permitted range')
 
         if self.binding_pocket is not 'all':
-            ref_distances, _ = md.compute_contacts(traj,
+            ref_distances, _ = md.compute_contacts(self.reference_frame, # replaced traj
                                      self.residue_pairs, self.scheme,
                                      ignore_nonprotein=False)
             self.residue_pairs = self.residue_pairs[np.where(ref_distances<
