@@ -441,8 +441,7 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
 
         if align_indices is not None:
             if align_by is not 'custom':
-                if not self._check_indices(self.reference_frame, self.align_by,
-                                           align_indices):
+                if not self._check_indices(self.align_by, align_indices):
                     raise ValueError("align_indices must be on the " \
                                      "align_by chain")
             else:
@@ -456,8 +455,7 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
 
         if calculate_indices is not None:
             if calculate_for is not 'custom':
-                if not self._check_indices(self.reference_frame,
-                                           self.calculate_for,
+                if not self._check_indices(self.calculate_for,
                                            calculate_indices):
                     raise ValueError("calculate_indices must be on the " \
                                      "calculate_for chain")
@@ -487,8 +485,12 @@ class LigandRMSDFeaturizer(LigandFeaturizer):
 
 
     # custom option will never see this
-    def _check_indices(self, traj, chain, indices):
-        atom_range = self._get_atom_range(traj, chain)
+    # def _check_indices(self, traj, chain, indices):
+    #     atom_range = self._get_atom_range(traj, chain)
+    #     return all(indices[i] in atom_range for i in range(len(indices)))
+
+    def _check_indices(self, chain, indices):
+        atom_range = self._get_atom_range(chain)
         return all(indices[i] in atom_range for i in range(len(indices)))
 
 
