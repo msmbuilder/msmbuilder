@@ -27,5 +27,5 @@ tprob = (counts.transpose() / np.sum(counts, axis=1)).transpose()
 # Insert into MSM template
 msm.transmat_ = tprob
 msm.countsmat_ = counts
-output = mfpt_new.mfpts(msm, sinks, errors=True, n_samples=1000)
+output = mfpt.mfpts(msm, sinks, errors=True, n_samples=1000)
 np.savetxt('1-0_undersampled_output', output[:,1]) # MFPT distribution with bad statistics, contains a few extremely large outliers
