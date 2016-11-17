@@ -11,7 +11,10 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          BinaryContactFeaturizerCommand,
                          LogisticContactFeaturizerCommand,
                          VonMisesFeaturizerCommand,
-                         RawPositionsFeaturizerCommand, SASAFeaturizerCommand)
+                         RawPositionsFeaturizerCommand, SASAFeaturizerCommand,
+                         LigandContactFeaturizerCommand,
+                         BinaryLigandContactFeaturizerCommand,
+                         LigandRMSDFeaturizerCommand)
 from .fit import (GaussianHMMCommand, MarkovStateModelCommand,
                   BayesianMarkovStateModelCommand, ContinuousTimeMSMCommand,
                   BayesianContinuousTimeMSMCommand)

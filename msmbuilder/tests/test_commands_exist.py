@@ -83,6 +83,7 @@ def get_all():
                          'FeatureUnion',
                          'FunctionFeaturizer',
                          'CommonContactFeaturizer',
+                         'LigandFeaturizer', # Base class
                          ]),
         get_from_module(msmbuilder.example_datasets,
                         ['MinimalFsPeptide',

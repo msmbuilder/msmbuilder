@@ -27,6 +27,10 @@ New Features
   (gh-876).
 - ``msmbuilder.tpt.mfpt.mfpts`` can now compute distributions of MFPTs, accounting
   for the model error due to finite sampling.
+- Three new featurization schemes for protein-ligand trajectories are
+  now available: ``LigandContactFeaturizer``,
+  ``BinaryLigandContactFeaturizer``, and ``LigandRMSDFeaturizer`` (gh-883).
+
 
 Improvements
 ~~~~~~~~~~~~

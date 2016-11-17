@@ -25,6 +25,7 @@ them in Jupyter::
    Clustering-Comparison
    GMRQ-Model-Selection
    Ward-Clustering
+   Ligand-Featurization
 
 
 Contributing examples
