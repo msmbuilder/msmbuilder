@@ -25,6 +25,8 @@ New Features
 - ``CommonContactFeaturizer`` featurizes different trajectories with
   different topologies using a common set of inter-residue contacts
   (gh-876).
+- ``msmbuilder.tpt.mfpt.mfpts`` can now compute distributions of MFPTs, accounting
+  for the model error due to finite sampling.
 
 Improvements
 ~~~~~~~~~~~~
