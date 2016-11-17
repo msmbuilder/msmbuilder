@@ -129,7 +129,7 @@ def mfpts(msm, sinks=None, lag_time=1., errors=False, n_samples=100):
             for i in range(n_samples):
                 mfpts = np.zeros_like(msm.all_transmats_)
                 for i, el in enumerate(zip(msm.all_transmats_, msm.all_countsmats_)):
-                    loc, scale = create_perturb_params(el[0], el[1])
+                    loc, scale = create_perturb_params(el[1])
                     tprob = perturb_tmat(loc, scale)
                     populations = _solve_msm_eigensystem(tprob, 1)[1]
                     mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
@@ -144,7 +144,7 @@ def mfpts(msm, sinks=None, lag_time=1., errors=False, n_samples=100):
         return np.median(mfpts, axis=0)
     
     if errors:
-        loc, scale = create_perturb_params(msm.transmat_, msm.countsmat_)
+        loc, scale = create_perturb_params(msm.countsmat_)
         output = []
         for i in range(n_samples):
             tprob = perturb_tmat(loc, scale)
