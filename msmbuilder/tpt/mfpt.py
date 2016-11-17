@@ -27,7 +27,7 @@ from msmbuilder.msm.core import _solve_msm_eigensystem
 __all__ = ['mfpts']
 
 
-def create_perturb_params(tmat, countsmat):
+def create_perturb_params(countsmat):
     '''
     Helper function for computing mfpts when "errors" argument is passed. 
     Generates the means and standard deviations of the Gaussian random variables
@@ -35,14 +35,14 @@ def create_perturb_params(tmat, countsmat):
     
     Parameters:
     ----------
-    tmat: np.ndarray
-        The msm transition matrix 
     countsmat: np.ndarray
         The msm counts matrix
     '''
-    counts = (np.ones((len(tmat), len(tmat))) * np.sum(countsmat, axis=1)).transpose()
-    scale = ((tmat - tmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
-    return (tmat, scale)
+    norm = np.sum(countsmat, axis=1)
+    transmat = (countsmat.transpose() / norm).transpose()
+    counts = (np.ones((len(transmat), len(transmat))) * norm).transpose()
+    scale = ((transmat - transmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
+    return (transmat, scale)
 
 
 def perturb_tmat(loc, scale):
