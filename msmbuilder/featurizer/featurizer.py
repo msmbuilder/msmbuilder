@@ -313,6 +313,102 @@ class RMSDFeaturizer(Featurizer):
         )
         return result
 
+class LandMarkRMSDFeaturizer(Featurizer):
+    """Landmark Featuizer based on RMSD to one or more reference structures.
+
+    This featurizer inputs a trajectory to be analyzed ('traj') and a
+    reference trajectory ('ref') and outputs the RMSD of each frame of
+    traj with respect to each frame in ref. The output is a numpy array
+    with n_rows = traj.n_frames and n_columns = ref.n_frames.
+
+    Parameters
+    ----------
+    reference_traj : md.Trajectory
+        The reference conformations to superpose each frame with respect to
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with.
+        If not specified, all atoms are used.
+    sigma: np.float , dtype=0.3nm
+        The kernel width to use. Defaults to 0.3nm
+    """
+
+    def __init__(self, reference_traj=None, atom_indices=None, sigma=0.3):
+        if reference_traj is None:
+            raise ValueError("Please specify a reference trajectory")
+
+        self.atom_indices = atom_indices
+        if self.atom_indices is not None:
+            self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
+        else:
+            self.sliced_reference_traj = reference_traj
+            self.atom_indices = [i for i in range(self.sliced_reference_traj.n_atoms)]
+
+        self.sigma = sigma
+
+    def partial_transform(self, traj):
+        """Featurize an MD trajectory into a vector space via distance
+        after superposition
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            A molecular dynamics trajectory to featurize.
+
+        Returns
+        -------
+        features : np.ndarray, shape=(n_frames, n_ref_frames)
+            The RMSD value of each frame of the input trajectory to be
+            featurized versus each frame in the reference trajectory. The
+            number of features is the number of reference frames.
+
+        See Also
+        --------
+        transform : simultaneously featurize a collection of MD trajectories
+        """
+        if self.atom_indices is not None:
+            sliced_traj = traj.atom_slice(self.atom_indices)
+        else:
+            sliced_traj = traj
+        result = libdistance.cdist(
+            sliced_traj, self.sliced_reference_traj, 'rmsd'
+        )
+        return np.exp(-result**2/(2* self.sigma **2))
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the LandmarkRMSD features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each feature
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Alpha Angle
+                - featuregroup: the type of dihedral angle and whether sin or
+                  cos has been applied.
+        """
+        feature_descs = []
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
+        top = traj.topology
+
+        aind_tuples = [self.atom_indices for _ in range(self.sliced_reference_traj.n_frames)]
+        zippy = zippy_maker(aind_tuples, top)
+
+        zippy = itertools.product(["LandMarkFeaturizer"], ["RMSD"], [0.3], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+        return feature_descs
 
 class AtomPairsFeaturizer(Featurizer):
     """Featurizer based on distances between specified pairs of atoms.
