@@ -18,7 +18,7 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           FunctionFeaturizer, RawPositionsFeaturizer,
                           SASAFeaturizer, LigandContactFeaturizer,
                           BinaryLigandContactFeaturizer,
-                          LigandRMSDFeaturizer)
+                          LigandRMSDFeaturizer,LandMarkRMSDFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -133,6 +133,27 @@ class RMSDFeaturizerCommand(FeaturizerCommand):
             return None
         return np.loadtxt(fn, dtype=int, ndmin=1)
 
+class LandMarkRMSDFeaturizer(FeaturizerCommand):
+    klass = LandMarkRMSDFeaturizer
+    _concrete = True
+
+    def _reference_traj_type(self, fn):
+        if self.top.strip() == "":
+            top = None
+        else:
+            top = os.path.expanduser(self.top)
+            err = ("Couldn't find topology file '{}' "
+                   "when loading reference trajectory".format(top))
+            assert os.path.exists(top), err
+        return md.load(fn, top=top)
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)
+
+    def _sigma_type(self, val):
+        return np.float(val)
 
 class SuperposeFeaturizerCommand(FeaturizerCommand):
     klass = SuperposeFeaturizer

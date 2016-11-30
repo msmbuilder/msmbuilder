@@ -317,9 +317,11 @@ class LandMarkRMSDFeaturizer(Featurizer):
     """Landmark Featuizer based on RMSD to one or more reference structures.
 
     This featurizer inputs a trajectory to be analyzed ('traj') and a
-    reference trajectory ('ref') and outputs the RMSD of each frame of
-    traj with respect to each frame in ref. The output is a numpy array
-    with n_rows = traj.n_frames and n_columns = ref.n_frames.
+    reference trajectory ('ref') and outputs the kernelized
+    RMSD of each frame of traj with respect to each frame in ref.
+    The output is a numpy array with n_rows = traj.n_frames
+    and n_columns = ref.n_frames. This uses a exponential/gaussian
+    kernel.
 
     Parameters
     ----------
