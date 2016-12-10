@@ -283,6 +283,11 @@ class RMSDFeaturizer(Featurizer):
             self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
         else:
             self.sliced_reference_traj = reference_traj
+            self.atom_indices = [i for i in range(self.sliced_reference_traj.n_atoms)]
+
+
+    def _transform(self, value):
+        return value
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via distance
@@ -311,10 +316,10 @@ class RMSDFeaturizer(Featurizer):
         result = libdistance.cdist(
             sliced_traj, self.sliced_reference_traj, 'rmsd'
         )
-        return result
+        return self._transform(result)
 
-class LandMarkRMSDFeaturizer(Featurizer):
-    """Landmark Featuizer based on RMSD to one or more reference structures.
+class LandMarkRMSDFeaturizer(RMSDFeaturizer):
+    """Kernel Landmark Featuizer based on RMSD to one or more reference structures.
 
     This featurizer inputs a trajectory to be analyzed ('traj') and a
     reference trajectory ('ref') and outputs the kernelized
@@ -335,46 +340,12 @@ class LandMarkRMSDFeaturizer(Featurizer):
     """
 
     def __init__(self, reference_traj=None, atom_indices=None, sigma=0.3):
-        if reference_traj is None:
-            raise ValueError("Please specify a reference trajectory")
 
-        self.atom_indices = atom_indices
-        if self.atom_indices is not None:
-            self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
-        else:
-            self.sliced_reference_traj = reference_traj
-            self.atom_indices = [i for i in range(self.sliced_reference_traj.n_atoms)]
-
+        super(LandMarkRMSDFeaturizer, self).__init__(reference_traj,atom_indices)
         self.sigma = sigma
 
-    def partial_transform(self, traj):
-        """Featurize an MD trajectory into a vector space via distance
-        after superposition
-
-        Parameters
-        ----------
-        traj : mdtraj.Trajectory
-            A molecular dynamics trajectory to featurize.
-
-        Returns
-        -------
-        features : np.ndarray, shape=(n_frames, n_ref_frames)
-            The RMSD value of each frame of the input trajectory to be
-            featurized versus each frame in the reference trajectory. The
-            number of features is the number of reference frames.
-
-        See Also
-        --------
-        transform : simultaneously featurize a collection of MD trajectories
-        """
-        if self.atom_indices is not None:
-            sliced_traj = traj.atom_slice(self.atom_indices)
-        else:
-            sliced_traj = traj
-        result = libdistance.cdist(
-            sliced_traj, self.sliced_reference_traj, 'rmsd'
-        )
-        return np.exp(-result**2/(2* self.sigma **2))
+    def _transform(self, value):
+        return np.exp(-value**2/(2* self.sigma **2))
 
     def describe_features(self, traj):
         """Return a list of dictionaries describing the LandmarkRMSD features.
