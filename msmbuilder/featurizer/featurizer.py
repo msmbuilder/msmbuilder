@@ -335,7 +335,7 @@ class LandMarkRMSDFeaturizer(RMSDFeaturizer):
     atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
         The indices of the atoms to superpose and compute the distances with.
         If not specified, all atoms are used.
-    sigma: np.float , dtype=0.3nm
+    sigma: np.float , dtype=float
         The kernel width to use. Defaults to 0.3nm
     """
 
