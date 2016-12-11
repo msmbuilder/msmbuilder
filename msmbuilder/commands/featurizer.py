@@ -133,7 +133,7 @@ class RMSDFeaturizerCommand(FeaturizerCommand):
             return None
         return np.loadtxt(fn, dtype=int, ndmin=1)
 
-class LandMarkRMSDFeaturizer(FeaturizerCommand):
+class LandMarkRMSDFeaturizerCommand(FeaturizerCommand):
     klass = LandMarkRMSDFeaturizer
     _concrete = True
 
