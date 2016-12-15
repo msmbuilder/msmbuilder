@@ -1,6 +1,6 @@
 # Author: Christian Schwantes <schwancr@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>, Kyle A. Beauchamp  <kyleabeauchamp@gmail.com>,
-# Muneeb Sultan <msultan@stanford.edu>
+# Muneeb Sultan <msultan@stanford.edu>, Brooke Husic <brookehusic@gmail.com>
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
@@ -343,6 +343,7 @@ class tICA(BaseEstimator, TransformerMixin):
                 regularized_timescales = 0.5 * self.timescales_ *\
                                          np.tanh( np.pi *((self.timescales_ - self.lag_time)
                                                           /self.lag_time) + 1)
+                regularized_timescales[regularized_timescales < 0] = 0.
                 X_transformed *= np.sqrt(regularized_timescales / 2)
             sequences_new.append(X_transformed)
 
