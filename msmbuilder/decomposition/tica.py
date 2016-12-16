@@ -1,6 +1,6 @@
 # Author: Christian Schwantes <schwancr@gmail.com>
 # Contributors: Robert McGibbon <rmcgibbo@gmail.com>, Kyle A. Beauchamp  <kyleabeauchamp@gmail.com>,
-# Muneeb Sultan <msultan@stanford.edu>
+# Muneeb Sultan <msultan@stanford.edu>, Brooke Husic <brookehusic@gmail.com>
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
@@ -340,10 +340,15 @@ class tICA(BaseEstimator, TransformerMixin):
                 # reference implementation in pyemma
                 #(markovmodel/PyEMMA#963)
                 # dampening smaller timescales based recommendtion of  [7]
+                #
+                # some timescales are NaNs and regularized timescales will 
+                # be negative when they are less than the lag time; all these
+                # are set to zero using nan_to_num before returning
                 regularized_timescales = 0.5 * self.timescales_ *\
                                          np.tanh( np.pi *((self.timescales_ - self.lag_time)
                                                           /self.lag_time) + 1)
                 X_transformed *= np.sqrt(regularized_timescales / 2)
+                X_transformed = np.nan_to_num(X_transformed)
             sequences_new.append(X_transformed)
 
         return sequences_new
