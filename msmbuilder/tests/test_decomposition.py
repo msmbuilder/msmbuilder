@@ -122,7 +122,7 @@ def test_tica_commute_mapping():
                              np.tanh( np.pi *((tica2.timescales_ - tica2.lag_time)
                                               /tica2.lag_time) + 1)
 
-    assert eq(y2, y1 * np.sqrt(regularized_timescales/2))
+    assert eq(y2, np.nan_to_num(y1 * np.sqrt(regularized_timescales/2)))
 
 def test_pca_vs_sklearn():
     # Compare msmbuilder.pca with sklearn.decomposition
