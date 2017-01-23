@@ -159,7 +159,6 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
         self.landmark_labels_ = None
         self.landmarks_ = None
-
         self.cluster_centers_ = None
 
     def fit(self, X, y=None):

@@ -122,6 +122,3 @@ def test_cluster_centers():
                                    linkage='ward')
     labels = model.fit_predict(x)
     assert model.cluster_centers_.shape == (n_clusters, 2)
-
-
-
