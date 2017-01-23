@@ -142,6 +142,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
     ----------
     landmark_labels_
     landmarks_
+    cluster_centers_ : mean of all points in each cluster along every dimension
     """
 
     def __init__(self, n_clusters, n_landmarks=None, linkage='average',
@@ -158,6 +159,8 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
         self.landmark_labels_ = None
         self.landmarks_ = None
+
+        self.cluster_centers_ = None
 
     def fit(self, X, y=None):
         """
@@ -259,6 +262,12 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 labels[mask] = i
             else:
                 print("No data points were assigned to cluster {}".format(i))
+
+        cluster_centers_ = []
+        for i in range(self.n_clusters):
+            temp = list(np.mean(self.landmarks_[self.landmark_labels_==i],axis=0))
+            cluster_centers_.append(temp)
+        self.cluster_centers_ = np.array(cluster_centers_)
 
         return labels
 

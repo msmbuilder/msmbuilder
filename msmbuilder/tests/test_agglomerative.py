@@ -113,3 +113,15 @@ def test_alanine_dipeptide():
     labels = model.fit_predict(trajectories[0][0:100])
 
     assert len(np.unique(np.concatenate(labels))) <= n_clusters
+
+
+def test_cluster_centers():
+    x = [random.randn(20, 2) + 10, random.randn(20, 2)]
+    n_clusters = np.random.randint(0,5)
+    model = LandmarkAgglomerative(n_clusters=n_clusters,
+                                   linkage='ward')
+    labels = model.fit_predict(x)
+    assert model.cluster_centers_.shape == (n_clusters, 2)
+
+
+
