@@ -117,7 +117,7 @@ def test_alanine_dipeptide():
 
 def test_cluster_centers():
     x = [random.randn(20, 2) + 10, random.randn(20, 2)]
-    n_clusters = np.random.randint(2,7)
+    n_clusters = np.random.randint(2, 7)
     model = LandmarkAgglomerative(n_clusters=n_clusters,
                                    linkage='ward')
     labels = model.fit_predict(x)

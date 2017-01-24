@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors: Brooke Husic <brookehusic@gmail.com>
-# Copyright (c) 2016, Stanford University
+# Copyright (c) 2017, Stanford University
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -266,7 +266,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
         if self.metric != 'rmsd':
             cluster_centers_ = []
             for i in range(self.n_clusters):
-                temp = list(np.mean(self.landmarks_[self.landmark_labels_==i],axis=0))
+                temp = list(np.mean(self.landmarks_[self.landmark_labels_==i], axis=0))
                 cluster_centers_.append(temp)
             self.cluster_centers_ = np.array(cluster_centers_)
 
