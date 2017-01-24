@@ -38,6 +38,8 @@ Improvements
 - Compatibility with scikit-learn 0.18 (gh-915).
 - ``FeatureSelector`` feature order is deterministic (gh-920).
 - ``SASAFeaturizer`` supports the ``describe_features`` method (gh-913).
+- All ``LandmarkAgglomerative`` clusterers now have ``cluster_centers_`` except
+  when ``metric = rmsd`` (gh-958)
 
 
 v3.6 (September 15, 2016)
