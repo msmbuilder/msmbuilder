@@ -142,8 +142,9 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
     ----------
     landmark_labels_
     landmarks_
-    cluster_centers_ : mean of all points in each cluster along every dimension,
-        unless metric == 'rmsd'
+    cluster_centers_ : array of cluster centers where the center of a cluster
+        is the mean of all points in that cluster along every dimension of
+        the original data. Returns None if metric == 'rmsd'.
     """
 
     def __init__(self, n_clusters, n_landmarks=None, linkage='average',
