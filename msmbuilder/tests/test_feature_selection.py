@@ -11,7 +11,15 @@ FEATS = [
 ]
 
 
-def test_featureselector():
+def test_featureselector_order():
+    fs1 = FeatureSelector(FEATS)
+    fs2 = FeatureSelector(FEATS[::-1])
+
+    assert fs1.which_feat == ['phi', 'psi']
+    assert fs2.which_feat == ['psi', 'phi']
+
+
+def test_featureselector_selection():
     trajectories = AlanineDipeptide().get_cached().trajectories
     fs = FeatureSelector(FEATS, which_feat='phi')
 
