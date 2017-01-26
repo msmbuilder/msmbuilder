@@ -3,15 +3,19 @@
 Changelog
 =========
 
-v3.7 (development)
-------------------
+v3.7 (January 26, 2017)
+-------------------------
+
+We're pleased to announce the release of MSMBuilder 3.7. This release
+introduces several new featurizers that can handle multiple sequences or 
+multiple chains within a topology file. There are also some bugfixes and
+API hygiene improvements. We recommend all users upgrade to MSMBuilder 3.7.
 
 API Changes
 ~~~~~~~~~~~
 
 - ``TrajFeatureUnion`` and ``SubsetFeatureUnion`` have been removed due to
   incompatibilities with the ``scikit-learn`` API.
-
 
 New Features
 ~~~~~~~~~~~~
@@ -30,7 +34,6 @@ New Features
 - Three new featurization schemes for protein-ligand trajectories are
   now available: ``LigandContactFeaturizer``,
   ``BinaryLigandContactFeaturizer``, and ``LigandRMSDFeaturizer`` (gh-883).
-
 
 Improvements
 ~~~~~~~~~~~~
