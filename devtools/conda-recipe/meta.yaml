@@ -23,11 +23,11 @@ requirements:
     - python
     - setuptools
     - numpy x.x
-    - scipy
+    - scipy {{environ.get('SCIPY', '')}}
     - pandas
     - six
     - mdtraj
-    - scikit-learn
+    - scikit-learn {{environ.get('SKLEARN', '')}}
     - numpydoc
     - pytables
     - pyhmc
