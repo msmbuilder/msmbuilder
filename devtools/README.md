@@ -18,7 +18,6 @@ How to do a release
 - `git checkout master && git fetch origin && git reset --hard origin/master`
 - `git clean -fdx`
 - Update the version number in `setup.py`, change `ISRELEASED` to `True`.
-- Verify the version number in `devtools/conda-recipe/meta.yaml` is "0.0.0".
 - Add the date of release to `docs/changelog.rst`, add a blurb.
 - Commit and push to master. The commit should only include the version number changes and
   should be given a message like "Release 3.y.z".
@@ -32,10 +31,12 @@ How to do a release
   The docs will be sent to msmbuilder.org/3.y.z instead of development/ because you
   set `ISRELEASED`. You can cancel the Travis build triggered by the "tag" because docs
   are set to deploy only from `master`.
-- Verify that `versions.json` was updated properly.
+- Verify that [`versions.json`](http://msmbuilder.org/versions.json) was updated properly.
 - Create the canonical source distribution using `python setup.py sdist --formats=gztar,zip`.
   Inspect the files in dist/ to make sure they look right.
-- Upload to PyPI using `twine upload [path to sdist files]`.
+- Upload to PyPI using `twine upload [path to sdist tar file] [path to sdist zip file]`.
+  Make sure you upload both files in the same command. Note that removing files from PyPI
+  means they can never be re-uploaded.
 - File a pull request against the
   [conda-recipes](https://github.com/omnia-md/conda-recipes) repository.
   Use the PyPI link as the "source". Make sure the requirements match those
@@ -46,8 +47,7 @@ How to do a release
 
 ### Post-release
 
-- Update the version number in `setup.py`, change `ISRELEASED` to `False`.
-- Verify the version number in `devtools/conda-recipe/meta.yaml` is "0.0.0".
+- Update the version number in `setup.py` to `3.(y+1).0.dev0`, change `ISRELEASED` to `False`.
 - Add a new "development" entry in `docs/changelog.rst`.
 - Commit and push to master.
 - Make sure there is a 3.(y+1) milestone already created

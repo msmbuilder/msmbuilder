@@ -3,8 +3,21 @@
 Changelog
 =========
 
+v3.8 (development)
+------------------
+
+API Changes
+~~~~~~~~~~~
+
+New Features
+~~~~~~~~~~~~
+
+Improvements
+~~~~~~~~~~~~
+
+
 v3.7 (January 26, 2017)
--------------------------
+-----------------------
 
 We're pleased to announce the release of MSMBuilder 3.7. This release
 introduces several new featurizers that can handle multiple sequences or 
