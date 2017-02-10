@@ -133,7 +133,7 @@ def preload_top(meta):
     top_fns = set(meta['top_fn'])
     if len(top_fns) != 1:
         raise ValueError("More than one topology is used in this project!")
-    return md.load(top_fns.pop())
+    return md.load_topology(top_fns.pop())
 
 
 def itertrajs(meta, stride=1):
