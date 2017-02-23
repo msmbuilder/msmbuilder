@@ -222,6 +222,13 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
             self.landmarks_ = X[land_indices]
 
+        if self.metric != 'rmsd':
+            cluster_centers_ = []
+            for i in range(self.n_clusters):
+                temp = list(np.mean(self.landmarks_[self.landmark_labels_==i], axis=0))
+                cluster_centers_.append(temp)
+            self.cluster_centers_ = np.array(cluster_centers_)
+
         return self
 
     def predict(self, X):
@@ -262,13 +269,6 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 labels[mask] = i
             else:
                 print("No data points were assigned to cluster {}".format(i))
-
-        if self.metric != 'rmsd':
-            cluster_centers_ = []
-            for i in range(self.n_clusters):
-                temp = list(np.mean(self.landmarks_[self.landmark_labels_==i], axis=0))
-                cluster_centers_.append(temp)
-            self.cluster_centers_ = np.array(cluster_centers_)
 
         return labels
 
