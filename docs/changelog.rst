@@ -15,6 +15,8 @@ New Features
 Improvements
 ~~~~~~~~~~~~
 
+- The ``stride`` parameter in ``KernelTICA`` now works as intended to automatically generate a set of landmark points (gh-972).
+
 
 v3.7 (January 26, 2017)
 -----------------------
