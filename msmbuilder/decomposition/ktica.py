@@ -114,7 +114,7 @@ class KernelTICA(tICA):
         self.degree = degree
         self.gamma = gamma
         self.coef0 = coef0
-        self.stride = 1
+        self.stride = stride
         self.landmarks = landmarks
         self.random_state = random_state
         self.kernel_params = kernel_params
