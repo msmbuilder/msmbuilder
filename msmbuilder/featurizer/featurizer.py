@@ -20,6 +20,7 @@ from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
 from ..base import BaseEstimator
 
+
 def zippy_maker(aind_tuples, top):
     resseqs = []
     resids = []
@@ -34,6 +35,7 @@ def zippy_maker(aind_tuples, top):
 
     return zip(aind_tuples, resseqs, resids, resnames)
 
+
 def dict_maker(zippy):
     feature_descs = []
     for featurizer, featuregroup, other_info, feature_info in zippy:
@@ -45,9 +47,10 @@ def dict_maker(zippy):
             resids=resid,
             featurizer=featurizer,
             featuregroup="{}".format(featuregroup),
-            otherinfo ="{}".format(other_info)
+            otherinfo="{}".format(other_info)
         )]
     return feature_descs
+
 
 def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
     """Load and featurize many trajectory files.
@@ -99,7 +102,6 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
 
 
-
 class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
 
@@ -114,7 +116,8 @@ class Featurizer(BaseEstimator, TransformerMixin):
         pass
 
     def featurize(self, traj):
-        raise NotImplementedError('This API was removed. Use partial_transform instead')
+        raise NotImplementedError(
+            'This API was removed. Use partial_transform instead')
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space.
@@ -185,10 +188,10 @@ class Featurizer(BaseEstimator, TransformerMixin):
         implemented in the sub_class
         """
         n_f = self.partial_transform(traj).shape[1]
-        zippy=zip(itertools.repeat("N/A", n_f),
-                  itertools.repeat("N/A", n_f),
-                  itertools.repeat("N/A", n_f),
-                  itertools.repeat(("N/A","N/A","N/A","N/A"), n_f))
+        zippy = zip(itertools.repeat("N/A", n_f),
+                    itertools.repeat("N/A", n_f),
+                    itertools.repeat("N/A", n_f),
+                    itertools.repeat(("N/A", "N/A", "N/A", "N/A"), n_f))
 
         return dict_maker(zippy)
 
@@ -280,11 +283,12 @@ class RMSDFeaturizer(Featurizer):
 
         self.atom_indices = atom_indices
         if self.atom_indices is not None:
-            self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
+            self.sliced_reference_traj = reference_traj.atom_slice(
+                self.atom_indices)
         else:
             self.sliced_reference_traj = reference_traj
-            self.atom_indices = [i for i in range(self.sliced_reference_traj.n_atoms)]
-
+            self.atom_indices = [i for i in range(
+                self.sliced_reference_traj.n_atoms)]
 
     def _transform(self, value):
         return value
@@ -318,6 +322,7 @@ class RMSDFeaturizer(Featurizer):
         )
         return self._transform(result)
 
+
 class LandMarkRMSDFeaturizer(RMSDFeaturizer):
     """Kernel Landmark Featuizer based on RMSD to one or more reference structures.
 
@@ -341,11 +346,12 @@ class LandMarkRMSDFeaturizer(RMSDFeaturizer):
 
     def __init__(self, reference_traj=None, atom_indices=None, sigma=0.3):
 
-        super(LandMarkRMSDFeaturizer, self).__init__(reference_traj,atom_indices)
+        super(LandMarkRMSDFeaturizer, self).__init__(
+            reference_traj, atom_indices)
         self.sigma = sigma
 
     def _transform(self, value):
-        return np.exp(-value**2/(2* self.sigma **2))
+        return np.exp(-value**2 / (2 * self.sigma ** 2))
 
     def describe_features(self, traj):
         """Return a list of dictionaries describing the LandmarkRMSD features.
@@ -374,14 +380,17 @@ class LandMarkRMSDFeaturizer(RMSDFeaturizer):
         self.partial_transform(traj[0])
         top = traj.topology
 
-        aind_tuples = [self.atom_indices for _ in range(self.sliced_reference_traj.n_frames)]
+        aind_tuples = [self.atom_indices for _ in range(
+            self.sliced_reference_traj.n_frames)]
         zippy = zippy_maker(aind_tuples, top)
 
-        zippy = itertools.product(["LandMarkFeaturizer"], ["RMSD"], [0.3], zippy)
+        zippy = itertools.product(["LandMarkFeaturizer"], [
+                                  "RMSD"], [0.3], zippy)
 
         feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
+
 
 class AtomPairsFeaturizer(Featurizer):
     """Featurizer based on distances between specified pairs of atoms.
@@ -461,13 +470,13 @@ class AtomPairsFeaturizer(Featurizer):
         feature_descs = []
 
         top = traj.topology
-        residue_indices = [[top.atom(i[0]).residue.index, top.atom(i[1]).residue.index] \
+        residue_indices = [[top.atom(i[0]).residue.index, top.atom(i[1]).residue.index]
                            for i in self.atom_indices]
 
         aind = []
         resseqs = []
         resnames = []
-        for ind,resid_ids in enumerate(residue_indices):
+        for ind, resid_ids in enumerate(residue_indices):
             aind += [[i for i in self.atom_indices[ind]]]
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
@@ -612,9 +621,11 @@ class DihedralFeaturizer(Featurizer):
             zippy = zippy_maker(aind_tuples, top)
 
             if self.sincos:
-                zippy = itertools.product(['Dihedral'],[dihed_type], ['sin', 'cos'], zippy)
+                zippy = itertools.product(
+                    ['Dihedral'], [dihed_type], ['sin', 'cos'], zippy)
             else:
-                zippy = itertools.product(['Dihedral'],[dihed_type], ['nosincos'], zippy)
+                zippy = itertools.product(
+                    ['Dihedral'], [dihed_type], ['nosincos'], zippy)
 
             feature_descs.extend(dict_maker(zippy))
 
@@ -683,7 +694,7 @@ class VonMisesFeaturizer(Featurizer):
         if not isinstance(kappa, (int, float)):
             raise TypeError('kappa must be numeric.')
 
-        self.loc = np.linspace(0, 2*np.pi, n_bins)
+        self.loc = np.linspace(0, 2 * np.pi, n_bins)
         self.kappa = kappa
         self.n_bins = n_bins
 
@@ -723,17 +734,17 @@ class VonMisesFeaturizer(Featurizer):
             aind_tuples, _ = func(traj)
 
             top = traj.topology
-            bin_info =[]
+            bin_info = []
             resseqs = []
             resids = []
             resnames = []
             all_aind = []
-            #its bin0---all phis bin1--all_phis
+            # its bin0---all phis bin1--all_phis
             for bin_index in range(self.n_bins):
                 for ainds in aind_tuples:
                     resid = set(top.atom(ai).residue.index for ai in ainds)
                     all_aind.append(ainds)
-                    bin_info += ["bin-%d"%bin_index]
+                    bin_info += ["bin-%d" % bin_index]
                     resids += [list(resid)]
                     reseq = set(top.atom(ai).residue.resSeq for ai in ainds)
                     resseqs += [list(reseq)]
@@ -741,18 +752,17 @@ class VonMisesFeaturizer(Featurizer):
                     resnames += [list(resname)]
 
             zippy = zip(all_aind, resseqs, resids, resnames)
-            #fast check to make sure we have the right number of features
+            # fast check to make sure we have the right number of features
             assert len(bin_info) == len(aind_tuples) * self.n_bins
 
-            zippy = zip(["VonMises"]*len(bin_info),
-                        [dihed_type]*len(bin_info),
+            zippy = zip(["VonMises"] * len(bin_info),
+                        [dihed_type] * len(bin_info),
                         bin_info,
                         zippy)
 
             feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
-
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via calculation
@@ -781,10 +791,11 @@ class VonMisesFeaturizer(Featurizer):
             _, y = func(traj)
             res = vm.pdf(y[..., np.newaxis],
                          loc=self.loc, kappa=self.kappa)
-            #we reshape the results using a  Fortran-like index order,
-            #so that it goes over the columns first. This should put the results
-            #phi dihedrals(all bin0 then all bin1), psi dihedrals(all_bin1)
-            x.extend(np.reshape(res, (1, -1, self.n_bins*y.shape[1]), order='F'))
+            # we reshape the results using a  Fortran-like index order,
+            # so that it goes over the columns first. This should put the results
+            # phi dihedrals(all bin0 then all bin1), psi dihedrals(all_bin1)
+            x.extend(np.reshape(
+                res, (1, -1, self.n_bins * y.shape[1]), order='F'))
         return np.hstack(x)
 
 
@@ -870,17 +881,19 @@ class AlphaAngleFeaturizer(Featurizer):
         if self.atom_indices is None:
             raise ValueError("Cannot describe features for "
                              "trajectories with "
-                              "fewer than 4 alpha carbon"
-                              "using AlphaAngleFeaturizer.")
+                             "fewer than 4 alpha carbon"
+                             "using AlphaAngleFeaturizer.")
 
         aind_tuples = self.atom_indices
 
         zippy = zippy_maker(aind_tuples, top)
 
         if self.sincos:
-            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['cos', 'sin'], zippy)
+            zippy = itertools.product(
+                ["AlphaAngle"], ["N/A"], ['cos', 'sin'], zippy)
         else:
-            zippy = itertools.product(["AlphaAngle"], ["N/A"], ['nosincos'], zippy)
+            zippy = itertools.product(
+                ["AlphaAngle"], ["N/A"], ['nosincos'], zippy)
 
         feature_descs.extend(dict_maker(zippy))
 
@@ -921,7 +934,6 @@ class KappaAngleFeaturizer(Featurizer):
         assert result.shape == (traj.n_frames, traj.n_residues - 4)
         return result
 
-
     def describe_features(self, traj):
         """Return a list of dictionaries describing the dihderal features.
 
@@ -955,12 +967,11 @@ class KappaAngleFeaturizer(Featurizer):
         aind_tuples = self.atom_indices
         zippy = zippy_maker(aind_tuples, top)
         if self.cos:
-            zippy = itertools.product(["Kappa"],["N/A"], ['cos'], zippy)
+            zippy = itertools.product(["Kappa"], ["N/A"], ['cos'], zippy)
         else:
-            zippy = itertools.product(["Kappa"],["N/A"], ['nocos'], zippy)
+            zippy = itertools.product(["Kappa"], ["N/A"], ['nocos'], zippy)
 
         feature_descs.extend(dict_maker(zippy))
-
 
         return feature_descs
 
@@ -995,6 +1006,47 @@ class SASAFeaturizer(Featurizer):
 
     def partial_transform(self, traj):
         return md.shrake_rupley(traj, mode=self.mode, **self.kwargs)
+
+
+class DSSPFeaturizer(Featurizer):
+    #HWS : first line needs to be one line, see other featurizers
+    """Featurizer based on Dictionary of protein secondary structure
+    (DSSP) assignments.
+
+    Currently just the simplified 3-category scheme. Returns the fraction
+    of residues that are H, E, or C.
+
+    The simplified DSSP codes are:
+
+    - 'H' : Helix. Either of the 'H', 'G', or 'I' codes.
+    - 'E' : Strand. Either of the 'E', or 'B' codes.
+    - 'C' : Coil. Either of the 'T', 'S' or ' ' codes.
+
+    A special 'NA' code will be assigned to each 'residue' in the topology which
+    isn't actually a protein residue (does not contain atoms with the names
+    'CA', 'N', 'C', 'O'), such as water molecules that are listed as 'residue's
+    in the topology.
+
+    Our implementation is based on DSSP-2.2.0, written by Maarten L. Hekkelman
+    and distributed under the Boost Software license.
+    """
+    def __init__(self):
+        pass
+
+    # HWS: look at this if you want, see AlphaAngleFeaturizer
+    # def __init__(self, data_type):
+    #     self.data_type = data_type
+    #     pass
+
+    # def my_method(self):
+    #     self.data_type = 'all'
+
+    def partial_transform(self, traj):
+        dssp = md.compute_dssp(traj)
+        x = np.sum(dssp == 'H', axis=1) / float(dssp.shape[1])
+        y = np.sum(dssp == 'E', axis=1) / float(dssp.shape[1])
+        z = 1.0 - x - y
+        return np.transpose([x, y, z])
 
 
 class ContactFeaturizer(Featurizer):
@@ -1065,7 +1117,6 @@ class ContactFeaturizer(Featurizer):
                                            self.scheme, self.ignore_nonprotein)
         return self._transform(distances)
 
-
     def describe_features(self, traj):
         """Return a list of dictionaries describing the contacts features.
 
@@ -1104,7 +1155,8 @@ class ContactFeaturizer(Featurizer):
             resnames += [[top.residue(ri).name for ri in resid_ids]]
 
         zippy = itertools.product(["Contact"], [self.scheme],
-                                  ["Ignore_Protein {}".format(self.ignore_nonprotein)],
+                                  ["Ignore_Protein {}".format(
+                                      self.ignore_nonprotein)],
                                   zip(aind, resseqs, residue_indices, resnames))
 
         feature_descs.extend(dict_maker(zippy))
@@ -1151,7 +1203,7 @@ class BinaryContactFeaturizer(ContactFeaturizer):
 
     def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True, cutoff=0.8):
         super(BinaryContactFeaturizer, self).__init__(contacts=contacts, scheme=scheme,
-                                                    ignore_nonprotein=ignore_nonprotein)
+                                                      ignore_nonprotein=ignore_nonprotein)
         if cutoff < 0:
             raise ValueError('cutoff must be a positive distance [nm]')
         self.cutoff = cutoff
@@ -1205,21 +1257,21 @@ class LogisticContactFeaturizer(ContactFeaturizer):
         respectively, more quickly.
     """
 
-
     def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True,
-                                                            center=0.8, steepness=20):
+                 center=0.8, steepness=20):
         super(LogisticContactFeaturizer, self).__init__(contacts=contacts, scheme=scheme,
-                                                    ignore_nonprotein=ignore_nonprotein)
+                                                        ignore_nonprotein=ignore_nonprotein)
         if center < 0:
             raise ValueError('center must be a positive distance [nm]')
         if steepness < 0:
-            raise ValueError('steepness must be a positive inverse distance [1/nm]')
+            raise ValueError(
+                'steepness must be a positive inverse distance [1/nm]')
 
         self.center = center
         self.steepness = steepness
 
     def _transform(self, distances):
-        result = 1.0/(1+np.exp(self.steepness*(distances-self.center)))
+        result = 1.0 / (1 + np.exp(self.steepness * (distances - self.center)))
         return result
 
 

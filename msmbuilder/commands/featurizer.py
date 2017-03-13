@@ -18,7 +18,8 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           FunctionFeaturizer, RawPositionsFeaturizer,
                           SASAFeaturizer, LigandContactFeaturizer,
                           BinaryLigandContactFeaturizer,
-                          LigandRMSDFeaturizer,LandMarkRMSDFeaturizer)
+                          LigandRMSDFeaturizer,LandMarkRMSDFeaturizer,
+                          DSSPFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -299,3 +300,10 @@ class LigandRMSDFeaturizerCommand(FeaturizerCommand):
         if fn is None:
             return None
         return np.loadtxt(fn, dtype=int, ndmin=1)
+
+
+class DSSPFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = DSSPFeaturizer
+
+    # HWS: should anything else be here?

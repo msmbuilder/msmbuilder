@@ -15,7 +15,8 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          RawPositionsFeaturizerCommand, SASAFeaturizerCommand,
                          LigandContactFeaturizerCommand,
                          BinaryLigandContactFeaturizerCommand,
-                         LigandRMSDFeaturizerCommand)
+                         LigandRMSDFeaturizerCommand,
+                         DSSPFeaturizerCommand)
 from .fit import (GaussianHMMCommand, MarkovStateModelCommand,
                   BayesianMarkovStateModelCommand, ContinuousTimeMSMCommand,
                   BayesianContinuousTimeMSMCommand)
