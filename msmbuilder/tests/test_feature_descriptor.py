@@ -160,7 +160,11 @@ def test_VonMisesFeaturizer_describe_features():
 
 
 def test_ContactFeaturizer_describe_features():
-    feat = ContactFeaturizer(scheme='CA', ignore_nonprotein=True)
+    scheme = np.random.choice(['ca','closest','closest-heavy'])
+    soft_min = np.random.choice([True, False])
+    print("Using scheme %s with softmin set to %s"%(scheme,soft_min))
+    feat = ContactFeaturizer(scheme=scheme, ignore_nonprotein=True,
+                             soft_min=soft_min)
     rnd_traj = np.random.randint(len(trajectories))
     features = feat.transform([trajectories[rnd_traj]])
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
@@ -172,12 +176,12 @@ def test_ContactFeaturizer_describe_features():
 
         feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
                                                contacts=[residue_ind],
-                                               scheme='ca',
-                                               ignore_nonprotein=True, )
+                                               scheme=scheme,
+                                               ignore_nonprotein=True,soft_min=soft_min)
 
         assert (features[0][:, f_index] == feature_value.flatten()).all()
 
-
+    
 def test_FeatureSelector_describe_features():
     rnd_traj = np.random.randint(len(trajectories))
     f_ca = ContactFeaturizer(scheme='CA', ignore_nonprotein=True)
