@@ -377,7 +377,7 @@ class LandMarkRMSDFeaturizer(RMSDFeaturizer):
         aind_tuples = [self.atom_indices for _ in range(self.sliced_reference_traj.n_frames)]
         zippy = zippy_maker(aind_tuples, top)
 
-        zippy = itertools.product(["LandMarkFeaturizer"], ["RMSD"], [0.3], zippy)
+        zippy = itertools.product(["LandMarkFeaturizer"], ["RMSD"], [self.sigma], zippy)
 
         feature_descs.extend(dict_maker(zippy))
 
@@ -1029,12 +1029,25 @@ class ContactFeaturizer(Featurizer):
         When using `contact==all`, don't compute contacts between
         "residues" which are not protein (i.e. do not contain an alpha
         carbon).
+    soft_min : bool, default=False
+        If soft_min is true, we will use a diffrentiable version of
+        the scheme. The exact expression used
+         is d = \frac{\beta}{log\sum_i{exp(\frac{\beta}{d_i}})} where
+         beta is user parameter which defaults to 20nm. The expression
+         we use is copied from the plumed mindist calculator.
+         http://plumed.github.io/doc-v2.0/user-doc/html/mindist.html
+    soft_min_beta : float, default=20nm
+        The value of beta to use for the soft_min distance option.
+        Very large values might cause small contact distances to go to 0.
     """
 
-    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True):
+    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True,
+                 soft_min=False, soft_min_beta=20):
         self.contacts = contacts
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
+        self.soft_min = soft_min
+        self.soft_min_beta = soft_min_beta
 
     def _transform(self, distances):
         return distances
@@ -1062,7 +1075,8 @@ class ContactFeaturizer(Featurizer):
         """
 
         distances, _ = md.compute_contacts(traj, self.contacts,
-                                           self.scheme, self.ignore_nonprotein)
+                                           self.scheme, self.ignore_nonprotein,
+                                           self.soft_min, self.soft_min_beta)
         return self._transform(distances)
 
 
@@ -1080,7 +1094,8 @@ class ContactFeaturizer(Featurizer):
             Dictionary describing each feature with the following information
             about the atoms participating in each dihedral
                 - resnames: unique names of residues
-                - atominds: the four atom indicies
+                - atominds: atom indices(returns CA if scheme is ca_inds,otherwise
+                            returns all atom_inds)
                 - resseqs: unique residue sequence ids (not necessarily
                   0-indexed)
                 - resids: unique residue ids (0-indexed)
@@ -1091,25 +1106,36 @@ class ContactFeaturizer(Featurizer):
         # fill in the atom indices using just the first frame
         distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
-                                                         self.ignore_nonprotein
-                                                         )
+                                                         self.ignore_nonprotein,
+                                                         self.soft_min, self.soft_min_beta)
         top = traj.topology
 
         aind = []
         resseqs = []
         resnames = []
+        if self.scheme=='ca':
+            atom_ind_list = [[j.index for j in i.atoms if j.name=='CA']
+                             for i in top.residues]
+        elif self.scheme=='closest':
+            atom_ind_list = [[j.index for j in i.atoms if j.element.name!="hydrogen"]
+                             for i in top.residues]
+        elif self.scheme=='closest-heavy':
+            atom_ind_list = [[j.index for j in i.atoms] for i in top.residues]
+        else:
+            atom_ind_list = [["N/A"] for i in top.residues]
+
         for resid_ids in residue_indices:
-            aind += ["N/A"]
+            aind += [[atom_ind_list[ri] for ri in resid_ids]]
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
-
         zippy = itertools.product(["Contact"], [self.scheme],
-                                  ["Ignore_Protein {}".format(self.ignore_nonprotein)],
+                                  ["{}_{}".format(self.soft_min, self.soft_min_beta)],
                                   zip(aind, resseqs, residue_indices, resnames))
 
         feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
+
 
 
 class BinaryContactFeaturizer(ContactFeaturizer):
