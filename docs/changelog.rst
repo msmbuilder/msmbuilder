@@ -11,6 +11,8 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
+- ``ContactFeaturizer`` now lets you use a soft_min option for closest
+contact distances.
 
 Improvements
 ~~~~~~~~~~~~
