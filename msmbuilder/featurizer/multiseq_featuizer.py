@@ -6,6 +6,8 @@ import numpy as np
 import itertools
 from .featurizer import Featurizer, ContactFeaturizer
 import warnings
+import inspect
+import mdtraj as md 
 
 class CommonContactFeaturizer(Featurizer):
     """Featurizer based on residue-residue contacts of an alignment file.
