@@ -1123,10 +1123,10 @@ class ContactFeaturizer(Featurizer):
         if self.scheme=='ca':
             atom_ind_list = [[j.index for j in i.atoms if j.name=='CA']
                              for i in top.residues]
-        elif self.scheme=='closest':
+        elif self.scheme=='closest-heavy':
             atom_ind_list = [[j.index for j in i.atoms if j.element.name!="hydrogen"]
                              for i in top.residues]
-        elif self.scheme=='closest-heavy':
+        elif self.scheme=='closest':
             atom_ind_list = [[j.index for j in i.atoms] for i in top.residues]
         else:
             atom_ind_list = [["N/A"] for i in top.residues]
