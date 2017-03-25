@@ -51,11 +51,22 @@ class CommonContactFeaturizer(Featurizer):
         When using `contact==all`, don't compute contacts between
         "residues" which are not protein (i.e. do not contain an alpha
         carbon).
+    soft_min : bool, default=False
+        If soft_min is true, we will use a diffrentiable version of
+        the scheme. The exact expression used
+         is d = \frac{\beta}{log\sum_i{exp(\frac{\beta}{d_i}})} where
+         beta is user parameter which defaults to 20nm. The expression
+         we use is copied from the plumed mindist calculator.
+         http://plumed.github.io/doc-v2.0/user-doc/html/mindist.html
+    soft_min_beta : float, default=20nm
+        The value of beta to use for the soft_min distance option.
+        Very large values might cause small contact distances to go to 0.
 """
 
     def __init__(self, alignment=None, contacts='all',
                  same_residue='True',
-                 scheme='closest-heavy', ignore_nonprotein=True):
+                 scheme='closest-heavy', ignore_nonprotein=True,
+                 soft_min=False, soft_min_beta=20):
 
         if alignment is None:
             raise ValueError("Common contacts requires an\
@@ -85,6 +96,12 @@ class CommonContactFeaturizer(Featurizer):
         self.all_inv_mappings, \
         self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
 
+        self.soft_min = soft_min
+        self.soft_min_beta = soft_min_beta
+        if self.soft_min and not 'soft_min' in inspect.signature(md.compute_contacts).parameters:
+            raise ValueError("Sorry but soft_min requires the latest version"
+                             "of mdtraj")
+
         self.feat_dict = self._create_feat_dict()
 
 
@@ -111,7 +128,13 @@ class CommonContactFeaturizer(Featurizer):
             #get its pairs
             pairs = [i for i in itertools.combinations(can_keep, 2)]
             #create a custom ContactFeaturizer for this particular sequence.
-            feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
+            if self.soft_min:
+                feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
+                                                       ignore_nonprotein=self.ignore_nonprotein,
+                                                       soft_min=self.soft_min,
+                                                       soft_min_beta=self.soft_min_beta)
+            else:
+                feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein)
         return feat_dict
 
