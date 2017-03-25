@@ -1111,10 +1111,15 @@ class ContactFeaturizer(Featurizer):
         """
         feature_descs = []
         # fill in the atom indices using just the first frame
-        distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
+        if self.soft_min:
+            distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
                                                          self.ignore_nonprotein,
                                                          self.soft_min, self.soft_min_beta)
+        else:
+            distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
+                                                         self.scheme,
+                                                         self.ignore_nonprotein)
         top = traj.topology
 
         aind = []
