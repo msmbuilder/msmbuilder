@@ -16,6 +16,7 @@ import sklearn.pipeline
 from scipy.stats import vonmises as vm
 from msmbuilder import libdistance
 import itertools
+import inspect
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
 from ..base import BaseEstimator
@@ -1048,6 +1049,9 @@ class ContactFeaturizer(Featurizer):
         self.ignore_nonprotein = ignore_nonprotein
         self.soft_min = soft_min
         self.soft_min_beta = soft_min_beta
+        if self.soft_min and not 'soft_min' in inspect.signature(md.compute_contacts).parameters:
+            raise ValueError("Sorry but soft_min requires the latest version"
+                             "of mdtraj")
 
     def _transform(self, distances):
         return distances
@@ -1073,10 +1077,13 @@ class ContactFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-
-        distances, _ = md.compute_contacts(traj, self.contacts,
-                                           self.scheme, self.ignore_nonprotein,
-                                           self.soft_min, self.soft_min_beta)
+        if self.soft_min:
+            distances, _ = md.compute_contacts(traj, self.contacts,
+                                               self.scheme, self.ignore_nonprotein,
+                                               self.soft_min, self.soft_min_beta)
+        else:
+            distances, _ = md.compute_contacts(traj, self.contacts,
+                                               self.scheme, self.ignore_nonprotein)
         return self._transform(distances)
 
 
@@ -1129,7 +1136,7 @@ class ContactFeaturizer(Featurizer):
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
         zippy = itertools.product(["Contact"], [self.scheme],
-                                  ["{}_{}".format(self.soft_min, self.soft_min_beta)],
+                                  ["{}".format(self.soft_min_beta)],
                                   zip(aind, resseqs, residue_indices, resnames))
 
         feature_descs.extend(dict_maker(zippy))

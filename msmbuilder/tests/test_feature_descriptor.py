@@ -7,6 +7,7 @@ import pandas as pd
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 import itertools
+import inspect
 
 from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
@@ -161,7 +162,10 @@ def test_VonMisesFeaturizer_describe_features():
 
 def test_ContactFeaturizer_describe_features():
     scheme = np.random.choice(['ca','closest','closest-heavy'])
-    soft_min = np.random.choice([True, False])
+    soft_min = False
+    if 'soft_min' in inspect.signature(md.compute_contacts).parameters:
+        soft_min = np.random.choice([True, False])
+
     print("Using scheme %s with softmin set to %s"%(scheme,soft_min))
     feat = ContactFeaturizer(scheme=scheme, ignore_nonprotein=True,
                              soft_min=soft_min)
@@ -173,15 +177,19 @@ def test_ContactFeaturizer_describe_features():
         f_index = np.random.choice(len(df))
 
         residue_ind = df.iloc[f_index].resids
-
-        feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
+        if soft_min:
+            feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
+                                               contacts=[residue_ind],
+                                               scheme=scheme)
+        else:
+            feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
                                                contacts=[residue_ind],
                                                scheme=scheme,
                                                ignore_nonprotein=True,soft_min=soft_min)
 
         assert (features[0][:, f_index] == feature_value.flatten()).all()
 
-    
+
 def test_FeatureSelector_describe_features():
     rnd_traj = np.random.randint(len(trajectories))
     f_ca = ContactFeaturizer(scheme='CA', ignore_nonprotein=True)

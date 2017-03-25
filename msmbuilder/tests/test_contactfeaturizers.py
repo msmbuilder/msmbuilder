@@ -4,7 +4,10 @@ from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.featurizer import BinaryContactFeaturizer
 from msmbuilder.featurizer import ContactFeaturizer
 from msmbuilder.featurizer import LogisticContactFeaturizer
-
+import mdtraj as md
+import inspect
+import itertools
+from numpy.testing.decorators import skipif
 
 def test_contacts():
     trajectories = MinimalFsPeptide().get_cached().trajectories
@@ -87,3 +90,24 @@ def test_binary_to_logistics():
     # This checks that no distances that are larger than the center are logistically
     # transformed such that they are less than 1/2
     np.testing.assert_array_almost_equal(binaries[0], logistics[0] > 0.5)
+
+@skipif('soft_min' not in inspect.signature(md.compute_contacts).parameters)
+def test_soft_min_contact_featurizer():
+     #just get one frame for now
+     traj = MinimalFsPeptide().get_cached().trajectories[0][0]
+     soft_min_beta = 20
+
+     ri,rj = np.random.choice(np.arange(traj.top.n_residues), size=2, replace=False)
+     aind_i = [i.index for i in traj.top.residue(ri).atoms]
+     aind_j = [i.index for i in traj.top.residue(rj).atoms]
+
+     atom_pairs = [i for i in itertools.product(aind_i,aind_j)]
+
+     featuizer = ContactFeaturizer(contacts=[[ri,rj]], scheme='closest', soft_min=True,
+                                   soft_min_beta=soft_min_beta)
+
+     features = featuizer.transform(([traj]))[0]
+     distances = md.compute_distances(traj, atom_pairs)
+     distances = soft_min_beta / np.log(np.sum(np.exp(soft_min_beta/distances),axis=1))
+
+     np.allclose(features,distances)
