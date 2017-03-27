@@ -161,8 +161,35 @@ def test_VonMisesFeaturizer_describe_features():
         assert (features[0][:, f_index] == feature_value).all()
 
 
-@skipif(True)
 def test_ContactFeaturizer_describe_features():
+    scheme = np.random.choice(['ca','closest','closest-heavy'])
+    soft_min = False
+
+    print("Using scheme %s with softmin set to %s"%(scheme,soft_min))
+    feat = ContactFeaturizer(scheme=scheme, ignore_nonprotein=True,
+                             soft_min=soft_min)
+    rnd_traj = np.random.randint(len(trajectories))
+    features = feat.transform([trajectories[rnd_traj]])
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+
+    for f in range(25):
+        f_index = np.random.choice(len(df))
+
+        residue_ind = df.iloc[f_index].resids
+        if not soft_min:
+            feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
+                                               contacts=[residue_ind],
+                                               scheme=scheme)
+        else:
+            feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
+                                               contacts=[residue_ind],
+                                               scheme=scheme,
+                                               ignore_nonprotein=True,soft_min=soft_min)
+
+        assert (features[0][:, f_index] == feature_value.flatten()).all()
+
+@skipif(True)
+def test_soft_min_ContactFeaturizer_describe_features():
     scheme = np.random.choice(['ca','closest','closest-heavy'])
     soft_min = False
     if 'soft_min' in inspect.signature(md.compute_contacts).parameters:
