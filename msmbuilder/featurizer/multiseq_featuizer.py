@@ -141,7 +141,6 @@ class CommonContactFeaturizer(Featurizer):
                     residue_index_j = inv_map[seq_ind_j]
                     pair_dict[protein].append([residue_index_i,residue_index_j])
         for protein in self.protein_list:
-            print(protein,pair_dict[protein])
             #create a custom ContactFeaturizer for this particular sequence.
             if self.soft_min:
                 feat_dict[protein] = ContactFeaturizer(pair_dict[protein],scheme=self.scheme,
