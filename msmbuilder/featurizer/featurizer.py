@@ -1080,7 +1080,8 @@ class ContactFeaturizer(Featurizer):
         if self.soft_min:
             distances, _ = md.compute_contacts(traj, self.contacts,
                                                self.scheme, self.ignore_nonprotein,
-                                               self.soft_min, self.soft_min_beta)
+                                               soft_min=self.soft_min,
+                                               soft_min_beta=self.soft_min_beta)
         else:
             distances, _ = md.compute_contacts(traj, self.contacts,
                                                self.scheme, self.ignore_nonprotein)
@@ -1115,7 +1116,8 @@ class ContactFeaturizer(Featurizer):
             distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
                                                          self.ignore_nonprotein,
-                                                         self.soft_min, self.soft_min_beta)
+                                                         soft_min=self.soft_min,
+                                                         soft_min_beta=self.soft_min_beta)
         else:
             distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
