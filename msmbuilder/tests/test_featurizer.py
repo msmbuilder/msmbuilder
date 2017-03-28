@@ -4,6 +4,7 @@ from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 from mdtraj.testing import eq
 import pandas as pd
+import itertools
 
 from msmbuilder.example_datasets import AlanineDipeptide, MetEnkephalin,\
     MinimalFsPeptide
@@ -75,8 +76,9 @@ def test_common_contacts_featurizer_1():
     #do "alignment "
     alignment["actual"] = met_seq+"-"
     alignment["fake"] = fake_met_eq
-
-    feat = CommonContactFeaturizer(alignment=alignment, contacts='all',
+    max_len=max([len(alignment[i]) for i in alignment.keys()])
+    contacts=[i for i in itertools.combinations(np.arange(max_len),2)]
+    feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
                                    same_residue=True)
     rnd_traj = np.random.randint(len(trajectories))
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
@@ -87,21 +89,24 @@ def test_common_contacts_featurizer_2():
     trajectories = MetEnkephalin().get_cached().trajectories
     top = trajectories[0].topology
     met_seq = top.to_fasta(0)
+
     #fake sequence
     fake_met_eq ='FGGFM'
     alignment={}
     #do "alignment "
     alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
-
-    feat = CommonContactFeaturizer(alignment=alignment, contacts='all',
+    max_len=max([len(alignment[i]) for i in alignment.keys()])
+    contacts=[i for i in itertools.combinations(np.arange(max_len),2)]
+    feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
                                    same_residue=True)
 
     rnd_traj = np.random.randint(len(trajectories))
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
     assert(np.all([j!=0 for i in df.resids for j in i]))
 
-def test_common_contacts_featurizer_2():
+
+def test_common_contacts_featurizer_3():
     #test randomly mutates one of the residues to make sure that residues contacts are not
     #included
     trajectories = MetEnkephalin().get_cached().trajectories
@@ -114,8 +119,9 @@ def test_common_contacts_featurizer_2():
     #do "alignment "
     alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
-
-    feat = CommonContactFeaturizer(alignment=alignment, contacts='all',
+    max_len=max([len(alignment[i]) for i in alignment.keys()])
+    contacts=[i for i in itertools.combinations(np.arange(max_len),2)]
+    feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
                                    same_residue=True)
 
     rnd_traj = np.random.randint(len(trajectories))

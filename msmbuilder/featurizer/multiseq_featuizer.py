@@ -84,19 +84,21 @@ class CommonContactFeaturizer(Featurizer):
 
         self.protein_list = list(self.alignment.keys())
         self.same_residue = same_residue
-        self.wanted_positions = contacts
+        self.contacts = contacts
         if contacts is 'all':
             #use the max length(probably a horrible idea)
-            self.wanted_positions = range(max([len(self.alignment[i])
-                                               for i in self.alignment.keys()]))
+            max_seq_len = max([len(self.alignment[i])
+                                       for i in self.alignment.keys()])
+            self.contacts =[i for i in itertools.combinations(np.arange(max_seq_len),2)
+                            if abs(i[0]-i[1])>3]
             warnings.warn("All valid pair-wise contacts are being calculated")
-        
+
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
 
 
         self.all_inv_mappings, \
-        self.all_sequences = self._map_residue_ind_seq_ind(self.alignment)
+        self.all_sequences, self.all_res_mappings = self._map_residue_ind_seq_ind(self.alignment)
 
         self.soft_min = soft_min
         self.soft_min_beta = soft_min_beta
@@ -106,37 +108,48 @@ class CommonContactFeaturizer(Featurizer):
 
         self.feat_dict = self._create_feat_dict()
 
+    def _valid_contact(self, contact):
+        seq_ind_i , seq_ind_j = contact
+        possible_i_codes = set([self.alignment[p][seq_ind_i] for p in
+                                      self.alignment.keys()])
+        possible_j_codes = set([self.alignment[p][seq_ind_j] for p in
+                                      self.alignment.keys()])
+        #if either of those positions has a addition ignore that contact
+        if "-" in possible_i_codes or "-" in possible_j_codes:
+            return False
+        #if not all residues the same at position i
+        elif self.same_residue and len(set(possible_i_codes))!=1:
+            return False
+        #if not all residues the same at position j
+        elif self.same_residue and len(set(possible_j_codes))!=1:
+            return False
+        #same residue at the same position in both sequence indices. This is a good contact.
+        else:
+            return True
 
     def _create_feat_dict(self):
         feat_dict = {}
+        pair_dict = {}
         for protein in self.protein_list:
-            can_keep=[]
-            inv_map = self.all_inv_mappings[protein]
-
-            for position in self.wanted_positions:
-                possible_codes = set([self.alignment[p][position] for p in
-                                      self.alignment.keys()])
-                #ignore all additions
-                if not "-" in possible_codes:
-                    #if we want the same residue ignore it
-                    if self.same_residue and len(set(possible_codes))!=1:
-                        continue
-                    # get the inverse mapping and add it to the list of can keep
-                    residue_index = inv_map[position]
-                    can_keep.append(residue_index)
-
-            #sort it because i dont want random bs issues.
-            can_keep = np.sort(can_keep)
-            #get its pairs
-            pairs = [i for i in itertools.combinations(can_keep, 2)]
+            pair_dict[protein] = []
+        for contact in self.contacts:
+            if self._valid_contact(contact):
+                seq_ind_i , seq_ind_j = contact
+                for protein in self.protein_list:
+                    inv_map = self.all_inv_mappings[protein]
+                    residue_index_i = inv_map[seq_ind_i]
+                    residue_index_j = inv_map[seq_ind_j]
+                    pair_dict[protein].append([residue_index_i,residue_index_j])
+        for protein in self.protein_list:
+            print(protein,pair_dict[protein])
             #create a custom ContactFeaturizer for this particular sequence.
             if self.soft_min:
-                feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
+                feat_dict[protein] = ContactFeaturizer(pair_dict[protein],scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein,
                                                        soft_min=self.soft_min,
                                                        soft_min_beta=self.soft_min_beta)
             else:
-                feat_dict[protein] = ContactFeaturizer(pairs,scheme=self.scheme,
+                feat_dict[protein] = ContactFeaturizer(pair_dict[protein],scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein)
         return feat_dict
 
@@ -201,5 +214,4 @@ class CommonContactFeaturizer(Featurizer):
                         continue
             all_mappings[prt] = mapping
             all_inv_mappings[prt] = {v: k for k, v in mapping.items()}
-        return all_inv_mappings, all_sequences
-
+        return all_inv_mappings, all_sequences, all_mappings
