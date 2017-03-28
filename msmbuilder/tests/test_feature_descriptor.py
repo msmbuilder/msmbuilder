@@ -7,6 +7,8 @@ import pandas as pd
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 import itertools
+import inspect
+from numpy.testing.decorators import skipif
 
 from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
@@ -160,7 +162,8 @@ def test_VonMisesFeaturizer_describe_features():
 
 
 def test_ContactFeaturizer_describe_features():
-    feat = ContactFeaturizer(scheme='CA', ignore_nonprotein=True)
+    scheme = np.random.choice(['ca','closest','closest-heavy'])
+    feat = ContactFeaturizer(scheme=scheme, ignore_nonprotein=True)
     rnd_traj = np.random.randint(len(trajectories))
     features = feat.transform([trajectories[rnd_traj]])
     df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
@@ -169,11 +172,29 @@ def test_ContactFeaturizer_describe_features():
         f_index = np.random.choice(len(df))
 
         residue_ind = df.iloc[f_index].resids
-
         feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
                                                contacts=[residue_ind],
-                                               scheme='ca',
-                                               ignore_nonprotein=True, )
+                                               scheme=scheme)
+        assert (features[0][:, f_index] == feature_value.flatten()).all()
+
+@skipif(True)
+def test_soft_min_ContactFeaturizer_describe_features():
+    scheme = np.random.choice(['closest','closest-heavy'])
+    soft_min = True
+    feat = ContactFeaturizer(scheme=scheme, ignore_nonprotein=True,
+                             soft_min=soft_min)
+    rnd_traj = np.random.randint(len(trajectories))
+    features = feat.transform([trajectories[rnd_traj]])
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+
+    for f in range(25):
+        f_index = np.random.choice(len(df))
+
+        residue_ind = df.iloc[f_index].resids
+        feature_value, _ = md.compute_contacts(trajectories[rnd_traj],
+                                               contacts=[residue_ind],
+                                               scheme=scheme,
+                                               ignore_nonprotein=True,soft_min=soft_min)
 
         assert (features[0][:, f_index] == feature_value.flatten()).all()
 
