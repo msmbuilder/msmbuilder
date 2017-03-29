@@ -89,7 +89,7 @@ class CommonContactFeaturizer(Featurizer):
             #use the max length(probably a horrible idea)
             max_seq_len = max([len(self.alignment[i])
                                        for i in self.alignment.keys()])
-            self.contacts =[i for i in itertools.combinations(np.arange(max_seq_len),2)
+            self.contacts = [i for i in itertools.combinations(np.arange(max_seq_len),2)
                             if abs(i[0]-i[1])>3]
             warnings.warn("All valid pair-wise contacts are being calculated")
 
@@ -109,7 +109,7 @@ class CommonContactFeaturizer(Featurizer):
         self.feat_dict = self._create_feat_dict()
 
     def _valid_contact(self, contact):
-        seq_ind_i , seq_ind_j = contact
+        seq_ind_i, seq_ind_j = contact
         possible_i_codes = set([self.alignment[p][seq_ind_i] for p in
                                       self.alignment.keys()])
         possible_j_codes = set([self.alignment[p][seq_ind_j] for p in
@@ -133,22 +133,24 @@ class CommonContactFeaturizer(Featurizer):
         for protein in self.protein_list:
             pair_dict[protein] = []
         for contact in self.contacts:
+            # contact is valid if we have the same residue at that position for all sequences in
+            #the alignment
             if self._valid_contact(contact):
-                seq_ind_i , seq_ind_j = contact
+                seq_ind_i, seq_ind_j = contact
                 for protein in self.protein_list:
                     inv_map = self.all_inv_mappings[protein]
                     residue_index_i = inv_map[seq_ind_i]
                     residue_index_j = inv_map[seq_ind_j]
-                    pair_dict[protein].append([residue_index_i,residue_index_j])
+                    pair_dict[protein].append([residue_index_i, residue_index_j])
         for protein in self.protein_list:
             #create a custom ContactFeaturizer for this particular sequence.
             if self.soft_min:
-                feat_dict[protein] = ContactFeaturizer(pair_dict[protein],scheme=self.scheme,
+                feat_dict[protein] = ContactFeaturizer(pair_dict[protein], scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein,
                                                        soft_min=self.soft_min,
                                                        soft_min_beta=self.soft_min_beta)
             else:
-                feat_dict[protein] = ContactFeaturizer(pair_dict[protein],scheme=self.scheme,
+                feat_dict[protein] = ContactFeaturizer(pair_dict[protein], scheme=self.scheme,
                                                        ignore_nonprotein=self.ignore_nonprotein)
         return feat_dict
 

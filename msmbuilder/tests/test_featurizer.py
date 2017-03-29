@@ -72,12 +72,12 @@ def test_common_contacts_featurizer_1():
     met_seq = top.to_fasta(0)
     #fake sequence has an insertion
     fake_met_eq ='YGGFMF'
-    alignment={}
+    alignment = {}
     #do "alignment "
     alignment["actual"] = met_seq+"-"
     alignment["fake"] = fake_met_eq
-    max_len=max([len(alignment[i]) for i in alignment.keys()])
-    contacts=[i for i in itertools.combinations(np.arange(max_len),2)]
+    max_len = max([len(alignment[i]) for i in alignment.keys()])
+    contacts = [i for i in itertools.combinations(np.arange(max_len),2)]
     feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
                                    same_residue=True)
     rnd_traj = np.random.randint(len(trajectories))
@@ -90,14 +90,14 @@ def test_common_contacts_featurizer_2():
     top = trajectories[0].topology
     met_seq = top.to_fasta(0)
 
-    #fake sequence
+    # fake sequence
     fake_met_eq ='FGGFM'
-    alignment={}
-    #do "alignment "
+    alignment = {}
+    # do "alignment "
     alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
-    max_len=max([len(alignment[i]) for i in alignment.keys()])
-    contacts=[i for i in itertools.combinations(np.arange(max_len),2)]
+    max_len = max([len(alignment[i]) for i in alignment.keys()])
+    contacts = [i for i in itertools.combinations(np.arange(max_len),2)]
     feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
                                    same_residue=True)
 
@@ -114,13 +114,13 @@ def test_common_contacts_featurizer_3():
     met_seq = top.to_fasta(0)
     #randomly "mutate one of the residues to alanine
     rnd_loc = np.random.randint(len(met_seq))
-    fake_met_eq=met_seq[:rnd_loc]+"A"+met_seq[rnd_loc+1:]
-    alignment={}
+    fake_met_eq = met_seq[:rnd_loc]+"A"+met_seq[rnd_loc+1:]
+    alignment = {}
     #do "alignment "
     alignment["actual"] = met_seq
     alignment["fake"] = fake_met_eq
-    max_len=max([len(alignment[i]) for i in alignment.keys()])
-    contacts=[i for i in itertools.combinations(np.arange(max_len),2)]
+    max_len = max([len(alignment[i]) for i in alignment.keys()])
+    contacts = [i for i in itertools.combinations(np.arange(max_len),2)]
     feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
                                    same_residue=True)
 
