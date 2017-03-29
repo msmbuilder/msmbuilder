@@ -6,6 +6,8 @@ from itertools import permutations
 import numpy as np
 from scipy.stats.distributions import vonmises
 
+from sklearn.pipeline import Pipeline
+
 from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import DihedralFeaturizer
 from msmbuilder.hmm import VonMisesHMM
@@ -115,3 +117,14 @@ def test_3_state():
         model.fit(X)
         validate_timeseries(means, kappas, transmat, model, 0.1, 0.5, 0.1)
         assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
+
+
+def test_pipeline():
+    trajs = AlanineDipeptide().get_cached().trajectories
+    p = Pipeline([
+        ('diheds', DihedralFeaturizer(['phi', 'psi'], sincos=False)),
+        ('hmm', VonMisesHMM(n_states=4))
+    ])
+
+    predict = p.fit_predict(trajs)
+    p.named_steps['hmm'].summarize()

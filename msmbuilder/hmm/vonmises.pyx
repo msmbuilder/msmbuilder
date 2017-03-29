@@ -259,7 +259,31 @@ timescales: {timescales}
                populations=str(self._populations_), transmat=str(self._transmat_),
                timescales=self.timescales_, fit_time=self._fit_time_)
 
-    def fit(self, sequences):
+    def fit_predict(self, sequences, y=None):
+        """Find most likely hidden-state sequence corresponding to
+        each data timeseries.
+
+        Uses the Viterbi algorithm.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+
+        Returns
+        -------
+        viterbi_logprob : float
+            Log probability of the maximum likelihood path through the HMM.
+
+        hidden_sequences : list of np.ndarrays[dtype=int, shape=n_samples_i]
+            Index of the most likely states for each observation.
+        """
+        self.fit(sequences, y=y)
+        return self.predict(sequences)
+
+    def fit(self, sequences, y=None):
         """Estimate model parameters.
 
         Parameters

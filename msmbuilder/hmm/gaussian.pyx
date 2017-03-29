@@ -381,7 +381,31 @@ timescales: {timescales}
                populations=str(self._populations_), transmat=str(self._transmat_),
                timescales=self.timescales_, fit_time=self._fit_time_)
 
-    def fit(self, sequences):
+    def fit_predict(self, sequences, y=None):
+        """Find most likely hidden-state sequence corresponding to
+        each data timeseries.
+
+        Uses the Viterbi algorithm.
+
+        Parameters
+        ----------
+        sequences : list
+            List of 2-dimensional array observation sequences, each of which
+            has shape (n_samples_i, n_features), where n_samples_i
+            is the length of the i_th observation.
+
+        Returns
+        -------
+        viterbi_logprob : float
+            Log probability of the maximum likelihood path through the HMM.
+
+        hidden_sequences : list of np.ndarrays[dtype=int, shape=n_samples_i]
+            Index of the most likely states for each observation.
+        """
+        self.fit(sequences, y=y)
+        return self.predict(sequences)
+
+    def fit(self, sequences, y=None):
         """Estimate model parameters.
 
         Parameters
@@ -497,7 +521,7 @@ timescales: {timescales}
         self._populations_ = np.ones(self.n_states) / self.n_states
         self._transmat_ = np.empty((self.n_states, self.n_states))
         self._transmat_.fill(1.0/self.n_states)
-        
+
     def _fit_float(self, sequences):
         cdef vector[Trajectory] trajectoryVec
         cdef np.ndarray[double, ndim=1] startprob
@@ -810,7 +834,7 @@ timescales: {timescales}
         self.stats['obs**2'] = obs2
         self.stats['post'] = post
         self.stats['log_probability'] = log_probability
-    
+
     def __reduce__(self):
         """Pickle support"""
         args = (self.n_states, self.n_init, self.n_iter, self.n_lqa_iter, self.fusion_prior, self.thresh,
@@ -818,7 +842,7 @@ timescales: {timescales}
                 self.timing, self.n_hotstart, self.init_algo)
         state = (self._means_, self._vars_, self._transmat_, self._populations_, self._fit_logprob_, self._fit_time_)
         return (self.__class__, args, state)
-    
+
     def __setstate__(self, state):
         """Pickle support"""
         self._means_ = state[0]
