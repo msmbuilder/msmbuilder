@@ -44,9 +44,8 @@ How to do a release
   that gets tested with every pull request to differ from the one people actually get!
   Conda binaries should be automatically built with the `rc` tag.
 - To test the release candidate, you can create a virtual environment like this:
-  `conda create -n msmb-test -c omnia/label/rc msmbuilder`
-  And then run:
-  `source activate msmb-test`
+  `conda create -n msmb-test -c omnia/label/rc msmbuilder`, then run:
+  `source activate msmb-test`,
   `nosetests -v msmbuilder --nologcapture`
 - Once the tests have (successfully) completed, change the tag to main as follows:
   1. Go to [the conda page](https://anaconda.org/omnia/mdtraj/files)
