@@ -48,7 +48,7 @@ How to do a release
   `source activate msmb-test`,
   `nosetests -v msmbuilder --nologcapture`
 - Once the tests have (successfully) completed, change the tag to main as follows:
-  1. Go to [the conda page](https://anaconda.org/omnia/mdtraj/files)
+  1. Go to [the conda page](https://anaconda.org/omnia/msmbuilder/files)
   2. Filter by label, rc
   3. Use checkbox to select all
   4. Actions, move, main
