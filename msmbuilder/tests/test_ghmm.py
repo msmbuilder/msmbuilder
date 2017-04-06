@@ -6,6 +6,8 @@ from itertools import permutations
 import hmmlearn.hmm
 import numpy as np
 
+from sklearn.pipeline import Pipeline
+
 from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import SuperposeFeaturizer
 from msmbuilder.hmm import GaussianHMM
@@ -132,3 +134,17 @@ def test_3_state():
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
             yield three_state_tester(init_algo, reversible_type)
+
+
+def test_pipeline():
+    trajs = AlanineDipeptide().get_cached().trajectories
+    topology = trajs[0].topology
+
+    indices = topology.select('backbone')
+    p = Pipeline([
+        ('diheds', SuperposeFeaturizer(indices, trajs[0][0])),
+        ('hmm', GaussianHMM(n_states=4))
+    ])
+
+    predict = p.fit_predict(trajs)
+    p.named_steps['hmm'].summarize()
