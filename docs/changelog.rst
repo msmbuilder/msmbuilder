@@ -17,10 +17,11 @@ contact distances.
 Improvements
 ~~~~~~~~~~~~
 
-- The ``stride`` parameter in ``KernelTICA`` now works as intended to
-automatically generate a set of landmark points (gh-972).
 - ``GaussianHMM`` and ``VonMisesHMM`` are now compatible with
-``sklearn.pipeline.Pipeline`` workflows.
+``sklearn.pipeline.Pipeline`` workflows (gh-980).
+- The ``stride`` parameter in ``KernelTICA`` now works as intended to automatically generate a set of landmark points (gh-972).
+- The ``contacts`` parameter in ``CommonContactFeaturizer`` now performs as the contacts method in
+regular ``ContactFeaturizer`` albeit after validating all the contacts.
 
 v3.7 (January 26, 2017)
 -----------------------
