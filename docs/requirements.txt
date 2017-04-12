@@ -1,6 +1,7 @@
 numpydoc
 matplotlib
-ipython-notebook
+jupyter
+notebook
 jinja2
 openmm
 nbconvert
