@@ -15,7 +15,7 @@ install:
     - conda config --add channels omnia
 
 script:
-  # Run tests. If they succeed, build docs only on 3.5
+  # Run tests. If they succeed, build docs only on 3.6
   conda build --quiet devtools/conda-recipe
   && if [[ $CONDA_PY = 3.6 ]]; then devtools/travis-ci/build_docs.sh; fi
 
@@ -36,4 +36,4 @@ deploy:
     local_dir: docs/_deploy/
     on:
       branch: master
-      condition: "$CONDA_PY = 3.5"
+      condition: "$CONDA_PY = 3.6"
