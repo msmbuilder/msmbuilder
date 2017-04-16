@@ -311,6 +311,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin,
     def score_(self):
         """Training score of the model, computed as the generalized matrix,
         Rayleigh quotient, the sum of the first `n_components` eigenvalues
+        of the corresponding transition matrix.
         """
         return np.exp(self.eigenvalues_).sum()
 
