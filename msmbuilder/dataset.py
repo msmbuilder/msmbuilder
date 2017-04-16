@@ -256,7 +256,7 @@ class _BaseDataset(Sequence):
         return self.set(i, x)
 
     def __iter__(self):
-        for key in self.keys():
+        for key in sorted(self.keys(), key=_keynat):
             yield self.get(key)
 
     def keys(self):
