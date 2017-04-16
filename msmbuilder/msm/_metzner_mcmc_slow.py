@@ -104,8 +104,7 @@ def _K_to_T(K):
     return K / np.sum(K, dtype=float, axis=1, keepdims=True)
 
 def _logprob_T(T, Z):
-    assert np.all(T > 0)
-    return np.sum(np.multiply(Z, np.log(T)))
+    return np.nansum(np.multiply(Z, np.log(T)))
 
 
 def _metzner_figure_4():

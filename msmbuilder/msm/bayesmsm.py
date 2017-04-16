@@ -45,7 +45,7 @@ from .core import (_MappingTransformMixin,
                    _CountsMSMMixin,
                    _solve_msm_eigensystem)
 from ._metzner_mcmc_fast import metzner_mcmc_fast
-from ._metzner_mcmc_slow import metzner_mcmc_slow
+from ._metzner_mcmc_slow import metzner_mcmc_slow, _logprob_T
 
 
 #-----------------------------------------------------------------------------
@@ -127,6 +127,14 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin,
         matrix.
     transmats_ : array_like, shape = (n_samples, n_states_, n_states_)
         Samples from the posterior ensemble of transition matrices.
+    map_ll : int
+        The MAP(maximum a posteriori probability) logliklihood
+    all_loglikelihoods_: array_like, shape = (n_samples)
+        The log liklihoods for all the generated mdls
+    map_transmat_ :  array_like, shape = (n_states_, n_states_)
+        The map transition matrix
+    map_population_ :  array_like, shape = (n_states_, n_states_)
+        The MAP population
 
     Notes
     -----
@@ -166,6 +174,10 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin,
         self.verbose = verbose
 
         self.mapping_ = None
+        self.all_loglikelihoods_ = None
+        self.map_mdl_index_ = None
+        self.map_transmat_ = None
+        self.map_ll_ = None
         self.countsmat_ = None
         self.all_transmats_ = None
         self.n_states_ = None
@@ -235,6 +247,15 @@ class BayesianMarkovStateModel(BaseEstimator, _MappingTransformMixin,
         # we round chain_length UP, so we might have generated a few extra
         # samples.
         result = result[-self.n_samples:]
+
+        self.all_loglikelihoods_ = np.array([_logprob_T(i, Z) for i in result])
+        self.map_ll_ = np.mean(self.all_loglikelihoods_)
+        #find the mdl index ll is closest to the mean of the mdls.
+        self.map_mdl_index_ = np.argmin(self.all_loglikelihoods_ - self.map_ll_)
+
+        self.map_ll_ = self.all_loglikelihoods_[self.map_mdl_index_]
+        self.map_transmat_ = result[self.map_mdl_index_]
+
         return result
 
     def _fit_non_reversible(self):
@@ -385,3 +406,7 @@ Timescales:
     def all_populations_(self):
         us, lvs, rvs = self._get_eigensystem()
         return lvs[:, :, 0]
+
+    @property
+    def map_populations_(self):
+        return self.all_populations_[self.map_mdl_index_]
