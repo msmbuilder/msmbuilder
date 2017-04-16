@@ -147,9 +147,11 @@ extensions.append(
               language='c++',
               sources=['msmbuilder/libdistance/libdistance.pyx'],
               # msvc needs to be told "libtheobald", gcc wants just "theobald"
-              libraries=['%stheobald' % ('lib' if compiler.msvc else '')],
+              libraries=(['%stheobald' % ('lib' if compiler.msvc else '')]
+                         + compiler.compiler_libraries_openmp),
               include_dirs=["msmbuilder/libdistance/src",
                             mdtraj_capi['include_dir'], np.get_include()],
+              extra_compile_args=compiler.compiler_args_openmp,
               library_dirs=[mdtraj_capi['lib_dir']],
               ))
 

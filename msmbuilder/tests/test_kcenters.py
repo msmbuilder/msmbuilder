@@ -102,5 +102,25 @@ def test_dtype():
     assert np.all(np.logical_not(np.isnan(m1.distances_[0])))
     eq(m1.predict([X32])[0], m2.predict([X64])[0])
     eq(m1.predict([X32])[0], m1.labels_[0])
-    eq(float(m1.inertia_),
-       libdistance.assign_nearest(X32, m1.cluster_centers_, "euclidean")[1])
+
+    _, inertia32 = libdistance.assign_nearest(X32, m1.cluster_centers_,
+                                                      "euclidean")
+    _, inertia64 = libdistance.assign_nearest(X64, m2.cluster_centers_,
+                                                      "euclidean")
+    np.testing.assert_almost_equal(m1.inertia_, m2.inertia_, decimal=4)
+    np.testing.assert_almost_equal(m1.inertia_, inertia32, decimal=4)
+    np.testing.assert_almost_equal(m2.inertia_, inertia64, decimal=4)
+
+def test_omp():
+    X = np.random.RandomState(1).randn(100, 2)
+    m1 = KCenters(n_clusters=10, random_state=0, n_threads=1).fit([X])
+    m2 = KCenters(n_clusters=10, random_state=0, n_threads=4).fit([X])
+
+    eq(m1.cluster_centers_, m2.cluster_centers_)
+    eq(m1.distances_[0], m2.distances_[0])
+    eq(m1.labels_[0], m2.labels_[0])
+    assert np.all(np.logical_not(np.isnan(m1.distances_[0])))
+    np.testing.assert_almost_equal(m1.inertia_, m2.inertia_)
+
+    np.testing.assert_almost_equal(m2.inertia_, np.sum(m2.distances_) )
+    np.testing.assert_almost_equal(m2.inertia_, np.sum(m1.distances_) )

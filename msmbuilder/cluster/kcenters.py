@@ -47,6 +47,9 @@ class _KCenters(ClusterMixin, TransformerMixin):
         The generator used to initialize the centers. If an integer is
         given, it fixes the seed. Defaults to the global numpy random
         number generator.
+    n_threads : int, default=-1
+        Number of threads to use in parallel (OpenMP) during clustering.
+        If -1, one thread is used per CPU core.
 
     References
     ----------
@@ -71,10 +74,12 @@ class _KCenters(ClusterMixin, TransformerMixin):
         Sum of distances of samples to their closest cluster center.
     """
 
-    def __init__(self, n_clusters=8, metric='euclidean', random_state=None):
+    def __init__(self, n_clusters=8, metric='euclidean', random_state=None,
+        n_threads=-1):
         self.n_clusters = n_clusters
         self.metric = metric
         self.random_state = random_state
+        self.n_threads = int(n_threads)
 
     def fit(self, X, y=None):
         if isinstance(X, np.ndarray):
@@ -89,7 +94,8 @@ class _KCenters(ClusterMixin, TransformerMixin):
         cluster_ids_ = []
 
         for i in range(self.n_clusters):
-            d = libdistance.dist(X, X[new_center_index], metric=self.metric)
+            d = libdistance.dist(X, X[new_center_index], metric=self.metric,
+                n_threads=self.n_threads)
             mask = (d < self.distances_)
             self.distances_[mask] = d[mask]
             self.labels_[mask] = i
@@ -122,7 +128,8 @@ class _KCenters(ClusterMixin, TransformerMixin):
             if not (X.dtype == 'float32' or X.dtype == 'float64'):
                 X = X.astype('float64')
         labels, inertia = libdistance.assign_nearest(
-            X, self.cluster_centers_, metric=self.metric)
+            X, self.cluster_centers_, metric=self.metric,
+            n_threads=self.n_threads)
         return labels
 
     def fit_predict(self, X, y=None):
