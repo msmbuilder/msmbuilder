@@ -5,6 +5,8 @@ from itertools import permutations
 
 import numpy as np
 from scipy.stats.distributions import vonmises
+import pickle
+import tempfile
 
 from sklearn.pipeline import Pipeline
 
@@ -128,3 +130,23 @@ def test_pipeline():
 
     predict = p.fit_predict(trajs)
     p.named_steps['hmm'].summarize()
+
+
+def test_pickle():
+    """Test pickling an HMM"""
+    trajectories = AlanineDipeptide().get_cached().trajectories
+    topology = trajectories[0].topology
+    indices = topology.select('symbol C or symbol O or symbol N')
+    featurizer = DihedralFeaturizer(['phi', 'psi'], trajectories[0][0])
+    sequences = featurizer.transform(trajectories)
+    hmm = VonMisesHMM(n_states=4, n_init=1)
+    hmm.fit(sequences)
+    logprob, hidden = hmm.predict(sequences)
+
+    with tempfile.TemporaryFile() as savefile:
+        pickle.dump(hmm, savefile)
+        savefile.seek(0, 0)
+        hmm2 = pickle.load(savefile)
+
+    logprob2, hidden2 = hmm2.predict(sequences)
+    assert(logprob == logprob2)

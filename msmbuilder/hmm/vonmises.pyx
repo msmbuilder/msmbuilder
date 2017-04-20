@@ -648,7 +648,7 @@ timescales: {timescales}
     def __reduce__(self):
         """Pickle support"""
         args = (self.n_states, self.n_init, self.n_iter, self.thresh, self.reversible_type, self.random_state)
-        state = (self._means_, self._kappas_, self._transmat_, self._populations_, self._fit_logprob_, self._fit_time_)
+        state = (self._means_, self._kappas_, self._transmat_, self._populations_, self._fit_logprob_, self._fit_time_, self.n_features)
         return (self.__class__, args, state)
 
     def __setstate__(self, state):
@@ -659,6 +659,7 @@ timescales: {timescales}
         self._populations_ = state[3]
         self._fit_logprob_ = state[4]
         self._fit_time_ = state[5]
+        self.n_features = state[6]
 
 cdef public void _do_mstep_float(VonMisesHMM hmm, VonMisesHMMFitter[float]* fitter):
     """This function exists to let the C++ code call back into Cython."""
