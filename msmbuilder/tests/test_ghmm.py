@@ -5,6 +5,8 @@ from itertools import permutations
 
 import hmmlearn.hmm
 import numpy as np
+import pickle
+import tempfile
 
 from sklearn.pipeline import Pipeline
 
@@ -148,3 +150,23 @@ def test_pipeline():
 
     predict = p.fit_predict(trajs)
     p.named_steps['hmm'].summarize()
+
+
+def test_pickle():
+    """Test pickling an HMM"""
+    trajectories = AlanineDipeptide().get_cached().trajectories
+    topology = trajectories[0].topology
+    indices = topology.select('symbol C or symbol O or symbol N')
+    featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
+    sequences = featurizer.transform(trajectories)
+    hmm = GaussianHMM(n_states=4, n_init=3, random_state=rs)
+    hmm.fit(sequences)
+    logprob, hidden = hmm.predict(sequences)
+
+    with tempfile.TemporaryFile() as savefile:
+        pickle.dump(hmm, savefile)
+        savefile.seek(0, 0)
+        hmm2 = pickle.load(savefile)
+
+    logprob2, hidden2 = hmm2.predict(sequences)
+    assert(logprob == logprob2)
