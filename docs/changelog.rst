@@ -11,6 +11,7 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
+
 - ``ContactFeaturizer`` now lets you use a soft_min option for closest
 contact distances.
 
@@ -26,6 +27,8 @@ the contacts.
 ``sklearn.pipeline.Pipeline`` workflows (gh-980).
 - ``msmbuilder.preprocessing`` is now compatible with
 ``sklearn.pipeline.Pipeline`` workflows (gh-987).
+- Fixed error in pickling HMMs (gh-996).
+
 
 v3.7 (January 26, 2017)
 -----------------------
