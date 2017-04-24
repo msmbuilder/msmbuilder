@@ -400,6 +400,10 @@ class tICA(BaseEstimator, TransformerMixin):
 
     def _fit(self, X):
         X = np.asarray(array2d(X), dtype=np.float64)
+
+        if X.shape[1] > X.shape[0]:
+            warnings.warn("The number of features (%d) is greater than the length of the data (%d). The covariance matrix is not guaranteed to be positive definite." % (X.shape[0], X.shape[1]))
+
         self._initialize(X.shape[1])
 
         # We don't need to scream and shout here. Just ignore this data.
