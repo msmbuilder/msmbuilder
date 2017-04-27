@@ -34,7 +34,7 @@ How to do a release
 - Verify that [`versions.json`](http://msmbuilder.org/versions.json) was updated properly.
 - Create the canonical source distribution using `python setup.py sdist --formats=gztar,zip`.
   Inspect the files in dist/ to make sure they look right.
-- Upload to PyPI using `twine upload [path to sdist tar file] [path to sdist zip file]`.
+- Upload to PyPI using `twine upload ./dist/*`.
   Make sure you upload both files in the same command. Note that removing files from PyPI
   means they can never be re-uploaded.
 - File a pull request against the

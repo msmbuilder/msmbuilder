@@ -3,6 +3,19 @@
 Changelog
 =========
 
+v3.9 (development)
+------------------
+
+API Changes
+~~~~~~~~~~~
+
+New Features
+~~~~~~~~~~~~
+
+Improvements
+~~~~~~~~~~~~
+
+
 v3.8 (April 26, 2017)
 ---------------------
 
