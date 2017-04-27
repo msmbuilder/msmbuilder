@@ -3,8 +3,13 @@
 Changelog
 =========
 
-v3.8 (development)
-------------------
+v3.8 (April 26, 2017)
+---------------------
+
+We're pleased to annoounce the release of MSMBuilder 3.8. This release
+features updates and improvements to contact featurizers, kernel tICA, HMMs,
+and preprocessing. There are also some bugfixes and API hygiene improements.
+We recommend all users upgrade to MSMBuilder 3.8.
 
 API Changes
 ~~~~~~~~~~~
