@@ -138,7 +138,10 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
     def create_perturb_params(countsmat):
         '''
         Generates the means and standard deviations of each transition probability by treating them as
-        Gaussian random variables with standard error computed according to the counts matrix.
+        Gaussian random variables with standard deviation equal to the standard error. The transition 
+        probabilities t_ij are computed simply as the counts c_ij / summed counts for row i. The standard
+        error is computed via the Central Limit Theorem, i.e. (t_ij - t_ij ^ 2) / sqrt(summed counts for row i). 
+        
     
         Parameters:
         ----------
