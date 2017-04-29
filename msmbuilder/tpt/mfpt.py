@@ -23,7 +23,7 @@ import scipy
 from mdtraj.utils.six.moves import xrange
 import copy
 from msmbuilder.msm.core import _solve_msm_eigensystem
-from msmbulder.msm import create_perturb_params, perturb_tmat
+from msmbuilder.msm import create_perturb_params, perturb_tmat
 
 __all__ = ['mfpts']
 
