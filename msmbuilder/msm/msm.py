@@ -23,7 +23,6 @@ from .core import (_MappingTransformMixin, _CountsMSMMixin,
                    _dict_compose,
                    _transition_counts,
                    _solve_msm_eigensystem, _SampleMSMMixin)
-from msmbuilder.tpt.mfpt import create_perturb_params
 
 __all__ = ['MarkovStateModel']
 
@@ -134,6 +133,42 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
         self.n_states_ = None
         self.populations_ = None
         self.percent_retained_ = None
+
+
+    def create_perturb_params(countsmat):
+        '''
+        Generates the means and standard deviations of each transition probability by treating them as
+        Gaussian random variables with standard error computed according to the counts matrix.
+    
+        Parameters:
+        ----------
+        countsmat: np.ndarray
+            The msm counts matrix
+        '''
+        norm = np.sum(countsmat, axis=1)
+        transmat = (countsmat.transpose() / norm).transpose()
+        counts = (np.ones((len(transmat), len(transmat))) * norm).transpose()
+        scale = ((transmat - transmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
+        return (transmat, scale)
+
+
+    def perturb_tmat(loc, scale):
+        '''
+        Perturbs each nonzero transition probability by treating it as a Gaussian random variable
+        and sampling from it once. Returns a sampled transition matrix.
+    
+        Parameters:
+        ----------
+        loc: np.ndarray:
+            The transition matrix, whose elements serve as the means of the Gaussian random variables
+        scale: np.ndarray:
+            The matrix of standard deviations of the Gaussians. For transition probability (i,j), this is 
+            assumed to be the standard error of the mean of a binomial distribution with p = transition probability 
+            and number of observations equal to the summed counts in row i.
+        '''
+        output = np.vectorize(np.random.normal)(loc, scale)
+        output[np.where(output < 0)] = 0
+        return (output.transpose() / np.sum(output, axis=1)).transpose()
 
 
     def fit(self, sequences, y=None):
