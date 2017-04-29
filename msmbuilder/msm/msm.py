@@ -211,7 +211,7 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
             # step 3. estimate transition matrix
             self.transmat_, self.populations_ = fit_method(self.countsmat_)
             # Compute error bars due to sampling using counts matrix
-            _, self.transmat_error_ = self.create_perturb_param()
+            _, self.transmat_error_ = self.create_perturb_params()
         except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(fit_method_map.keys()), self.reversible_type))
