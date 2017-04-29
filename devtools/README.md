@@ -46,7 +46,7 @@ How to do a release
 - To test the release candidate, you can create a virtual environment like this:
   `conda create -n msmb-test -c omnia/label/rc msmbuilder`, then run:
   `source activate msmb-test`.
-  If you do not have the test dependencies listed [here](https://github.com/msmbuilder/msmbuilder/blob/e6839bccd3f1c49f0d1132375a95de61fd0914be/devtools/conda-recipe/meta.yaml), you will need
+  If you do not have the test dependencies listed [here](https://github.com/msmbuilder/msmbuilder/blob/master/devtools/conda-recipe/meta.yaml), you will need
   to install them.
   `nosetests -v msmbuilder --nologcapture`
 - Once the tests have (successfully) completed, change the tag to main as follows:
