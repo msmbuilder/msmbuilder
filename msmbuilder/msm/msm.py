@@ -23,6 +23,7 @@ from .core import (_MappingTransformMixin, _CountsMSMMixin,
                    _dict_compose,
                    _transition_counts,
                    _solve_msm_eigensystem, _SampleMSMMixin)
+from msmbuilder.tpt.mfpt import create_perturb_params
 
 __all__ = ['MarkovStateModel']
 
@@ -171,6 +172,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
             fit_method = fit_method_map[str(self.reversible_type).lower()]
             # step 3. estimate transition matrix
             self.transmat_, self.populations_ = fit_method(self.countsmat_)
+            # Compute error bars due to sampling using counts matrix
+            _, self.transmat_error_ = create_perturb_params(self.countsmat_)
         except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(fit_method_map.keys()), self.reversible_type))
