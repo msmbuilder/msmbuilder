@@ -24,6 +24,6 @@ __all__ = [
     'FsPeptide',
     'DoubleWell',
     'QuadWell',
-    'Muller',
+    'MullerPotential',
     'load_muller',
 ]
