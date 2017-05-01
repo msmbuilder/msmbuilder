@@ -23,46 +23,9 @@ import scipy
 from mdtraj.utils.six.moves import xrange
 import copy
 from msmbuilder.msm.core import _solve_msm_eigensystem
+from msmbuilder.msm.validation.transmat_errorbar import *
 
 __all__ = ['mfpts']
-
-
-def create_perturb_params(countsmat):
-    '''
-    Helper function for computing mfpts when "errors" argument is passed. 
-    Generates the means and standard deviations of the Gaussian random variables
-    for each transition probability that will be sampled from during the error calculation.
-    
-    Parameters:
-    ----------
-    countsmat: np.ndarray
-        The msm counts matrix
-    '''
-    norm = np.sum(countsmat, axis=1)
-    transmat = (countsmat.transpose() / norm).transpose()
-    counts = (np.ones((len(transmat), len(transmat))) * norm).transpose()
-    scale = ((transmat - transmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
-    return (transmat, scale)
-
-
-def perturb_tmat(loc, scale):
-    '''
-    Helper function for computing mfpts when "errors" argument is passed.
-    Perturbs each nonzero transition probability by treating it as a Gaussian random variable
-    and sampling from it once.
-    
-    Parameters:
-    ----------
-    loc: np.ndarray:
-        The transition matrix, whose elements serve as the means of the Gaussian random variables
-    scale: np.ndarray:
-        The matrix of standard deviations of the Gaussians. For transition probability (i,j), this is 
-        assumed to be the standard error of the mean of a binomial distribution with p = transition probability 
-        and number of observations equal to the summed counts in row i.
-    '''
-    output = np.vectorize(np.random.normal)(loc, scale)
-    output[np.where(output < 0)] = 0
-    return (output.transpose() / np.sum(output, axis=1)).transpose()
 
 
 def mfpts(msm, sinks=None, lag_time=1., errors=False, n_samples=100):
