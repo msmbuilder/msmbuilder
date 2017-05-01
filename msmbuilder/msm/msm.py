@@ -135,6 +135,45 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
         self.percent_retained_ = None
 
 
+    def create_perturb_params(self):
+        '''
+        Generates the means and standard deviations of each transition probability by treating them as
+        Gaussian random variables with standard deviation equal to the standard error. The transition 
+        probabilities t_ij are computed simply as the counts c_ij / summed counts for row i. The standard
+        error is computed via the Central Limit Theorem, i.e. (t_ij - t_ij ^ 2) / sqrt(summed counts for row i). 
+        
+    
+        Parameters:
+        ----------
+        countsmat: np.ndarray
+            The msm counts matrix
+        '''
+        norm = np.sum(self.countsmat_, axis=1)
+        transmat = (self.countsmat_.transpose() / norm).transpose()
+        counts = (np.ones((len(transmat), len(transmat))) * norm).transpose()
+        scale = ((transmat - transmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
+        return (transmat, scale)
+
+
+    def perturb_tmat(self):
+        '''
+        Perturbs each nonzero transition probability by treating it as a Gaussian random variable
+        and sampling from it once. Returns a sampled transition matrix.
+    
+        Parameters:
+        ----------
+        loc: np.ndarray:
+            The transition matrix, whose elements serve as the means of the Gaussian random variables
+        scale: np.ndarray:
+            The matrix of standard deviations of the Gaussians. For transition probability (i,j), this is 
+            assumed to be the standard error of the mean of a binomial distribution with p = transition probability 
+            and number of observations equal to the summed counts in row i.
+        '''
+        output = np.vectorize(np.random.normal)(self.transmat_, self.transmat_error_)
+        output[np.where(output < 0)] = 0
+        return (output.transpose() / np.sum(output, axis=1)).transpose()
+
+
     def fit(self, sequences, y=None):
         """Estimate model parameters.
 
@@ -171,6 +210,8 @@ class MarkovStateModel(BaseEstimator, _MappingTransformMixin,
             fit_method = fit_method_map[str(self.reversible_type).lower()]
             # step 3. estimate transition matrix
             self.transmat_, self.populations_ = fit_method(self.countsmat_)
+            # Compute error bars due to sampling using counts matrix
+            _, self.transmat_error_ = self.create_perturb_params()
         except KeyError:
             raise ValueError('reversible_type must be one of %s: %s' % (
                 ', '.join(fit_method_map.keys()), self.reversible_type))
