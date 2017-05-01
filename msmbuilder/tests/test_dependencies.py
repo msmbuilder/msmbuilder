@@ -1,27 +1,62 @@
-import pip
-import os
-import warnings
+import os, pip, sys, warnings
 
 def test_installed_packages():
     installed_packages = pip.get_installed_distributions()
     package_names = [package.project_name for package in installed_packages]
 
-    test_dependencies = ['munkres', 'numdifftools', 'statsmodels', 'hmmlearn', 'cvxpy']
+    test_dependencies = ['munkres', 'numdifftools', 'statsmodels', 'hmmlearn']
+
+    if not hasattr(sys, 'getwindowsversion'):
+        test_dependencies += ['cvxpy']
 
     for td in test_dependencies:
         if td not in package_names:
             raise RuntimeError('Please install {} to continue'.format(td))
 
-def test_msmbuilder_data():
-    home = os.path.expanduser('~')
-    try:
-        os.stat(home+'/msmbuilder_data/')
-    except:
-        raise RuntimeError('Please conda install msmb_data')
 
+def test_fs_peptide():
     try:
-        assert len([d for d in os.listdir(home+'/msmbuilder_data/')
-                    if os.path.isdir(home+'/msmbuilder_data/'+d)]) >= 6
+        from msmbuilder.example_datasets import FsPeptide
+        fspeptide = FsPeptide().get()
     except:
-        warnings.warn('You may not have all the required msmbuilder_data ' +
-                      'subdirectories. Try running conda install msmb_data.')
+        warnings.warn('Fs peptide dataset not found. Did you install msmb_data?')
+
+
+def test_alanine_dipeptide():
+    try:
+        from msmbuilder.example_datasets import AlanineDipeptide
+        adpeptide = AlanineDipeptide().get()
+    except:
+        warnings.warn('Alanine dipeptide dataset not found. Did you install msmb_data?')
+
+
+def test_double_well():
+    try:
+        from msmbuilder.example_datasets import DoubleWell
+        doublewell = DoubleWell().get()
+    except:
+        warnings.warn('Double well dataset not found. Did you install msmb_data?')
+
+
+def test_quad_well():
+    try:
+        from msmbuilder.example_datasets import QuadWell
+        quadwell = QuadWell().get()
+    except:
+        warnings.warn('Quad well dataset not found. Did you install msmb_data?')
+
+
+def test_metenkephalin():
+    try:
+        from msmbuilder.example_datasets import MetEnkephalin
+        metenkephalin = MetEnkephalin().get()
+    except:
+        warnings.warn('Met-enkephalin dataset not found. Did you install msmb_data?')
+
+
+def test_muller():
+    try:
+        from msmbuilder.example_datasets import MullerPotential
+        muller = MullerPotential().get()
+    except:
+        warnings.warn('Muller potential dataset not found. Did you install msmb_data?')
