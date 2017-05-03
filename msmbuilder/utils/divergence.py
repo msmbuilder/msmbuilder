@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import
-import numpy as numpy
+import numpy as np
 from scipy.stats import entropy
 
 def _kld(P, Q, scalar=True):
