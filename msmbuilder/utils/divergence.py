@@ -27,7 +27,7 @@ def _get_mean(P, Q):
 
 
 def _jsd(P, Q, scalar=True):
-    M = _get_mean(P, Q)
+    M = np.mean([P, Q], axis=0)
     return 0.5 * _kld(P, M, scalar=scalar) + 0.5 * _kld(Q, M, scalar=scalar)
 
 
