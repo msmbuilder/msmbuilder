@@ -37,12 +37,12 @@ def _make_square(sequence):
 
 
 def kl_divergence_msm(target, ref, i):
-    return _kld(_make_square(target), _make_square(ref))
+    return kl_divergence(_make_square(target), _make_square(ref), i)
 
 
 def symmetric_kl_divergence_msm(target, ref, i):
-    return _sym_kld(_make_square(target), _make_square(ref))
+    return symmetric_kl_divergence(_make_square(target), _make_square(ref), i)
 
 
 def js_divergence_msm(target, ref, i):
-    return _jsd(_make_square(target), _make_square(ref))
+    return js_divergence(_make_square(target), _make_square(ref), i)
