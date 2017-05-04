@@ -31,18 +31,18 @@ def js_divergence(target, ref, i):
     return np.array([_jsd(ref[i],t) for t in target])
 
 
-def _make_square(mat):
-    n_states = np.sqrt(len(mat))
-    return mat.reshape(n_states, n_states)
+def _make_square(sequence):
+    n_states = int(np.sqrt(len(sequence)))
+    return np.array([x.reshape(n_states, n_states) for x in sequence])
 
 
 def kl_divergence_msm(target, ref, i):
-    return kl_divergence(_make_square(target), _make_square(ref), i)
+    return _kld(_make_square(target), _make_square(ref))
 
 
 def symmetric_kl_divergence_msm(target, ref, i):
-    return symmetric_kl_divergence(_make_square(target), _make_square(ref), i)
+    return _sym_kld(_make_square(target), _make_square(ref))
 
 
 def js_divergence_msm(target, ref, i):
-    return js_divergence(_make_square(target), _make_square(ref), i)
+    return _jsd(_make_square(target), _make_square(ref))
