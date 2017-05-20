@@ -33,7 +33,7 @@ def js_divergence_array(target, ref, i):
 
 
 def _make_square(sequence):
-    n_states = int(np.sqrt(len(sequence)))
+    n_states = int(np.sqrt(len(sequence[0])))
     return np.array([x.reshape(n_states, n_states) for x in sequence])
 
 
