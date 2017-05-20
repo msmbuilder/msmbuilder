@@ -15,7 +15,7 @@ def manual_kl_divergence(P, Q, scalar=True):
     for row in range(P.shape[0]):
         temp = 0
         for i, entry in enumerate(P[row]):
-            if Q[row][i] != 0:
+            if entry*Q[row][i] != 0: # i.e. one or both is not zero
                 temp += entry * np.log(entry/Q[row][i])
         vec.append(temp)
     manual_kl = np.array(vec)
