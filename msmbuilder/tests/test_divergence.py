@@ -37,7 +37,7 @@ def test_kullback_leibler_scipy():
 
 
 def test_array_vs_msm():
-    my_list = [_get_random_prob_dist(4) for i in range(20)]
+    my_list = [_get_random_prob_dist(4) for i in range(100)]
 
     my_0 = np.array([x[0] for x in my_list])
     my_1 = np.array([x[1] for x in my_list])    
@@ -46,7 +46,7 @@ def test_array_vs_msm():
 
     my_flat = np.array([x.flatten() for x in my_list])
 
-    ind = np.random.randint(20)
+    ind = np.random.randint(100)
 
     dist0 = kl_divergence_array(my_0, my_0, ind)
     dist1 = kl_divergence_array(my_1, my_1, ind)
@@ -60,7 +60,7 @@ def test_array_vs_msm():
 
 
 def test_array_vs_msm_sym():
-    my_list = [_get_random_prob_dist(4) for i in range(20)]
+    my_list = [_get_random_prob_dist(4) for i in range(100)]
 
     my_0 = np.array([x[0] for x in my_list])
     my_1 = np.array([x[1] for x in my_list])    
@@ -69,7 +69,7 @@ def test_array_vs_msm_sym():
 
     my_flat = np.array([x.flatten() for x in my_list])
 
-    ind = np.random.randint(20)
+    ind = np.random.randint(100)
 
     dist0 = sym_kl_divergence_array(my_0, my_0, ind)
     dist1 = sym_kl_divergence_array(my_1, my_1, ind)
@@ -83,7 +83,7 @@ def test_array_vs_msm_sym():
 
 
 def test_array_vs_msm_js():
-    my_list = [_get_random_prob_dist(4) for i in range(20)]
+    my_list = [_get_random_prob_dist(4) for i in range(100)]
 
     my_0 = np.array([x[0] for x in my_list])
     my_1 = np.array([x[1] for x in my_list])    
@@ -92,7 +92,7 @@ def test_array_vs_msm_js():
 
     my_flat = np.array([x.flatten() for x in my_list])
 
-    ind = np.random.randint(20)
+    ind = np.random.randint(100)
 
     dist0 = js_divergence_array(my_0, my_0, ind)
     dist1 = js_divergence_array(my_1, my_1, ind)
@@ -106,18 +106,18 @@ def test_array_vs_msm_js():
 
 
 def test_agglom_with_metric_array():
-    my_list = [_get_random_prob_dist(4) for i in range(20)]
+    my_list = [_get_random_prob_dist(4) for i in range(100)]
     my_stationary = np.array([x[0] for x in my_list])
     model = LandmarkAgglomerative(n_clusters=2,
                                   metric=sym_kl_divergence_array,
                                   linkage='complete')
-    assert model.fit_predict([my_stationary])[0].shape == (20,)
+    assert model.fit_predict([my_stationary])[0].shape == (100,)
 
 
 def test_agglom_with_metric_msm():
-    my_list = [_get_random_prob_dist(4) for i in range(20)]
+    my_list = [_get_random_prob_dist(4) for i in range(100)]
     my_flat = np.array([x.flatten() for x in my_list])
     model = LandmarkAgglomerative(n_clusters=2,
                                   metric=sym_kl_divergence_msm,
                                   linkage='complete')
-    assert model.fit_predict([my_flat])[0].shape == (20,)
+    assert model.fit_predict([my_flat])[0].shape == (100,)
