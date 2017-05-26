@@ -21,7 +21,7 @@ def test_kullback_leibler_manual():
         vec.append(temp)
     manual_kl = np.array(vec)
 
-    msmb_kl = kl_divergence(P, Q, scalar=False)
+    msmb_kl = kl_divergence(P, Q, manual=False, scalar=False)
 
     assert np.allclose(manual_kl, msmb_kl)
 
@@ -31,9 +31,16 @@ def test_kullback_leibler_scipy():
     Q = _get_random_prob_dist(4)
 
     scipy_kl = entropy(P.T, Q.T)
-    msmb_kl = kl_divergence(P, Q, scalar=False)  
+    msmb_kl = kl_divergence(P, Q, manual=False, scalar=False)  
 
     assert np.allclose(scipy_kl, msmb_kl)
+
+
+def test_js_correspondence():
+    P = _get_random_prob_dist(4)
+    Q = _get_random_prob_dist(4)
+
+    assert np.sum(np.sqrt(js_divergence(P,Q))) == np.sum(js_metric(P,Q))
 
 
 def test_array_vs_msm():
