@@ -50,7 +50,7 @@ def js_metric(P, Q, scalar=True):
 
 
 def fnorm(P, Q):
-    return np.linalg.norm(P, Q, ord='fro')
+    return np.linalg.norm(P - Q, ord='fro')
 
 
 def kl_divergence_array(target, ref, i):
