@@ -49,6 +49,10 @@ def js_metric(P, Q, scalar=True):
     return np.sqrt(js_divergence(P, Q, scalar=scalar))
 
 
+def fnorm(P, Q):
+    return np.linalg.norm(P, Q, ord='fro')
+
+
 def kl_divergence_array(target, ref, i):
     return np.array([kl_divergence(ref[i],t) for t in target])
 
@@ -63,6 +67,10 @@ def js_divergence_array(target, ref, i):
 
 def js_metric_array(target, ref, i):
     return np.array([js_metric(ref[i],t) for t in target])
+
+
+def fnorm_array(target,ref, i):
+    return np.rarray([fnorm(ref[i],t) for t in target])
 
 
 def _make_square(sequence):
@@ -84,3 +92,8 @@ def js_divergence_msm(target, ref, i):
 
 def js_metric_msm(target, ref, i):
     return js_metric_array(_make_square(target), _make_square(ref), i)
+
+
+def fnorm_msm(target, ref, i):
+    return fnorm_array(_make_square(target), _make_square(ref), i)
+
