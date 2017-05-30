@@ -69,7 +69,8 @@ def js_metric_array(target, ref, i):
     return np.array([js_metric(ref[i],t) for t in target])
 
 
-def fnorm_array(target,ref, i):
+def _fnorm_array(target,ref, i):
+    # hidden because you should never use fnorm with vectors
     return np.array([fnorm(ref[i],t) for t in target])
 
 
@@ -95,5 +96,5 @@ def js_metric_msm(target, ref, i):
 
 
 def fnorm_msm(target, ref, i):
-    return fnorm_array(_make_square(target), _make_square(ref), i)
+    return _fnorm_array(_make_square(target), _make_square(ref), i)
 
