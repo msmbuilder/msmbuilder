@@ -70,7 +70,7 @@ def js_metric_array(target, ref, i):
 
 
 def fnorm_array(target,ref, i):
-    return np.rarray([fnorm(ref[i],t) for t in target])
+    return np.array([fnorm(ref[i],t) for t in target])
 
 
 def _make_square(sequence):
