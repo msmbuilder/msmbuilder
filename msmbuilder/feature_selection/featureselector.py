@@ -45,7 +45,6 @@ class FeatureSelector(Featurizer):
     def __init__(self, features, which_feat=None):
         self.features = OrderedDict(features)
         self.feat_list = list(self.features)
-
         which_feat = which_feat if which_feat else self.feat_list[:]
         self.which_feat = which_feat
 
@@ -66,9 +65,6 @@ class FeatureSelector(Featurizer):
             to the `i`th snapshot of the input trajectory.
         """
         print(self.which_feat, type(self.which_feat))
-
-        for feat in self.which_feat:
-            print(feat, type(feat))
         return np.concatenate([self.features[feat].partial_transform(traj)
                                for feat in self.which_feat], axis=1)
 
