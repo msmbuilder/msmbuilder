@@ -64,7 +64,6 @@ class FeatureSelector(Featurizer):
             vector is computed by applying the featurization function
             to the `i`th snapshot of the input trajectory.
         """
-        print(self.which_feat, type(self.which_feat))
         return np.concatenate([self.features[feat].partial_transform(traj)
                                for feat in self.which_feat], axis=1)
 
