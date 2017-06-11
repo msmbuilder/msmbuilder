@@ -17,6 +17,7 @@ New Features
 
 Improvements
 ~~~~~~~~~~~~
+- ```FeatureSelector``` is now compatible with Tree-structure Parzen Estimator method in Osprey
 
 
 v3.8 (April 26, 2017)

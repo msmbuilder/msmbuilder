@@ -4,7 +4,7 @@
 # All rights reserved.
 import numpy as np
 from collections import OrderedDict
-
+from six import string_types
 from ..featurizer import Featurizer
 
 
@@ -34,18 +34,18 @@ class FeatureSelector(Featurizer):
 
     @which_feat.setter
     def which_feat(self, value):
-        if not isinstance(value, list):
+        if isinstance(value, string_types):
             value = [value]
+        elif isinstance(value, dict):
+            raise TypeError('Not a valid feature list')
         elif not all([feat in self.feat_list for feat in value]):
             raise ValueError('Not a valid feature')
-        self._which_feat = value
+        self._which_feat = list(value)
 
     def __init__(self, features, which_feat=None):
         self.features = OrderedDict(features)
         self.feat_list = list(self.features)
-
         which_feat = which_feat if which_feat else self.feat_list[:]
-
         self.which_feat = which_feat
 
     def partial_transform(self, traj):
