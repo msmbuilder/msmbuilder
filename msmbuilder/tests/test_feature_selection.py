@@ -53,7 +53,7 @@ def test_variancethreshold_vs_sklearn():
     np.testing.assert_array_almost_equal(z_ref1, z1)
 
 def test_which_feat_types():
-    trajectories = AlanineDipeptide().get_cached().trajectories
+    # trajectories = AlanineDipeptide().get_cached().trajectories
     fs = FeatureSelector(FEATS, which_feat=('phi', 'psi'))
     assert fs.which_feat == ['phi', 'psi']
 
@@ -73,4 +73,3 @@ def test_which_feat_types():
         pass
 
 
-test_which_feat_types()
