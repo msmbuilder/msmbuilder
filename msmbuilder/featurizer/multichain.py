@@ -170,7 +170,7 @@ class LigandContactFeaturizer(LigandFeaturizer):
 
     def _get_contact_pairs(self, contacts):
         if self.scheme=='ca':
-            if not any(a for a in self.reference_frame.top.chain(ligand_chain).atoms
+            if not any(a for a in self.reference_frame.top.chain(self.ligand_chain).atoms
                        if a.name.lower() == 'ca'):
                 raise ValueError("Bad scheme: the ligand has no alpha carbons")
 
