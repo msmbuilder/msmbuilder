@@ -53,23 +53,23 @@ def fnorm(P, Q):
     return np.linalg.norm(P - Q, ord='fro')
 
 
-def kl_divergence_array(target, ref, i):
+def kl_divergence_array(ref, target, i):
     return np.array([kl_divergence(ref[i],t) for t in target])
 
 
-def sym_kl_divergence_array(target, ref, i):
+def sym_kl_divergence_array(ref, target, i):
     return np.array([sym_kl_divergence(ref[i],t) for t in target])
 
 
-def js_divergence_array(target, ref, i):
+def js_divergence_array(ref, target, i):
     return np.array([js_divergence(ref[i],t) for t in target])
 
 
-def js_metric_array(target, ref, i):
+def js_metric_array(ref, target, i):
     return np.array([js_metric(ref[i],t) for t in target])
 
 
-def _fnorm_array(target,ref, i):
+def _fnorm_array(ref, target, i):
     # hidden because you should never use fnorm with vectors
     return np.array([fnorm(ref[i],t) for t in target])
 
@@ -79,22 +79,22 @@ def _make_square(sequence):
     return np.array([x.reshape(n_states, n_states) for x in sequence])
 
 
-def kl_divergence_msm(target, ref, i):
+def kl_divergence_msm(ref, target, i):
     return kl_divergence_array(_make_square(target), _make_square(ref), i)
 
 
-def sym_kl_divergence_msm(target, ref, i):
+def sym_kl_divergence_msm(ref, target, i):
     return sym_kl_divergence_array(_make_square(target), _make_square(ref), i)
 
 
-def js_divergence_msm(target, ref, i):
+def js_divergence_msm(ref, target, i):
     return js_divergence_array(_make_square(target), _make_square(ref), i)
 
 
-def js_metric_msm(target, ref, i):
+def js_metric_msm(ref, target, i):
     return js_metric_array(_make_square(target), _make_square(ref), i)
 
 
-def fnorm_msm(target, ref, i):
+def fnorm_msm(ref, target, i):
     return _fnorm_array(_make_square(target), _make_square(ref), i)
 

@@ -43,6 +43,15 @@ def test_js_correspondence():
     assert np.sum(np.sqrt(js_divergence(P,Q))) == np.sum(js_metric(P,Q))
 
 
+def test_vector_vs_array():
+    my_0, my_1 = [_get_random_prob_dist(4) for i in range(2)]
+    i = np.random.randint(4)
+    dist_vec = [kl_divergence(my_0[i], t) for t in my_1]
+    dist_array = kl_divergence_array(my_0, my_1, i)
+
+    assert np.allclose(dist_vec, dist_array)
+
+
 def test_array_vs_msm():
     my_list = [_get_random_prob_dist(4) for i in range(100)]
 
