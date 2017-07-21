@@ -93,3 +93,61 @@ class FeatureSelector(Featurizer):
         for feat in self.which_feat:
             all_res.extend(self.features[feat].describe_features(traj))
         return all_res
+
+
+class FeatureSlicer(Featurizer):
+    """Extracts features (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    feat : MSMBuilder Featurizer object,required
+        an initaed MSMBuilder Featurizer object
+    index : array_like of integer, optional
+        If given, extract only these features by index. This corresponds
+        to selecting these columns from the feature-trajectories.
+
+    Notes
+    -----
+    You must give either index or first (but not both)
+
+    """
+
+    def __init__(self, feat=None, indices=None):
+
+        if feat is None:
+            raise ValueError("Please provide a fitted"
+                             "featurizer object")
+
+        if indices is None:
+            raise ValueError("Please specify either index or first, "
+                             "not neither")
+
+        self.feat = feat
+        self.indices = indices
+
+    def partial_transform(self, traj):
+        """Slice a single input array along to select a subset of features.
+
+        Parameters
+        ----------
+        traj : MDtraj trajectory object.
+
+        Returns
+        -------
+        sliced_traj : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of traj
+        """
+        return self.feat.partial_transform(traj)[:, self.indices]
+
+    def describe_features(self, traj):
+        """
+        Returns a sliced version of the feature descriptor
+        Parameters
+        ----------
+        traj : MDtraj trajectory object
+
+        Returns
+        -------
+        list of sliced dictionaries describing each feature.
+        """
+        return self.feat.describe_features(traj)[self.index]
