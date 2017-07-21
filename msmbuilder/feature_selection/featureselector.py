@@ -150,4 +150,5 @@ class FeatureSlicer(Featurizer):
         -------
         list of sliced dictionaries describing each feature.
         """
-        return self.feat.describe_features(traj)[self.index]
+        features_list = self.feat.describe_features(traj)
+        return [features_list[i] for i in self.indices]

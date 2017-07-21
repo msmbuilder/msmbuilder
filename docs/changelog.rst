@@ -11,9 +11,11 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
+- Added new featurizer ```FeatureSlicer``` capable of slicing features. 
 - Added functions to compute error bars for transition probabilities to account for
   finite sampling, and sample transition matrices from these error distributions (i.e.
   bootstrapping). Located in ```msmbuilder.msm.validation.transmat_errorbar```.
+
 
 Improvements
 ~~~~~~~~~~~~
