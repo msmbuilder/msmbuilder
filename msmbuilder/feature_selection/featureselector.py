@@ -100,8 +100,8 @@ class FeatureSlicer(Featurizer):
 
     Parameters
     ----------
-    feat : MSMBuilder Featurizer object,required
-        an initaed MSMBuilder Featurizer object
+    feat : MSMBuilder Featurizer object, requires an initialized
+    MSMBuilder Featurizer object.
     index : array_like of integer, optional
         If given, extract only these features by index. This corresponds
         to selecting these columns from the feature-trajectories.
@@ -115,15 +115,19 @@ class FeatureSlicer(Featurizer):
     def __init__(self, feat=None, indices=None):
 
         if feat is None:
-            raise ValueError("Please provide a fitted"
+            raise ValueError("Please provide a fitted "
                              "featurizer object")
 
         if indices is None:
             raise ValueError("Please specify either index or first, "
                              "not neither")
-
+        if not (isinstance(indices, list)
+                or isinstance(indices, np.ndarray)
+                or isinstance(indices, np.int)):
+            raise ValueError("Type of indices is neither a list/array "
+                             "nor an int.")
         self.feat = feat
-        self.indices = indices
+        self.indices = np.array(indices)
 
     def partial_transform(self, traj):
         """Slice a single input array along to select a subset of features.
