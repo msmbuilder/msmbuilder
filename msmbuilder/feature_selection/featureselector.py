@@ -102,13 +102,10 @@ class FeatureSlicer(Featurizer):
     ----------
     feat : MSMBuilder Featurizer object, requires an initialized
     MSMBuilder Featurizer object.
-    index : array_like of integer, optional
+    indices : array_like of integer, optional
         If given, extract only these features by index. This corresponds
         to selecting these columns from the feature-trajectories.
 
-    Notes
-    -----
-    You must give either index or first (but not both)
 
     """
 
@@ -119,8 +116,7 @@ class FeatureSlicer(Featurizer):
                              "featurizer object")
 
         if indices is None:
-            raise ValueError("Please specify either index or first, "
-                             "not neither")
+            raise ValueError("Please specify indices")
         if not (isinstance(indices, list)
                 or isinstance(indices, np.ndarray)
                 or isinstance(indices, np.int)):
