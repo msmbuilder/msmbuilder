@@ -175,9 +175,7 @@ class KernelTICA(tICA):
         # regularization parameters?
         m2 = self.__class__(shrinkage=self.shrinkage, n_components=self.n_components, lag_time=self.lag_time,
                             landmarks=self.landmarks, kernel_params=self.kernel_params)
-        for X in sequences:
-            m2.partial_fit(X)
-
+        m2.fit(sequences)
         numerator = V.T.dot(m2.offset_correlation_).dot(V)
         denominator = V.T.dot(m2.covariance_).dot(V)
 
