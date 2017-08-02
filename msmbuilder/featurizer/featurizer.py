@@ -916,7 +916,7 @@ class KappaAngleFeaturizer(Featurizer):
 
         angle_indices = np.array(
             [(ca[i - self.offset], ca[i],
-              ca[i + offset]) for i in range(offset, len(ca) - offset)])
+              ca[i + self.offset]) for i in range(self.offset, len(ca) - self.offset)])
         result = md.compute_angles(traj, angle_indices)
 
         if self.atom_indices is None:
