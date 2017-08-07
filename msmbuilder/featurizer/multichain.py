@@ -69,8 +69,7 @@ class LigandFeaturizer(Featurizer):
 
 
     def _guess_chains(self, traj):
-        if self.protein_chain == 'auto' or self.ligand_chain == 'auto':
-            chain_dict = {}
+        chain_dict = {}
         for i in range(traj.top.n_chains):
             # each entry in the chain_dict is a list:
             # [number of atoms, has a CA, has <100 atoms]
