@@ -61,7 +61,8 @@ class LigandFeaturizer(Featurizer):
         if reference_frame.top.n_chains < 2:
             raise ValueError("Topology must have at least two chains")
 
-        self.contacts = self._guess_chains(self.reference_frame)
+        if self.protein_chain == 'auto' or self.ligand_chain == 'auto':
+            self._guess_chains(self.reference_frame)
         self.p_residue_offset = self._get_residue_offset(self.protein_chain)
         self.l_residue_offset = self._get_residue_offset(self.ligand_chain)
         self.p_atom_offset = self._get_atom_offset(self.protein_chain)
@@ -165,7 +166,7 @@ class LigandContactFeaturizer(LigandFeaturizer):
         self.scheme = scheme
         self.binding_pocket = binding_pocket
 
-        self.contacts = self._get_contact_pairs(contacts)
+        self.contacts = self._get_contact_pairs(self.contacts)
 
     def _get_contact_pairs(self, contacts):
         if self.scheme=='ca':
