@@ -31,6 +31,31 @@ def _random_trajs():
     return traj, ref
 
 
+def _random_natural_trajs():
+    top = md.Topology()
+    c = top.add_chain()
+    r = top.add_residue('HET', c)
+    r2 = top.add_residue('HET', c)
+    r3 = top.add_residue('HET', c)
+    cx = top.add_chain()
+    rx = top.add_residue('HET', cx)
+    atypes = {"C": md.element.carbon,
+              "CA": md.element.carbon,
+              "N": md.element.nitrogen}
+    for name, t in atypes.items():
+        top.add_atom(name, t, r)
+        top.add_atom(name, t, r2)
+        top.add_atom(name, t, r3)
+    top.add_atom('CA', md.element.carbon, rx)
+    traj = md.Trajectory(xyz=np.random.uniform(size=(100, 10, 3)),
+                          topology=top,
+                          time=np.arange(100))
+    ref = md.Trajectory(xyz=np.random.uniform(size=(1, 10, 3)),
+                        topology=top,
+                        time=np.arange(1))
+    return traj, ref
+
+
 def test_chain_guessing():
     traj, ref = _random_trajs()
     feat = LigandContactFeaturizer(reference_frame=ref)
@@ -60,6 +85,15 @@ def test_binding_pocket():
 def test_binaries():
     traj, ref = _random_trajs()
     feat = BinaryLigandContactFeaturizer(reference_frame=ref, cutoff=0.1)
+    binaries = feat.transform(traj)
+
+    assert np.sum(binaries[:]) <= len(binaries)*binaries[0].shape[1]
+
+
+def test_ca_binaries():
+    traj, ref = _random_natural_trajs()
+    feat = BinaryLigandContactFeaturizer(reference_frame=ref,
+                                         cutoff=0.1, scheme='ca')
     binaries = feat.transform(traj)
 
     assert np.sum(binaries[:]) <= len(binaries)*binaries[0].shape[1]

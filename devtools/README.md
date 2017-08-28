@@ -45,13 +45,16 @@ How to do a release
   Conda binaries should be automatically built with the `rc` tag.
 - To test the release candidate, you can create a virtual environment like this:
   `conda create -n msmb-test -c omnia/label/rc msmbuilder`, then run:
-  `source activate msmb-test`,
+  `source activate msmb-test`.
+  If you do not have the test dependencies listed [here](https://github.com/msmbuilder/msmbuilder/blob/master/devtools/conda-recipe/meta.yaml), you will need
+  to install them.
   `nosetests -v msmbuilder --nologcapture`
 - Once the tests have (successfully) completed, change the tag to main as follows:
   1. Go to [the conda page](https://anaconda.org/omnia/msmbuilder/files)
   2. Filter by label, rc
   3. Use checkbox to select all
   4. Actions, move, main
+- Update the conda-forge recipe by filing a pull request to the [msmbuilder feedstock](https://github.com/conda-forge/msmbuilder-feedstock)
 - Make an announcement on the mailing list.
 
 ### Post-release

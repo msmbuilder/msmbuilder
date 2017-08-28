@@ -4,7 +4,7 @@
 # All rights reserved.
 import numpy as np
 from collections import OrderedDict
-
+from six import string_types
 from ..featurizer import Featurizer
 
 
@@ -34,18 +34,18 @@ class FeatureSelector(Featurizer):
 
     @which_feat.setter
     def which_feat(self, value):
-        if not isinstance(value, list):
+        if isinstance(value, string_types):
             value = [value]
+        elif isinstance(value, dict):
+            raise TypeError('Not a valid feature list')
         elif not all([feat in self.feat_list for feat in value]):
             raise ValueError('Not a valid feature')
-        self._which_feat = value
+        self._which_feat = list(value)
 
     def __init__(self, features, which_feat=None):
         self.features = OrderedDict(features)
         self.feat_list = list(self.features)
-
         which_feat = which_feat if which_feat else self.feat_list[:]
-
         self.which_feat = which_feat
 
     def partial_transform(self, traj):
@@ -93,3 +93,62 @@ class FeatureSelector(Featurizer):
         for feat in self.which_feat:
             all_res.extend(self.features[feat].describe_features(traj))
         return all_res
+
+
+class FeatureSlicer(Featurizer):
+    """Extracts features (e.g. subsets) from data along the feature dimension.
+
+    Parameters
+    ----------
+    feat : MSMBuilder Featurizer object, requires an initialized
+    MSMBuilder Featurizer object.
+    indices : array_like of integer, optional
+        If given, extract only these features by index. This corresponds
+        to selecting these columns from the feature-trajectories.
+
+
+    """
+
+    def __init__(self, feat=None, indices=None):
+
+        if feat is None:
+            raise ValueError("Please provide a fitted "
+                             "featurizer object")
+
+        if indices is None:
+            raise ValueError("Please specify indices")
+        if not (isinstance(indices, list)
+                or isinstance(indices, np.ndarray)
+                or isinstance(indices, np.int)):
+            raise ValueError("Type of indices is neither a list/array "
+                             "nor an int.")
+        self.feat = feat
+        self.indices = np.array(indices)
+
+    def partial_transform(self, traj):
+        """Slice a single input array along to select a subset of features.
+
+        Parameters
+        ----------
+        traj : MDtraj trajectory object.
+
+        Returns
+        -------
+        sliced_traj : np.ndarray shape=(n_samples, n_feature_subset)
+            Slice of traj
+        """
+        return self.feat.partial_transform(traj)[:, self.indices]
+
+    def describe_features(self, traj):
+        """
+        Returns a sliced version of the feature descriptor
+        Parameters
+        ----------
+        traj : MDtraj trajectory object
+
+        Returns
+        -------
+        list of sliced dictionaries describing each feature.
+        """
+        features_list = self.feat.describe_features(traj)
+        return [features_list[i] for i in self.indices]

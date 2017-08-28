@@ -48,8 +48,8 @@ An example workflow might be as follows:
 
 1. Set up a system for molecular dynamics, and run one or more simulations
    for as long as you can on as many CPUs or GPUs as you have access to.
-   There are a lot of great software packages for running MD, e.g [OpenMM]
-   (https://simtk.org/home/openmm), [Gromacs](http://www.gromacs.org/),
+   There are a lot of great software packages for running MD, e.g
+   [OpenMM](https://simtk.org/home/openmm), [Gromacs](http://www.gromacs.org/),
    [Amber](http://ambermd.org/), [CHARMM](http://www.charmm.org/), and
    many others. MSMBuilder is not one of them.
 
