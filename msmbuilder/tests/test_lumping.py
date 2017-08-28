@@ -73,6 +73,14 @@ def test_from_msm():
     pccaplus = PCCAPlus.from_msm(msm, 2)
 
 
+def test_from_msm_2():
+    assignments, _ = _metastable_system()
+    msm = MarkovStateModel()
+    msm.fit(assignments)
+    pccaplus = PCCAPlus.from_msm(msm, 2, 'crispness')
+    assert pccaplus.objective_function == 'crispness'
+
+
 def test_ntimescales_1():
     # see issue #603
     trajs = [random.randint(0, 100, size=500) for _ in range(15)]
