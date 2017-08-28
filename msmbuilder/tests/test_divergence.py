@@ -3,9 +3,10 @@ from msmbuilder.cluster import LandmarkAgglomerative
 from msmbuilder.utils.divergence import *
 from scipy.stats import entropy
 
+
 def _get_random_prob_dist(n):
-    P = np.random.random([n,n])
-    P = (P.T / np.sum(P,axis=1)).T
+    P = np.random.random([n, n])
+    P = (P.T / np.sum(P, axis=1)).T
     return P
 
 
@@ -17,7 +18,7 @@ def test_kullback_leibler_manual():
     for row in range(P.shape[0]):
         temp = 0
         for i, entry in enumerate(P[row]):
-            temp += entry * np.log(entry/Q[row][i])
+            temp += entry * np.log(entry / Q[row][i])
         vec.append(temp)
     manual_kl = np.array(vec)
 
@@ -31,7 +32,7 @@ def test_kullback_leibler_scipy():
     Q = _get_random_prob_dist(4)
 
     scipy_kl = entropy(P.T, Q.T)
-    msmb_kl = kl_divergence(P, Q, manual=False, scalar=False)  
+    msmb_kl = kl_divergence(P, Q, manual=False, scalar=False)
 
     assert np.allclose(scipy_kl, msmb_kl)
 
@@ -40,7 +41,7 @@ def test_js_correspondence():
     P = _get_random_prob_dist(4)
     Q = _get_random_prob_dist(4)
 
-    assert np.sum(np.sqrt(js_divergence(P,Q))) == np.sum(js_metric(P,Q))
+    assert np.sum(np.sqrt(js_divergence(P, Q))) == np.sum(js_metric(P, Q))
 
 
 def test_vector_vs_array():
@@ -56,9 +57,9 @@ def test_array_vs_msm():
     my_list = [_get_random_prob_dist(4) for i in range(100)]
 
     my_0 = np.array([x[0] for x in my_list])
-    my_1 = np.array([x[1] for x in my_list])    
-    my_2 = np.array([x[2] for x in my_list])    
-    my_3 = np.array([x[3] for x in my_list])    
+    my_1 = np.array([x[1] for x in my_list])
+    my_2 = np.array([x[2] for x in my_list])
+    my_3 = np.array([x[3] for x in my_list])
 
     my_flat = np.array([x.flatten() for x in my_list])
 
@@ -79,9 +80,9 @@ def test_array_vs_msm_sym():
     my_list = [_get_random_prob_dist(4) for i in range(100)]
 
     my_0 = np.array([x[0] for x in my_list])
-    my_1 = np.array([x[1] for x in my_list])    
-    my_2 = np.array([x[2] for x in my_list])    
-    my_3 = np.array([x[3] for x in my_list])    
+    my_1 = np.array([x[1] for x in my_list])
+    my_2 = np.array([x[2] for x in my_list])
+    my_3 = np.array([x[3] for x in my_list])
 
     my_flat = np.array([x.flatten() for x in my_list])
 
@@ -102,9 +103,9 @@ def test_array_vs_msm_js():
     my_list = [_get_random_prob_dist(4) for i in range(100)]
 
     my_0 = np.array([x[0] for x in my_list])
-    my_1 = np.array([x[1] for x in my_list])    
-    my_2 = np.array([x[2] for x in my_list])    
-    my_3 = np.array([x[3] for x in my_list])    
+    my_1 = np.array([x[1] for x in my_list])
+    my_2 = np.array([x[2] for x in my_list])
+    my_3 = np.array([x[3] for x in my_list])
 
     my_flat = np.array([x.flatten() for x in my_list])
 

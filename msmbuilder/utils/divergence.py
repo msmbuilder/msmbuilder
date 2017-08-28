@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from scipy.stats import entropy
 
+
 def scipy_kl_divergence(P, Q, scalar=True):
     result = entropy(P.T, Q.T)
     if scalar:
@@ -18,8 +19,8 @@ def manual_kl_divergence(P, Q, scalar=True):
     for row in range(P.shape[0]):
         temp = 0
         for i, entry in enumerate(P[row]):
-            if entry*Q[row][i] != 0: # i.e. one or both is not zero
-                temp += entry * np.log(entry/Q[row][i])
+            if entry * Q[row][i] != 0:  # i.e. one or both is not zero
+                temp += entry * np.log(entry / Q[row][i])
         vec.append(temp)
     result = np.array(vec)
     if scalar:
@@ -36,7 +37,7 @@ def kl_divergence(P, Q, manual=True, scalar=True):
 
 
 def sym_kl_divergence(P, Q, scalar=True):
-    return kl_divergence(P,Q,scalar=scalar) + kl_divergence(Q,P,scalar=scalar)
+    return kl_divergence(P, Q, scalar=scalar) + kl_divergence(Q, P, scalar=scalar)
 
 
 def js_divergence(P, Q, scalar=True):
@@ -54,24 +55,24 @@ def fnorm(P, Q):
 
 
 def kl_divergence_array(ref, target, i):
-    return np.array([kl_divergence(ref[i],t) for t in target])
+    return np.array([kl_divergence(ref[i], t) for t in target])
 
 
 def sym_kl_divergence_array(ref, target, i):
-    return np.array([sym_kl_divergence(ref[i],t) for t in target])
+    return np.array([sym_kl_divergence(ref[i], t) for t in target])
 
 
 def js_divergence_array(ref, target, i):
-    return np.array([js_divergence(ref[i],t) for t in target])
+    return np.array([js_divergence(ref[i], t) for t in target])
 
 
 def js_metric_array(ref, target, i):
-    return np.array([js_metric(ref[i],t) for t in target])
+    return np.array([js_metric(ref[i], t) for t in target])
 
 
 def _fnorm_array(ref, target, i):
     # hidden because you should never use fnorm with vectors
-    return np.array([fnorm(ref[i],t) for t in target])
+    return np.array([fnorm(ref[i], t) for t in target])
 
 
 def _make_square(sequence):
@@ -97,4 +98,3 @@ def js_metric_msm(ref, target, i):
 
 def fnorm_msm(ref, target, i):
     return _fnorm_array(_make_square(target), _make_square(ref), i)
-
