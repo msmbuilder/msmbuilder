@@ -2,10 +2,12 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from msmbuilder.cluster import LandmarkAgglomerative
+from msmbuilder.msm import MarkovStateModel
 
 from msmbuilder.cluster.agglomerative import pdist
 from msmbuilder.utils.divergence import js_metric_array
 import scipy.cluster.hierarchy
+
 
 class MVCA(MarkovStateModel):
     """Minimum Variance Cluster Analysis (MVCA) for coarse-graining (lumping)
@@ -18,8 +20,7 @@ class MVCA(MarkovStateModel):
         only the linkages are calcluated (see ``use_scipy``)
     metric : string or callable, default=js_metric_array
         Function to determine pairwise distances. Can be custom.
-    get_linkage : boolean, default=True
-        Whether to return linkage and elbow data objects.
+
     n_landmarks : int, optional
         Memory-saving approximation. Instead of actually clustering every
         point, we instead select n_landmark points either randomly or by
@@ -41,19 +42,13 @@ class MVCA(MarkovStateModel):
 
     Attributes
     ----------
-    pairwise_dists : if get_linkage is True, np.array,
-                     [number of microstates choose 2]
-    linkage : if get_linkage is True, scipy linkage object
-    elbow_data : if get_linkage is True, np.array,
-                 [number of microstates - 1]. Change in updated Ward
-                 objective function, indexed by n_macrostates - 1
     microstate_mapping_ : np.array, [number of microstates]
 
     Notes
     -----
     MVCA is a subclass of MarkovStateModel.  However, the MSM properties
     and attributes on MVCA refer to the MICROSTATE properties--e.g.
-    pcca.transmat_ is the microstate transition matrix.  To get the
+    mvca.transmat_ is the microstate transition matrix.  To get the
     macrostate transition matrix, you must fit a new MarkovStateModel
     object on the output (assignments) of MVCA().
     MVCA will scale poorly with the number of microstates. Consider
@@ -61,19 +56,14 @@ class MVCA(MarkovStateModel):
     """
 
     def __init__(self, n_macrostates, metric=js_metric_array, 
-                 get_linkage=True, n_landmarks=None,
-                 landmark_strategy='stride', random_state=None, **kwargs):
+                 n_landmarks=None, landmark_strategy='stride',
+                 random_state=None, **kwargs):
         self.n_macrostates = n_macrostates
         self.metric = metric
-        self.get_linkage = get_linkage
+        self.n_landmarks = n_landmarks
+        self.landmark_strategy = landmark_strategy
+        self.random_state = random_state
         super(MVCA, self).__init__(**kwargs)
-
-        if self.get_linkage:
-            self._get_elbow_dists()
-        else:
-            self.pairwise_dists = None
-            self.linkage = None
-            self.elbow_data = None
 
     def fit(self, sequences, y=None):
         """Fit a MVCA lumping model using a sequence of cluster assignments.
@@ -90,37 +80,30 @@ class MVCA(MarkovStateModel):
         self
         """
         super(MVCA, self).fit(sequences, y=y)
-        if n_macrostates is not None:
+        if self.n_macrostates is not None:
             self._do_lumping()
         else:
-            raise RuntimeError('Must specific n_macrostates to fit')
+            raise RuntimeError('n_macrostates must not be None to fit')
 
         return self
-
-    def _get_elbow_dists(self):
-        """Get the scipy linkage object and elbow distances.
-        Warning - this will take a long time with lots of states
-        """
-        pairwise_dists = pdist(MVCA.transmat_, metric=self.metric)
-        linkage = scipy.cluster.hierarchy.linkaege(pairwise_dists, 'ward')
-        elbow_data = linkage[:,2][::-1]
-
-        self.pairwise_dists = pairwise_dists
-        self.linkage = linkage
-        self.elbow_data = elbow_data
 
     def _do_lumping(self):
         """Do the MVCA lumping.
         """
-        model = LandmarkAgglomerative(n_clusters=self.n_macrostates,
-                                              metric=self.metric,
-                                              linkage='ward')
+        model = LandmarkAgglomerative(linkage='ward',
+                                      n_clusters=self.n_macrostates,
+                                      metric=self.metric,
+                                      n_landmarks=self.n_landmarks,
+                                      landmark_strategy=self.landmark_strategy,
+                                      random_state=self.random_state)
         microstate_mapping_ = model.fit_transform([self.transmat_])[0]
 
         self.microstate_mapping_ = microstate_mapping_
 
     def partial_transform(self, sequence, mode='clip'):
-        trimmed_sequence = super(PCCA, self).partial_transform(sequence, mode)
+        if self.n_macrostates is None:
+            raise RuntimeError('n_macrostates must not be None to transform')
+        trimmed_sequence = super(MVCA, self).partial_transform(sequence, mode)
         if mode == 'clip':
             return [self.microstate_mapping_[seq] for seq in trimmed_sequence]
         elif mode == 'fill':
@@ -136,7 +119,9 @@ class MVCA(MarkovStateModel):
             raise ValueError
 
     @classmethod
-    def from_msm(cls, msm, n_macrostates):
+    def from_msm(cls, msm, n_macrostates, metric=js_metric_array, 
+                 n_landmarks=None, landmark_strategy='stride',
+                 random_state=None, get_linkage=False):
         """Create and fit lumped model from pre-existing MSM.
 
         Parameters
@@ -145,14 +130,32 @@ class MVCA(MarkovStateModel):
             The input microstate msm to use.
         n_macrostates : int
             The number of macrostates
+        get_linkage : boolean, default=False
+            Whether to return linkage and elbow data objects. Warning:
+            This will compute n choose 2 pairwise distances
 
         Returns
         -------
         lumper : cls
             The fit MVCA object.
+        pairwise_dists : if get_linkage is True, np.array,
+                         [number of microstates choose 2]
+        linkage : if get_linkage is True, scipy linkage object
+        elbow_data : if get_linkage is True, np.array,
+                     [number of microstates - 1]. Change in updated Ward
+                     objective function, indexed by n_macrostates - 1
+
+        Example
+        -------
+        plt.figure()
+        scipy.cluster.hierarchy.dendrogram(mvca.linkage)
+
+        scatter(arange(1,n_microstates), mvca.elbow_data)
         """
         params = msm.get_params()
-        lumper = cls(n_macrostates, **params)
+        lumper = cls(n_macrostates, metric=metric, 
+                 n_landmarks=n_landmarks, landmark_strategy=landmark_strategy,
+                 random_state=random_state, **params)
 
         lumper.transmat_ = msm.transmat_
         lumper.populations_ = msm.populations_
@@ -160,6 +163,20 @@ class MVCA(MarkovStateModel):
         lumper.countsmat_ = msm.countsmat_
         lumper.n_states_ = msm.n_states_
 
-        lumper._do_lumping()
+        if n_macrostates is not None:
+            lumper._do_lumping()
+
+        if get_linkage:
+            p = pdist(msm.transmat_, metric=metric)
+            l = scipy.cluster.hierarchy.linkage(p, 'ward')
+
+            lumper.pairwise_dists = p
+            lumper.linkage = l
+            lumper.elbow_data = l[:,2][::-1]
+
+        else:
+            lumper.pairwise_dists = None
+            lumper.linkage = None
+            lumper.elbow_data = None
 
         return lumper
