@@ -970,6 +970,78 @@ class KappaAngleFeaturizer(Featurizer):
         return feature_descs
 
 
+class AngleFeaturizer(Featurizer):
+    """Featurizer based on angles between 3 atoms.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the angles between triples of amino-acid residues.
+
+    Parameters
+    ----------
+    angle_indices : list of tuples
+        List of triplet atoms to compute the angles for. Please ensure that
+        they are properly sorted
+    cos : bool
+        Compute the cosine of the angle instead of the angle itself.
+    """
+
+    def __init__(self, angle_indices=None, cos=True):
+        if angle_indices is None:
+            raise ValueError("Need to specify atom triplets to use")
+        self.angle_indices = np.vstack(angle_indices)
+        self.cos = cos
+
+    def partial_transform(self, traj):
+        result = md.compute_angles(traj, self.angle_indices)
+
+        if self.cos:
+            return np.cos(result)
+
+        return result
+
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the dihderal features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: KappaAngle
+                - featuregroup: the type of dihedral angle and whether
+                  cos has been applied.
+        """
+        feature_descs = []
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
+        top = traj.topology
+        if self.atom_indices is None:
+            raise ValueError("Cannot describe features for trajectories")
+        aind_tuples = self.atom_indices
+        zippy = zippy_maker(aind_tuples, top)
+        if self.cos:
+            zippy = itertools.product(["Angle"],["N/A"], ['cos'], zippy)
+        else:
+            zippy = itertools.product(["Angle"],["N/A"], ['nocos'], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+
+        return feature_descs
+
+
 class SASAFeaturizer(Featurizer):
     """Featurizer based on solvent-accessible surface areas.
 
