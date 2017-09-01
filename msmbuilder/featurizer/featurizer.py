@@ -1027,9 +1027,9 @@ class AngleFeaturizer(Featurizer):
         # fill in the atom indices using just the first frame
         self.partial_transform(traj[0])
         top = traj.topology
-        if self.atom_indices is None:
+        if self.angle_indices is None:
             raise ValueError("Cannot describe features for trajectories")
-        aind_tuples = self.atom_indices
+        aind_tuples = self.angle_indices
         zippy = zippy_maker(aind_tuples, top)
         if self.cos:
             zippy = itertools.product(["Angle"],["N/A"], ['cos'], zippy)
