@@ -5,12 +5,14 @@ import numpy as np
 from mdtraj.testing import eq
 
 from msmbuilder.cluster import APM
+from msmbuilder.example_datasets import FsPeptide
 
 rs = np.random.RandomState(42)
 
 X1 = 0.3 * rs.randn(1000, 10).astype(np.double)
 X2 = 0.3 * rs.randn(1000, 10).astype(np.float32)
-trj = md.load(md.testing.get_fn("frame0.pdb"))
+# trj = md.load(md.testing.get_fn("frame0.pdb"))
+trj = FsPeptide().get().trajectories[0][:100]
 
 
 def test_shapes():
