@@ -28,6 +28,7 @@ Improvements
 ~~~~~~~~~~~~
 - ```FeatureSelector``` is now compatible with Tree-structure Parzen Estimator
   method in Osprey (gh-1018).
+- ```sample_dimenstion``` with ```scheme='edge'``` now works properly.
 
 
 v3.8 (April 26, 2017)
