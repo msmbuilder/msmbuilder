@@ -16,13 +16,13 @@ from mdtraj.testing import eq
 # from mdtraj.testing import get_fn as get_mdtraj_fn
 
 from msmbuilder.dataset import dataset
-from msmbuilder.example_datasets import get_data_home, AlanineDipeptide
+from msmbuilder.example_datasets import get_data_home, FsPeptide
 from msmbuilder.utils import load
 
 DATADIR = HMM = None
 
-t = AlanineDipeptide().get().trajectories[0][0]
-fn = os.path.join("{}","alanine_dipeptide", "ala2.pdb").format(get_data_home())
+t = FsPeptide().get().trajectories[0][0]
+fn = os.path.join("{}","fs_peptide", "fs-peptide.pdb").format(get_data_home())
 
 def setup_module():
     global DATADIR, HMM, t
@@ -50,8 +50,8 @@ def setup_module():
     # generate the trajectories and save them to disk
     for i in range(10):
         d, s = HMM.sample(100)
-        t = md.Trajectory(xyz=d.reshape(len(d), 1, 3), topology=topology)
-        t.save(os.path.join(DATADIR, 'Trajectory%d.h5' % i))
+        traj = md.Trajectory(xyz=d.reshape(len(d), 1, 3), topology=topology)
+        traj.save(os.path.join(DATADIR, 'Trajectory%d.h5' % i))
 
     assert os.path.exists(os.path.join("{}", "alanine_dipeptide").format(get_data_home()))
 
