@@ -18,7 +18,7 @@ requirements:
     - setuptools
     - cython
     - numpy x.x
-    - mdtraj
+    - mdtraj <=1.8
   run:
     - python
     - setuptools
@@ -26,7 +26,7 @@ requirements:
     - scipy
     - pandas
     - six
-    - mdtraj
+    - mdtraj <=1.8
     - scikit-learn
     - numpydoc
     - pytables
