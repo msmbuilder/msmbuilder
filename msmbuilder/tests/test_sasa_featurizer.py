@@ -1,6 +1,6 @@
 import mdtraj as md
 import numpy as np
-from mdtraj.testing import get_fn, eq
+from mdtraj.testing import eq
 
 from msmbuilder.featurizer import SASAFeaturizer
 from msmbuilder.example_datasets import FsPeptide
