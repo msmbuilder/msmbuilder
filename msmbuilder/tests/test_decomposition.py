@@ -211,12 +211,12 @@ def test_ktica_compare_to_tica():
 
     tica = tICA(lag_time=1, n_components=2)
     ktica = KernelTICA(lag_time=1, kernel='linear', n_components=2,
-                       random_state=42)
+                       stride=5, random_state=42)
 
     tica_out = tica.fit_transform(features)[0]
     ktica_out = ktica.fit_transform(features)[0]
 
-    assert_array_almost_equal(ktica_out, tica_out, decimal=1)
+    assert_array_almost_equal(np.abs(ktica_out), np.abs(tica_out), decimal=1)
 
 
 def test_ktica_compare_to_pipeline():
