@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def create_perturb_params(countsmat):
+def create_perturb_params(countsmat, transmat=None):
     '''
     Computes transition probabilities and standard errors of the transition probabilities due to 
     finite sampling using the MSM counts matrix. First, the transition probabilities are computed 
@@ -14,6 +14,10 @@ def create_perturb_params(countsmat):
     ----------
     countsmat: np.ndarray
         The msm counts matrix
+    transmat: np.ndarray
+        If you have a transition matrix you want to use (e.g. MLE symmetrized), you can supply that here. This
+        function will use the transition probabilities from this matrix to calculate the Bernoulli standard deviations, 
+        which will be divided by the row-summed counts in the original supplied counts matrix.
 
     Returns:
     -----------
@@ -23,7 +27,8 @@ def create_perturb_params(countsmat):
         The matrix of standard errors for each transition probability
     '''
     norm = np.sum(countsmat, axis=1)
-    transmat = (countsmat.transpose() / norm).transpose()
+    if not transmat:
+        transmat = (countsmat.transpose() / norm).transpose()
     counts = (np.ones((len(transmat), len(transmat))) * norm).transpose()
     scale = ((transmat - transmat ** 2) ** 0.5 / counts ** 0.5) + 10 ** -15
     return transmat, scale
