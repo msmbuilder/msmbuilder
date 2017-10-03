@@ -1,9 +1,11 @@
 import mdtraj as md
 import numpy as np
-from mdtraj.testing import get_fn, eq
+from mdtraj.testing import eq
 
 from msmbuilder.featurizer import SASAFeaturizer
+from msmbuilder.example_datasets import FsPeptide
 
+t = FsPeptide().get().trajectories[0][:10]
 
 def _test_sasa_featurizer(t, value):
     sasa = md.shrake_rupley(t)
@@ -15,14 +17,15 @@ def _test_sasa_featurizer(t, value):
 
 
 def test_sasa_featurizer_1():
-    t = md.load(get_fn('frame0.h5'))
+    # t = md.load(get_fn('frame0.h5'))
+    
     value = SASAFeaturizer(mode='residue').partial_transform(t)
     assert value.shape == (t.n_frames, t.n_residues)
     _test_sasa_featurizer(t, value)
 
 
 def test_sasa_featurizer_2():
-    t = md.load(get_fn('frame0.h5'))
+    # t = md.load(get_fn('frame0.h5'))
 
     # scramle the order of the atoms, and which residue each is a
     # member of

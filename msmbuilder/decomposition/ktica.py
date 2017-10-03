@@ -126,10 +126,12 @@ class KernelTICA(tICA):
                                   'coef0': self.coef0,
                                   'random_state': self.random_state
                                   }
+        self._nystroem = None
         super(KernelTICA, self).__init__(n_components=n_components,
                                          lag_time=lag_time,
                                          shrinkage=shrinkage,
                                          kinetic_mapping=kinetic_mapping)
+
 
     def _gen_landmarks(self, sequences):
         X = []
@@ -140,6 +142,48 @@ class KernelTICA(tICA):
             X.append(seq[np.unique((u, v))])
 
         return np.concatenate(X, axis=0)
+
+    def score(self, sequences, y=None):
+        """Score the model on new data using the generalized matrix Rayleigh quotient
+
+        Parameters
+        ----------
+        sequences : list of array, each of shape (n_samples_i, n_features)
+            Test data. A list of sequences in afeature space, each of which is a 2D
+            array of possibily different lengths, but the same number of features.
+
+        Returns
+        -------
+        gmrq : float
+            Generalized matrix Rayleigh quotient. This number indicates how
+            well the top ``n_timescales+1`` eigenvectors of this tICA model perform
+            as slowly decorrelating collective variables for the new data in
+            ``sequences``.
+
+        References
+        ----------
+        .. [1] McGibbon, R. T. and V. S. Pande, "Variational cross-validation
+           of slow dynamical modes in molecular kinetics" J. Chem. Phys. 142,
+           124105 (2015)
+        """
+
+        assert self._initialized
+        V = self.eigenvectors_
+
+        # Note: How do we deal with regularization parameters like gamma
+        # here? I'm not sure. Should C and S be estimated using self's
+        # regularization parameters?
+        m2 = self.__class__(shrinkage=self.shrinkage, n_components=self.n_components, lag_time=self.lag_time,
+                            landmarks=self.landmarks, kernel_params=self.kernel_params)
+        m2.fit(sequences)
+        numerator = V.T.dot(m2.offset_correlation_).dot(V)
+        denominator = V.T.dot(m2.covariance_).dot(V)
+
+        try:
+            trace = np.trace(numerator.dot(np.linalg.inv(denominator)))
+        except np.linalg.LinAlgError:
+            trace = np.nan
+        return trace
 
     def fit(self, sequences, y=None):
         if self.landmarks is None:

@@ -5,7 +5,6 @@ import shutil
 import tempfile
 
 import numpy as np
-from mdtraj.testing import get_fn
 from nose.tools import assert_raises, assert_raises_regexp
 from sklearn.externals.joblib import Parallel, delayed
 
@@ -110,19 +109,6 @@ def test_4():
         del v  # close the underlying file
     finally:
         shutil.rmtree(path)
-
-
-def test_mdtraj_1():
-    ds = dataset(get_fn('') + '*.pdb', fmt='mdtraj', verbose=True)
-    print(ds.keys())
-    print(ds.get(0))
-    print(ds.provenance)
-
-    ds = dataset(get_fn('') + '*.pdb', fmt='mdtraj', atom_indices=[1, 2],
-                 verbose=True)
-    print(ds.keys())
-    print(ds.get(0))
-    print(ds.provenance)
 
 
 def test_hdf5_1():

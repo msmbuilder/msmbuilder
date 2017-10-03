@@ -26,8 +26,12 @@ class PCCA(MarkovStateModel):
 
     """
 
-    def __init__(self, n_macrostates, pcca_tolerance=1e-5, **kwargs):
+    def __init__(self, n_macrostates, objective_function=None,
+                 pcca_tolerance=1e-5, **kwargs):
         self.n_macrostates = n_macrostates
+        self.objective_function = objective_function
+        if self.objective_function is not None:
+            raise AttributeError("PCCA does not use an objective function")
         self.pcca_tolerance = pcca_tolerance
         super(PCCA, self).__init__(**kwargs)
 
@@ -98,7 +102,7 @@ class PCCA(MarkovStateModel):
             raise ValueError
 
     @classmethod
-    def from_msm(cls, msm, n_macrostates):
+    def from_msm(cls, msm, n_macrostates, objective_function=None):
         """Create and fit lumped model from pre-existing MSM.
 
         Parameters
@@ -114,7 +118,8 @@ class PCCA(MarkovStateModel):
             The fit PCCA(+) object.
         """
         params = msm.get_params()
-        lumper = cls(n_macrostates, **params)
+        lumper = cls(n_macrostates=n_macrostates,
+                     objective_function=objective_function, **params)
 
         lumper.transmat_ = msm.transmat_
         lumper.populations_ = msm.populations_

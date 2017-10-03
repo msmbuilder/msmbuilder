@@ -18,15 +18,15 @@ requirements:
     - setuptools
     - cython
     - numpy x.x
-    - mdtraj
+    - mdtraj <=1.8
   run:
     - python
     - setuptools
     - numpy x.x
     - scipy
-    - pandas
+    - pandas <0.20
     - six
-    - mdtraj
+    - mdtraj <=1.8
     - scikit-learn
     - numpydoc
     - pytables

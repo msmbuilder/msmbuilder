@@ -40,6 +40,7 @@ def create_timeseries(means, vars, transmat):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         model = hmmlearn.hmm.GaussianHMM(n_components=len(means),
                                          random_state=rs)
+        model.startprob_ = np.ones_like(means) / len(means)
         model.means_ = means
         model.covars_ = vars
         model.transmat_ = transmat

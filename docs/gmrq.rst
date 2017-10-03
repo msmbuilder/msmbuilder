@@ -24,7 +24,11 @@ Using this method, we can generate single scalar-valued scores for a proposed
 model given a supplied data set. This allows for the use of separate testing
 and training data sets to quantify and avoid statistical overfitting.
 This method extends these tools, making it possible to score trained models on
-new datasets and to perform hyperparameter selection.
+new datasets and to perform hyperparameter selection. **PLEASE NOTE**: You cannot
+use GMRQ to optimize the MSM lag time. Changing the lag time fundamentally 
+alters the model's eigenfunctions, which no longer makes it a useful scoring function.
+The number of timescales used to score the model must also be constant and user-
+selected.
 
 Algorithms
 ----------
