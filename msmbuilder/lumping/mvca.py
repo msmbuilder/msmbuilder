@@ -1,9 +1,13 @@
+# Author: Brooke Husic <brookehusic@gmail.com>
+# Contributors: 
+# Copyright (c) 2017, Stanford University and the Authors
+# All rights reserved.
+
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from msmbuilder.cluster import LandmarkAgglomerative
 from msmbuilder.msm import MarkovStateModel
-
 from msmbuilder.cluster.agglomerative import pdist
 from msmbuilder.utils.divergence import js_metric_array
 import scipy.cluster.hierarchy
@@ -20,7 +24,6 @@ class MVCA(MarkovStateModel):
         only the linkages are calcluated (see ``use_scipy``)
     metric : string or callable, default=js_metric_array
         Function to determine pairwise distances. Can be custom.
-
     n_landmarks : int, optional
         Memory-saving approximation. Instead of actually clustering every
         point, we instead select n_landmark points either randomly or by
