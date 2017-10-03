@@ -47,7 +47,7 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
     cdef double[::1] pi = np.zeros(n_states)
     cdef int n_iter
 
-    n_iter = transmat_mle_prinz(&C[0,0], n_states, tol, &T[0,0], &pi[0]);
+    n_iter = transmat_mle_prinz(&C[0,0], n_states, tol, &T[0,0], &pi[0])
     if n_iter < 0:
         # diagnose the error
         msg = ' Error code=%d' % n_iter
@@ -55,6 +55,8 @@ def _transmat_mle_prinz(double[:, ::1] C, double tol=1e-10):
             msg = 'Domain error. C must be positive.' + msg
         if np.any(np.sum(C, axis=1) == 0):
             msg = 'Row-sums of C must be positive.' + msg
+        if n_iter == -3:
+            msg = 'Likelihood not converged.' + msg
         raise ValueError(msg)
 
     return np.array(T), np.array(pi)
