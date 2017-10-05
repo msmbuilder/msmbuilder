@@ -18,7 +18,7 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           FunctionFeaturizer, RawPositionsFeaturizer,
                           SASAFeaturizer, LigandContactFeaturizer,
                           BinaryLigandContactFeaturizer,
-                          LigandRMSDFeaturizer,LandMarkRMSDFeaturizer)
+                          LigandRMSDFeaturizer,LandMarkRMSDFeaturizer, AngleFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -195,6 +195,15 @@ class ContactFeaturizerCommand(FeaturizerCommand):
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
 
+class AngleFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = AngleFeaturizer
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        else:
+            return np.loadtxt(fn, dtype=int, ndmin=3)
 
 class BinaryContactFeaturizerCommand(FeaturizerCommand):
     _concrete = True
