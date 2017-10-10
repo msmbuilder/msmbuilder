@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include "transmat_mle_prinz.h"
 
+#define MAX_ITER 10000
+
 /**
  * Compute a maximum likelihood reversible transition matrix, given
  * a set of directed transition counts.
@@ -154,6 +156,11 @@ int transmat_mle_prinz(const double* C, int n_states, double tol,
             // logl is a nan
             free(X); free(X_RS); free(C_RS);
             return -2;
+        }
+
+        if (iter > MAX_ITER){
+            free(X); free(X_RS); free(C_RS);
+            return -3;
         }
     }
 

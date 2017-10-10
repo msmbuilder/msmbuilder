@@ -6,10 +6,12 @@ import numpy as np
 import scipy.spatial.distance
 
 import msmbuilder.cluster
+from msmbuilder.example_datasets import FsPeptide
 
 X1 = 0.3 * np.random.RandomState(0).randn(1000, 10).astype(np.double)
 X2 = 0.3 * np.random.RandomState(1).randn(1000, 10).astype(np.float32)
-trj = md.load(md.testing.get_fn("traj.h5"))
+# trj = md.load(md.testing.get_fn("traj.h5"))
+trj = FsPeptide().get().trajectories[0][:100]
 
 
 def test_regular_spatial_rmsd():

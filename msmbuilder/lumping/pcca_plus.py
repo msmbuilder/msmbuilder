@@ -22,7 +22,7 @@ class PCCAPlus(PCCA):
         If False, skip the optimization of the transformation matrix.
         In general, minimization is recommended.
     objective_function: {'crisp_metastablility', 'metastability',
-                         'metastability'}
+                         'crispness'}
         Possible objective functions.  See objective for details.
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
@@ -99,6 +99,8 @@ class PCCAPlus(PCCA):
                 metastability=metastability,
                 crisp_metastability=crisp_metastability
         )
+        if objective_function is None:
+            objective_function = 'crisp_metastability'
         try:
             self._objective_function = obj_functions[objective_function]
         except KeyError:

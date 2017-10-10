@@ -10,7 +10,8 @@ from msmbuilder.example_datasets import AlanineDipeptide, MetEnkephalin,\
     MinimalFsPeptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
-    RMSDFeaturizer, VonMisesFeaturizer, Slicer, CommonContactFeaturizer
+    RMSDFeaturizer, VonMisesFeaturizer, Slicer, CommonContactFeaturizer, \
+    KappaAngleFeaturizer, AngleFeaturizer
 
 
 def test_function_featurizer():
@@ -206,3 +207,31 @@ def test_slicer():
 
     eq(Y[0], Y2[0])
     eq(Y[1], Y2[1])
+
+def test_kappa_angle_featurizer_1():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    feat = KappaAngleFeaturizer(offset=1)
+    df = pd.DataFrame(feat.describe_features(trajectories[0]))
+    assert sorted(df.resids[0]) == [0,1,2]
+    cas = [i.index for i in top.atoms if i.name=='CA']
+    assert sorted(df.atominds[0]) == cas[:3]
+
+def test_kappa_angle_featurizer_2():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    feat = KappaAngleFeaturizer(offset=2)
+    df = pd.DataFrame(feat.describe_features(trajectories[0]))
+    assert not sorted(df.resids[0]) == [0,1,2]
+    assert sorted(df.resids[0]) == [0,2,4]
+
+def test_angle_featurizer():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    feat = KappaAngleFeaturizer(offset=2)
+    feat_1 = feat.transform([trajectories[0]])
+    df = pd.DataFrame(feat.describe_features(trajectories[0]))
+    atom_inds = np.vstack(df.atominds)
+    feat = AngleFeaturizer(angle_indices=atom_inds)
+    feat_2 = feat.transform([trajectories[0]])
+    assert np.all(feat_1[0] == feat_2[0])

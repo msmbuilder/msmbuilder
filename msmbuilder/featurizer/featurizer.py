@@ -892,26 +892,31 @@ class KappaAngleFeaturizer(Featurizer):
     """Featurizer to extract kappa angles.
 
     The kappa angle of residue `i` is the angle formed by the three CA atoms
-    of residues `i-2`, `i` and `i+2`. This featurizer extracts the
-    `n_residues - 4` kappa angles of each frame in a trajectory.
+    of residues `i-offset`, `i` and `i+offset`. This featurizer extracts the
+    `n_residues - 2*offset` kappa angles of each frame in a trajectory.
 
     Parameters
     ----------
     cos : bool
         Compute the cosine of the angle instead of the angle itself.
+    offset : int
+        Offset to use for when calculating the features. Defaults to 2.
+        I.e it will calculate the angles between i-2, i and i+2 CA
     """
 
-    def __init__(self, cos=True):
+    def __init__(self, cos=True, offset=2):
         self.cos = cos
         self.atom_indices = None
+        self.offset = offset
 
     def partial_transform(self, traj):
         ca = [a.index for a in traj.top.atoms if a.name == 'CA']
-        if len(ca) < 5:
+        if len(ca) < 2*self.offset + 1:
             return np.zeros((len(traj), 0), dtype=np.float32)
 
         angle_indices = np.array(
-            [(ca[i - 2], ca[i], ca[i + 2]) for i in range(2, len(ca) - 2)])
+            [(ca[i - self.offset], ca[i],
+              ca[i + self.offset]) for i in range(self.offset, len(ca) - self.offset)])
         result = md.compute_angles(traj, angle_indices)
 
         if self.atom_indices is None:
@@ -919,7 +924,6 @@ class KappaAngleFeaturizer(Featurizer):
         if self.cos:
             return np.cos(result)
 
-        assert result.shape == (traj.n_frames, traj.n_residues - 4)
         return result
 
 
@@ -959,6 +963,78 @@ class KappaAngleFeaturizer(Featurizer):
             zippy = itertools.product(["Kappa"],["N/A"], ['cos'], zippy)
         else:
             zippy = itertools.product(["Kappa"],["N/A"], ['nocos'], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+
+        return feature_descs
+
+
+class AngleFeaturizer(Featurizer):
+    """Featurizer based on angles between 3 atoms.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the angles between triples of amino-acid residues.
+
+    Parameters
+    ----------
+    angle_indices : list of tuples
+        List of triplet atoms to compute the angles for. Please ensure that
+        they are properly sorted
+    cos : bool
+        Compute the cosine of the angle instead of the angle itself.
+    """
+
+    def __init__(self, angle_indices=None, cos=True):
+        if angle_indices is None:
+            raise ValueError("Need to specify atom triplets to use")
+        self.angle_indices = np.vstack(angle_indices)
+        self.cos = cos
+
+    def partial_transform(self, traj):
+        result = md.compute_angles(traj, self.angle_indices)
+
+        if self.cos:
+            return np.cos(result)
+
+        return result
+
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the dihderal features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: KappaAngle
+                - featuregroup: the type of dihedral angle and whether
+                  cos has been applied.
+        """
+        feature_descs = []
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
+        top = traj.topology
+        if self.angle_indices is None:
+            raise ValueError("Cannot describe features for trajectories")
+        aind_tuples = self.angle_indices
+        zippy = zippy_maker(aind_tuples, top)
+        if self.cos:
+            zippy = itertools.product(["Angle"],["N/A"], ['cos'], zippy)
+        else:
+            zippy = itertools.product(["Angle"],["N/A"], ['nocos'], zippy)
 
         feature_descs.extend(dict_maker(zippy))
 

@@ -11,6 +11,13 @@ API Changes
 
 New Features
 ~~~~~~~~~~~~
+- Added new featurizer ```FeatureSlicer```. ```FeatureSlicer``` can slice the ouput of
+regular featurizer objects to just the required indices.
+- Generalized ```KappaAngleFeaturizer``` to be able compute the angles between arbitrarily
+offset CA atoms.
+- Added functions to compute error bars for transition probabilities to account for
+  finite sampling, and sample transition matrices from these error distributions (i.e.
+  bootstrapping). Located in ```msmbuilder.msm.validation.transmat_errorbar```.
 - Added new featurizer ```FeatureSlicer```. ```FeatureSlicer``` can slice
   the ouput of regular featurizer objects to just the required indices
   (gh-1022).
@@ -23,11 +30,14 @@ New Features
   or flattened MSM objects. The array and (flattened) MSM metrics are
   compatible with the custom distance function in ```LandmarkAgglomerative```
   (gh-1035).
-
+  
 Improvements
 ~~~~~~~~~~~~
 - ```FeatureSelector``` is now compatible with Tree-structure Parzen Estimator
   method in Osprey (gh-1018).
+- Fixed bug in ```from_msm``` method for ```PCCA``` and ```PCCAPlus``` which
+  now allows a ```PCCAPlus``` objective function to be specified (gh-1036).
+- ```msmbuilder.io.sampling.sample_dimension``` with ```scheme='edge'``` now works properly. (#1043)
 
 
 v3.8 (April 26, 2017)
