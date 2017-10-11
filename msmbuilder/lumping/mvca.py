@@ -175,7 +175,7 @@ class MVCA(MarkovStateModel):
 
             lumper.pairwise_dists = p
             lumper.linkage = l
-            lumper.elbow_data = l[:,2][::-1]
+            lumper.elbow_data = l[:, 2][::-1]
 
         else:
             lumper.pairwise_dists = None

@@ -24,7 +24,7 @@ def manual_kl_divergence(P, Q, scalar=True):
         vec.append(temp)
     result = np.array(vec)
     # sometimes there are very tiny negative values close to zero
-    result = [np.max([i,0]) for i in result]
+    result = [np.max([i, 0]) for i in result]
     if scalar:
         return np.sum(result)
     else:
