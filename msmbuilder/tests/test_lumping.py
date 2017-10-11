@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 from sklearn.pipeline import Pipeline
 
-from msmbuilder.lumping import PCCA, PCCAPlus
+from msmbuilder.lumping import PCCA, PCCAPlus, MVCA
 from msmbuilder.msm import MarkovStateModel
 
 random = np.random.RandomState(9)
