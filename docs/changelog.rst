@@ -30,6 +30,8 @@ offset CA atoms.
   or flattened MSM objects. The array and (flattened) MSM metrics are
   compatible with the custom distance function in ```LandmarkAgglomerative```
   (gh-1035).
+- Added minimum variance cluster analysis (MVCA) for macrostating to
+  msmbuilder.lumping (gh-1045).
   
 Improvements
 ~~~~~~~~~~~~
