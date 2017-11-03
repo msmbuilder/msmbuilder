@@ -40,6 +40,8 @@ Improvements
 - Fixed bug in ```from_msm``` method for ```PCCA``` and ```PCCAPlus``` which
   now allows a ```PCCAPlus``` objective function to be specified (gh-1036).
 - ```msmbuilder.io.sampling.sample_dimension``` with ```scheme='edge'``` now works properly. (#1043)
+- Changed zippy_maker code so that ```Featurizer.describe_features``` will
+  return ordered unique lists to make reading and subselecting features easier.
 
 
 v3.8 (April 26, 2017)

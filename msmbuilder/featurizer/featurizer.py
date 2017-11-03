@@ -15,6 +15,7 @@ import numpy as np
 import sklearn.pipeline
 from scipy.stats import vonmises as vm
 from msmbuilder import libdistance
+from msmbuilder.utils import unique
 import itertools
 import inspect
 from sklearn.base import TransformerMixin
@@ -26,11 +27,11 @@ def zippy_maker(aind_tuples, top):
     resids = []
     resnames = []
     for ainds in aind_tuples:
-        resid = set(top.atom(ai).residue.index for ai in ainds)
+        resid = unique([top.atom(ai).residue.index for ai in ainds])
         resids += [list(resid)]
-        reseq = set(top.atom(ai).residue.resSeq for ai in ainds)
+        reseq = unique([top.atom(ai).residue.resSeq for ai in ainds])
         resseqs += [list(reseq)]
-        resname = set(top.atom(ai).residue.name for ai in ainds)
+        resname = unique([top.atom(ai).residue.name for ai in ainds])
         resnames += [list(resname)]
 
     return zip(aind_tuples, resseqs, resids, resnames)

@@ -8,3 +8,4 @@ from .validation import *
 from .compat import *
 from .nearest import KDTree
 from .divergence import *
+from .convenience import *
