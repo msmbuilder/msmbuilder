@@ -63,6 +63,8 @@ class BACE(MarkovStateModel):
     needed for the sparse formulation. For this reason, there might be
     some precision issues when compared to coding BACE separatey.
 
+    Please see Bowman, G. J. Chem. Phys. 137 134111 (2012).
+
     BACE is a subclass of MarkovStateModel.  However, the MSM properties
     and attributes on BACE refer to the MICROSTATE properties--e.g.
     mvca.transmat_ is the microstate transition matrix.  To get the
