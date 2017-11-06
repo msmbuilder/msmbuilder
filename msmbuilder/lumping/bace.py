@@ -110,7 +110,7 @@ class BACE(MarkovStateModel):
     def _do_lumping(self):
         """Do the BACE lumping.
         """
-        c = self.countsmat_
+        c = copy.deepcopy(self.countsmat_)
         if self.sliding_window:
             c *= self.lag_time
 
