@@ -78,9 +78,10 @@ class BACE(MarkovStateModel):
         """Do the BACE lumping.
         """
         c = self.countsmat_
+        if self.sliding_window:
+            c *= self.lag_time
 
-        if self.filter > 0:
-            c, map, statesKeep = self.filterFunc(c)
+        c, map, statesKeep = self.filterFunc(c)
 
         w = np.array(c.sum(axis=1)).flatten()
         w[statesKeep] += 1
