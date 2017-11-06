@@ -5,6 +5,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import copy
 import numpy as np
 from msmbuilder.msm import MarkovStateModel
 import functools
@@ -20,6 +21,15 @@ class BACE(MarkovStateModel):
     n_macrostates : int or None
         The desired number of macrostates in the lumped model. If None,
         only the linkages are calcluated (see ``use_scipy``)
+    filter : float (default=1.1)
+        Prune states with Bayes factors less than this number. Default is
+        approximation log(3), so states with less than a 3:1 ratio are pruned.
+        NOTE : MSMs not built directly from pairwise RMSD, we recommend
+        setting this parameter to zero.
+    save_all_maps : boolean (default=True)
+
+    n_proc : int (default=1)
+        Number of processors to use
     kwargs : optional
         Additional keyword arguments to be passed to MarkovStateModel.  See
         msmbuilder.msm.MarkovStateModel for possible options.
@@ -40,11 +50,11 @@ class BACE(MarkovStateModel):
     """
 
     def __init__(self, n_macrostates, filter=1.1, save_all_maps=True,
-                 nProc=1, chunkSize=100, **kwargs):
+                 n_proc=1, chunkSize=100, **kwargs):
         self.n_macrostates = n_macrostates
         self.filter = filter
         self.save_all_maps = save_all_maps
-        self.nProc = nProc
+        self.n_proc = n_proc
         self.chunkSize = chunkSize
 
         if self.save_all_maps:
@@ -81,7 +91,7 @@ class BACE(MarkovStateModel):
         if self.sliding_window:
             c *= self.lag_time
 
-        c, map, statesKeep = self.filterFunc(c)
+        c, macro_map, statesKeep = self.filterFunc(c)
 
         w = np.array(c.sum(axis=1)).flatten()
         w[statesKeep] += 1
@@ -92,7 +102,6 @@ class BACE(MarkovStateModel):
         # get nonzero indices in upper triangle
         indRecalc = self.getInds(c, statesKeep)
         dMat = np.zeros(c.shape, dtype=np.float32)
-        #print("l94. ", dMat.shape)
 
         i = 0
         nCurrentStates = statesKeep.shape[0]
@@ -101,20 +110,21 @@ class BACE(MarkovStateModel):
 
         dMat, minX, minY = self.calcDMat(c, w, indRecalc, dMat,
                                     statesKeep, unmerged)
-        #print("l103. ", dMat.shape)
 
         while nCurrentStates > self.n_macrostates:
-            c, w, indRecalc, dMat, map, statesKeep, unmerged, minX, minY = self.mergeTwoClosestStates(
-                                    c, w, indRecalc, dMat, map,
+            c, w, indRecalc, dMat, macro_map, statesKeep, unmerged, minX, minY = self.mergeTwoClosestStates(
+                                    c, w, indRecalc, dMat, macro_map,
                                     statesKeep, minX, minY, unmerged)
+
             nCurrentStates -= 1
+
             if self.save_all_maps:
-                self.map_dict[nCurrentStates] = map
+                saved_map = copy.deepcopy(macro_map)
+                self.map_dict[nCurrentStates] = saved_map
 
             if nCurrentStates - 1 == self.n_macrostates:
-                self.microstate_mapping_ = map
+                self.microstate_mapping_ = macro_map
 
-            i += 1
 
     def partial_transform(self, sequence, mode='clip'):
         if self.n_macrostates is None:
@@ -136,7 +146,7 @@ class BACE(MarkovStateModel):
 
     @classmethod
     def from_msm(cls, msm, n_macrostates, filter=1.1, save_all_maps=True,
-                 nProc=1, chunkSize=100):
+                 n_proc=1, chunkSize=100):
         """Create and fit lumped model from pre-existing MSM.
 
         Parameters
@@ -152,7 +162,7 @@ class BACE(MarkovStateModel):
             The fit MVCA object.
         """
         params = msm.get_params()
-        lumper = cls(n_macrostates, filter, save_all_maps, nProc,
+        lumper = cls(n_macrostates, filter, save_all_maps, n_proc,
                      chunkSize, **params)
 
         lumper.transmat_ = msm.transmat_
@@ -191,7 +201,7 @@ class BACE(MarkovStateModel):
         return indices
 
     def mergeTwoClosestStates(self, c, w, indRecalc, dMat,
-                              map, statesKeep, minX, minY,
+                              macro_map, statesKeep, minX, minY,
                               unmerged):
         if unmerged[minX]:
             c[minX,statesKeep] += unmerged[statesKeep]*1.0/c.shape[0]
@@ -212,28 +222,28 @@ class BACE(MarkovStateModel):
         w[minX] += w[minY]
         w[minY] = 0
         statesKeep = statesKeep[np.where(statesKeep!=minY)[0]]
-        indChange = np.where(map==map[minY])[0]
-        map = self.renumberMap(map, map[minY])
-        map[indChange] = map[minX]
+        indChange = np.where(macro_map==macro_map[minY])[0]
+        macro_map = self.renumberMap(macro_map, macro_map[minY])
+        macro_map[indChange] = macro_map[minX]
         indRecalc = self.getInds(c, [minX], updateSingleState=minX)
         dMat, minX, minY = self.calcDMat(c, w, indRecalc, dMat, statesKeep,
                                          unmerged)
-        return c, w, indRecalc, dMat, map, statesKeep, unmerged, minX, minY
+        return c, w, indRecalc, dMat, macro_map, statesKeep, unmerged, minX, minY
 
-    def renumberMap(self, map, stateDrop):
-        for i in range(map.shape[0]):
-             if map[i] >= stateDrop:
-                 map[i] -= 1
-        return map
+    def renumberMap(self, macro_map, stateDrop):
+        for i in range(macro_map.shape[0]):
+             if macro_map[i] >= stateDrop:
+                 macro_map[i] -= 1
+        return macro_map
 
     def calcDMat(self, c, w, indRecalc, dMat, statesKeep, unmerged):
         nRecalc = len(indRecalc)
-        if nRecalc > 1 and self.nProc > 1:
-            if nRecalc < self.nProc:
-                self.nProc = nRecalc
-            pool = multiprocessing.Pool(processes=self.nProc)
+        if nRecalc > 1 and self.n_proc > 1:
+            if nRecalc < self.n_proc:
+                self.n_proc = nRecalc
+            pool = multiprocessing.Pool(processes=self.n_proc)
             n = len(indRecalc)
-            stepSize = int(n/self.nProc)
+            stepSize = int(n/self.n_proc)
             if n % stepSize > 3:
                 dlims = zip(range(0,n,stepSize), range(stepSize,n,stepSize)+[n])
             else:
@@ -253,11 +263,11 @@ class BACE(MarkovStateModel):
             dMat[indRecalc[i][0], indRecalc[i][1]] = d[i][:len(indRecalc[i][1])]
 
         # BACE BF inverted so can use sparse matrices
-        indMin = dMat.argmin()
+        indMin = dMat.argmax()
         minX = int(np.floor(indMin / dMat.shape[1]))
         minY = int(indMin % dMat.shape[1])
 
-        self.fBayesFact[statesKeep.shape[0]-1] = dMat[minX,minY]
+        self.fBayesFact[statesKeep.shape[0]-1] = 1./dMat[minX,minY]
 
         #fBayesFact.write("%d %f\n" % (statesKeep.shape[0]-1, 1./dMat[minX,minY]))
         return dMat, minX, minY
@@ -268,7 +278,7 @@ class BACE(MarkovStateModel):
             indices = indicesList[j]
             ind1 = indices[0]
             c1 = c[ind1,statesKeep] + unmerged[ind1]*unmerged[statesKeep]*1.0/c.shape[0]
-            d[j,:indices[1].shape[0]] = self.multiDistHelper(indices[1], c1, w[ind1], c, w, statesKeep, unmerged)
+            d[j,:indices[1].shape[0]] = 1./self.multiDistHelper(indices[1], c1, w[ind1], c, w, statesKeep, unmerged)
             # BACE BF inverted so can use sparse matrices
         return d
 
@@ -290,7 +300,7 @@ class BACE(MarkovStateModel):
         w += 1
 
         # init map from micro to macro states
-        map = np.arange(c.shape[0], dtype=np.int32)
+        macro_map = np.arange(c.shape[0], dtype=np.int32)
 
         # pseudo-state (just pseudo counts)
         pseud = np.ones(c.shape[0], dtype=np.float32)
@@ -301,11 +311,11 @@ class BACE(MarkovStateModel):
         unmerged = np.ones(c.shape[0], dtype=np.float32)
 
         nInd = len(indices)
-        if nInd > 1 and self.nProc > 1:
-            if nInd < self.nProc:
-                self.nProc = nInd
-            pool = multiprocessing.Pool(processes=self.nProc)
-            stepSize = int(nInd/self.nProc)
+        if nInd > 1 and self.n_proc > 1:
+            if nInd < self.n_proc:
+                self.n_proc = nInd
+            pool = multiprocessing.Pool(processes=self.n_proc)
+            stepSize = int(nInd/self.n_proc)
             if nInd % stepSize > 3:
                 dlims = zip(range(0,nInd,stepSize), range(stepSize,nInd,stepSize)+[nInd])
             else:
@@ -330,7 +340,7 @@ class BACE(MarkovStateModel):
             c[dest,:] += c[s,:]
             c[s,:] = 0
             c[:,s] = 0
-            map = self.renumberMap(map, map[s])
-            map[s] = map[dest]
+            macro_map = self.renumberMap(macro_map, macro_map[s])
+            macro_map[s] = macro_map[dest]
 
-        return c, map, statesKeep
+        return c, macro_map, statesKeep
