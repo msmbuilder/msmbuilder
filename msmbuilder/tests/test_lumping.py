@@ -77,6 +77,16 @@ def test_bace():
             np.all(macro_assignments == opposite))
 
 
+def test_bace_2():
+    assignments, ref_macrostate_assignments = _metastable_system()
+    pipeline = Pipeline([
+        ('msm', MarkovStateModel()),
+        ('bace', BACE(n_macrostates=2))
+    ])
+    macro_assignments = pipeline.fit_transform(assignments)[0]
+    assert (np.min(assignments) >= 0)
+
+
 def test_mvca():
     assignments, ref_macrostate_assignments = _metastable_system()
     pipeline = Pipeline([
