@@ -32,6 +32,8 @@ offset CA atoms.
   (gh-1035).
 - Added minimum variance cluster analysis (MVCA) for macrostating to
   msmbuilder.lumping (gh-1045).
+- Added the Bayesian agglomerative clustering engine (BACE) for macrostating
+  to msmbuilder.lumping (gh-1050).
   
 Improvements
 ~~~~~~~~~~~~
