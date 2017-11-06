@@ -253,16 +253,11 @@ class BACE(MarkovStateModel):
             dMat[indRecalc[i][0], indRecalc[i][1]] = d[i][:len(indRecalc[i][1])]
 
         # BACE BF inverted so can use sparse matrices
-        indMin = dMat.argmax()
+        indMin = dMat.argmin()
         minX = int(np.floor(indMin / dMat.shape[1]))
         minY = int(indMin % dMat.shape[1])
 
-        a = statesKeep.shape[0]-1
-        # print("l263. ", dMat.shape)
-        # print("minX : ", minX)
-        # print("minY : ", minY)
-        b = 1./dMat[minX,minY]
-        self.fBayesFact[statesKeep.shape[0]-1] = 1./dMat[minX,minY]
+        self.fBayesFact[statesKeep.shape[0]-1] = dMat[minX,minY]
 
         #fBayesFact.write("%d %f\n" % (statesKeep.shape[0]-1, 1./dMat[minX,minY]))
         return dMat, minX, minY
@@ -273,7 +268,7 @@ class BACE(MarkovStateModel):
             indices = indicesList[j]
             ind1 = indices[0]
             c1 = c[ind1,statesKeep] + unmerged[ind1]*unmerged[statesKeep]*1.0/c.shape[0]
-            d[j,:indices[1].shape[0]] = 1./self.multiDistHelper(indices[1], c1, w[ind1], c, w, statesKeep, unmerged)
+            d[j,:indices[1].shape[0]] = self.multiDistHelper(indices[1], c1, w[ind1], c, w, statesKeep, unmerged)
             # BACE BF inverted so can use sparse matrices
         return d
 
