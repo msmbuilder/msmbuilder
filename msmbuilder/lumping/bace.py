@@ -116,7 +116,7 @@ class BACE(MarkovStateModel):
         if self.sliding_window:
             c *= self.lag_time
 
-        c, macro_map, statesKeep = self.filterFunc(c)
+        c, macro_map, statesKeep = self._filterFunc(c)
 
         w = np.array(c.sum(axis=1)).flatten()
         w[statesKeep] += 1
@@ -125,7 +125,7 @@ class BACE(MarkovStateModel):
         unmerged[statesKeep] = 1
 
         # get nonzero indices in upper triangle
-        indRecalc = self.getInds(c, statesKeep)
+        indRecalc = self._getInds(c, statesKeep)
         dMat = np.zeros(c.shape, dtype=np.float32)
 
         i = 0
@@ -133,11 +133,11 @@ class BACE(MarkovStateModel):
 
         self.fBayesFact = {}
 
-        dMat, minX, minY = self.calcDMat(c, w, indRecalc, dMat,
+        dMat, minX, minY = self._calcDMat(c, w, indRecalc, dMat,
                                          statesKeep, unmerged)
 
         while nCurrentStates > self.n_macrostates:
-            c, w, indRecalc, dMat, macro_map, statesKeep, unmerged, minX, minY = self.mergeTwoClosestStates(
+            c, w, indRecalc, dMat, macro_map, statesKeep, unmerged, minX, minY = self._mergeTwoClosestStates(
                 c, w, indRecalc, dMat, macro_map,
                 statesKeep, minX, minY, unmerged)
 
@@ -200,7 +200,7 @@ class BACE(MarkovStateModel):
 
         return lumper
 
-    def getInds(self, c, stateInds, updateSingleState=None):
+    def _getInds(self, c, stateInds, updateSingleState=None):
         indices = []
         for s in stateInds:
             dest = np.where(c[s, :] > 1)[0]
@@ -224,7 +224,7 @@ class BACE(MarkovStateModel):
                     i += self.chunk_size
         return indices
 
-    def mergeTwoClosestStates(self, c, w, indRecalc, dMat,
+    def _mergeTwoClosestStates(self, c, w, indRecalc, dMat,
                               macro_map, statesKeep, minX, minY,
                               unmerged):
         if unmerged[minX]:
@@ -247,20 +247,20 @@ class BACE(MarkovStateModel):
         w[minY] = 0
         statesKeep = statesKeep[np.where(statesKeep != minY)[0]]
         indChange = np.where(macro_map == macro_map[minY])[0]
-        macro_map = self.renumberMap(macro_map, macro_map[minY])
+        macro_map = self._renumberMap(macro_map, macro_map[minY])
         macro_map[indChange] = macro_map[minX]
-        indRecalc = self.getInds(c, [minX], updateSingleState=minX)
-        dMat, minX, minY = self.calcDMat(c, w, indRecalc, dMat, statesKeep,
+        indRecalc = self._getInds(c, [minX], updateSingleState=minX)
+        dMat, minX, minY = self._calcDMat(c, w, indRecalc, dMat, statesKeep,
                                          unmerged)
         return c, w, indRecalc, dMat, macro_map, statesKeep, unmerged, minX, minY
 
-    def renumberMap(self, macro_map, stateDrop):
+    def _renumberMap(self, macro_map, stateDrop):
         for i in range(macro_map.shape[0]):
             if macro_map[i] >= stateDrop:
                 macro_map[i] -= 1
         return macro_map
 
-    def calcDMat(self, c, w, indRecalc, dMat, statesKeep, unmerged):
+    def _calcDMat(self, c, w, indRecalc, dMat, statesKeep, unmerged):
         nRecalc = len(indRecalc)
         if nRecalc > 1 and self.n_proc > 1:
             if nRecalc < self.n_proc:
@@ -277,14 +277,14 @@ class BACE(MarkovStateModel):
             args = []
             for start, stop in dlims:
                 args.append(indRecalc[start:stop])
-            result = pool.map_async(functools.partial(self.multiDist,
+            result = pool.map_async(functools.partial(self._multiDist,
                                                       c=c, w=w, statesKeep=statesKeep, unmerged=unmerged,
                                                       chunk_size=self.chunk_size), args)
             result.wait()
             d = np.vstack(result.get())
             pool.close()
         else:
-            d = self.multiDist(indRecalc, c, w, statesKeep, unmerged)
+            d = self._multiDist(indRecalc, c, w, statesKeep, unmerged)
         for i in range(len(indRecalc)):
             dMat[indRecalc[i][0], indRecalc[i][1]
                  ] = d[i][:len(indRecalc[i][1])]
@@ -299,7 +299,7 @@ class BACE(MarkovStateModel):
         #fBayesFact.write("%d %f\n" % (statesKeep.shape[0]-1, 1./dMat[minX,minY]))
         return dMat, minX, minY
 
-    def multiDist(self, indicesList, c, w, statesKeep, unmerged):
+    def _multiDist(self, indicesList, c, w, statesKeep, unmerged):
         d = np.zeros((len(indicesList), self.chunk_size), dtype=np.float32)
         for j in range(len(indicesList)):
             indices = indicesList[j]
@@ -307,12 +307,12 @@ class BACE(MarkovStateModel):
             c1 = c[ind1, statesKeep] + unmerged[ind1] * \
                 unmerged[statesKeep] * 1.0 / c.shape[0]
             d[j, :indices[1].shape[0]] = 1. / \
-                self.multiDistHelper(
+                self._multiDistHelper(
                     indices[1], c1, w[ind1], c, w, statesKeep, unmerged)
             # BACE BF inverted so can use sparse matrices
         return d
 
-    def multiDistHelper(self, indices, c1, w1, c, w, statesKeep, unmerged):
+    def _multiDistHelper(self, indices, c1, w1, c, w, statesKeep, unmerged):
         d = np.zeros(indices.shape[0], dtype=np.float32)
         p1 = c1 / w1
         for i in range(indices.shape[0]):
@@ -325,7 +325,7 @@ class BACE(MarkovStateModel):
             d[i] = c1.dot(np.log(p1 / cp)) + c2.dot(np.log(p2 / cp))
         return d
 
-    def filterFunc(self, c):
+    def _filterFunc(self, c):
         # get num counts in each state (or weight)
         w = np.array(c.sum(axis=1)).flatten()
         w += 1
@@ -356,14 +356,14 @@ class BACE(MarkovStateModel):
             args = []
             for start, stop in dlims:
                 args.append(indices[start:stop])
-            result = pool.map_async(functools.partial(self.multiDistHelper,
+            result = pool.map_async(functools.partial(self._multiDistHelper,
                                                       c1=pseud, w1=1, c=c, w=w, statesKeep=statesKeep,
                                                       unmerged=unmerged), args)
             result.wait()
             d = np.concatenate(result.get())
             pool.close()
         else:
-            d = self.multiDistHelper(
+            d = self._multiDistHelper(
                 indices, pseud, 1, c, w, statesKeep, unmerged)
 
         statesPrune = np.where(d < self.filter)[0]
@@ -374,7 +374,7 @@ class BACE(MarkovStateModel):
             c[dest, :] += c[s, :]
             c[s, :] = 0
             c[:, s] = 0
-            macro_map = self.renumberMap(macro_map, macro_map[s])
+            macro_map = self._renumberMap(macro_map, macro_map[s])
             macro_map[s] = macro_map[dest]
 
         return c, macro_map, statesKeep
