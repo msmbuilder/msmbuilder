@@ -10,7 +10,8 @@ from scipy.stats import vonmises as vm
 from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer, \
-    KappaAngleFeaturizer, SASAFeaturizer, ContactFeaturizer, VonMisesFeaturizer
+    KappaAngleFeaturizer, SASAFeaturizer, ContactFeaturizer, \
+    VonMisesFeaturizer, AtomPairsFeaturizer
 
 trajectories = MinimalFsPeptide().get_cached().trajectories
 top = trajectories[0].topology
