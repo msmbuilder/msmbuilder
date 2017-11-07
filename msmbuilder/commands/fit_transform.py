@@ -23,7 +23,8 @@ except:
 
 from ..preprocessing import Butterworth, DoubleEWMA
 from ..decomposition import (tICA, SparseTICA, FastICA, FactorAnalysis,
-                             KernelTICA, PCA, SparsePCA, MiniBatchSparsePCA)
+                             KernelTICA, PCA, SparsePCA, MiniBatchSparsePCA,
+                             KSparseTICA)
 from ..cluster import (KMeans, KCenters, KMedoids, MiniBatchKMedoids,
                        MiniBatchKMeans, RegularSpatial, LandmarkAgglomerative,
                        GMM, MeanShift, NDGrid, SpectralClustering,
@@ -330,3 +331,11 @@ class AgglomerativeClusteringCommand(TrajectoryClusterCommand):
     _concrete = True
     _group = '2-Clustering'
     _transformed_fmt = 'hdf5'
+
+
+class KSparseTICACommand(FitTransformCommand):
+    klass = KSparseTICA
+    _concrete = True
+    _group = '3-Decomposition'
+    _transformed_fmt = 'hdf5'
+ 

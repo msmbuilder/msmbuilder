@@ -2,11 +2,16 @@ import numpy as np
 from mdtraj import compute_dihedrals, compute_phi
 from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
+from mdtraj.testing import eq
+import pandas as pd
+import itertools
 
-from msmbuilder.example_datasets import AlanineDipeptide, MinimalFsPeptide
+from msmbuilder.example_datasets import AlanineDipeptide, MetEnkephalin,\
+    MinimalFsPeptide
 from msmbuilder.featurizer import get_atompair_indices, FunctionFeaturizer, \
     DihedralFeaturizer, AtomPairsFeaturizer, SuperposeFeaturizer, \
-    RMSDFeaturizer, VonMisesFeaturizer, Slicer
+    RMSDFeaturizer, VonMisesFeaturizer, Slicer, CommonContactFeaturizer, \
+    KappaAngleFeaturizer, AngleFeaturizer
 
 
 def test_function_featurizer():
@@ -61,6 +66,69 @@ def test_that_all_featurizers_run():
 
     featurizer = RMSDFeaturizer(trj0)
     X_all = featurizer.transform(trajectories)
+
+
+def test_common_contacts_featurizer_1():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    met_seq = top.to_fasta(0)
+    # fake sequence has an insertion
+    fake_met_eq = 'YGGFMF'
+    alignment = {}
+    # do "alignment "
+    alignment["actual"] = met_seq + "-"
+    alignment["fake"] = fake_met_eq
+    max_len = max([len(alignment[i]) for i in alignment.keys()])
+    contacts = [i for i in itertools.combinations(np.arange(max_len), 2)]
+    feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
+                                   same_residue=True)
+    rnd_traj = np.random.randint(len(trajectories))
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    features = feat.transform([trajectories[rnd_traj]])
+
+
+def test_common_contacts_featurizer_2():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    met_seq = top.to_fasta(0)
+
+    # fake sequence
+    fake_met_eq = 'FGGFM'
+    alignment = {}
+    # do "alignment "
+    alignment["actual"] = met_seq
+    alignment["fake"] = fake_met_eq
+    max_len = max([len(alignment[i]) for i in alignment.keys()])
+    contacts = [i for i in itertools.combinations(np.arange(max_len), 2)]
+    feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
+                                   same_residue=True)
+
+    rnd_traj = np.random.randint(len(trajectories))
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    assert(np.all([j != 0 for i in df.resids for j in i]))
+
+
+def test_common_contacts_featurizer_3():
+    # test randomly mutates one of the residues to make sure that residues contacts are not
+    # included
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    met_seq = top.to_fasta(0)
+    # randomly "mutate one of the residues to alanine
+    rnd_loc = np.random.randint(len(met_seq))
+    fake_met_eq = met_seq[:rnd_loc] + "A" + met_seq[rnd_loc + 1:]
+    alignment = {}
+    # do "alignment "
+    alignment["actual"] = met_seq
+    alignment["fake"] = fake_met_eq
+    max_len = max([len(alignment[i]) for i in alignment.keys()])
+    contacts = [i for i in itertools.combinations(np.arange(max_len), 2)]
+    feat = CommonContactFeaturizer(alignment=alignment, contacts=contacts,
+                                   same_residue=True)
+
+    rnd_traj = np.random.randint(len(trajectories))
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    assert(np.all([j != rnd_loc for i in df.resids for j in i]))
 
 
 def test_von_mises_featurizer():
@@ -139,3 +207,31 @@ def test_slicer():
 
     eq(Y[0], Y2[0])
     eq(Y[1], Y2[1])
+
+def test_kappa_angle_featurizer_1():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    feat = KappaAngleFeaturizer(offset=1)
+    df = pd.DataFrame(feat.describe_features(trajectories[0]))
+    assert sorted(df.resids[0]) == [0,1,2]
+    cas = [i.index for i in top.atoms if i.name=='CA']
+    assert sorted(df.atominds[0]) == cas[:3]
+
+def test_kappa_angle_featurizer_2():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    feat = KappaAngleFeaturizer(offset=2)
+    df = pd.DataFrame(feat.describe_features(trajectories[0]))
+    assert not sorted(df.resids[0]) == [0,1,2]
+    assert sorted(df.resids[0]) == [0,2,4]
+
+def test_angle_featurizer():
+    trajectories = MetEnkephalin().get_cached().trajectories
+    top = trajectories[0].topology
+    feat = KappaAngleFeaturizer(offset=2)
+    feat_1 = feat.transform([trajectories[0]])
+    df = pd.DataFrame(feat.describe_features(trajectories[0]))
+    atom_inds = np.vstack(df.atominds)
+    feat = AngleFeaturizer(angle_indices=atom_inds)
+    feat_2 = feat.transform([trajectories[0]])
+    assert np.all(feat_1[0] == feat_2[0])

@@ -3,8 +3,117 @@
 Changelog
 =========
 
-v3.7 (development)
+v3.9 (development)
 ------------------
+
+API Changes
+~~~~~~~~~~~
+
+New Features
+~~~~~~~~~~~~
+- Added new featurizer ```FeatureSlicer```. ```FeatureSlicer``` can slice the ouput of
+regular featurizer objects to just the required indices.
+- Generalized ```KappaAngleFeaturizer``` to be able compute the angles between arbitrarily
+offset CA atoms.
+- Added functions to compute error bars for transition probabilities to account for
+  finite sampling, and sample transition matrices from these error distributions (i.e.
+  bootstrapping). Located in ```msmbuilder.msm.validation.transmat_errorbar```.
+- Added new featurizer ```FeatureSlicer```. ```FeatureSlicer``` can slice
+  the ouput of regular featurizer objects to just the required indices
+  (gh-1022).
+- Added functions to compute error bars for transition probabilities to account
+  for finite sampling, and sample transition matrices from these error 
+  distributions (i.e. bootstrapping). Located in
+  ```msmbuilder.msm.validation.transmat_errorbar``` (gh-1010).
+- Added methods for computing the Kullbeck-Leibler, symmetric KL, and 
+  Jensen-Shannon divergences of probability distributions, arrays thereof,
+  or flattened MSM objects. The array and (flattened) MSM metrics are
+  compatible with the custom distance function in ```LandmarkAgglomerative```
+  (gh-1035).
+- Added minimum variance cluster analysis (MVCA) for macrostating to
+  msmbuilder.lumping (gh-1045).
+  
+Improvements
+~~~~~~~~~~~~
+- ```FeatureSelector``` is now compatible with Tree-structure Parzen Estimator
+  method in Osprey (gh-1018).
+- Fixed bug in ```from_msm``` method for ```PCCA``` and ```PCCAPlus``` which
+  now allows a ```PCCAPlus``` objective function to be specified (gh-1036).
+- ```msmbuilder.io.sampling.sample_dimension``` with ```scheme='edge'``` now works properly. (#1043)
+
+
+v3.8 (April 26, 2017)
+---------------------
+
+We're pleased to annoounce the release of MSMBuilder 3.8. This release
+features updates and improvements to contact featurizers, kernel tICA, HMMs,
+and preprocessing. There are also some bugfixes and API hygiene improements.
+We recommend all users upgrade to MSMBuilder 3.8.
+
+API Changes
+~~~~~~~~~~~
+
+New Features
+~~~~~~~~~~~~
+
+- ``ContactFeaturizer`` now lets you use a soft_min option for closest
+contact distances.
+
+Improvements
+~~~~~~~~~~~~
+
+- The ``stride`` parameter in ``KernelTICA`` now works as intended to
+automatically generate a set of landmark points (gh-972).
+- The ``contacts`` parameter in ``CommonContactFeaturizer`` now performs as the
+contacts method in regular ``ContactFeaturizer`` albeit after validating all
+the contacts.
+- ``GaussianHMM`` and ``VonMisesHMM`` are now compatible with
+``sklearn.pipeline.Pipeline`` workflows (gh-980).
+- ``msmbuilder.preprocessing`` is now compatible with
+``sklearn.pipeline.Pipeline`` workflows (gh-987).
+- Fixed error in pickling HMMs (gh-996).
+
+
+v3.7 (January 26, 2017)
+-----------------------
+
+We're pleased to announce the release of MSMBuilder 3.7. This release
+introduces several new featurizers that can handle multiple sequences or
+multiple chains within a topology file. There are also some bugfixes and
+API hygiene improvements. We recommend all users upgrade to MSMBuilder 3.7.
+
+API Changes
+~~~~~~~~~~~
+
+- ``TrajFeatureUnion`` and ``SubsetFeatureUnion`` have been removed due to
+  incompatibilities with the ``scikit-learn`` API.
+
+New Features
+~~~~~~~~~~~~
+
+- ``KSparseTICA`` lets you specify the number of non-zero entries, ``k``
+  rather than a regularization strength (gh-916).
+- ``BootStrapMarkovStateModel`` optionally saves all the models that it
+  generates (gh-919).
+- ``tICA`` supports commute mapping (see 10.1021/acs.jctc.6b00762)
+  (gh-925).
+- ``CommonContactFeaturizer`` featurizes different trajectories with
+  different topologies using a common set of inter-residue contacts
+  (gh-876).
+- ``msmbuilder.tpt.mfpt.mfpts`` can now compute distributions of MFPTs, accounting
+  for the model error due to finite sampling.
+- Three new featurization schemes for protein-ligand trajectories are
+  now available: ``LigandContactFeaturizer``,
+  ``BinaryLigandContactFeaturizer``, and ``LigandRMSDFeaturizer`` (gh-883).
+
+Improvements
+~~~~~~~~~~~~
+
+- Compatibility with scikit-learn 0.18 (gh-915).
+- ``FeatureSelector`` feature order is deterministic (gh-920).
+- ``SASAFeaturizer`` supports the ``describe_features`` method (gh-913).
+- All ``LandmarkAgglomerative`` clusterers now have ``cluster_centers_`` except
+  when ``metric = rmsd`` (gh-958)
 
 
 v3.6 (September 15, 2016)

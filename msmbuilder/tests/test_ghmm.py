@@ -5,6 +5,10 @@ from itertools import permutations
 
 import hmmlearn.hmm
 import numpy as np
+import pickle
+import tempfile
+
+from sklearn.pipeline import Pipeline
 
 from msmbuilder.example_datasets import AlanineDipeptide
 from msmbuilder.featurizer import SuperposeFeaturizer
@@ -36,6 +40,7 @@ def create_timeseries(means, vars, transmat):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         model = hmmlearn.hmm.GaussianHMM(n_components=len(means),
                                          random_state=rs)
+        model.startprob_ = np.ones_like(means) / len(means)
         model.means_ = means
         model.covars_ = vars
         model.transmat_ = transmat
@@ -132,3 +137,37 @@ def test_3_state():
     for init_algo in ('kmeans', 'GMM'):
         for reversible_type in ('mle', 'transpose'):
             yield three_state_tester(init_algo, reversible_type)
+
+
+def test_pipeline():
+    trajs = AlanineDipeptide().get_cached().trajectories
+    topology = trajs[0].topology
+
+    indices = topology.select('backbone')
+    p = Pipeline([
+        ('diheds', SuperposeFeaturizer(indices, trajs[0][0])),
+        ('hmm', GaussianHMM(n_states=4))
+    ])
+
+    predict = p.fit_predict(trajs)
+    p.named_steps['hmm'].summarize()
+
+
+def test_pickle():
+    """Test pickling an HMM"""
+    trajectories = AlanineDipeptide().get_cached().trajectories
+    topology = trajectories[0].topology
+    indices = topology.select('symbol C or symbol O or symbol N')
+    featurizer = SuperposeFeaturizer(indices, trajectories[0][0])
+    sequences = featurizer.transform(trajectories)
+    hmm = GaussianHMM(n_states=4, n_init=3, random_state=rs)
+    hmm.fit(sequences)
+    logprob, hidden = hmm.predict(sequences)
+
+    with tempfile.TemporaryFile() as savefile:
+        pickle.dump(hmm, savefile)
+        savefile.seek(0, 0)
+        hmm2 = pickle.load(savefile)
+
+    logprob2, hidden2 = hmm2.predict(sequences)
+    assert(logprob == logprob2)

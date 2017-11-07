@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 
 from .base import MultiSequenceFeatureSelectionMixin
-from .featureselector import FeatureSelector
+from .featureselector import FeatureSlicer, FeatureSelector
 
 from sklearn import feature_selection
 

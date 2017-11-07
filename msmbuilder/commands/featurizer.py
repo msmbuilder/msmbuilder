@@ -16,7 +16,9 @@ from ..featurizer import (AtomPairsFeaturizer, SuperposeFeaturizer,
                           RMSDFeaturizer, BinaryContactFeaturizer,
                           LogisticContactFeaturizer, VonMisesFeaturizer,
                           FunctionFeaturizer, RawPositionsFeaturizer,
-                          SASAFeaturizer)
+                          SASAFeaturizer, LigandContactFeaturizer,
+                          BinaryLigandContactFeaturizer,
+                          LigandRMSDFeaturizer,LandMarkRMSDFeaturizer, AngleFeaturizer)
 
 
 class FeaturizerCommand(NumpydocClassCommand):
@@ -131,6 +133,27 @@ class RMSDFeaturizerCommand(FeaturizerCommand):
             return None
         return np.loadtxt(fn, dtype=int, ndmin=1)
 
+class LandMarkRMSDFeaturizerCommand(FeaturizerCommand):
+    klass = LandMarkRMSDFeaturizer
+    _concrete = True
+
+    def _reference_traj_type(self, fn):
+        if self.top.strip() == "":
+            top = None
+        else:
+            top = os.path.expanduser(self.top)
+            err = ("Couldn't find topology file '{}' "
+                   "when loading reference trajectory".format(top))
+            assert os.path.exists(top), err
+        return md.load(fn, top=top)
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)
+
+    def _sigma_type(self, val):
+        return np.float(val)
 
 class SuperposeFeaturizerCommand(FeaturizerCommand):
     klass = SuperposeFeaturizer
@@ -172,6 +195,15 @@ class ContactFeaturizerCommand(FeaturizerCommand):
         else:
             return np.loadtxt(val, dtype=int, ndmin=2)
 
+class AngleFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = AngleFeaturizer
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        else:
+            return np.loadtxt(fn, dtype=int, ndmin=3)
 
 class BinaryContactFeaturizerCommand(FeaturizerCommand):
     _concrete = True
@@ -234,3 +266,45 @@ class RawPositionsFeaturizerCommand(FeaturizerCommand):
 class SASAFeaturizerCommand(FeaturizerCommand):
     _concrete = True
     klass = SASAFeaturizer
+
+
+class LigandContactFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = LigandContactFeaturizer
+
+    def _contacts_type(self, val):
+        if val == 'all':
+            return val
+        else:
+            return np.loadtxt(val, dtype=int, ndmin=2)
+
+
+class BinaryLigandContactFeaturizerCommand(FeaturizerCommand):
+    _concrete = True
+    klass = BinaryLigandContactFeaturizer
+
+    def _contacts_type(self, val):
+        if val == 'all':
+            return val
+        else:
+            return np.loadtxt(val, dtype=int, ndmin=2)
+
+
+class LigandRMSDFeaturizerCommand(FeaturizerCommand):
+    klass = LigandRMSDFeaturizer
+    _concrete = True
+
+    def _reference_traj_type(self, fn):
+        if self.top.strip() == "":
+            top = None
+        else:
+            top = os.path.expanduser(self.top)
+            err = ("Couldn't find topology file '{}' "
+                   "when loading reference trajectory".format(top))
+            assert os.path.exists(top), err
+        return md.load(fn, top=top)
+
+    def _atom_indices_type(self, fn):
+        if fn is None:
+            return None
+        return np.loadtxt(fn, dtype=int, ndmin=1)

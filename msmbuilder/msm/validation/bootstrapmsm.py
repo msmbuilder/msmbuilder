@@ -32,6 +32,9 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
     msm_args: dict
         Dictionary containing arguments to pass unto
         the MSM models.
+    save_all_models: bool
+        Whether or not to save all the models.
+        Defaults to false.
 
     Attributes
     ----------
@@ -88,14 +91,18 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
     >>> bmsm = BootStrapMarkovStateModel(n_samples=800,
                     msm_args={'lag_time':1})
     """
-    def __init__(self, n_samples=10,  n_procs=None, msm_args={}):
+    def __init__(self, n_samples=10,  n_procs=None, msm_args=None, save_all_models = False):
         self.n_samples = n_samples
         self.n_procs = n_procs
+        if msm_args is None:
+            msm_args = {}
         self.msm_args = msm_args
         self.mle_ = MarkovStateModel(**self.msm_args)
+        self.save_all_models = save_all_models
 
         self._succesfully_fit = 0
         self._ommitted_trajs_ = None
+        self.all_models_ = None
         self.all_populations_ = None
         self.mapped_populations_ = None
         self.all_training_scores_ = None
@@ -107,7 +114,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         sequences = list_of_1d(sequences)
         self.mle_.fit(sequences, y=y)
         self._parallel_fit(sequences, pool)
-
+        return self
 
     def _parallel_fit(self, sequences, pool=None):
 
@@ -118,6 +125,7 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
 
         self.all_populations_ = []
         self.mapped_populations_ = np.zeros((self.n_samples, self.mle_.n_states_))
+        self.mapped_populations_[:,:] = np.nan
         self.all_training_scores_ = []
         self.all_test_scores_ = []
 
@@ -142,9 +150,9 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
         test_jbs = [[sequences[trj_ind] for trj_ind in omitted_index]
                     for omitted_index in omitted_trajs]
 
-        all_mdls = pool.map(_fit_one, jbs)
+        all_models = pool.map(_fit_one, jbs)
 
-        for mdl_indx, mdl in enumerate(all_mdls):
+        for mdl_indx, mdl in enumerate(all_models):
             if mdl is not None:
                 self._succesfully_fit += 1
                 self.all_populations_.append(mdl.populations_)
@@ -156,8 +164,8 @@ class BootStrapMarkovStateModel(_MappingTransformMixin):
                 except ValueError:
                     self.all_test_scores_.append(np.nan)
 
-        return
-
+        if self.save_all_models:
+            self.all_models_ = all_models
 
     @property
     def mapped_populations_mean_(self):

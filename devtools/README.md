@@ -18,7 +18,6 @@ How to do a release
 - `git checkout master && git fetch origin && git reset --hard origin/master`
 - `git clean -fdx`
 - Update the version number in `setup.py`, change `ISRELEASED` to `True`.
-- Verify the version number in `devtools/conda-recipe/meta.yaml` is "0.0.0".
 - Add the date of release to `docs/changelog.rst`, add a blurb.
 - Commit and push to master. The commit should only include the version number changes and
   should be given a message like "Release 3.y.z".
@@ -32,22 +31,35 @@ How to do a release
   The docs will be sent to msmbuilder.org/3.y.z instead of development/ because you
   set `ISRELEASED`. You can cancel the Travis build triggered by the "tag" because docs
   are set to deploy only from `master`.
-- Verify that `versions.json` was updated properly.
+- Verify that [`versions.json`](http://msmbuilder.org/versions.json) was updated properly.
 - Create the canonical source distribution using `python setup.py sdist --formats=gztar,zip`.
   Inspect the files in dist/ to make sure they look right.
-- Upload to PyPI using `twine upload [path to sdist files]`.
+- Upload to PyPI using `twine upload ./dist/*`.
+  Make sure you upload both files in the same command. Note that removing files from PyPI
+  means they can never be re-uploaded.
 - File a pull request against the
   [conda-recipes](https://github.com/omnia-md/conda-recipes) repository.
   Use the PyPI link as the "source". Make sure the requirements match those
   in the msmbuilder recipe in `devtools/conda-recipe`. We don't want the package
   that gets tested with every pull request to differ from the one people actually get!
-  Conda binaries should be automatically built.
+  Conda binaries should be automatically built with the `rc` tag.
+- To test the release candidate, you can create a virtual environment like this:
+  `conda create -n msmb-test -c omnia/label/rc msmbuilder`, then run:
+  `source activate msmb-test`.
+  If you do not have the test dependencies listed [here](https://github.com/msmbuilder/msmbuilder/blob/master/devtools/conda-recipe/meta.yaml), you will need
+  to install them.
+  `nosetests -v msmbuilder --nologcapture`
+- Once the tests have (successfully) completed, change the tag to main as follows:
+  1. Go to [the conda page](https://anaconda.org/omnia/msmbuilder/files)
+  2. Filter by label, rc
+  3. Use checkbox to select all
+  4. Actions, move, main
+- Update the conda-forge recipe by filing a pull request to the [msmbuilder feedstock](https://github.com/conda-forge/msmbuilder-feedstock)
 - Make an announcement on the mailing list.
 
 ### Post-release
 
-- Update the version number in `setup.py`, change `ISRELEASED` to `False`.
-- Verify the version number in `devtools/conda-recipe/meta.yaml` is "0.0.0".
+- Update the version number in `setup.py` to `3.(y+1).0.dev0`, change `ISRELEASED` to `False`.
 - Add a new "development" entry in `docs/changelog.rst`.
 - Commit and push to master.
 - Make sure there is a 3.(y+1) milestone already created

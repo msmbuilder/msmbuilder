@@ -8,10 +8,14 @@ from .featurizer import (AtomPairsFeaturizerCommand, ContactFeaturizerCommand,
                          SuperposeFeaturizerCommand,
                          KappaAngleFeaturizerCommand,
                          AlphaAngleFeaturizerCommand, RMSDFeaturizerCommand,
+                         LandMarkRMSDFeaturizerCommand,
                          BinaryContactFeaturizerCommand,
                          LogisticContactFeaturizerCommand,
                          VonMisesFeaturizerCommand,
-                         RawPositionsFeaturizerCommand, SASAFeaturizerCommand)
+                         RawPositionsFeaturizerCommand, SASAFeaturizerCommand,
+                         LigandContactFeaturizerCommand,
+                         BinaryLigandContactFeaturizerCommand,
+                         LigandRMSDFeaturizerCommand)
 from .fit import (GaussianHMMCommand, MarkovStateModelCommand,
                   BayesianMarkovStateModelCommand, ContinuousTimeMSMCommand,
                   BayesianContinuousTimeMSMCommand)
@@ -33,7 +37,7 @@ from .fit_transform import (tICACommand, ButterworthCommand, DoubleEWMACommand,
                             MeanShiftCommand, NDGridCommand,
                             SpectralClusteringCommand,
                             AffinityPropagationCommand, APMCommand,
-                            AgglomerativeClusteringCommand)
+                            AgglomerativeClusteringCommand, KSparseTICACommand)
 from .transform import TransformCommand
 from .example_datasets import (AlanineDipeptideDatasetCommand,
                                FsPeptideDatasetCommand)

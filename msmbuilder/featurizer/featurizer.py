@@ -16,10 +16,9 @@ import sklearn.pipeline
 from scipy.stats import vonmises as vm
 from msmbuilder import libdistance
 import itertools
+import inspect
 from sklearn.base import TransformerMixin
 from sklearn.externals.joblib import Parallel, delayed
-
-from msmbuilder import libdistance
 from ..base import BaseEstimator
 
 def zippy_maker(aind_tuples, top):
@@ -99,6 +98,8 @@ def featurize_all(filenames, featurizer, topology, chunk=1000, stride=1):
         raise ValueError("None!")
 
     return np.concatenate(data), np.concatenate(indices), np.array(fns)
+
+
 
 class Featurizer(BaseEstimator, TransformerMixin):
     """Base class for objects that featurize Trajectories.
@@ -192,6 +193,7 @@ class Featurizer(BaseEstimator, TransformerMixin):
 
         return dict_maker(zippy)
 
+
 class SuperposeFeaturizer(Featurizer):
     """Featurizer based on euclidian atom distances to reference structure.
 
@@ -282,6 +284,11 @@ class RMSDFeaturizer(Featurizer):
             self.sliced_reference_traj = reference_traj.atom_slice(self.atom_indices)
         else:
             self.sliced_reference_traj = reference_traj
+            self.atom_indices = [i for i in range(self.sliced_reference_traj.n_atoms)]
+
+
+    def _transform(self, value):
+        return value
 
     def partial_transform(self, traj):
         """Featurize an MD trajectory into a vector space via distance
@@ -310,8 +317,72 @@ class RMSDFeaturizer(Featurizer):
         result = libdistance.cdist(
             sliced_traj, self.sliced_reference_traj, 'rmsd'
         )
-        return result
+        return self._transform(result)
 
+class LandMarkRMSDFeaturizer(RMSDFeaturizer):
+    """Kernel Landmark Featuizer based on RMSD to one or more reference structures.
+
+    This featurizer inputs a trajectory to be analyzed ('traj') and a
+    reference trajectory ('ref') and outputs the kernelized
+    RMSD of each frame of traj with respect to each frame in ref.
+    The output is a numpy array with n_rows = traj.n_frames
+    and n_columns = ref.n_frames. This uses a exponential/gaussian
+    kernel.
+
+    Parameters
+    ----------
+    reference_traj : md.Trajectory
+        The reference conformations to superpose each frame with respect to
+    atom_indices : np.ndarray, shape=(n_atoms,), dtype=int
+        The indices of the atoms to superpose and compute the distances with.
+        If not specified, all atoms are used.
+    sigma: np.float , dtype=float
+        The kernel width to use. Defaults to 0.3nm
+    """
+
+    def __init__(self, reference_traj=None, atom_indices=None, sigma=0.3):
+
+        super(LandMarkRMSDFeaturizer, self).__init__(reference_traj,atom_indices)
+        self.sigma = sigma
+
+    def _transform(self, value):
+        return np.exp(-value**2/(2* self.sigma **2))
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the LandmarkRMSD features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each feature
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: Alpha Angle
+                - featuregroup: the type of dihedral angle and whether sin or
+                  cos has been applied.
+        """
+        feature_descs = []
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
+        top = traj.topology
+
+        aind_tuples = [self.atom_indices for _ in range(self.sliced_reference_traj.n_frames)]
+        zippy = zippy_maker(aind_tuples, top)
+
+        zippy = itertools.product(["LandMarkFeaturizer"], ["RMSD"], [self.sigma], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+        return feature_descs
 
 class AtomPairsFeaturizer(Featurizer):
     """Featurizer based on distances between specified pairs of atoms.
@@ -365,6 +436,49 @@ class AtomPairsFeaturizer(Featurizer):
         d = md.geometry.compute_distances(traj, self.pair_indices,
                                           periodic=self.periodic)
         return d ** self.exponent
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the atom pair features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the two atom inds
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: AtomPairsFeaturizer
+                - featuregroup: Distance.
+                - other info : Value of the exponent
+        """
+        feature_descs = []
+
+        top = traj.topology
+        residue_indices = [[top.atom(i[0]).residue.index, top.atom(i[1]).residue.index] \
+                           for i in self.atom_indices]
+
+        aind = []
+        resseqs = []
+        resnames = []
+        for ind,resid_ids in enumerate(residue_indices):
+            aind += [[i for i in self.atom_indices[ind]]]
+            resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
+            resnames += [[top.residue(ri).name for ri in resid_ids]]
+
+        zippy = itertools.product(["AtomPairs"], ["Distance"],
+                                  ["Exponent {}".format(self.exponent)],
+                                  zip(aind, resseqs, residue_indices, resnames))
+
+        feature_descs.extend(dict_maker(zippy))
+        return feature_descs
 
 
 class FunctionFeaturizer(Featurizer):
@@ -778,26 +892,31 @@ class KappaAngleFeaturizer(Featurizer):
     """Featurizer to extract kappa angles.
 
     The kappa angle of residue `i` is the angle formed by the three CA atoms
-    of residues `i-2`, `i` and `i+2`. This featurizer extracts the
-    `n_residues - 4` kappa angles of each frame in a trajectory.
+    of residues `i-offset`, `i` and `i+offset`. This featurizer extracts the
+    `n_residues - 2*offset` kappa angles of each frame in a trajectory.
 
     Parameters
     ----------
     cos : bool
         Compute the cosine of the angle instead of the angle itself.
+    offset : int
+        Offset to use for when calculating the features. Defaults to 2.
+        I.e it will calculate the angles between i-2, i and i+2 CA
     """
 
-    def __init__(self, cos=True):
+    def __init__(self, cos=True, offset=2):
         self.cos = cos
         self.atom_indices = None
+        self.offset = offset
 
     def partial_transform(self, traj):
         ca = [a.index for a in traj.top.atoms if a.name == 'CA']
-        if len(ca) < 5:
+        if len(ca) < 2*self.offset + 1:
             return np.zeros((len(traj), 0), dtype=np.float32)
 
         angle_indices = np.array(
-            [(ca[i - 2], ca[i], ca[i + 2]) for i in range(2, len(ca) - 2)])
+            [(ca[i - self.offset], ca[i],
+              ca[i + self.offset]) for i in range(self.offset, len(ca) - self.offset)])
         result = md.compute_angles(traj, angle_indices)
 
         if self.atom_indices is None:
@@ -805,7 +924,6 @@ class KappaAngleFeaturizer(Featurizer):
         if self.cos:
             return np.cos(result)
 
-        assert result.shape == (traj.n_frames, traj.n_residues - 4)
         return result
 
 
@@ -851,6 +969,77 @@ class KappaAngleFeaturizer(Featurizer):
 
         return feature_descs
 
+
+class AngleFeaturizer(Featurizer):
+    """Featurizer based on angles between 3 atoms.
+
+    This featurizer transforms a dataset containing MD trajectories into
+    a vector dataset by representing each frame in each of the MD trajectories
+    by a vector of the angles between triples of amino-acid residues.
+
+    Parameters
+    ----------
+    angle_indices : list of tuples
+        List of triplet atoms to compute the angles for. Please ensure that
+        they are properly sorted
+    cos : bool
+        Compute the cosine of the angle instead of the angle itself.
+    """
+
+    def __init__(self, angle_indices=None, cos=True):
+        if angle_indices is None:
+            raise ValueError("Need to specify atom triplets to use")
+        self.angle_indices = np.vstack(angle_indices)
+        self.cos = cos
+
+    def partial_transform(self, traj):
+        result = md.compute_angles(traj, self.angle_indices)
+
+        if self.cos:
+            return np.cos(result)
+
+        return result
+
+
+    def describe_features(self, traj):
+        """Return a list of dictionaries describing the dihderal features.
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            The trajectory to describe
+
+        Returns
+        -------
+        feature_descs : list of dict
+            Dictionary describing each feature with the following information
+            about the atoms participating in each dihedral
+                - resnames: unique names of residues
+                - atominds: the four atom indicies
+                - resseqs: unique residue sequence ids (not necessarily
+                  0-indexed)
+                - resids: unique residue ids (0-indexed)
+                - featurizer: KappaAngle
+                - featuregroup: the type of dihedral angle and whether
+                  cos has been applied.
+        """
+        feature_descs = []
+        # fill in the atom indices using just the first frame
+        self.partial_transform(traj[0])
+        top = traj.topology
+        if self.angle_indices is None:
+            raise ValueError("Cannot describe features for trajectories")
+        aind_tuples = self.angle_indices
+        zippy = zippy_maker(aind_tuples, top)
+        if self.cos:
+            zippy = itertools.product(["Angle"],["N/A"], ['cos'], zippy)
+        else:
+            zippy = itertools.product(["Angle"],["N/A"], ['nocos'], zippy)
+
+        feature_descs.extend(dict_maker(zippy))
+
+
+        return feature_descs
 
 
 class SASAFeaturizer(Featurizer):
@@ -963,12 +1152,28 @@ class ContactFeaturizer(Featurizer):
         When using `contact==all`, don't compute contacts between
         "residues" which are not protein (i.e. do not contain an alpha
         carbon).
+    soft_min : bool, default=False
+        If soft_min is true, we will use a diffrentiable version of
+        the scheme. The exact expression used
+         is d = \frac{\beta}{log\sum_i{exp(\frac{\beta}{d_i}})} where
+         beta is user parameter which defaults to 20nm. The expression
+         we use is copied from the plumed mindist calculator.
+         http://plumed.github.io/doc-v2.0/user-doc/html/mindist.html
+    soft_min_beta : float, default=20nm
+        The value of beta to use for the soft_min distance option.
+        Very large values might cause small contact distances to go to 0.
     """
 
-    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True):
+    def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True,
+                 soft_min=False, soft_min_beta=20):
         self.contacts = contacts
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
+        self.soft_min = soft_min
+        self.soft_min_beta = soft_min_beta
+        if self.soft_min and not 'soft_min' in inspect.signature(md.compute_contacts).parameters:
+            raise ValueError("Sorry but soft_min requires the latest version"
+                             "of mdtraj")
 
     def _transform(self, distances):
         return distances
@@ -994,9 +1199,14 @@ class ContactFeaturizer(Featurizer):
         --------
         transform : simultaneously featurize a collection of MD trajectories
         """
-
-        distances, _ = md.compute_contacts(traj, self.contacts,
-                                           self.scheme, self.ignore_nonprotein)
+        if self.soft_min:
+            distances, _ = md.compute_contacts(traj, self.contacts,
+                                               self.scheme, self.ignore_nonprotein,
+                                               soft_min=self.soft_min,
+                                               soft_min_beta=self.soft_min_beta)
+        else:
+            distances, _ = md.compute_contacts(traj, self.contacts,
+                                               self.scheme, self.ignore_nonprotein)
         return self._transform(distances)
 
 
@@ -1014,7 +1224,8 @@ class ContactFeaturizer(Featurizer):
             Dictionary describing each feature with the following information
             about the atoms participating in each dihedral
                 - resnames: unique names of residues
-                - atominds: the four atom indicies
+                - atominds: atom indices(returns CA if scheme is ca_inds,otherwise
+                            returns all atom_inds)
                 - resseqs: unique residue sequence ids (not necessarily
                   0-indexed)
                 - resids: unique residue ids (0-indexed)
@@ -1023,27 +1234,44 @@ class ContactFeaturizer(Featurizer):
         """
         feature_descs = []
         # fill in the atom indices using just the first frame
-        distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
+        if self.soft_min:
+            distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
-                                                         self.ignore_nonprotein
-                                                         )
+                                                         self.ignore_nonprotein,
+                                                         soft_min=self.soft_min,
+                                                         soft_min_beta=self.soft_min_beta)
+        else:
+            distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
+                                                         self.scheme,
+                                                         self.ignore_nonprotein)
         top = traj.topology
 
         aind = []
         resseqs = []
         resnames = []
+        if self.scheme=='ca':
+            atom_ind_list = [[j.index for j in i.atoms if j.name=='CA']
+                             for i in top.residues]
+        elif self.scheme=='closest-heavy':
+            atom_ind_list = [[j.index for j in i.atoms if j.element.name!="hydrogen"]
+                             for i in top.residues]
+        elif self.scheme=='closest':
+            atom_ind_list = [[j.index for j in i.atoms] for i in top.residues]
+        else:
+            atom_ind_list = [["N/A"] for i in top.residues]
+
         for resid_ids in residue_indices:
-            aind += ["N/A"]
+            aind += [[atom_ind_list[ri] for ri in resid_ids]]
             resseqs += [[top.residue(ri).resSeq for ri in resid_ids]]
             resnames += [[top.residue(ri).name for ri in resid_ids]]
-
         zippy = itertools.product(["Contact"], [self.scheme],
-                                  ["Ignore_Protein {}".format(self.ignore_nonprotein)],
+                                  ["{}".format(self.soft_min_beta)],
                                   zip(aind, resseqs, residue_indices, resnames))
 
         feature_descs.extend(dict_maker(zippy))
 
         return feature_descs
+
 
 
 class BinaryContactFeaturizer(ContactFeaturizer):
@@ -1134,7 +1362,7 @@ class LogisticContactFeaturizer(ContactFeaturizer):
         shorter than CENTER will return values greater than 0.5 and
         distances larger than CENTER will return values smaller than 0.5.
     steepness : float, default=20
-        Determines the steepness of the logistic curve, [1/nm]. Small 
+        Determines the steepness of the logistic curve, [1/nm]. Small
         and large distances will approach ouput values of 1 and 0,
         respectively, more quickly.
     """
@@ -1347,63 +1575,6 @@ class DRIDFeaturizer(Featurizer):
         transform : simultaneously featurize a collection of MD trajectories
         """
         return md.geometry.compute_drid(traj, self.atom_indices)
-
-
-class TrajFeatureUnion(BaseEstimator, sklearn.pipeline.FeatureUnion):
-    """sklearn.pipeline.FeatureUnion adapted for multiple sequences
-    """
-
-    def fit_transform(self, traj_list, y=None, **fit_params):
-        """Fit all transformers using `trajectories`, transform the data
-        and concatenate results.
-
-        Parameters
-        ----------
-        traj_list : list (of mdtraj.Trajectory objects)
-            Trajectories to featurize
-        y : Unused
-            Unused
-
-        Returns
-        -------
-        Y : list (of np.ndarray)
-            Y[i] is the featurized version of X[i]
-            Y[i] will have shape (n_samples_i, n_features), where
-            n_samples_i is the length of trajectory i and n_features
-            is the total (concatenated) number of features in the
-            concatenated list of featurizers.
-        """
-        self.fit(traj_list, y, **fit_params)
-        return self.transform(traj_list)
-
-    def transform(self, traj_list):
-        """Transform traj_list separately by each transformer, concatenate results.
-
-        Parameters
-        ----------
-        trajectories : list (of mdtraj.Trajectory objects)
-            Trajectories to featurize
-
-        Returns
-        -------
-        Y : list (of np.ndarray)
-            Y[i] is the featurized version of X[i]
-            Y[i] will have shape (n_samples_i, n_features), where
-            n_samples_i is the length of trajectory i and n_features
-            is the total (concatenated) number of features in the
-            concatenated list of featurizers.
-
-        """
-        Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(sklearn.pipeline._transform_one)(trans, name, traj_list,
-                                                     self.transformer_weights)
-            for name, trans in self.transformer_list)
-
-        X_i_stacked = [np.hstack([Xs[feature_ind][trj_ind]
-                       for feature_ind in range(len(Xs))])
-                       for trj_ind in range(len(Xs[0]))]
-
-        return X_i_stacked
 
 
 class Slicer(Featurizer):

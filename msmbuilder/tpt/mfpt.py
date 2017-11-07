@@ -22,11 +22,13 @@ import numpy as np
 import scipy
 from mdtraj.utils.six.moves import xrange
 import copy
+from msmbuilder.msm.core import _solve_msm_eigensystem
+from msmbuilder.msm.validation.transmat_errorbar import *
 
 __all__ = ['mfpts']
 
 
-def mfpts(msm, sinks=None, lag_time=1.):
+def mfpts(msm, sinks=None, lag_time=1., errors=False, n_samples=100):
     """
     Gets the Mean First Passage Time (MFPT) for all states to a *set*
     of sinks.
@@ -48,7 +50,19 @@ def mfpts(msm, sinks=None, lag_time=1.):
         Lag time for the model. The MFPT will be reported in whatever
         units are given here. Default is (1) which is in units of the
         lag time of the MSM.
-
+    errors : bool, optional
+        Pass "True" if you want to calculate a distribution of MFPTs accounting for MSM model error due to finite 
+        sampling 
+    n_samples : int, optional
+        If "errors" is True, this is the number of MFPTs you want to compute (default = 100). 
+        For each computation, all nonzero transition probabilities (i,j) will be treated as 
+        Gaussian random variables, with mean equal to the transition probability and standard 
+        deviation equal to the standard errot of the mean of the binomial distribution with 
+        n observations, where n is the row-summed counts of row i. 
+        
+        NOTE: This implicitly assumes the Central Limit Theorem is a good approximation for the error, 
+        so this method works best with well-sampled data. 
+        
     Returns
     -------
     mfpts : np.ndarray, float
@@ -62,7 +76,7 @@ def mfpts(msm, sinks=None, lag_time=1.):
         - If sinks contains one or more states, then mfpts's shape
             is (n_states,). Where mfpts[i] is the mean first passage
             time from state i to any state in sinks.
-
+        
     References
     ----------
     .. [1] Grinstead, C. M. and Snell, J. L. Introduction to
@@ -73,15 +87,33 @@ def mfpts(msm, sinks=None, lag_time=1.):
     """
 
     if hasattr(msm, 'all_transmats_'):
+        if errors:
+            output = []
+            for i in range(n_samples):
+                mfpts = np.zeros_like(msm.all_transmats_)
+                for i, el in enumerate(zip(msm.all_transmats_, msm.all_countsmats_)):
+                    loc, scale = create_perturb_params(el[1])
+                    tprob = perturb_tmat(loc, scale)
+                    populations = _solve_msm_eigensystem(tprob, 1)[1]
+                    mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
+                output.append(np.median(mfpts, axis=0))             
+            return np.array(output)
+        
         mfpts = np.zeros_like(msm.all_transmats_)
-
         for i, el in enumerate(zip(msm.all_transmats_, msm.all_populations_)):
             tprob = el[0]
             populations = el[1]
             mfpts[i, :, :] = _mfpts(tprob, populations, sinks, lag_time)
-
         return np.median(mfpts, axis=0)
-
+    
+    if errors:
+        loc, scale = create_perturb_params(msm.countsmat_)
+        output = []
+        for i in range(n_samples):
+            tprob = perturb_tmat(loc, scale)
+            populations = _solve_msm_eigensystem(tprob, 1)[1]
+            output.append(_mfpts(tprob, populations, sinks, lag_time))
+        return np.array(output)
     return _mfpts(msm.transmat_, msm.populations_, sinks, lag_time)
 
 

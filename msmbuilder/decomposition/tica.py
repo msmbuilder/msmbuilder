@@ -1,5 +1,6 @@
 # Author: Christian Schwantes <schwancr@gmail.com>
-# Contributors: Robert McGibbon <rmcgibbo@gmail.com>, Kyle A. Beauchamp  <kyleabeauchamp@gmail.com>
+# Contributors: Robert McGibbon <rmcgibbo@gmail.com>, Kyle A. Beauchamp  <kyleabeauchamp@gmail.com>,
+# Muneeb Sultan <msultan@stanford.edu>, Brooke Husic <brookehusic@gmail.com>
 # Copyright (c) 2014, Stanford University
 # All rights reserved.
 
@@ -44,6 +45,9 @@ class tICA(BaseEstimator, TransformerMixin):
     kinetic_mapping : bool, default=False
         If True, weigh the projections by the tICA eigenvalues, yielding
          kinetic distances as described in [6].
+    commute_mapping : bool, default=False
+        If True, scale/weigh the projections by the sqrt(ti/2), yielding
+        commute distance as described in [7].
 
     Attributes
     ----------
@@ -97,16 +101,21 @@ class tICA(BaseEstimator, TransformerMixin):
     .. [5] Chen, Yilun, Ami Wiesel, and Alfred O. Hero III. ICASSP (2009)
     .. [6] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph]
            (2015)
+    .. [7] Noe, F., Banisch, R., Clementi, C. J. Chem. Theory. Comput(2016).
+            doi:10.1021/acs.jctc.6b00762
     """
 
     def __init__(self, n_components=None, lag_time=1, shrinkage=None,
-                 kinetic_mapping=False):
+                 kinetic_mapping=False, commute_mapping=False):
         self.n_components = n_components
         self.lag_time = lag_time
         self.shrinkage = shrinkage
         self.shrinkage_ = None
         self.kinetic_mapping = kinetic_mapping
-
+        self.commute_mapping = commute_mapping
+        if self.kinetic_mapping and self.commute_mapping:
+            raise ValueError("Can't have both kinetic mapping and "
+                             "commute mapping. Please only use one.")
         self.n_features = None
         self.n_observations_ = None
         self.n_sequences_ = None
@@ -326,6 +335,20 @@ class tICA(BaseEstimator, TransformerMixin):
             if self.kinetic_mapping:
                 X_transformed *= self.eigenvalues_
 
+            if self.commute_mapping:
+                # thanks to @maxentile and @jchodera for providing/directing to a
+                # reference implementation in pyemma
+                #(markovmodel/PyEMMA#963)
+                # dampening smaller timescales based recommendtion of  [7]
+                #
+                # some timescales are NaNs and regularized timescales will 
+                # be negative when they are less than the lag time; all these
+                # are set to zero using nan_to_num before returning
+                regularized_timescales = 0.5 * self.timescales_ *\
+                                         np.tanh( np.pi *((self.timescales_ - self.lag_time)
+                                                          /self.lag_time) + 1)
+                X_transformed *= np.sqrt(regularized_timescales / 2)
+                X_transformed = np.nan_to_num(X_transformed)
             sequences_new.append(X_transformed)
 
         return sequences_new
@@ -377,6 +400,10 @@ class tICA(BaseEstimator, TransformerMixin):
 
     def _fit(self, X):
         X = np.asarray(array2d(X), dtype=np.float64)
+
+        if X.shape[1] > X.shape[0]:
+            warnings.warn("The number of features (%d) is greater than the length of the data (%d). The covariance matrix is not guaranteed to be positive definite." % (X.shape[1], X.shape[0]))
+
         self._initialize(X.shape[1])
 
         # We don't need to scream and shout here. Just ignore this data.

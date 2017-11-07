@@ -53,7 +53,7 @@ except ImportError:
     sys.exit(1)
 
 # #########################
-VERSION = '3.7.0.dev0'
+VERSION = '3.9.0.dev0'
 ISRELEASED = False
 __version__ = VERSION
 # #########################

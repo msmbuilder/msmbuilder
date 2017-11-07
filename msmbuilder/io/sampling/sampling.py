@@ -49,6 +49,7 @@ def sample_dimension(trajs, dimension, n_frames, scheme="linear"):
         txx = np.sort(txx)
         spaced_points = np.hstack((txx[:_cut_point],
                                    txx[-_cut_point:]))
+        spaced_points = np.reshape(spaced_points, newshape=(len(spaced_points), 1))
     else:
         raise ValueError("Scheme has be to one of linear, random or edge")
 

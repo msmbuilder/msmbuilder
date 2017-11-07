@@ -224,11 +224,7 @@ def _propagate1d(x0, n_steps, grad_potential, random, bc_min=None, bc_max=None,
         print('%d steps/s' % (n_steps / (time.time() - start)))
     return x
 
-
-def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
-    """Analytic eigenvalues/eigenvectors for 1D Brownian dynamics
-    """
-
+def _brownian_transmat(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
     ONE_OVER_SQRT_2PI = 1.0 / (np.sqrt(2 * np.pi))
     normalpdf = lambda x: ONE_OVER_SQRT_2PI * np.exp(-0.5 * (x * x))
 
@@ -251,7 +247,12 @@ def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
                 transmat[i, j] += normalpdf(diff)
 
         transmat[i, :] = transmat[i, :] / np.sum(transmat[i, :])
-
     transmat = np.linalg.matrix_power(transmat, lag_time)
+    return transmat
+
+def _brownian_eigs(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc):
+    """Analytic eigenvalues/eigenvectors for 1D Brownian dynamics
+    """
+    transmat = _brownian_transmat(n_grid, lag_time, grad_potential, xmin, xmax, reflect_bc)
     u, lv, rv = _solve_msm_eigensystem(transmat, k=len(transmat) - 1)
     return u, rv

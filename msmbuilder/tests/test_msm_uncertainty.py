@@ -51,7 +51,7 @@ def test_doublewell():
     X = DoubleWell(random_state=0).get_cached().trajectories
 
     for i in range(3):
-        Y = NDGrid(n_bins_per_feature=10).fit_transform([X[i]])
+        Y = NDGrid(n_bins_per_feature=4).fit_transform([X[i]])
         model1 = MarkovStateModel(verbose=False).fit(Y)
         model2 = ContinuousTimeMSM().fit(Y)
 

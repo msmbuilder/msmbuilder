@@ -93,7 +93,7 @@ class APM(BaseEstimator):
         self.X = X
         self._run()
         t1 = time.time()
-        print("APM clustering Time Cost:", t1 - t0)
+#        print("APM clustering Time Cost:", t1 - t0)
         return self
 
     def fit_predict(self, X, y=None):
@@ -102,7 +102,7 @@ class APM(BaseEstimator):
     def _run(self):
         """Do the APM lumping.
         """
-        print("Doing APM Clustering...")
+#        print("Doing APM Clustering...")
         # Start looping for maxIter times
         n_macrostates = 1  # initialized as 1 because no macrostate exist in loop 0
         metaQ = -1.0
@@ -120,7 +120,7 @@ class APM(BaseEstimator):
             # do Lumping
             n_micro_states = np.amax(self.__temp_labels_) + 1
             if n_micro_states > self.n_macrostates:
-                print("PCCA Lumping...", n_micro_states, "microstates")
+#                print("PCCA Lumping...", n_micro_states, "microstates")
                 self.__temp_MacroAssignments_ = self._do_lumping(
                     n_macrostates=n_macrostates)
                 #self.__temp_labels_ = [copy.copy(element) for element in self.__temp_MacroAssignments_]
@@ -157,9 +157,9 @@ class APM(BaseEstimator):
                                     for element in self.__temp_labels_]
                     self.transmat_ = self.__temp_transmat_
 
-            print("Loop:", iter, "AcceptedMove?", acceptedMove, "metaQ:",
-                  metaQ, "prevQ:", prevQ, "global_maxQ:", global_maxQ,
-                  "local_maxQ:", local_maxQ, "macroCount:", n_macrostates)
+#            print("Loop:", iter, "AcceptedMove?", acceptedMove, "metaQ:",
+#                  metaQ, "prevQ:", prevQ, "global_maxQ:", global_maxQ,
+#                  "local_maxQ:", local_maxQ, "macroCount:", n_macrostates)
             #set n_macrostates
             n_macrostates = self.n_macrostates
             self.__temp_labels_ = [copy.copy(element)
@@ -196,12 +196,12 @@ class APM(BaseEstimator):
             return 1.0
 
     def _do_time_clustering(self, macro_state=None):
-        print("Doing time clustering...")
+#        print("Doing time clustering...")
         if not self.__micro_stack:
             #print "Stack is emtpy"
             return
         else:
-            print("Stack:", self.__micro_stack)
+#            print("Stack:", self.__micro_stack)
             micro_state = self.__micro_stack[
                 -1
             ]  # last element of self.__micro_stack
@@ -219,7 +219,7 @@ class APM(BaseEstimator):
     def _do_split(self, micro_state=None, sub_clus=2):
         micro_clusterer = KCenters(n_clusters=sub_clus,
                                    metric=self.metric,
-                                   random_state=0)
+                                   random_state=self.random_state)
         if self.__temp_labels_ is not None:
             sub_X = []
             sub_indices = []

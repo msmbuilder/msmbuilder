@@ -60,17 +60,16 @@ labels = [random.randint(low=0, high=5, size=100).reshape(-1, 1)
 def test_butterworth():
     butterworth = Butterworth()
 
-    y1 = butterworth.transform(trajs)
+    y1 = butterworth.fit_transform(trajs)
 
     assert len(y1) == len(trajs)
 
     assert any(np.abs(y1[0] - trajs[0]).ravel() > 1E-5)
 
-
 def test_ewma():
     ewma = EWMA(span=5)
 
-    y1 = ewma.transform(trajs)
+    y1 = ewma.fit_transform(trajs)
 
     assert len(y1) == len(trajs)
 
@@ -80,7 +79,7 @@ def test_ewma():
 def test_doubleewma():
     dewma = DoubleEWMA(span=5)
 
-    y1 = dewma.transform(trajs)
+    y1 = dewma.fit_transform(trajs)
 
     assert len(y1) == len(trajs)
 

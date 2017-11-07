@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 from sklearn.pipeline import Pipeline
 
-from msmbuilder.lumping import PCCA, PCCAPlus
+from msmbuilder.lumping import PCCA, PCCAPlus, MVCA
 from msmbuilder.msm import MarkovStateModel
 
 random = np.random.RandomState(9)
@@ -62,6 +62,21 @@ def test_pcca_plus():
             np.all(macro_assignments == opposite))
 
 
+def test_mvca():
+    assignments, ref_macrostate_assignments = _metastable_system()
+    pipeline = Pipeline([
+        ('msm', MarkovStateModel()),
+        ('pcca+', MVCA(n_macrostates=2))
+    ])
+    macro_assignments = pipeline.fit_transform(assignments)[0]
+    # we need to consider any permutation of the state labels when we
+    # test for equality. Since it's only a 2-state that's simple using
+    # the logical_not to flip the assignments.
+    opposite = np.logical_not(ref_macrostate_assignments)
+    assert (np.all(macro_assignments == ref_macrostate_assignments) or
+            np.all(macro_assignments == opposite))
+
+
 def test_from_msm():
     assignments, _ = _metastable_system()
     msm = MarkovStateModel()
@@ -71,6 +86,18 @@ def test_from_msm():
     msm = MarkovStateModel()
     msm.fit(assignments)
     pccaplus = PCCAPlus.from_msm(msm, 2)
+
+    msm = MarkovStateModel()
+    msm.fit(assignments)
+    mvca = MVCA.from_msm(msm, 2)
+
+
+def test_from_msm_2():
+    assignments, _ = _metastable_system()
+    msm = MarkovStateModel()
+    msm.fit(assignments)
+    pccaplus = PCCAPlus.from_msm(msm, 2, 'crispness')
+    assert pccaplus.objective_function == 'crispness'
 
 
 def test_ntimescales_1():

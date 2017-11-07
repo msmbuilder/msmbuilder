@@ -1,10 +1,10 @@
 MSMBuilder
 ==========
 
-[![Build Status](https://travis-ci.org/msmbuilder/msmbuilder.svg?branch=master)] (https://travis-ci.org/msmbuilder/msmbuilder)
-[![PyPi version](https://badge.fury.io/py/msmbuilder.svg)]                       (https://pypi.python.org/pypi/msmbuilder/)
-[![License](https://img.shields.io/badge/license-LGPLv2.1+-red.svg?style=flat)]  (https://pypi.python.org/pypi/msmbuilder/)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg?style=flat)] (http://msmbuilder.org)
+[![Build Status](https://travis-ci.org/msmbuilder/msmbuilder.svg?branch=master)](https://travis-ci.org/msmbuilder/msmbuilder)
+[![PyPi version](https://badge.fury.io/py/msmbuilder.svg)](https://pypi.python.org/pypi/msmbuilder/)
+[![License](https://img.shields.io/badge/license-LGPLv2.1+-red.svg?style=flat)](https://pypi.python.org/pypi/msmbuilder/)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg?style=flat)](http://msmbuilder.org)
 
 MSMBuilder is a python package which implements a series of statistical
 models for high-dimensional time-series. It is particularly focused on the
@@ -48,8 +48,8 @@ An example workflow might be as follows:
 
 1. Set up a system for molecular dynamics, and run one or more simulations
    for as long as you can on as many CPUs or GPUs as you have access to.
-   There are a lot of great software packages for running MD, e.g [OpenMM]
-   (https://simtk.org/home/openmm), [Gromacs](http://www.gromacs.org/),
+   There are a lot of great software packages for running MD, e.g
+   [OpenMM](https://simtk.org/home/openmm), [Gromacs](http://www.gromacs.org/),
    [Amber](http://ambermd.org/), [CHARMM](http://www.charmm.org/), and
    many others. MSMBuilder is not one of them.
 

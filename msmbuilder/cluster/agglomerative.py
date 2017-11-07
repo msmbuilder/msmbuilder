@@ -1,6 +1,6 @@
 # Author: Robert McGibbon <rmcgibbo@gmail.com>
 # Contributors: Brooke Husic <brookehusic@gmail.com>
-# Copyright (c) 2016, Stanford University
+# Copyright (c) 2017, Stanford University
 # All rights reserved.
 
 #-----------------------------------------------------------------------------
@@ -140,8 +140,10 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
     Attributes
     ----------
-    landmark_labels_
-    landmarks_
+    landmark_labels_ : np.array, [n_landmarks]
+    landmarks_ : np.array, [n_landmarks, X.shape]
+    cluster_centers_ : np.array, [n_clusters, X.shape]
+        Coordinates of cluster centers (unless RMSD is the metric)
     """
 
     def __init__(self, n_clusters, n_landmarks=None, linkage='average',
@@ -158,6 +160,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
 
         self.landmark_labels_ = None
         self.landmarks_ = None
+        self.cluster_centers_ = None
 
     def fit(self, X, y=None):
         """
@@ -218,6 +221,13 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                         self.landmark_labels_[i]] += distances[k] ** 2
 
             self.landmarks_ = X[land_indices]
+
+        if self.metric != 'rmsd':
+            cluster_centers_ = []
+            for i in range(self.n_clusters):
+                temp = list(np.mean(self.landmarks_[self.landmark_labels_==i], axis=0))
+                cluster_centers_.append(temp)
+            self.cluster_centers_ = np.array(cluster_centers_)
 
         return self
 

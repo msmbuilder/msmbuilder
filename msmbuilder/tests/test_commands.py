@@ -13,17 +13,19 @@ import hmmlearn.hmm
 import mdtraj as md
 import numpy as np
 from mdtraj.testing import eq
-from mdtraj.testing import get_fn as get_mdtraj_fn
+# from mdtraj.testing import get_fn as get_mdtraj_fn
 
 from msmbuilder.dataset import dataset
-from msmbuilder.example_datasets import get_data_home
+from msmbuilder.example_datasets import get_data_home, FsPeptide
 from msmbuilder.utils import load
 
 DATADIR = HMM = None
 
+t = FsPeptide().get().trajectories[0][0]
+fn = os.path.join("{}","fs_peptide", "fs-peptide.pdb").format(get_data_home())
 
 def setup_module():
-    global DATADIR, HMM
+    global DATADIR, HMM, t
     DATADIR = tempfile.mkdtemp()
     # 4 components and 3 features. Each feature is going to be the x, y, z
     # coordinate of 1 atom
@@ -43,15 +45,15 @@ def setup_module():
     HMM.startprob_ = np.array([1, 1, 1, 1]) / 4.0
 
     # get a 1 atom topology
-    topology = md.load(get_mdtraj_fn('native.pdb')).atom_slice([1]).topology
+    topology = t.atom_slice([1]).topology
 
     # generate the trajectories and save them to disk
     for i in range(10):
         d, s = HMM.sample(100)
-        t = md.Trajectory(xyz=d.reshape(len(d), 1, 3), topology=topology)
-        t.save(os.path.join(DATADIR, 'Trajectory%d.h5' % i))
+        traj = md.Trajectory(xyz=d.reshape(len(d), 1, 3), topology=topology)
+        traj.save(os.path.join(DATADIR, 'Trajectory%d.h5' % i))
 
-    assert os.path.exists("{}/alanine_dipeptide".format(get_data_home()))
+    assert os.path.exists(os.path.join("{}", "alanine_dipeptide").format(get_data_home()))
 
 
 def teardown_module():
@@ -81,8 +83,6 @@ def shell(str):
 
 
 def test_atomindices_1():
-    fn = get_mdtraj_fn('2EQQ.pdb')
-    t = md.load(fn)
     with tempdir():
         shell('msmb AtomIndices -o all.txt --all -a -p %s' % fn)
         shell('msmb AtomIndices -o all-pairs.txt --all -d -p %s' % fn)
@@ -93,8 +93,6 @@ def test_atomindices_1():
 
 
 def test_atomindices_2():
-    fn = get_mdtraj_fn('2EQQ.pdb')
-    t = md.load(fn)
     with tempdir():
         shell('msmb AtomIndices -o heavy.txt --heavy -a -p %s' % fn)
         shell('msmb AtomIndices -o heavy-pairs.txt --heavy -d -p %s' % fn)
@@ -107,8 +105,6 @@ def test_atomindices_2():
 
 
 def test_atomindices_3():
-    fn = get_mdtraj_fn('2EQQ.pdb')
-    t = md.load(fn)
     with tempdir():
         shell('msmb AtomIndices -o alpha.txt --alpha -a -p %s' % fn)
         shell('msmb AtomIndices -o alpha-pairs.txt --alpha -d -p %s' % fn)
@@ -120,8 +116,6 @@ def test_atomindices_3():
 
 
 def test_atomindices_4():
-    fn = get_mdtraj_fn('2EQQ.pdb')
-    t = md.load(fn)
     with tempdir():
         shell('msmb AtomIndices -o minimal.txt --minimal -a -p %s' % fn)
         shell('msmb AtomIndices -o minimal-pairs.txt --minimal -d -p %s' % fn)
