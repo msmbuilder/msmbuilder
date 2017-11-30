@@ -43,6 +43,7 @@ class BACE(MarkovStateModel):
     ----------
     microstate_mapping_ : np.array, [number of microstates]
     map_dict : dictionary, [n_macrostates : microstate_mapping_]
+    bayesFactors : dictionary, [n_macrostates : Bayes factor]
 
     Notes
     -----
@@ -131,7 +132,7 @@ class BACE(MarkovStateModel):
         i = 0
         nCurrentStates = statesKeep.shape[0]
 
-        self.fBayesFact = {}
+        self.bayesFactors = {}
 
         dMat, minX, minY = self._calcDMat(c, w, indRecalc, dMat,
                                          statesKeep, unmerged)
@@ -294,7 +295,7 @@ class BACE(MarkovStateModel):
         minX = int(np.floor(indMin / dMat.shape[1]))
         minY = int(indMin % dMat.shape[1])
 
-        self.fBayesFact[statesKeep.shape[0] - 1] = 1. / dMat[minX, minY]
+        self.bayesFactors[statesKeep.shape[0] - 1] = 1. / dMat[minX, minY]
 
         #fBayesFact.write("%d %f\n" % (statesKeep.shape[0]-1, 1./dMat[minX,minY]))
         return dMat, minX, minY
