@@ -61,6 +61,9 @@ class SparseTICA(tICA):
     kinetic_mapping : bool, default=False
         If True, weigh the projections by the tICA eigenvalues, yielding
          kinetic distances as described in [4].
+    commute_mapping : bool, default=False
+        If True, scale/weigh the projections by the sqrt(ti/2), yielding
+        commute distance as described in [5].
     epsilon : positive float, default=1e-6
         epsilon should be a number very close to zero, which is used to
         construct the approximation to the L_0 penality function. However,
@@ -117,13 +120,15 @@ class SparseTICA(tICA):
     .. [3] Mackey, L. "Deflation Methods for Sparse PCA." NIPS. Vol. 21. 2008.
     .. [4] Noe, F. and Clementi, C. arXiv arXiv:1506.06259 [physics.comp-ph]
            (2015)
+    .. [5] Noe, F., Banisch, R., Clementi, C. J. Chem. Theory. Comput(2016).
+            doi:10.1021/acs.jctc.6b00762
     """
 
     def __init__(self, n_components=None, lag_time=1, rho=0.01,
-                 kinetic_mapping=False, epsilon=1e-6, shrinkage=None,
+                 kinetic_mapping=False, commute_mapping=False, epsilon=1e-6, shrinkage=None,
                  tolerance=1e-6, maxiter=10000, verbose=False):
         super(SparseTICA, self).__init__(n_components, lag_time=lag_time,
-                                         kinetic_mapping=kinetic_mapping)
+                                         kinetic_mapping=kinetic_mapping, commute_mapping=commute_mapping)
         self.rho = rho
         self.epsilon = epsilon
         self.shrinkage = shrinkage
@@ -172,6 +177,7 @@ n_components        : {n_components}
 shrinkage           : {shrinkage}
 lag_time            : {lag_time}
 kinetic_mapping     : {kinetic_mapping}
+commute_mapping     : {commute_mapping}
 rho                 : {rho}
 n_features          : {n_features}
 
@@ -186,5 +192,6 @@ Number of active degrees of freedom:
 """.format(n_components=self.n_components, lag_time=self.lag_time,
            rho=self.rho, shrinkage=self.shrinkage_,
            kinetic_mapping=self.kinetic_mapping,
+           commute_mapping=self.commute_mapping,
            timescales=self.timescales_[:5], eigenvalues=self.eigenvalues_[:5],
            n_features=self.n_features, active=active)

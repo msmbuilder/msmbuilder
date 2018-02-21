@@ -37,6 +37,7 @@ offset CA atoms.
   
 Improvements
 ~~~~~~~~~~~~
+- ```SparseTICA``` now supports commute mapping.
 - ```FeatureSelector``` is now compatible with Tree-structure Parzen Estimator
   method in Osprey (gh-1018).
 - Fixed bug in ```from_msm``` method for ```PCCA``` and ```PCCAPlus``` which
