@@ -54,7 +54,8 @@ class MVCA(MarkovStateModel):
     -----
     This method is described in the following manuscript:
         1. Husic, B. E., McKiernan, K. A., Wayment-Steele, H. K.,
-           Sultan, M. M., and Pande, V. S., in review.
+           Sultan, M. M., and Pande, V. S., J. Chem. Theory Comput.
+           14, 1071--1082 (2018).
 
     MVCA is a subclass of MarkovStateModel.  However, the MSM properties
     and attributes on MVCA refer to the MICROSTATE properties--e.g.
