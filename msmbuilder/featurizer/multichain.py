@@ -37,6 +37,9 @@ class LigandFeaturizer(Featurizer):
     reference_frame : md.Trajectory, default=None
         single-frame conformation to get chain information; also defines
         the binding pocket if specified
+    periodic : bool, default='True'
+        whether to compute minimum image distance, following periodic 
+        boundary conditions, or not.
 
     Notes
     -----
@@ -47,10 +50,11 @@ class LigandFeaturizer(Featurizer):
 
 
     def __init__(self, protein_chain='auto', ligand_chain='auto',
-                 reference_frame=None):
+                 reference_frame=None, periodic=True):
         self.protein_chain = protein_chain
         self.ligand_chain = ligand_chain
         self.reference_frame = reference_frame
+        self.periodic = periodic
 
         if reference_frame is None:
             raise ValueError("Please specify a reference frame")
@@ -204,7 +208,7 @@ class LigandContactFeaturizer(LigandFeaturizer):
         if self.binding_pocket is not 'all':
             ref_distances, _ = md.compute_contacts(self.reference_frame, 
                                      self.residue_pairs, self.scheme,
-                                     ignore_nonprotein=False)
+                                     ignore_nonprotein=False, periodic = self.periodic)
             self.residue_pairs = self.residue_pairs[np.where(ref_distances<
                                      self.binding_pocket)[1]]
             if len(self.residue_pairs) == 0:
@@ -245,7 +249,8 @@ class LigandContactFeaturizer(LigandFeaturizer):
                           "the same as that of the reference frame," +
                           "which might give meaningless results.")
         distances, _ = md.compute_contacts(traj, self.contacts,
-                                        self.scheme, ignore_nonprotein=False)
+                                        self.scheme, ignore_nonprotein=False,
+                                        periodic = self.periodic)
         return self._transform(distances)
 
     def describe_features(self, traj):
@@ -273,7 +278,8 @@ class LigandContactFeaturizer(LigandFeaturizer):
         # fill in the atom indices using just the first frame
         distances, residue_indices = md.compute_contacts(traj[0],
                                         self.contacts, self.scheme,
-                                        ignore_nonprotein=False)
+                                        ignore_nonprotein=False,
+                                        periodic=self.periodic)
         top = traj.topology
 
         aind = []
