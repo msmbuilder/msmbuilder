@@ -38,9 +38,7 @@ class LigandFeaturizer(Featurizer):
         single-frame conformation to get chain information; also defines
         the binding pocket if specified
     periodic : bool, default='True'
-        whether to compute minimum image distance, following periodic 
-        boundary conditions, or not.
-
+        If True, compute distances using periodic boundary conditions.
     Notes
     -----
     At the bare minimum, a featurizer must implement the `partial_transform(traj)`
@@ -157,18 +155,20 @@ class LigandContactFeaturizer(LigandFeaturizer):
         nanometer cutoff to define a binding pocket; if defined, only
         protein atoms within the threshold distance according to the
         topology file will be included
-
+    periodic : bool, default=True
+        If True, compute distances using periodic boundary conditions.
     """
 
     def __init__(self, protein_chain='auto', ligand_chain='auto',
                  reference_frame=None, contacts='all', 
-                 scheme='closest-heavy', binding_pocket='all'):
+                 scheme='closest-heavy', binding_pocket='all', periodic=True):
         super(LigandContactFeaturizer, self).__init__(
                     protein_chain=protein_chain, ligand_chain=ligand_chain,
                     reference_frame=reference_frame)
         self.contacts = contacts
         self.scheme = scheme
         self.binding_pocket = binding_pocket
+        self.periodic = periodic
 
         self.contacts = self._get_contact_pairs(self.contacts)
 

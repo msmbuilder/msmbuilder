@@ -1118,7 +1118,7 @@ class ContactFeaturizer(Featurizer):
         The value of beta to use for the soft_min distance option.
         Very large values might cause small contact distances to go to 0.
     periodic : bool, default=True
-        Computes distances using periodic boundary conditions.
+        If True, compute distances using periodic boundary conditions.
     """
 
     def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True,
