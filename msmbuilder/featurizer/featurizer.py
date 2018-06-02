@@ -685,14 +685,23 @@ class VonMisesFeaturizer(Featurizer):
         if not isinstance(kappa, (int, float)):
             raise TypeError('kappa must be numeric.')
 
-        self.loc = np.linspace(0, 2*np.pi, n_bins)
+        self._n_bins = n_bins
+        self.loc = np.linspace(0, 2*np.pi, self.n_bins)
         self.kappa = kappa
-        self.n_bins = n_bins
 
         known = {'phi', 'psi', 'omega', 'chi1', 'chi2', 'chi3', 'chi4'}
         if not set(types).issubset(known):
             raise ValueError('angles must be a subset of %s. you supplied %s' %
                              (str(known), str(types)))
+
+    @property
+    def n_bins(self):
+        return self._n_bins
+
+    @n_bins.setter
+    def n_bins(self, x):
+        self._n_bins = x  
+        self.loc = np.linspace(0, 2*np.pi, self.n_bins)
 
     def describe_features(self, traj):
         """Return a list of dictionaries describing the dihderal features.
