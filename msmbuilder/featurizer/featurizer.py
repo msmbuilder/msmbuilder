@@ -1126,10 +1126,12 @@ class ContactFeaturizer(Featurizer):
     soft_min_beta : float, default=20nm
         The value of beta to use for the soft_min distance option.
         Very large values might cause small contact distances to go to 0.
+    periodic : bool, default=True
+        If True, compute distances using periodic boundary conditions.
     """
 
     def __init__(self, contacts='all', scheme='closest-heavy', ignore_nonprotein=True,
-                 soft_min=False, soft_min_beta=20):
+                 soft_min=False, soft_min_beta=20, periodic=True):
         self.contacts = contacts
         self.scheme = scheme
         self.ignore_nonprotein = ignore_nonprotein
@@ -1138,6 +1140,7 @@ class ContactFeaturizer(Featurizer):
         if self.soft_min and not 'soft_min' in inspect.signature(md.compute_contacts).parameters:
             raise ValueError("Sorry but soft_min requires the latest version"
                              "of mdtraj")
+        self.periodic = periodic
 
     def _transform(self, distances):
         return distances
@@ -1167,10 +1170,12 @@ class ContactFeaturizer(Featurizer):
             distances, _ = md.compute_contacts(traj, self.contacts,
                                                self.scheme, self.ignore_nonprotein,
                                                soft_min=self.soft_min,
-                                               soft_min_beta=self.soft_min_beta)
+                                               soft_min_beta=self.soft_min_beta,
+                                               periodic=self.periodic)
         else:
             distances, _ = md.compute_contacts(traj, self.contacts,
-                                               self.scheme, self.ignore_nonprotein)
+                                               self.scheme, self.ignore_nonprotein,
+                                               periodic=self.periodic)
         return self._transform(distances)
 
 
@@ -1203,11 +1208,13 @@ class ContactFeaturizer(Featurizer):
                                                          self.scheme,
                                                          self.ignore_nonprotein,
                                                          soft_min=self.soft_min,
-                                                         soft_min_beta=self.soft_min_beta)
+                                                         soft_min_beta=self.soft_min_beta,
+                                                         periodic=self.periodic)
         else:
             distances, residue_indices = md.compute_contacts(traj[0], self.contacts,
                                                          self.scheme,
-                                                         self.ignore_nonprotein)
+                                                         self.ignore_nonprotein,
+                                                         periodic=self.periodic)
         top = traj.topology
 
         aind = []
