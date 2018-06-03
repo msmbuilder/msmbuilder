@@ -32,14 +32,19 @@ offset CA atoms.
   (gh-1035).
 - Added minimum variance cluster analysis (MVCA) for macrostating to
   msmbuilder.lumping (gh-1045).
+- Added the Bayesian agglomerative clustering engine (BACE) for macrostating
+  to msmbuilder.lumping (gh-1050).
   
 Improvements
 ~~~~~~~~~~~~
+- ```SparseTICA``` now supports commute mapping.
 - ```FeatureSelector``` is now compatible with Tree-structure Parzen Estimator
   method in Osprey (gh-1018).
 - Fixed bug in ```from_msm``` method for ```PCCA``` and ```PCCAPlus``` which
   now allows a ```PCCAPlus``` objective function to be specified (gh-1036).
 - ```msmbuilder.io.sampling.sample_dimension``` with ```scheme='edge'``` now works properly. (#1043)
+- Changed zippy_maker code so that ```Featurizer.describe_features``` will
+  return ordered unique lists to make reading and subselecting features easier.
 - ``SASAFeaturizer`` now really supports the ``describe_features`` method (gh-913).
 
 

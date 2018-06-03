@@ -2,8 +2,12 @@ import os, pip, sys, warnings
 from msmbuilder.example_datasets import has_msmb_data
 
 def test_installed_packages():
-    installed_packages = pip.get_installed_distributions()
-    package_names = [package.project_name for package in installed_packages]
+    try:
+        installed_packages = pip.get_installed_distributions
+    except:
+        from pip._internal.utils.misc import get_installed_distributions as installed_packages
+
+    package_names = [package.project_name for package in installed_packages()]
 
     test_dependencies = ['munkres', 'numdifftools', 'statsmodels', 'hmmlearn']
 

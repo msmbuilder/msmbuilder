@@ -24,6 +24,9 @@ class MVCA(MarkovStateModel):
         only the linkages are calcluated (see ``use_scipy``)
     metric : string or callable, default=js_metric_array
         Function to determine pairwise distances. Can be custom.
+    fit_only : boolean, default=False
+        If True, the fit landmark points will be returned. If False,
+        the predicted labels will be returned. In general these are not equal.
     n_landmarks : int, optional
         Memory-saving approximation. Instead of actually clustering every
         point, we instead select n_landmark points either randomly or by
@@ -49,6 +52,11 @@ class MVCA(MarkovStateModel):
 
     Notes
     -----
+    This method is described in the following manuscript:
+        1. Husic, B. E., McKiernan, K. A., Wayment-Steele, H. K.,
+           Sultan, M. M., and Pande, V. S., J. Chem. Theory Comput.
+           14, 1071--1082 (2018).
+
     MVCA is a subclass of MarkovStateModel.  However, the MSM properties
     and attributes on MVCA refer to the MICROSTATE properties--e.g.
     mvca.transmat_ is the microstate transition matrix.  To get the
@@ -58,11 +66,12 @@ class MVCA(MarkovStateModel):
     use_scipy=False and n_landmarks < number of microstates.
     """
 
-    def __init__(self, n_macrostates, metric=js_metric_array, 
+    def __init__(self, n_macrostates, metric=js_metric_array, fit_only=False,
                  n_landmarks=None, landmark_strategy='stride',
                  random_state=None, **kwargs):
         self.n_macrostates = n_macrostates
         self.metric = metric
+        self.fit_only = fit_only
         self.n_landmarks = n_landmarks
         self.landmark_strategy = landmark_strategy
         self.random_state = random_state
@@ -99,7 +108,13 @@ class MVCA(MarkovStateModel):
                                       n_landmarks=self.n_landmarks,
                                       landmark_strategy=self.landmark_strategy,
                                       random_state=self.random_state)
-        microstate_mapping_ = model.fit_transform([self.transmat_])[0]
+        model.fit([self.transmat_])
+
+        if self.fit_only:
+            microstate_mapping_ = model.landmark_labels_
+
+        else:
+            microstate_mapping_ = model.transform([self.transmat_])[0]
 
         self.microstate_mapping_ = microstate_mapping_
 
@@ -124,7 +139,7 @@ class MVCA(MarkovStateModel):
     @classmethod
     def from_msm(cls, msm, n_macrostates, metric=js_metric_array, 
                  n_landmarks=None, landmark_strategy='stride',
-                 random_state=None, get_linkage=False):
+                 random_state=None, get_linkage=False, fit_only=False):
         """Create and fit lumped model from pre-existing MSM.
 
         Parameters
@@ -156,7 +171,7 @@ class MVCA(MarkovStateModel):
         scatter(arange(1,n_microstates), mvca.elbow_data)
         """
         params = msm.get_params()
-        lumper = cls(n_macrostates, metric=metric, 
+        lumper = cls(n_macrostates, metric=metric, fit_only=fit_only,
                  n_landmarks=n_landmarks, landmark_strategy=landmark_strategy,
                  random_state=random_state, **params)
 

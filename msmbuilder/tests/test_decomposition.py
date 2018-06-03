@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA as PCAr
 
 from msmbuilder.example_datasets import AlanineDipeptide
 from ..cluster import KCenters
-from ..decomposition import (FactorAnalysis, FastICA, KernelTICA,
+from ..decomposition import (FactorAnalysis, FastICA, KernelTICA, SparseTICA,
                              MiniBatchSparsePCA, PCA, SparsePCA, tICA)
 from ..decomposition.kernel_approximation import LandmarkNystroem
 from ..featurizer import DihedralFeaturizer
@@ -114,6 +114,21 @@ def test_tica_commute_mapping():
 
     tica1 = tICA(n_components=2, lag_time=1)
     tica2 = tICA(n_components=2, lag_time=1, commute_mapping=True)
+
+    y1 = tica1.fit_transform([np.copy(X)])[0]
+    y2 = tica2.fit_transform([np.copy(X)])[0]
+
+    regularized_timescales = 0.5 * tica2.timescales_ *\
+                             np.tanh( np.pi *((tica2.timescales_ - tica2.lag_time)
+                                              /tica2.lag_time) + 1)
+
+    assert eq(y2, np.nan_to_num(y1 * np.sqrt(regularized_timescales/2)))
+
+def test_sparse_tica_commute_mapping():
+    X = random.randn(10, 3)
+
+    tica1 = SparseTICA(n_components=2, lag_time=1)
+    tica2 = SparseTICA(n_components=2, lag_time=1, commute_mapping=True)
 
     y1 = tica1.fit_transform([np.copy(X)])[0]
     y2 = tica2.fit_transform([np.copy(X)])[0]
