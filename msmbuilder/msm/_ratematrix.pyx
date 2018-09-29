@@ -216,7 +216,7 @@ cpdef double dK_dtheta_ij(const double[::1] theta, npy_intp n, npy_intp u,
 
 
 cpdef int dK_dtheta_u(const double[::1] theta, npy_intp n, npy_intp i,
-                      npy_intp j, double[:] out, double[:, :] A=None,
+                      npy_intp j, double[:] out, const double[:, :] A=None,
                       double[:] out2=None) nogil:
     r"""
     Compute :math:`dK_ij / dtheta_u` over all `u` for fixed (`i`, `j`).

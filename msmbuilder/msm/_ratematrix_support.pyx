@@ -102,7 +102,7 @@ cdef int hadamard_X(const double[::1] w, const double[::1] expwt, double t,
                 A[i, j] *= t * expwt[i]
 
 
-cdef int hadamard_inplace(const double[:, ::1] A, const double[:, ::1] B) nogil:
+cdef int hadamard_inplace(double[:, ::1] A, const double[:, ::1] B) nogil:
     """Overwrite the matrix A by its element-wise product with matrix B
     """
     if (A.shape[0] != B.shape[0]) or (A.shape[1] != B.shape[1]):
