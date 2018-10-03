@@ -45,6 +45,7 @@ Improvements
 - ```msmbuilder.io.sampling.sample_dimension``` with ```scheme='edge'``` now works properly. (#1043)
 - Changed zippy_maker code so that ```Featurizer.describe_features``` will
   return ordered unique lists to make reading and subselecting features easier.
+- ``SASAFeaturizer`` now really supports the ``describe_features`` method (gh-913).
 
 
 v3.8 (April 26, 2017)
