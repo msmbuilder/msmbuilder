@@ -1,6 +1,10 @@
 from __future__ import print_function, division, absolute_import
 from sklearn import clone
-from sklearn.grid_search import ParameterGrid
+try:
+    from sklearn.model_selection import ParameterGrid
+except ImportError:
+    from sklearn.grid_search import ParameterGrid
+
 from sklearn.externals.joblib import Parallel, delayed
 
 __all__ = ['param_sweep']
