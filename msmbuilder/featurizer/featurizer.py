@@ -1165,7 +1165,7 @@ class ContactFeaturizer(Featurizer):
     soft_min : bool, default=False
         If soft_min is true, we will use a diffrentiable version of
         the scheme. The exact expression used
-         is d = \frac{\beta}{log\sum_i{exp(\frac{\beta}{d_i}})} where
+         is :math:`d = \frac{\beta}{log\sum_i{exp(\frac{\beta}{d_i}})}` where
          beta is user parameter which defaults to 20nm. The expression
          we use is copied from the plumed mindist calculator.
          http://plumed.github.io/doc-v2.0/user-doc/html/mindist.html
