@@ -16,17 +16,17 @@ requirements:
   build:
     - python
     - setuptools
-    - cython <=0.27.3
+    - cython
     - numpy x.x
-    - mdtraj <=1.8
+    - mdtraj
   run:
     - python
     - setuptools
     - numpy x.x
     - scipy
-    - pandas <0.20
+    - pandas
     - six
-    - mdtraj <=1.8
+    - mdtraj
     - scikit-learn
     - numpydoc
     - pytables
