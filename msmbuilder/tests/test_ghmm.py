@@ -106,7 +106,7 @@ def test_2_state():
             validate_timeseries(means, vars, transmat, model, 0.1, 0.05)
             assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
 
-    for init_algo in ('kmeans', 'GMM'):
+    for init_algo in ('kmeans', 'GaussianHMM'):
         for reversible_type in ('mle', 'transpose'):
             yield two_state_tester(init_algo, reversible_type)
 
@@ -134,7 +134,7 @@ def test_3_state():
             validate_timeseries(means, vars, transmat, model, 0.1, 0.1)
             assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
 
-    for init_algo in ('kmeans', 'GMM'):
+    for init_algo in ('kmeans', 'GaussianHMM'):
         for reversible_type in ('mle', 'transpose'):
             yield three_state_tester(init_algo, reversible_type)
 
