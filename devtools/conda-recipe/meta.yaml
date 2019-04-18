@@ -43,7 +43,7 @@ test:
     - munkres
     - numdifftools
     - statsmodels
-    - hmmlearn
+    - hmmlearn=0.2.1
     - cvxpy # [not win]
     - msmb_data
   imports:

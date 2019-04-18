@@ -13,6 +13,7 @@ branches:
 install:
     - source devtools/travis-ci/install_miniconda.sh
     - conda config --add channels omnia
+    - conda config --add channels conda-forge
 
 script:
   # Run tests. If they succeed, build docs only on 3.6
