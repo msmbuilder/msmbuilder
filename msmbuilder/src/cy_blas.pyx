@@ -42,13 +42,13 @@ cdef extern from "f2py/f2pyptr.h":
     void *f2py_pointer(object) except NULL
 
 ctypedef double d
-ctypedef int dgemm_t(char *transa, char *transb, int *m, int *n, int *k, d *alpha, d *a,
-                     int *lda, d *b, int *ldb, d *beta, d *c, int *ldc) nogil
-ctypedef int dgemv_t(char *transa, int *m, int *n, d *alpha, d *a,
-                     int *lda, d *x, int *incx, d *beta, d *y, int *incy) nogil
-ctypedef d ddot_t(int *n, d *dx, int *incx, d *dy, int *incy) nogil
-ctypedef d dnrm2_t(int *n, d *x, int *incx) nogil
-ctypedef int daxpy_t(int *n, d *alpha, d *x, int *incx, d *y, int *incy) nogil
+ctypedef int dgemm_t(char *transa, char *transb, int *m, int *n, int *k, d *alpha, const d *a,
+                     int *lda, const d *b, int *ldb, d *beta, d *c, int *ldc) nogil
+ctypedef int dgemv_t(char *transa, int *m, int *n, d *alpha, const d *a,
+                     int *lda, const d *x, int *incx, d *beta, d *y, int *incy) nogil
+ctypedef d ddot_t(int *n, const d *dx, int *incx, const d *dy, int *incy) nogil
+ctypedef d dnrm2_t(int *n, const d *x, int *incx) nogil
+ctypedef int daxpy_t(int *n, const d *alpha, const d *x, int *incx, d *y, int *incy) nogil
 ctypedef int dger_t(int *n, int *m, d *alpha, d *x, int *incx, d *y, int *incy, d *a, int *lda) nogil
 
 cdef dgemm_t *FORTRAN_DGEMM = <dgemm_t*>f2py_pointer(blas.dgemm._cpointer)
@@ -60,7 +60,7 @@ cdef dger_t  *FORTRAN_DGER  = <dger_t*>f2py_pointer(blas.dger._cpointer)
 
 
 @cython.boundscheck(False)
-cdef inline int cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
+cdef inline int cdgemm_NN(const double[:, ::1] a, const double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a, b)
     """
     cdef int m, k, n
@@ -75,7 +75,7 @@ cdef inline int cdgemm_NN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, 
 
 
 @cython.boundscheck(False)
-cdef inline int cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
+cdef inline int cdgemm_NT(const double[:, ::1] a, const double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a, b.T)
     """
     cdef int m, k, n
@@ -90,7 +90,7 @@ cdef inline int cdgemm_NT(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, 
 
 
 @cython.boundscheck(False)
-cdef inline int cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
+cdef inline int cdgemm_TN(const double[:, ::1] a, const double[:, ::1] b, double[:, ::1] c, double alpha=1.0, double beta=0.0) nogil:
     """c = beta*c + alpha*dot(a.T, b)
     """
     cdef int m, k, n
@@ -105,7 +105,7 @@ cdef inline int cdgemm_TN(double[:, ::1] a, double[:, ::1] b, double[:, ::1] c, 
 
 
 @cython.boundscheck(False)
-cdef int cdgemv_N(double[:, ::1] a, double[:] x, double[:] y, double alpha=1.0, double beta=0.0) nogil:
+cdef int cdgemv_N(const double[:, ::1] a, const double[:] x, double[:] y, double alpha=1.0, double beta=0.0) nogil:
     cdef int m, n, incx, incy
     m = a.shape[0]
     n = a.shape[1]
@@ -119,7 +119,7 @@ cdef int cdgemv_N(double[:, ::1] a, double[:] x, double[:] y, double alpha=1.0, 
 
 
 @cython.boundscheck(False)
-cdef int cdgemv_T(double[:, ::1] a, double[:] x, double[:] y, double alpha=1.0, double beta=0.0) nogil:
+cdef int cdgemv_T(const double[:, ::1] a, const double[:] x, double[:] y, double alpha=1.0, double beta=0.0) nogil:
     cdef int m, n, incx, incy
     m = a.shape[1]
     n = a.shape[0]
@@ -133,7 +133,7 @@ cdef int cdgemv_T(double[:, ::1] a, double[:] x, double[:] y, double alpha=1.0, 
 
 
 @cython.boundscheck(False)
-cdef int cddot(double[:] x, double[:] y, double *result) nogil:
+cdef int cddot(const double[:] x, const double[:] y, double *result) nogil:
     cdef int n, incx, incy
     n = x.shape[0]
     incx = x.strides[0] / sizeof(double)
@@ -154,7 +154,7 @@ cdef int cdnrm2(double[:] x, double* result) nogil:
 
 
 @cython.boundscheck(False)
-cdef int cdaxpy(double alpha, double[:] x, double[:] y) nogil:
+cdef int cdaxpy(double alpha, const double[:] x, double[:] y) nogil:
     cdef int n = x.shape[0]
     cdef int incx = x.strides[0] / sizeof(double)
     cdef int incy = y.strides[0] / sizeof(double)
