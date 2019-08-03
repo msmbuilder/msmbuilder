@@ -16,7 +16,7 @@ requirements:
   build:
     - python
     - setuptools
-    - cython <=0.27.3
+    - cython <=0.28
     - numpy x.x
     - mdtraj <=1.8
   run:
