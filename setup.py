@@ -45,7 +45,7 @@ try:
     import Cython
     from Cython.Distutils import build_ext
 
-    if Cython.__version__ < '0.18':
+    if Cython.__version__ < '0.28':
         raise ImportError()
 except ImportError:
     print(
