@@ -38,6 +38,36 @@
 extern "C" {
 #endif
 
+
+static NPY_INLINE double
+cosine_distance_double(const double *u, const double *v, npy_intp n)
+{
+    double dot = 0.0, denom_a = 0.0, denom_b = 0.0;
+    npy_intp i;
+
+    for(i = 0; i <n; i++) {
+        dot += u[i] * v[i] ;
+        denom_a += u[i] * u[i] ;
+        denom_b += v[i] * v[i] ;
+    }
+    return  dot / (sqrt(denom_a) * sqrt(denom_b));
+}
+
+static NPY_INLINE double
+cosine_distance_float(const float *u, const float *v, npy_intp n)
+{
+    double dot = 0.0, denom_a = 0.0, denom_b = 0.0;
+    npy_intp i;
+
+    for(i = 0; i <n; i++) {
+        dot += u[i] * v[i] ;
+        denom_a += u[i] * u[i] ;
+        denom_b += v[i] * v[i] ;
+    }
+    return  dot / (sqrt(denom_a) * sqrt(denom_b));
+}
+
+
 static NPY_INLINE double
 sqeuclidean_distance_double(const double *u, const double *v, npy_intp n)
 {
@@ -263,6 +293,8 @@ static double(*metric_double(const char* metric))
       return &jaccard_distance_double;
     } else if (strcmp(metric, "cityblock") == 0) {
       return &city_block_distance_double;
+    } else if (strcmp(metric, "cosine") == 0) {
+      return &cosine_distance_double;
     }
     return NULL;
 }
@@ -288,6 +320,8 @@ static double(*metric_float(const char* metric))
       return &jaccard_distance_float;
     } else if (strcmp(metric, "cityblock") == 0) {
       return &city_block_distance_float;
+    } else if (strcmp(metric, "cosine") == 0) {
+      return &cosine_distance_float;
     }
     return NULL;
 }

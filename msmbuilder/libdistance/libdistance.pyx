@@ -16,7 +16,7 @@ __all__ = ['assign_nearest', 'pdist', 'dist']
 
 cdef VECTOR_METRICS = ("euclidean", "sqeuclidean", "cityblock", "chebyshev",
                        "canberra", "braycurtis", "hamming", "jaccard",
-                       "cityblock")
+                       "cityblock", "cosine")
 cdef const char* RMSD = "rmsd"
 
 #-----------------------------------------------------------------------------
